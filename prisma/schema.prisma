@@ -1,0 +1,209 @@
+// Prisma schema for the CRM
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Access control
+// ---------------------------------------------------------------------------
+
+/// Beheerder  = alle rechten (volledige systeembeheerder)
+/// Admin      = veel rechten (beheert leads/gebruikers, geen systeeminstellingen)
+/// Coach      = toegang tot zichzelf + zijn team
+/// User       = toegang enkel tot zichzelf
+enum Role {
+  BEHEERDER
+  ADMIN
+  COACH
+  USER
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// De coach die dit team leidt
+  coachId String @unique
+  coach   User   @relation("TeamCoach", fields: [coachId], references: [id])
+
+  /// De teamleden (rol USER) die aan deze coach rapporteren
+  members User[] @relation("TeamMembers")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  /// Team waarvan deze gebruiker lid is (enkel relevant voor rol USER)
+  teamId String?
+  team   Team?   @relation("TeamMembers", fields: [teamId], references: [id])
+
+  /// Team dat deze gebruiker als coach leidt (enkel relevant voor rol COACH)
+  coachedTeam Team? @relation("TeamCoach")
+
+  // Google Calendar koppeling (per gebruiker) voor het automatisch inplannen
+  // van gesprekken. De refresh token laat de app toe om zonder herhaalde
+  // login een agenda-item aan te maken.
+  googleCalendarConnected    Boolean @default(false)
+  googleCalendarRefreshToken String?
+  googleCalendarId           String? @default("primary")
+  googleCalendarEmail        String?
+
+  leadsOwned   Lead[]            @relation("LeadOwner")
+  leadsCreated Lead[]            @relation("LeadCreatedBy")
+  activities   Activity[]        @relation("ActivityAssignee")
+  stageChanges LeadStageChange[] @relation("StageChangedBy")
+
+  @@index([teamId])
+}
+
+// ---------------------------------------------------------------------------
+// Leads & funnels
+// ---------------------------------------------------------------------------
+
+/// De twee productlijnen/funnels die momenteel bestaan.
+/// FA = Financiële Analyse / Financieel Advies
+/// RG = Rechtsbijstand/Groep
+enum LeadType {
+  FA
+  RG
+}
+
+enum LeadStatus {
+  OPEN
+  WON
+  LOST
+}
+
+/// Configureerbare kolommen van de funnel-boards, per leadtype.
+model FunnelStage {
+  id        String   @id @default(cuid())
+  leadType  LeadType
+  key       String
+  label     String
+  order     Int
+  color     String   @default("#64748b")
+  isWon     Boolean  @default(false)
+  isLost    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads            Lead[]
+  stageChangesFrom LeadStageChange[] @relation("FromStage")
+  stageChangesTo   LeadStageChange[] @relation("ToStage")
+
+  @@unique([leadType, key])
+  @@index([leadType, order])
+}
+
+model Lead {
+  id              String     @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  company         String?
+  leadType        LeadType
+  status          LeadStatus @default(OPEN)
+  source          String?
+  notes           String?
+  value           Decimal?   @db.Decimal(10, 2)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  lastContactedAt DateTime?
+
+  stageId String
+  stage   FunnelStage @relation(fields: [stageId], references: [id])
+
+  /// De verantwoordelijke medewerker (bepaalt zichtbaarheid via rollen)
+  ownerId String
+  owner   User   @relation("LeadOwner", fields: [ownerId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("LeadCreatedBy", fields: [createdById], references: [id])
+
+  activities   Activity[]
+  stageChanges LeadStageChange[]
+
+  @@index([ownerId])
+  @@index([leadType, stageId])
+}
+
+model LeadStageChange {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  fromStageId String?
+  fromStage   FunnelStage? @relation("FromStage", fields: [fromStageId], references: [id])
+
+  toStageId String
+  toStage   FunnelStage @relation("ToStage", fields: [toStageId], references: [id])
+
+  changedById String
+  changedBy   User   @relation("StageChangedBy", fields: [changedById], references: [id])
+
+  changedAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Opvolging: activiteiten & ingeplande gesprekken
+// ---------------------------------------------------------------------------
+
+enum ActivityType {
+  CALL
+  MEETING
+  EMAIL
+  NOTE
+}
+
+enum ActivityStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Activity {
+  id              String         @id @default(cuid())
+  type            ActivityType
+  status          ActivityStatus @default(PLANNED)
+  subject         String
+  notes           String?
+  scheduledAt     DateTime?
+  durationMinutes Int?           @default(15)
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  assigneeId String
+  assignee   User   @relation("ActivityAssignee", fields: [assigneeId], references: [id])
+
+  // Koppeling met het Google Calendar event zodat we het later kunnen
+  // updaten/verwijderen wanneer de activiteit verandert.
+  googleEventId    String?
+  googleCalendarId String?
+  googleSyncError  String?
+
+  @@index([leadId])
+  @@index([assigneeId])
+  @@index([scheduledAt])
+}
