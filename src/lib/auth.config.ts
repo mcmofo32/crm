@@ -9,6 +9,10 @@ import type { NextAuthConfig } from "next-auth";
 export const authConfig = {
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  // Nodig op Vercel: het platform draait achter een proxy met een dynamische
+  // host (bv. per preview-deployment), dus NextAuth moet die host vertrouwen
+  // in plaats van een vaste NEXTAUTH_URL te vereisen.
+  trustHost: true,
   providers: [],
   callbacks: {
     jwt: async ({ token, user }) => {

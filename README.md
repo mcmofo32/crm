@@ -90,6 +90,45 @@ agenda-item aangemaakt/bijgewerkt/verwijderd (`src/lib/googleCalendar.ts`).
 
    Open [http://localhost:3000](http://localhost:3000).
 
+## Deployen naar Vercel
+
+De app is klaar om te deployen op Vercel; er is geen `vercel.json` nodig
+(Next.js wordt automatisch gedetecteerd). Wat wel nodig is:
+
+1. **Database**: maak in het Vercel-project onder **Storage → Create Database
+   → Neon** (of Supabase) een gratis PostgreSQL-database aan — de
+   `DATABASE_URL` wordt dan automatisch als env var ingesteld.
+2. **Overige environment variables** instellen bij **Settings →
+   Environment Variables**:
+
+   | Naam | Waarde | Opmerking |
+   |---|---|---|
+   | `DATABASE_URL` | (automatisch via Neon/Supabase-integratie) | — |
+   | `AUTH_SECRET` | output van `npx auth secret` | verplicht |
+   | `NEXTAUTH_URL` | *(mag leeg blijven op Vercel)* | de app vertrouwt de Vercel-host automatisch (`trustHost`) |
+   | `GOOGLE_CLIENT_ID` | uit Google Cloud Console | enkel nodig voor de Agenda-koppeling |
+   | `GOOGLE_CLIENT_SECRET` | uit Google Cloud Console | idem |
+   | `GOOGLE_REDIRECT_URI` | `https://<jouw-deploy-domein>/api/google/callback` | moet exact overeenkomen met de "Authorized redirect URI" in Google Cloud Console |
+
+3. **Deploy**: elke deploy voert automatisch `prisma migrate deploy` uit vóór
+   de build (zie `build`-script in `package.json`), zodat het databaseschema
+   altijd up-to-date is.
+4. **Seed-data (eenmalig)**: de seed draait niet automatisch mee in de build.
+   Zet lokaal je `.env` z'n `DATABASE_URL` tijdelijk op dezelfde
+   Neon/Supabase-connectiestring als op Vercel, en voer dan éénmalig uit:
+
+   ```bash
+   npm run db:seed
+   ```
+
+   zodat de voorbeeldaccounts (Beheerder/Admin/Coach/User) ook in de
+   productie-database staan. Wijzig hun wachtwoorden meteen nadien.
+
+5. **Google Cloud Console**: vergeet niet de definitieve
+   `GOOGLE_REDIRECT_URI` (met je echte Vercel-domein) toe te voegen als
+   "Authorized redirect URI" bij je OAuth-client, anders slaagt het koppelen
+   van Google Agenda niet.
+
 ## Scripts
 
 - `npm run dev` — dev-server
