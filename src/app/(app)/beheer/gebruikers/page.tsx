@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, MoreVertical } from "lucide-react";
 import { getManageableUsers } from "@/lib/actions/users";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
@@ -30,6 +30,7 @@ export default async function UsersPage() {
               <th className="px-6 py-3 font-medium">Rol</th>
               <th className="px-6 py-3 font-medium">Team</th>
               <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -57,6 +58,15 @@ export default async function UsersPage() {
                   <Badge variant={u.active ? "green" : "slate"}>
                     {u.active ? "Actief" : "Inactief"}
                   </Badge>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <Link
+                    href={`/beheer/gebruikers/${u.id}`}
+                    title="Instellingen"
+                    className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  >
+                    <MoreVertical size={18} />
+                  </Link>
                 </td>
               </tr>
             ))}

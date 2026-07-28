@@ -1,4 +1,4 @@
-import { Role } from "@/generated/prisma/client";
+import { Role, LeadType, LeadStatus } from "@/generated/prisma/client";
 import type { BadgeVariant } from "@/components/Badge";
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -25,11 +25,14 @@ export const LEAD_TYPE_BADGE_VARIANT = {
   RG: "purple",
 } as const satisfies Record<string, BadgeVariant>;
 
-export const LEAD_STATUS_LABELS = {
-  OPEN: "Open",
-  WON: "Gewonnen",
-  LOST: "Verloren",
-} as const;
+const LEAD_STATUS_LABELS_BY_TYPE: Record<LeadType, Record<LeadStatus, string>> = {
+  FA: { OPEN: "Open", WON: "Klant", LOST: "Verloren" },
+  RG: { OPEN: "Open", WON: "Medewerker", LOST: "Verloren" },
+};
+
+export function leadStatusLabel(status: LeadStatus, leadType: LeadType) {
+  return LEAD_STATUS_LABELS_BY_TYPE[leadType][status];
+}
 
 export const LEAD_STATUS_BADGE_VARIANT = {
   OPEN: "slate",

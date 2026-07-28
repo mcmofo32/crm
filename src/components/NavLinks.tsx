@@ -10,6 +10,7 @@ import {
   Briefcase,
   Trophy,
   UserCog,
+  Users2,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/funnel/RG": Briefcase,
   "/incentives": Trophy,
   "/beheer/gebruikers": UserCog,
+  "/beheer/teams": Users2,
   "/instellingen": Settings,
 };
 

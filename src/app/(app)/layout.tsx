@@ -28,6 +28,7 @@ export default async function AppLayout({
 
   if (canManageUsers(user)) {
     navItems.push({ href: "/beheer/gebruikers", label: "Gebruikers" });
+    navItems.push({ href: "/beheer/teams", label: "Teams" });
   }
   navItems.push({ href: "/instellingen", label: "Instellingen" });
 

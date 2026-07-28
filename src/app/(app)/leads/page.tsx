@@ -4,7 +4,7 @@ import { getLeadsForCurrentUser } from "@/lib/actions/leads";
 import {
   LEAD_TYPE_LABELS,
   LEAD_TYPE_BADGE_VARIANT,
-  LEAD_STATUS_LABELS,
+  leadStatusLabel,
   LEAD_STATUS_BADGE_VARIANT,
 } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
@@ -92,7 +92,7 @@ export default async function LeadsPage({
                 <td className="px-6 py-4 text-slate-600">{lead.stage.label}</td>
                 <td className="px-6 py-4">
                   <Badge variant={LEAD_STATUS_BADGE_VARIANT[lead.status]}>
-                    {LEAD_STATUS_LABELS[lead.status]}
+                    {leadStatusLabel(lead.status, lead.leadType)}
                   </Badge>
                 </td>
                 <td className="px-6 py-4">
