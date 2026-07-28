@@ -30,9 +30,11 @@ export default async function UsersPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {users.map((u) => (
-              <tr key={u.id}>
+              <tr key={u.id} className="hover:bg-slate-50">
                 <td className="px-4 py-2 font-medium text-slate-900">
-                  {u.name}
+                  <Link href={`/beheer/gebruikers/${u.id}`} className="hover:underline">
+                    {u.name}
+                  </Link>
                 </td>
                 <td className="px-4 py-2 text-slate-500">{u.email}</td>
                 <td className="px-4 py-2">{ROLE_LABELS[u.role]}</td>

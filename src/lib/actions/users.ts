@@ -88,3 +88,81 @@ export async function getTeamsForAssignment() {
     orderBy: { name: "asc" },
   });
 }
+
+export async function getUserForEdit(userId: string) {
+  const actor = await requireUserManager();
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target || !canManageUser(actor, target)) return null;
+  return target;
+}
+
+export async function updateUserAction(userId: string, formData: FormData) {
+  const actor = await requireUserManager();
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { coachedTeam: true },
+  });
+  if (!target) throw new Error("Gebruiker niet gevonden");
+  if (!canManageUser(actor, target)) {
+    throw new Error("Je mag deze gebruiker niet beheren");
+  }
+
+  const role = formData.get("role") as Role;
+  if (!canManageUser(actor, { role })) {
+    throw new Error("Je mag deze rol niet toekennen");
+  }
+  if (target.role === Role.COACH && role !== Role.COACH && target.coachedTeam) {
+    throw new Error(
+      "Deze coach heeft nog een team. Verwijder of herverdeel het team eerst."
+    );
+  }
+
+  const name = String(formData.get("name") ?? "");
+  const email = String(formData.get("email") ?? "");
+  const teamId = (formData.get("teamId") as string) || null;
+
+  if (!name || !email) {
+    throw new Error("Naam en e-mail zijn verplicht");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name,
+      email,
+      role,
+      teamId: role === Role.USER ? teamId : null,
+    },
+  });
+
+  if (role === Role.COACH && !target.coachedTeam) {
+    await prisma.team.create({
+      data: { name: `Team ${name}`, coachId: userId },
+    });
+  }
+
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath(`/beheer/gebruikers/${userId}`);
+}
+
+export async function resetUserPasswordAction(
+  userId: string,
+  formData: FormData
+) {
+  const actor = await requireUserManager();
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) throw new Error("Gebruiker niet gevonden");
+  if (!canManageUser(actor, target)) {
+    throw new Error("Je mag deze gebruiker niet beheren");
+  }
+
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) {
+    throw new Error("Wachtwoord moet minstens 8 tekens hebben");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+
+  revalidatePath(`/beheer/gebruikers/${userId}`);
+}
