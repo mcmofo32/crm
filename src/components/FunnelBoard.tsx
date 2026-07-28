@@ -201,7 +201,7 @@ export function FunnelBoard({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex snap-x snap-proximity gap-3 overflow-x-auto pb-2">
+      <div className="flex flex-wrap gap-3">
         {mainStages.map((stage) => {
           const accent = stageAccent(stage, leadType, activeStageIds.indexOf(stage.id));
           const isDragOver = dragOverStageId === stage.id;
@@ -219,7 +219,7 @@ export function FunnelBoard({
                 e.preventDefault();
                 handleDrop(stage);
               }}
-              className={`flex w-64 flex-shrink-0 snap-start flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm transition-colors ${
+              className={`flex min-w-64 flex-1 flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm transition-colors ${
                 isDragOver
                   ? "border-slate-400 ring-2 ring-slate-300"
                   : "border-slate-200"
