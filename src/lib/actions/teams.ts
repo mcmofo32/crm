@@ -1,19 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/client";
 import { canManageUsers, canManageUser } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { getEffectiveViewer } from "@/lib/impersonation";
 
 async function requireUserManager() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Niet ingelogd");
-  if (!canManageUsers(session.user)) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (!canManageUsers(viewer)) {
     throw new Error("Je hebt geen rechten om teams te beheren");
   }
-  return session.user;
+  return viewer;
 }
 
 export async function getTeamsWithMembers() {

@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { createLeadAction } from "@/lib/actions/leads";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 
 export default async function NewLeadPage() {
-  const session = await auth();
+  const viewer = (await getEffectiveViewer())!;
   const assignableUsers = await getAssignableUsers();
 
   return (
@@ -44,7 +44,7 @@ export default async function NewLeadPage() {
             </label>
             <select
               name="ownerId"
-              defaultValue={session!.user.id}
+              defaultValue={viewer.id}
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"
             >
               {assignableUsers.map((u) => (

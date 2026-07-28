@@ -8,12 +8,16 @@ import {
   ChevronDown,
   Copy,
   ScrollText,
+  Eye,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
-import { canManageUsers, isBeheerder, type SessionUser } from "@/lib/permissions";
+import { canManageUsers, isBeheerder } from "@/lib/permissions";
+import { ViewAsControls } from "@/components/ViewAsControls";
+import type { EffectiveViewer } from "@/lib/impersonation";
+import { Role } from "@/generated/prisma/client";
 
 function MenuLink({
   href,
@@ -45,13 +49,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function ProfileMenu({
   name,
-  user,
+  viewer,
 }: {
   name: string;
-  user: SessionUser;
+  viewer: EffectiveViewer;
 }) {
-  const showUserManagement = canManageUsers(user);
-  const showBeheerderTools = isBeheerder(user);
+  const showUserManagement = canManageUsers(viewer);
+  const showBeheerderTools = isBeheerder(viewer);
+  const canImpersonate = viewer.realRole === Role.BEHEERDER;
 
   return (
     <details className="group relative">
@@ -59,8 +64,9 @@ export function ProfileMenu({
         <Avatar name={name} size="md" />
         <div className="flex flex-col leading-tight">
           <span className="text-base font-medium text-slate-800">{name}</span>
-          <Badge variant={ROLE_BADGE_VARIANT[user.role]} className="w-fit">
-            {ROLE_LABELS[user.role]}
+          <Badge variant={ROLE_BADGE_VARIANT[viewer.role]} className="w-fit">
+            {ROLE_LABELS[viewer.role]}
+            {viewer.isImpersonating ? " (bekeken)" : ""}
           </Badge>
         </div>
         <ChevronDown
@@ -68,7 +74,22 @@ export function ProfileMenu({
           className="text-slate-400 transition-transform group-open:rotate-180"
         />
       </summary>
-      <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+      <div className="absolute right-0 z-50 mt-2 w-60 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+        {canImpersonate && (
+          <>
+            <SectionLabel>
+              <span className="flex items-center gap-1.5">
+                <Eye size={12} />
+                Bekijk als
+              </span>
+            </SectionLabel>
+            <ViewAsControls
+              currentRole={viewer.role}
+              isImpersonating={viewer.isImpersonating}
+            />
+            <hr className="my-1.5 border-slate-100" />
+          </>
+        )}
         {showUserManagement && (
           <>
             <SectionLabel>Beheer</SectionLabel>

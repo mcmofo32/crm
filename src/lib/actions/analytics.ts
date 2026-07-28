@@ -1,15 +1,15 @@
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isBeheerder } from "@/lib/permissions";
 import { LeadStatus, LeadType, Role } from "@/generated/prisma/client";
+import { getEffectiveViewer } from "@/lib/impersonation";
 
 async function requireBeheerder() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Niet ingelogd");
-  if (!isBeheerder(session.user)) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (!isBeheerder(viewer)) {
     throw new Error("Enkel de Beheerder heeft toegang tot deze analyse");
   }
-  return session.user;
+  return viewer;
 }
 
 export type LeadTypeStats = {
@@ -185,19 +185,19 @@ export async function getAnalytics() {
 
 /** Compact teamoverzicht voor een Coach: enkel zichzelf + zijn teamleden. */
 export async function getTeamOverviewForCoach() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Niet ingelogd");
-  if (session.user.role !== Role.COACH) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (viewer.role !== Role.COACH) {
     throw new Error("Enkel coaches hebben een teamoverzicht");
   }
 
   const team = await prisma.team.findUnique({
-    where: { coachId: session.user.id },
+    where: { coachId: viewer.id },
     select: { id: true, name: true, members: { select: { id: true } } },
   });
   if (!team) return null;
 
-  const userIds = [session.user.id, ...team.members.map((m) => m.id)];
+  const userIds = [viewer.id, ...team.members.map((m) => m.id)];
 
   const [users, leads, activityGroups] = await Promise.all([
     prisma.user.findMany({

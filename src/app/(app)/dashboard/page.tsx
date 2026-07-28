@@ -12,9 +12,9 @@ import {
   Users2,
   type LucideIcon,
 } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { LEAD_TYPE_LABELS, conversionBadgeVariant } from "@/lib/roleLabels";
 import { getTeamOverviewForCoach } from "@/lib/actions/analytics";
 import { LeadStatus, LeadType, Role } from "@/generated/prisma/client";
@@ -29,8 +29,7 @@ const ACTIVITY_ICONS: Record<string, LucideIcon> = {
 };
 
 export default async function DashboardPage() {
-  const session = await auth();
-  const user = session!.user;
+  const user = (await getEffectiveViewer())!;
   const ids = await getVisibleUserIds(user);
   const ownerWhere = ids ? { ownerId: { in: ids } } : {};
   const leadWhere = { deletedAt: null, ...ownerWhere };

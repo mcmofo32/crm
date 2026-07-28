@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Trophy, Medal } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 import { canManageIncentives } from "@/lib/permissions";
 import {
@@ -28,8 +28,7 @@ export default async function IncentiveDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
-  const user = session!.user;
+  const user = (await getEffectiveViewer())!;
 
   const incentive = await prisma.incentive.findUnique({
     where: { id },

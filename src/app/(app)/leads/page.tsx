@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, Search, Download } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { getLeadsForCurrentUser } from "@/lib/actions/leads";
 import { canDeleteLeads } from "@/lib/permissions";
 import {
@@ -28,8 +28,8 @@ export default async function LeadsPage({
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
   const leads = await getLeadsForCurrentUser(leadType, q);
-  const session = await auth();
-  const canDelete = canDeleteLeads(session!.user);
+  const viewer = (await getEffectiveViewer())!;
+  const canDelete = canDeleteLeads(viewer);
 
   const exportParams = new URLSearchParams();
   if (leadType) exportParams.set("type", leadType);

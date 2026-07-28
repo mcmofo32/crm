@@ -1,11 +1,10 @@
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { createUserAction, getTeamsForAssignment } from "@/lib/actions/users";
 import { Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 
 export default async function NewUserPage() {
-  const session = await auth();
-  const actor = session!.user;
+  const actor = (await getEffectiveViewer())!;
   const teams = await getTeamsForAssignment();
 
   const assignableRoles = (

@@ -2,18 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { IncentiveGoalType, LeadType } from "@/generated/prisma/client";
 import { canManageIncentives } from "@/lib/permissions";
+import { getEffectiveViewer } from "@/lib/impersonation";
 
 const MAX_POSTER_BYTES = 8 * 1024 * 1024; // 8 MB
 const ALLOWED_POSTER_TYPES = ["image/jpeg", "image/jpg", "application/pdf"];
 
 async function requireUser() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Niet ingelogd");
-  return session.user;
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  return viewer;
 }
 
 async function requireIncentiveManager() {

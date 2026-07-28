@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { getVisibleUserIds } from "@/lib/permissions";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
@@ -17,8 +17,7 @@ export default async function FunnelPage({
   const leadType = type.toUpperCase();
   if (leadType !== "FA" && leadType !== "RG") notFound();
 
-  const session = await auth();
-  const user = session!.user;
+  const user = (await getEffectiveViewer())!;
   const visibleUserIds = await getVisibleUserIds(user);
 
   const stages = await prisma.funnelStage.findMany({

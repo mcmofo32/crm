@@ -1,11 +1,11 @@
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isBeheerder } from "@/lib/permissions";
+import { getEffectiveViewer } from "@/lib/impersonation";
 
 export async function getAuditLog(entityType?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Niet ingelogd");
-  if (!isBeheerder(session.user)) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (!isBeheerder(viewer)) {
     throw new Error("Enkel de Beheerder heeft toegang tot het logboek");
   }
 

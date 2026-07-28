@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { isBeheerder } from "@/lib/permissions";
 import { getAnalytics } from "@/lib/actions/analytics";
 import {
@@ -20,9 +20,9 @@ export default async function AnalysePage({
 }: {
   searchParams: Promise<{ team?: string; person?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  if (!isBeheerder(session.user)) redirect("/dashboard");
+  const viewer = await getEffectiveViewer();
+  if (!viewer) redirect("/login");
+  if (!isBeheerder(viewer)) redirect("/dashboard");
 
   const { team: teamFilter, person: personFilter } = await searchParams;
   const { byType, stageDistribution, perEmployee, teams } = await getAnalytics();

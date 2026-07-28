@@ -1,22 +1,23 @@
 import { redirect } from "next/navigation";
-import { LogOut, Sparkles } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { LogOut, Sparkles, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { logoutAction } from "@/lib/actions/auth";
+import { ROLE_LABELS } from "@/lib/roleLabels";
 import { NavLinks } from "@/components/NavLinks";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { ViewAsControls } from "@/components/ViewAsControls";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+  const viewer = await getEffectiveViewer();
+  if (!viewer) redirect("/login");
 
-  const user = session.user;
-  const visibleUserIds = await getVisibleUserIds(user);
+  const visibleUserIds = await getVisibleUserIds(viewer);
   const overdueTasks = await prisma.activity.count({
     where: {
       status: "PLANNED",
@@ -51,7 +52,7 @@ export default async function AppLayout({
             <NavLinks items={navItems} />
           </div>
           <div className="flex items-center gap-3">
-            <ProfileMenu name={user.name ?? "?"} user={user} />
+            <ProfileMenu name={viewer.name} viewer={viewer} />
             <form action={logoutAction}>
               <button
                 type="submit"
@@ -64,6 +65,21 @@ export default async function AppLayout({
           </div>
         </div>
       </header>
+
+      {viewer.isImpersonating && (
+        <div className="border-b border-amber-200 bg-amber-50">
+          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-6 py-2.5 text-sm text-amber-800 lg:px-10">
+            <span className="flex items-center gap-2">
+              <Eye size={16} />
+              Testomgeving: je bekijkt de CRM als{" "}
+              <strong>{ROLE_LABELS[viewer.role]}</strong> — dit is enkel een
+              voorbeeldweergave, je bent nog steeds ingelogd als jezelf.
+            </span>
+            <ViewAsControls currentRole={viewer.role} isImpersonating inline />
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-6 py-8 lg:px-10">
         {children}
       </main>

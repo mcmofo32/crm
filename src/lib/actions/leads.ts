@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   ActivityStatus,
@@ -16,11 +15,12 @@ import {
   getVisibleUserIds,
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { getEffectiveViewer } from "@/lib/impersonation";
 
 async function requireUser() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Niet ingelogd");
-  return session.user;
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  return viewer;
 }
 
 export async function createLeadAction(formData: FormData) {

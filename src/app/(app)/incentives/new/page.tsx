@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageIncentives } from "@/lib/permissions";
 import { createIncentiveAction } from "@/lib/actions/incentives";
 
 export default async function NewIncentivePage() {
-  const session = await auth();
-  const user = session!.user;
+  const user = (await getEffectiveViewer())!;
   if (!canManageIncentives(user)) redirect("/incentives");
 
   return (

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Copy } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { isBeheerder } from "@/lib/permissions";
 import { getDuplicateLeads } from "@/lib/actions/duplicates";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
@@ -9,9 +9,9 @@ import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
 export default async function DuplicatenPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  if (!isBeheerder(session.user)) redirect("/dashboard");
+  const viewer = await getEffectiveViewer();
+  if (!viewer) redirect("/login");
+  if (!isBeheerder(viewer)) redirect("/dashboard");
 
   const groups = await getDuplicateLeads();
 

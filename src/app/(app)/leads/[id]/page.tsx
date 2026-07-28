@@ -6,7 +6,7 @@ import {
   StickyNote,
   type LucideIcon,
 } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 import { canAccessOwner, canDeleteLeads, getVisibleUserIds } from "@/lib/permissions";
 import { scheduleActivityAction } from "@/lib/actions/activities";
@@ -53,9 +53,8 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  const user = session.user;
+  const user = await getEffectiveViewer();
+  if (!user) redirect("/login");
 
   const lead = await prisma.lead.findUnique({
     where: { id },

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ScrollText } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { isBeheerder } from "@/lib/permissions";
 import { getAuditLog } from "@/lib/audit";
 import { Badge } from "@/components/Badge";
@@ -36,9 +36,9 @@ export default async function AuditLogPage({
 }: {
   searchParams: Promise<{ type?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  if (!isBeheerder(session.user)) redirect("/dashboard");
+  const viewer = await getEffectiveViewer();
+  if (!viewer) redirect("/login");
+  if (!isBeheerder(viewer)) redirect("/dashboard");
 
   const { type } = await searchParams;
   const entries = await getAuditLog(type);

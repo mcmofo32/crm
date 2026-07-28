@@ -7,7 +7,7 @@ import {
   AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
@@ -44,8 +44,7 @@ export default async function TakenPage({
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
 
-  const session = await auth();
-  const user = session!.user;
+  const user = (await getEffectiveViewer())!;
   const visibleUserIds = await getVisibleUserIds(user);
   const ownerWhere = visibleUserIds ? { ownerId: { in: visibleUserIds } } : {};
 

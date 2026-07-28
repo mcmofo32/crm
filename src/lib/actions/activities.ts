@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ActivityStatus, ActivityType } from "@/generated/prisma/client";
 import { canAccessOwner } from "@/lib/permissions";
@@ -10,11 +9,12 @@ import {
   syncActivityToGoogleCalendar,
 } from "@/lib/googleCalendar";
 import { logAudit } from "@/lib/audit";
+import { getEffectiveViewer } from "@/lib/impersonation";
 
 async function requireUser() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Niet ingelogd");
-  return session.user;
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  return viewer;
 }
 
 async function requireLeadAccess(leadId: string) {

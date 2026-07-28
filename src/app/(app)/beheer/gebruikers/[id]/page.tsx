@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import {
   getUserForEdit,
   getTeamsForAssignment,
@@ -16,8 +16,8 @@ export default async function EditUserPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
-  const actorRole = session!.user.role;
+  const viewer = (await getEffectiveViewer())!;
+  const actorRole = viewer.role;
 
   const [target, teams] = await Promise.all([
     getUserForEdit(id),

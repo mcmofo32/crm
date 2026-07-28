@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { Plus, Trophy, FileText } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 import { canManageIncentives } from "@/lib/permissions";
 import { Badge } from "@/components/Badge";
 
 export default async function IncentivesPage() {
-  const session = await auth();
-  const user = session!.user;
+  const user = (await getEffectiveViewer())!;
 
   const incentives = await prisma.incentive.findMany({
     orderBy: { startDate: "desc" },

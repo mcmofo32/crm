@@ -21,8 +21,19 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  const role = req.auth.user.role;
-  if (pathname.startsWith("/beheer") && role !== "BEHEERDER" && role !== "ADMIN") {
+  const realRole = req.auth.user.role;
+  const viewAsRole = req.cookies.get("view-as-role")?.value;
+  const effectiveRole =
+    realRole === "BEHEERDER" &&
+    (viewAsRole === "ADMIN" || viewAsRole === "COACH" || viewAsRole === "USER")
+      ? viewAsRole
+      : realRole;
+
+  if (
+    pathname.startsWith("/beheer") &&
+    effectiveRole !== "BEHEERDER" &&
+    effectiveRole !== "ADMIN"
+  ) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 

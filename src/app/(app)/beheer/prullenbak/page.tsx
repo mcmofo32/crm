@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { isBeheerder } from "@/lib/permissions";
 import { getDeletedLeads } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
@@ -9,9 +9,9 @@ import { Avatar } from "@/components/Avatar";
 import { RestoreLeadButton } from "@/components/RestoreLeadButton";
 
 export default async function PrullenbakPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  if (!isBeheerder(session.user)) redirect("/dashboard");
+  const viewer = await getEffectiveViewer();
+  if (!viewer) redirect("/login");
+  if (!isBeheerder(viewer)) redirect("/dashboard");
 
   const leads = await getDeletedLeads();
 
