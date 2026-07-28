@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { LeadStatus, LeadType } from "@/generated/prisma/client";
+import {
+  ActivityStatus,
+  ActivityType,
+  LeadStatus,
+  LeadType,
+} from "@/generated/prisma/client";
 import { canAccessOwner, getVisibleUserIds } from "@/lib/permissions";
 
 async function requireUser() {
@@ -53,7 +58,8 @@ export async function createLeadAction(formData: FormData) {
 
 export async function updateLeadStageAction(
   leadId: string,
-  toStageId: string
+  toStageId: string,
+  notes?: string
 ) {
   const user = await requireUser();
 
@@ -76,10 +82,17 @@ export async function updateLeadStageAction(
     ? LeadStatus.LOST
     : LeadStatus.OPEN;
 
+  const trimmedNotes = notes?.trim();
+  const now = new Date();
+
   await prisma.$transaction([
     prisma.lead.update({
       where: { id: leadId },
-      data: { stageId: toStageId, status },
+      data: {
+        stageId: toStageId,
+        status,
+        ...(trimmedNotes ? { lastContactedAt: now } : {}),
+      },
     }),
     prisma.leadStageChange.create({
       data: {
@@ -89,10 +102,28 @@ export async function updateLeadStageAction(
         changedById: user.id,
       },
     }),
+    ...(trimmedNotes
+      ? [
+          prisma.activity.create({
+            data: {
+              leadId,
+              assigneeId: user.id,
+              type: ActivityType.NOTE,
+              status: ActivityStatus.COMPLETED,
+              subject: `Verplaatst naar ${toStage.label}`,
+              notes: trimmedNotes,
+              scheduledAt: now,
+              completedAt: now,
+            },
+          }),
+        ]
+      : []),
   ]);
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
 }
 
 export async function getLeadsForCurrentUser(leadType?: LeadType) {
