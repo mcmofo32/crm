@@ -7,6 +7,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/client";
 import { canManageUser, canManageUsers } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
+import { ROLE_LABELS } from "@/lib/roleLabels";
 
 async function requireUserManager() {
   const session = await auth();
@@ -54,6 +56,14 @@ export async function createUserAction(formData: FormData) {
     });
   }
 
+  await logAudit({
+    actorId: actor.id,
+    action: "user.created",
+    entityType: "User",
+    entityId: user.id,
+    description: `Gebruiker "${name}" aangemaakt (${ROLE_LABELS[role]})`,
+  });
+
   revalidatePath("/beheer/gebruikers");
   redirect("/beheer/gebruikers");
 }
@@ -67,6 +77,15 @@ export async function setUserActiveAction(userId: string, active: boolean) {
   }
 
   await prisma.user.update({ where: { id: userId }, data: { active } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: active ? "user.activated" : "user.deactivated",
+    entityType: "User",
+    entityId: target.id,
+    description: `Gebruiker "${target.name}" ${active ? "geactiveerd" : "gedeactiveerd"}`,
+  });
+
   revalidatePath("/beheer/gebruikers");
 }
 
@@ -141,6 +160,22 @@ export async function updateUserAction(userId: string, formData: FormData) {
     });
   }
 
+  const changes: string[] = [];
+  if (target.name !== name) changes.push(`naam: "${target.name}" → "${name}"`);
+  if (target.email !== email) changes.push(`e-mail: "${target.email}" → "${email}"`);
+  if (target.role !== role) {
+    changes.push(`rol: ${ROLE_LABELS[target.role]} → ${ROLE_LABELS[role]}`);
+  }
+  if (changes.length > 0) {
+    await logAudit({
+      actorId: actor.id,
+      action: "user.updated",
+      entityType: "User",
+      entityId: userId,
+      description: `Gebruiker "${target.name}" gewijzigd (${changes.join(", ")})`,
+    });
+  }
+
   revalidatePath("/beheer/gebruikers");
   revalidatePath(`/beheer/gebruikers/${userId}`);
 }
@@ -163,6 +198,14 @@ export async function resetUserPasswordAction(
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: "user.password_reset",
+    entityType: "User",
+    entityId: target.id,
+    description: `Wachtwoord gereset voor gebruiker "${target.name}"`,
+  });
 
   revalidatePath(`/beheer/gebruikers/${userId}`);
 }

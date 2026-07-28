@@ -9,13 +9,17 @@ import {
   Mail,
   StickyNote,
   AlertTriangle,
+  Users2,
   type LucideIcon,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
-import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
-import { LeadStatus, LeadType } from "@/generated/prisma/client";
+import { LEAD_TYPE_LABELS, conversionBadgeVariant } from "@/lib/roleLabels";
+import { getTeamOverviewForCoach } from "@/lib/actions/analytics";
+import { LeadStatus, LeadType, Role } from "@/generated/prisma/client";
+import { Badge } from "@/components/Badge";
+import { Avatar } from "@/components/Avatar";
 
 const ACTIVITY_ICONS: Record<string, LucideIcon> = {
   CALL: Phone,
@@ -58,6 +62,9 @@ export default async function DashboardPage() {
         take: 8,
       }),
     ]);
+
+  const teamOverview =
+    user.role === Role.COACH ? await getTeamOverviewForCoach() : null;
 
   return (
     <div className="flex flex-col gap-10">
@@ -162,6 +169,54 @@ export default async function DashboardPage() {
           </ul>
         )}
       </div>
+
+      {teamOverview && (
+        <div>
+          <h2 className="mb-4 flex items-center gap-1.5 text-xl font-medium text-slate-900">
+            <Users2 size={19} />
+            Mijn team — {teamOverview.teamName}
+          </h2>
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-base">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Naam</th>
+                  <th className="px-6 py-3 font-medium">Leads</th>
+                  <th className="px-6 py-3 font-medium">Gewonnen</th>
+                  <th className="px-6 py-3 font-medium">Conversie</th>
+                  <th className="px-6 py-3 font-medium">Afgeronde contacten</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {teamOverview.members.map((member) => (
+                  <tr key={member.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 font-medium text-slate-900">
+                      <div className="flex items-center gap-2">
+                        <Avatar name={member.name} />
+                        {member.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-700">
+                      {member.totalLeads}
+                    </td>
+                    <td className="px-6 py-4 text-slate-700">{member.won}</td>
+                    <td className="px-6 py-4">
+                      <Badge variant={conversionBadgeVariant(member.conversionRate)}>
+                        {member.conversionRate === null
+                          ? "—"
+                          : `${member.conversionRate}%`}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-slate-700">
+                      {member.activitiesCompleted}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

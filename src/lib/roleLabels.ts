@@ -39,3 +39,10 @@ export const LEAD_STATUS_BADGE_VARIANT = {
   WON: "green",
   LOST: "red",
 } as const satisfies Record<string, BadgeVariant>;
+
+export function conversionBadgeVariant(rate: number | null): BadgeVariant {
+  if (rate === null) return "slate";
+  if (rate >= 50) return "green";
+  if (rate >= 25) return "amber";
+  return "red";
+}

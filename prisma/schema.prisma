@@ -70,8 +70,25 @@ model User {
   activities        Activity[]        @relation("ActivityAssignee")
   stageChanges      LeadStageChange[] @relation("StageChangedBy")
   incentivesCreated Incentive[]       @relation("IncentiveCreatedBy")
+  auditLogEntries   AuditLog[]        @relation("AuditActor")
 
   @@index([teamId])
+}
+
+/// Logboek van belangrijke beheersacties, enkel zichtbaar voor de Beheerder.
+model AuditLog {
+  id          String   @id @default(cuid())
+  /// Machine-leesbare actie, bv. "lead.deleted", "user.role_changed"
+  action      String
+  entityType  String
+  entityId    String
+  description String
+  actorId     String
+  actor       User     @relation("AuditActor", fields: [actorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
 }
 
 // ---------------------------------------------------------------------------

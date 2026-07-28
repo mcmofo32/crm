@@ -8,18 +8,12 @@ import {
   LEAD_TYPE_LABELS,
   ROLE_LABELS,
   ROLE_BADGE_VARIANT,
+  conversionBadgeVariant,
 } from "@/lib/roleLabels";
-import { Badge, type BadgeVariant } from "@/components/Badge";
+import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
 const STAGE_COLORS = ["#2563eb", "#4f46e5", "#7c3aed", "#a21caf", "#c026d3"];
-
-function conversionBadgeVariant(rate: number | null): BadgeVariant {
-  if (rate === null) return "slate";
-  if (rate >= 50) return "green";
-  if (rate >= 25) return "amber";
-  return "red";
-}
 
 export default async function AnalysePage({
   searchParams,

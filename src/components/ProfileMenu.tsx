@@ -6,6 +6,8 @@ import {
   Users2,
   Settings,
   ChevronDown,
+  Copy,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -86,6 +88,12 @@ export function ProfileMenu({
             </MenuLink>
             <MenuLink href="/beheer/prullenbak" icon={Trash2}>
               Verwijderde leads
+            </MenuLink>
+            <MenuLink href="/beheer/duplicaten" icon={Copy}>
+              Dubbele leads
+            </MenuLink>
+            <MenuLink href="/beheer/auditlog" icon={ScrollText}>
+              Logboek
             </MenuLink>
           </>
         )}

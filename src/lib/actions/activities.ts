@@ -9,6 +9,7 @@ import {
   deleteActivityFromGoogleCalendar,
   syncActivityToGoogleCalendar,
 } from "@/lib/googleCalendar";
+import { logAudit } from "@/lib/audit";
 
 async function requireUser() {
   const session = await auth();
@@ -189,7 +190,7 @@ export async function deleteActivityAction(activityId: string) {
     where: { id: activityId },
   });
   if (!activity) throw new Error("Activiteit niet gevonden");
-  await requireLeadAccess(activity.leadId);
+  const { user, lead } = await requireLeadAccess(activity.leadId);
 
   const assignee = await prisma.user.findUnique({
     where: { id: activity.assigneeId },
@@ -199,6 +200,14 @@ export async function deleteActivityAction(activityId: string) {
   }
 
   await prisma.activity.delete({ where: { id: activityId } });
+
+  await logAudit({
+    actorId: user.id,
+    action: "activity.deleted",
+    entityType: "Activity",
+    entityId: activityId,
+    description: `Activiteit "${activity.subject}" verwijderd bij lead "${lead.firstName} ${lead.lastName}"`,
+  });
 
   revalidatePath(`/leads/${activity.leadId}`);
   revalidatePath("/taken");

@@ -15,6 +15,7 @@ import {
   canDeleteLeads,
   getVisibleUserIds,
 } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 async function requireUser() {
   const session = await auth();
@@ -53,6 +54,14 @@ export async function createLeadAction(formData: FormData) {
       createdById: user.id,
       stageId: firstStage.id,
     },
+  });
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.created",
+    entityType: "Lead",
+    entityId: lead.id,
+    description: `Lead "${lead.firstName} ${lead.lastName}" aangemaakt (${leadType})`,
   });
 
   revalidatePath("/leads");
@@ -145,6 +154,14 @@ export async function deleteLeadAction(leadId: string) {
     data: { deletedAt: new Date(), deletedById: user.id },
   });
 
+  await logAudit({
+    actorId: user.id,
+    action: "lead.deleted",
+    entityType: "Lead",
+    entityId: lead.id,
+    description: `Lead "${lead.firstName} ${lead.lastName}" verwijderd (naar prullenbak)`,
+  });
+
   revalidatePath("/leads");
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/taken");
@@ -165,6 +182,14 @@ export async function restoreLeadAction(leadId: string) {
   await prisma.lead.update({
     where: { id: leadId },
     data: { deletedAt: null, deletedById: null },
+  });
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.restored",
+    entityType: "Lead",
+    entityId: lead.id,
+    description: `Lead "${lead.firstName} ${lead.lastName}" hersteld uit de prullenbak`,
   });
 
   revalidatePath("/leads");
