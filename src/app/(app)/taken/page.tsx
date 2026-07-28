@@ -1,16 +1,32 @@
 import Link from "next/link";
+import {
+  Phone,
+  CalendarClock,
+  Mail,
+  StickyNote,
+  AlertTriangle,
+  type LucideIcon,
+} from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
-import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
+import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
+import { Badge } from "@/components/Badge";
 
 const ACTIVITY_TYPE_LABELS = {
   CALL: "Telefoongesprek",
   MEETING: "Afspraak",
   EMAIL: "E-mail",
   NOTE: "Notitie",
+};
+
+const ACTIVITY_TYPE_ICONS: Record<string, LucideIcon> = {
+  CALL: Phone,
+  MEETING: CalendarClock,
+  EMAIL: Mail,
+  NOTE: StickyNote,
 };
 
 function startOfDay(date: Date) {
@@ -116,61 +132,70 @@ export default async function TakenPage({
             .map((bucket) => (
               <div key={bucket.label}>
                 <h2
-                  className={`mb-3 text-lg font-medium ${
+                  className={`mb-3 flex items-center gap-1.5 text-lg font-medium ${
                     bucket.label === "Verlopen"
                       ? "text-red-600"
                       : "text-slate-900"
                   }`}
                 >
+                  {bucket.label === "Verlopen" && <AlertTriangle size={17} />}
                   {bucket.label}{" "}
                   <span className="text-base font-normal text-slate-400">
                     ({bucket.tasks.length})
                   </span>
                 </h2>
                 <ul className="flex flex-col gap-2">
-                  {bucket.tasks.map((task) => (
-                    <li
-                      key={task.id}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 text-base"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/leads/${task.lead.id}`}
-                            className="font-medium text-slate-900 hover:underline"
-                          >
-                            {task.lead.firstName} {task.lead.lastName}
-                          </Link>
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-sm text-slate-500">
-                            {LEAD_TYPE_LABELS[task.lead.leadType]}
+                  {bucket.tasks.map((task) => {
+                    const Icon = ACTIVITY_TYPE_ICONS[task.type] ?? StickyNote;
+                    return (
+                      <li
+                        key={task.id}
+                        className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 text-base"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                            <Icon size={16} />
                           </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/leads/${task.lead.id}`}
+                                className="font-medium text-slate-900 hover:underline"
+                              >
+                                {task.lead.firstName} {task.lead.lastName}
+                              </Link>
+                              <Badge variant={LEAD_TYPE_BADGE_VARIANT[task.lead.leadType]}>
+                                {LEAD_TYPE_LABELS[task.lead.leadType]}
+                              </Badge>
+                            </div>
+                            <p className="text-slate-500">
+                              {ACTIVITY_TYPE_LABELS[task.type]} · {task.subject} ·{" "}
+                              {task.assignee.name}
+                            </p>
+                            <p className="text-sm text-slate-400">
+                              Laatste contact:{" "}
+                              {task.lead.lastContactedAt
+                                ? task.lead.lastContactedAt.toLocaleString(
+                                    "nl-BE",
+                                    { dateStyle: "medium", timeStyle: "short" }
+                                  )
+                                : "nog geen contact"}
+                              {task.scheduledAt && (
+                                <>
+                                  {" · "}Volgend contact:{" "}
+                                  {task.scheduledAt.toLocaleString("nl-BE", {
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                  })}
+                                </>
+                              )}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-slate-500">
-                          {ACTIVITY_TYPE_LABELS[task.type]} · {task.subject} ·{" "}
-                          {task.assignee.name}
-                        </p>
-                        <p className="text-sm text-slate-400">
-                          Laatste contact:{" "}
-                          {task.lead.lastContactedAt
-                            ? task.lead.lastContactedAt.toLocaleString(
-                                "nl-BE",
-                                { dateStyle: "medium", timeStyle: "short" }
-                              )
-                            : "nog geen contact"}
-                          {task.scheduledAt && (
-                            <>
-                              {" · "}Volgend contact:{" "}
-                              {task.scheduledAt.toLocaleString("nl-BE", {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })}
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <ActivityButtons activityId={task.id} />
-                    </li>
-                  ))}
+                        <ActivityButtons activityId={task.id} />
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

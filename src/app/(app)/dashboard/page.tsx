@@ -1,9 +1,27 @@
 import Link from "next/link";
+import {
+  TrendingUp,
+  Briefcase,
+  Trophy,
+  ListChecks,
+  Phone,
+  CalendarClock,
+  Mail,
+  StickyNote,
+  type LucideIcon,
+} from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadStatus, LeadType } from "@/generated/prisma/client";
+
+const ACTIVITY_ICONS: Record<string, LucideIcon> = {
+  CALL: Phone,
+  MEETING: CalendarClock,
+  EMAIL: Mail,
+  NOTE: StickyNote,
+};
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -50,14 +68,30 @@ export default async function DashboardPage() {
           label={`Open — ${LEAD_TYPE_LABELS.FA}`}
           value={openFA}
           href="/funnel/FA"
+          icon={TrendingUp}
+          color="bg-blue-100 text-blue-700"
         />
         <StatCard
           label={`Open — ${LEAD_TYPE_LABELS.RG}`}
           value={openRG}
           href="/funnel/RG"
+          icon={Briefcase}
+          color="bg-purple-100 text-purple-700"
         />
-        <StatCard label="Gewonnen leads" value={wonCount} href="/leads" />
-        <StatCard label="Openstaande taken" value={openTasks} href="/taken" />
+        <StatCard
+          label="Gewonnen leads"
+          value={wonCount}
+          href="/leads"
+          icon={Trophy}
+          color="bg-green-100 text-green-700"
+        />
+        <StatCard
+          label="Openstaande taken"
+          value={openTasks}
+          href="/taken"
+          icon={ListChecks}
+          color="bg-amber-100 text-amber-700"
+        />
       </div>
 
       <div>
@@ -70,30 +104,38 @@ export default async function DashboardPage() {
           </p>
         ) : (
           <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-            {upcomingCalls.map((activity) => (
-              <li
-                key={activity.id}
-                className="flex items-center justify-between px-6 py-4"
-              >
-                <div>
-                  <Link
-                    href={`/leads/${activity.leadId}`}
-                    className="text-base font-medium text-slate-900 hover:underline"
-                  >
-                    {activity.subject}
-                  </Link>
-                  <p className="text-base text-slate-500">
-                    {activity.lead.firstName} {activity.lead.lastName}
-                  </p>
-                </div>
-                <span className="text-base text-slate-500">
-                  {activity.scheduledAt?.toLocaleString("nl-BE", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </span>
-              </li>
-            ))}
+            {upcomingCalls.map((activity) => {
+              const Icon = ACTIVITY_ICONS[activity.type] ?? Phone;
+              return (
+                <li
+                  key={activity.id}
+                  className="flex items-center justify-between px-6 py-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                      <Icon size={17} />
+                    </span>
+                    <div>
+                      <Link
+                        href={`/leads/${activity.leadId}`}
+                        className="text-base font-medium text-slate-900 hover:underline"
+                      >
+                        {activity.subject}
+                      </Link>
+                      <p className="text-base text-slate-500">
+                        {activity.lead.firstName} {activity.lead.lastName}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-base text-slate-500">
+                    {activity.scheduledAt?.toLocaleString("nl-BE", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -105,18 +147,27 @@ function StatCard({
   label,
   value,
   href,
+  icon: Icon,
+  color,
 }: {
   label: string;
   value: number;
   href: string;
+  icon: LucideIcon;
+  color: string;
 }) {
   return (
     <Link
       href={href}
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-slate-300"
+      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
     >
+      <span
+        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
+      >
+        <Icon size={20} />
+      </span>
       <p className="text-base text-slate-500">{label}</p>
-      <p className="mt-2 text-4xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-1 text-4xl font-semibold text-slate-900">{value}</p>
     </Link>
   );
 }

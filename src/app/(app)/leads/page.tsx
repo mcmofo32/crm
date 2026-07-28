@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { getLeadsForCurrentUser } from "@/lib/actions/leads";
-import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
+import {
+  LEAD_TYPE_LABELS,
+  LEAD_TYPE_BADGE_VARIANT,
+  LEAD_STATUS_LABELS,
+  LEAD_STATUS_BADGE_VARIANT,
+} from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
-
-const STATUS_LABELS = { OPEN: "Open", WON: "Gewonnen", LOST: "Verloren" };
+import { Badge } from "@/components/Badge";
+import { Avatar } from "@/components/Avatar";
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
@@ -26,8 +32,9 @@ export default async function LeadsPage({
         <h1 className="text-3xl font-semibold text-slate-900">Leads</h1>
         <Link
           href="/leads/new"
-          className="rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
         >
+          <Plus size={17} />
           Nieuwe lead
         </Link>
       </div>
@@ -77,10 +84,23 @@ export default async function LeadsPage({
                     </span>
                   )}
                 </td>
-                <td className="px-6 py-4">{LEAD_TYPE_LABELS[lead.leadType]}</td>
-                <td className="px-6 py-4">{lead.stage.label}</td>
-                <td className="px-6 py-4">{STATUS_LABELS[lead.status]}</td>
-                <td className="px-6 py-4">{lead.owner.name}</td>
+                <td className="px-6 py-4">
+                  <Badge variant={LEAD_TYPE_BADGE_VARIANT[lead.leadType]}>
+                    {LEAD_TYPE_LABELS[lead.leadType]}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 text-slate-600">{lead.stage.label}</td>
+                <td className="px-6 py-4">
+                  <Badge variant={LEAD_STATUS_BADGE_VARIANT[lead.status]}>
+                    {LEAD_STATUS_LABELS[lead.status]}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <Avatar name={lead.owner.name} />
+                    <span className="text-slate-700">{lead.owner.name}</span>
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-slate-600">
                   {formatDate(lead.lastContactedAt)}
                 </td>

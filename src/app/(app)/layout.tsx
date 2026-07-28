@@ -1,9 +1,12 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LogOut, Sparkles } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { canManageUsers } from "@/lib/permissions";
-import { ROLE_LABELS } from "@/lib/roleLabels";
+import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { logoutAction } from "@/lib/actions/auth";
+import { NavLinks } from "@/components/NavLinks";
+import { Badge } from "@/components/Badge";
+import { Avatar } from "@/components/Avatar";
 
 export default async function AppLayout({
   children,
@@ -29,36 +32,35 @@ export default async function AppLayout({
   navItems.push({ href: "/instellingen", label: "Instellingen" });
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4 lg:px-10">
-          <div className="flex items-center gap-8">
-            <span className="text-2xl font-semibold text-slate-900">CRM</span>
-            <nav className="flex items-center gap-5">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-base text-slate-600 hover:text-slate-900"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-base text-slate-500">
-              {user.name}{" "}
-              <span className="rounded bg-slate-100 px-2 py-1 text-sm font-medium text-slate-600">
-                {ROLE_LABELS[user.role]}
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3 lg:px-10">
+          <div className="flex items-center gap-6">
+            <span className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-white">
+                <Sparkles size={18} />
               </span>
+              CRM
             </span>
+            <NavLinks items={navItems} />
+          </div>
+          <div className="flex items-center gap-3">
+            <Avatar name={user.name ?? "?"} size="md" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-base font-medium text-slate-800">
+                {user.name}
+              </span>
+              <Badge variant={ROLE_BADGE_VARIANT[user.role]} className="w-fit">
+                {ROLE_LABELS[user.role]}
+              </Badge>
+            </div>
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="text-base text-slate-500 hover:text-slate-900"
+                title="Uitloggen"
+                className="ml-2 flex items-center gap-1.5 rounded-md px-2 py-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               >
-                Uitloggen
+                <LogOut size={18} />
               </button>
             </form>
           </div>

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Trophy, Medal } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageIncentives } from "@/lib/permissions";
@@ -6,6 +7,10 @@ import {
   deleteIncentiveAction,
   getIncentiveLeaderboard,
 } from "@/lib/actions/incentives";
+import { Badge } from "@/components/Badge";
+import { Avatar } from "@/components/Avatar";
+
+const MEDAL_COLORS = ["#eab308", "#94a3b8", "#b45309"];
 
 const GOAL_TYPE_LABELS = {
   LEADS_WON: "Gewonnen leads",
@@ -52,15 +57,9 @@ export default async function IncentiveDetailPage({
             {incentive.createdBy.name}
           </p>
         </div>
-        <span
-          className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-            isActive
-              ? "bg-green-100 text-green-700"
-              : "bg-slate-100 text-slate-500"
-          }`}
-        >
+        <Badge variant={isActive ? "green" : "slate"} className="text-sm">
           {isActive ? "Actief" : "Afgelopen"}
-        </span>
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -125,7 +124,8 @@ export default async function IncentiveDetailPage({
         </div>
 
         <div>
-          <h2 className="mb-3 text-lg font-medium text-slate-900">
+          <h2 className="mb-3 flex items-center gap-1.5 text-lg font-medium text-slate-900">
+            <Trophy size={19} className="text-amber-500" />
             Ranglijst
           </h2>
           <ol className="flex flex-col gap-2">
@@ -139,9 +139,16 @@ export default async function IncentiveDetailPage({
                 }`}
               >
                 <span className="flex items-center gap-3">
-                  <span className="w-6 text-center font-semibold text-slate-400">
-                    {index + 1}
+                  <span className="flex w-6 items-center justify-center">
+                    {index < 3 ? (
+                      <Medal size={18} color={MEDAL_COLORS[index]} />
+                    ) : (
+                      <span className="font-semibold text-slate-400">
+                        {index + 1}
+                      </span>
+                    )}
                   </span>
+                  <Avatar name={entry.name} />
                   <span className="font-medium text-slate-900">
                     {entry.name}
                   </span>

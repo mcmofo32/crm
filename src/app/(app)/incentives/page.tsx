@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Plus, Trophy, FileText } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageIncentives } from "@/lib/permissions";
+import { Badge } from "@/components/Badge";
 
 export default async function IncentivesPage() {
   const session = await auth();
@@ -16,7 +18,12 @@ export default async function IncentivesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">Incentives</h1>
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+              <Trophy size={20} />
+            </span>
+            Incentives
+          </h1>
           <p className="mt-1 text-base text-slate-500">
             Evenementen en wedstrijden om het team te motiveren.
           </p>
@@ -24,8 +31,9 @@ export default async function IncentivesPage() {
         {canManageIncentives(user) && (
           <Link
             href="/incentives/new"
-            className="rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
           >
+            <Plus size={17} />
             Nieuw evenement
           </Link>
         )}
@@ -56,7 +64,10 @@ export default async function IncentivesPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : hasPoster ? (
-                    <span className="text-base text-slate-500">PDF-poster</span>
+                    <span className="flex items-center gap-1.5 text-base text-slate-500">
+                      <FileText size={18} />
+                      PDF-poster
+                    </span>
                   ) : (
                     <span className="text-base text-slate-400">Geen poster</span>
                   )}
@@ -66,15 +77,9 @@ export default async function IncentivesPage() {
                     <h2 className="text-lg font-medium text-slate-900">
                       {incentive.title}
                     </h2>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-sm font-medium ${
-                        isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
+                    <Badge variant={isActive ? "green" : "slate"}>
                       {isActive ? "Actief" : "Afgelopen"}
-                    </span>
+                    </Badge>
                   </div>
                   <p className="text-sm text-slate-500">
                     {incentive.startDate.toLocaleDateString("nl-BE")} —{" "}

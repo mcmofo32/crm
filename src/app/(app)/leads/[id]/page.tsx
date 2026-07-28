@@ -1,12 +1,22 @@
 import { notFound, redirect } from "next/navigation";
+import {
+  Phone,
+  CalendarClock,
+  Mail,
+  StickyNote,
+  Building2,
+  type LucideIcon,
+} from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessOwner, getVisibleUserIds } from "@/lib/permissions";
 import { scheduleActivityAction } from "@/lib/actions/activities";
-import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
+import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { StageSelect } from "./StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
+import { Badge, type BadgeVariant } from "@/components/Badge";
+import { Avatar } from "@/components/Avatar";
 
 const ACTIVITY_TYPE_LABELS = {
   CALL: "Telefoongesprek",
@@ -15,11 +25,25 @@ const ACTIVITY_TYPE_LABELS = {
   NOTE: "Notitie",
 };
 
+const ACTIVITY_TYPE_ICONS: Record<string, LucideIcon> = {
+  CALL: Phone,
+  MEETING: CalendarClock,
+  EMAIL: Mail,
+  NOTE: StickyNote,
+};
+
 const ACTIVITY_STATUS_LABELS = {
   PLANNED: "Gepland",
   COMPLETED: "Afgerond",
   CANCELLED: "Geannuleerd",
   NO_SHOW: "Niet komen opdagen",
+};
+
+const ACTIVITY_STATUS_BADGE_VARIANT: Record<string, BadgeVariant> = {
+  PLANNED: "amber",
+  COMPLETED: "green",
+  CANCELLED: "slate",
+  NO_SHOW: "red",
 };
 
 export default async function LeadDetailPage({
@@ -72,12 +96,18 @@ export default async function LeadDetailPage({
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">
-            {lead.firstName} {lead.lastName}
-          </h1>
-          <p className="text-sm text-slate-500">
-            {LEAD_TYPE_LABELS[lead.leadType]} · Eigenaar: {lead.owner.name}
-          </p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-semibold text-slate-900">
+              {lead.firstName} {lead.lastName}
+            </h1>
+            <Badge variant={LEAD_TYPE_BADGE_VARIANT[lead.leadType]}>
+              {LEAD_TYPE_LABELS[lead.leadType]}
+            </Badge>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+            <Avatar name={lead.owner.name} />
+            Eigenaar: {lead.owner.name}
+          </div>
           <p className="mt-1 text-sm text-slate-500">
             Laatste contact:{" "}
             <span className="font-medium text-slate-700">
@@ -110,10 +140,10 @@ export default async function LeadDetailPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
           <h2 className="mb-3 font-medium text-slate-900">Contactgegevens</h2>
-          <dl className="flex flex-col gap-2">
-            <Row label="E-mail" value={lead.email} />
-            <Row label="Telefoon" value={lead.phone} />
-            <Row label="Bedrijf" value={lead.company} />
+          <dl className="flex flex-col gap-3">
+            <Row icon={Mail} label="E-mail" value={lead.email} />
+            <Row icon={Phone} label="Telefoon" value={lead.phone} />
+            <Row icon={Building2} label="Bedrijf" value={lead.company} />
             <Row label="Bron" value={lead.source} />
           </dl>
           {lead.notes && (
@@ -220,47 +250,63 @@ export default async function LeadDetailPage({
               Alle contactmomenten en geplande opvolging voor deze lead, nieuwste eerst.
             </p>
             <ul className="flex flex-col gap-2">
-              {lead.activities.map((activity) => (
-                <li
-                  key={activity.id}
-                  className="rounded-lg border border-slate-200 bg-white p-3 text-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-medium text-slate-900">
-                        {activity.subject}
-                      </span>
-                      <span className="ml-2 text-xs text-slate-400">
-                        {ACTIVITY_TYPE_LABELS[activity.type]} ·{" "}
-                        {ACTIVITY_STATUS_LABELS[activity.status]} ·{" "}
-                        {activity.assignee.name}
-                      </span>
+              {lead.activities.map((activity) => {
+                const Icon = ACTIVITY_TYPE_ICONS[activity.type] ?? StickyNote;
+                return (
+                  <li
+                    key={activity.id}
+                    className="rounded-lg border border-slate-200 bg-white p-3 text-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2.5">
+                        <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                          <Icon size={15} />
+                        </span>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-slate-900">
+                              {activity.subject}
+                            </span>
+                            <Badge
+                              variant={
+                                ACTIVITY_STATUS_BADGE_VARIANT[activity.status]
+                              }
+                            >
+                              {ACTIVITY_STATUS_LABELS[activity.status]}
+                            </Badge>
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
+                            <Avatar name={activity.assignee.name} size="sm" />
+                            {activity.assignee.name}
+                          </div>
+                        </div>
+                      </div>
+                      {activity.status === "PLANNED" && (
+                        <ActivityButtons activityId={activity.id} />
+                      )}
                     </div>
-                    {activity.status === "PLANNED" && (
-                      <ActivityButtons activityId={activity.id} />
+                    {activity.scheduledAt && (
+                      <p className="ml-[42px] mt-1 text-slate-500">
+                        {activity.scheduledAt.toLocaleString("nl-BE", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
                     )}
-                  </div>
-                  {activity.scheduledAt && (
-                    <p className="mt-1 text-slate-500">
-                      {activity.scheduledAt.toLocaleString("nl-BE", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </p>
-                  )}
-                  {activity.notes && (
-                    <p className="mt-1 whitespace-pre-wrap text-slate-600">
-                      {activity.notes}
-                    </p>
-                  )}
-                  {activity.googleSyncError && (
-                    <p className="mt-1 text-xs text-red-600">
-                      Google Agenda-synchronisatie mislukt:{" "}
-                      {activity.googleSyncError}
-                    </p>
-                  )}
-                </li>
-              ))}
+                    {activity.notes && (
+                      <p className="ml-[42px] mt-1 whitespace-pre-wrap text-slate-600">
+                        {activity.notes}
+                      </p>
+                    )}
+                    {activity.googleSyncError && (
+                      <p className="ml-[42px] mt-1 text-xs text-red-600">
+                        Google Agenda-synchronisatie mislukt:{" "}
+                        {activity.googleSyncError}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
               {lead.activities.length === 0 && (
                 <p className="text-sm text-slate-400">
                   Nog geen communicatie gelogd voor deze lead.
@@ -274,11 +320,22 @@ export default async function LeadDetailPage({
   );
 }
 
-function Row({ label, value }: { label: string; value: string | null }) {
+function Row({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | null;
+  icon?: LucideIcon;
+}) {
   if (!value) return null;
   return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-slate-400">{label}</dt>
+    <div className="flex items-center justify-between gap-4">
+      <dt className="flex items-center gap-1.5 text-slate-400">
+        {Icon && <Icon size={14} />}
+        {label}
+      </dt>
       <dd className="text-right text-slate-700">{value}</dd>
     </div>
   );
