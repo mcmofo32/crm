@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const ids = await getVisibleUserIds(user);
   const ownerWhere = ids ? { ownerId: { in: ids } } : {};
 
-  const [openFA, openRG, wonCount, upcomingCalls] = await Promise.all([
+  const [openFA, openRG, wonCount, openTasks, upcomingCalls] = await Promise.all([
     prisma.lead.count({
       where: { ...ownerWhere, leadType: LeadType.FA, status: LeadStatus.OPEN },
     }),
@@ -19,6 +19,9 @@ export default async function DashboardPage() {
       where: { ...ownerWhere, leadType: LeadType.RG, status: LeadStatus.OPEN },
     }),
     prisma.lead.count({ where: { ...ownerWhere, status: LeadStatus.WON } }),
+    prisma.activity.count({
+      where: { status: "PLANNED", lead: ownerWhere },
+    }),
     prisma.activity.findMany({
       where: {
         status: "PLANNED",
@@ -32,17 +35,17 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900">
           Welkom, {user.name}
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="mt-1 text-base text-slate-500">
           Hier is een overzicht van je leads en geplande opvolging.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label={`Open — ${LEAD_TYPE_LABELS.FA}`}
           value={openFA}
@@ -54,14 +57,15 @@ export default async function DashboardPage() {
           href="/funnel/RG"
         />
         <StatCard label="Gewonnen leads" value={wonCount} href="/leads" />
+        <StatCard label="Openstaande taken" value={openTasks} href="/taken" />
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-medium text-slate-900">
+        <h2 className="mb-4 text-xl font-medium text-slate-900">
           Geplande gesprekken
         </h2>
         {upcomingCalls.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-base text-slate-500">
             Geen geplande activiteiten.
           </p>
         ) : (
@@ -69,20 +73,20 @@ export default async function DashboardPage() {
             {upcomingCalls.map((activity) => (
               <li
                 key={activity.id}
-                className="flex items-center justify-between px-4 py-3"
+                className="flex items-center justify-between px-6 py-4"
               >
                 <div>
                   <Link
                     href={`/leads/${activity.leadId}`}
-                    className="font-medium text-slate-900 hover:underline"
+                    className="text-base font-medium text-slate-900 hover:underline"
                   >
                     {activity.subject}
                   </Link>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-base text-slate-500">
                     {activity.lead.firstName} {activity.lead.lastName}
                   </p>
                 </div>
-                <span className="text-sm text-slate-500">
+                <span className="text-base text-slate-500">
                   {activity.scheduledAt?.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
@@ -109,10 +113,10 @@ function StatCard({
   return (
     <Link
       href={href}
-      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
+      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-slate-300"
     >
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="text-base text-slate-500">{label}</p>
+      <p className="mt-2 text-4xl font-semibold text-slate-900">{value}</p>
     </Link>
   );
 }

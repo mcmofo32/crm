@@ -64,10 +64,11 @@ model User {
   googleCalendarId           String? @default("primary")
   googleCalendarEmail        String?
 
-  leadsOwned   Lead[]            @relation("LeadOwner")
-  leadsCreated Lead[]            @relation("LeadCreatedBy")
-  activities   Activity[]        @relation("ActivityAssignee")
-  stageChanges LeadStageChange[] @relation("StageChangedBy")
+  leadsOwned        Lead[]            @relation("LeadOwner")
+  leadsCreated      Lead[]            @relation("LeadCreatedBy")
+  activities        Activity[]        @relation("ActivityAssignee")
+  stageChanges      LeadStageChange[] @relation("StageChangedBy")
+  incentivesCreated Incentive[]       @relation("IncentiveCreatedBy")
 
   @@index([teamId])
 }
@@ -206,4 +207,43 @@ model Activity {
   @@index([leadId])
   @@index([assigneeId])
   @@index([scheduledAt])
+}
+
+// ---------------------------------------------------------------------------
+// Incentives: motivatie-events met een doel, poster en ranglijst
+// ---------------------------------------------------------------------------
+
+/// Waarop de ranglijst van een incentive gebaseerd is.
+enum IncentiveGoalType {
+  /// Aantal leads dat een gebruiker heeft gewonnen binnen de looptijd
+  LEADS_WON
+  /// Aantal afgeronde contactmomenten/activiteiten binnen de looptijd
+  ACTIVITIES_COMPLETED
+}
+
+model Incentive {
+  id          String            @id @default(cuid())
+  title       String
+  /// De regels/vereisten om te winnen, vrije tekst
+  description String
+  goalType    IncentiveGoalType @default(LEADS_WON)
+  /// Optioneel: enkel leads van dit type meetellen (null = FA + RG samen)
+  leadType    LeadType?
+  /// Optioneel richtcijfer om te tonen (bv. "eerste die 10 haalt wint")
+  targetValue Int?
+  startDate   DateTime
+  endDate     DateTime
+
+  // De poster (jpeg of pdf) wordt als binaire data in de database bewaard,
+  // zodat er geen aparte bestandsopslag nodig is.
+  posterData     Bytes?
+  posterMimeType String?
+  posterFilename String?
+
+  createdById String
+  createdBy   User     @relation("IncentiveCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([startDate, endDate])
 }

@@ -16,7 +16,7 @@ export default async function NewUserPage() {
 
   return (
     <div className="max-w-lg">
-      <h1 className="mb-4 text-2xl font-semibold text-slate-900">
+      <h1 className="mb-4 text-3xl font-semibold text-slate-900">
         Nieuwe gebruiker
       </h1>
       <form action={createUserAction} className="flex flex-col gap-4 text-sm">

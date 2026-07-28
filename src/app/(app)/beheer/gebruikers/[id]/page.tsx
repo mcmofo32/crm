@@ -38,7 +38,7 @@ export default async function EditUserPage({
   return (
     <div className="max-w-lg flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900">
           Gebruiker bewerken
         </h1>
         <p className="text-sm text-slate-500">{target.email}</p>

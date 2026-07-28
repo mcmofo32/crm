@@ -7,7 +7,7 @@ export default async function NewLeadPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="mb-4 text-2xl font-semibold text-slate-900">
+      <h1 className="mb-4 text-3xl font-semibold text-slate-900">
         Nieuwe lead
       </h1>
       <form action={createLeadAction} className="flex flex-col gap-4">

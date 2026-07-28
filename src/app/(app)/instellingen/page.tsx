@@ -14,7 +14,7 @@ export default async function SettingsPage({
 
   return (
     <div className="max-w-lg">
-      <h1 className="mb-4 text-2xl font-semibold text-slate-900">
+      <h1 className="mb-4 text-3xl font-semibold text-slate-900">
         Instellingen
       </h1>
 

@@ -70,6 +70,8 @@ export async function scheduleActivityAction(formData: FormData) {
   }
 
   revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
 }
 
 /**
@@ -132,6 +134,8 @@ export async function completeActivityAction(
   });
 
   revalidatePath(`/leads/${activity.leadId}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
 }
 
 export async function cancelActivityAction(activityId: string) {
@@ -154,4 +158,6 @@ export async function cancelActivityAction(activityId: string) {
   });
 
   revalidatePath(`/leads/${activity.leadId}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
 }

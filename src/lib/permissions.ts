@@ -31,6 +31,15 @@ export function canManageUsers(user: SessionUser) {
   return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
 }
 
+/** Wie mag incentive-events aanmaken/verwijderen? Iedereen mag ze bekijken. */
+export function canManageIncentives(user: SessionUser) {
+  return (
+    user.role === Role.BEHEERDER ||
+    user.role === Role.ADMIN ||
+    user.role === Role.COACH
+  );
+}
+
 /** Mag `actor` het account `target` aanmaken/wijzigen/verwijderen? */
 export function canManageUser(actor: SessionUser, target: { role: Role }) {
   if (actor.role === Role.BEHEERDER) return true;

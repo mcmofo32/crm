@@ -8,7 +8,7 @@ import {
 } from "@/lib/actions/activities";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { StageSelect } from "./StageSelect";
-import { ActivityButtons } from "./ActivityButtons";
+import { ActivityButtons } from "@/components/ActivityButtons";
 
 function toDatetimeLocalValue(date: Date) {
   const offsetMs = date.getTimezoneOffset() * 60_000;
@@ -71,7 +71,7 @@ export default async function LeadDetailPage({
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
+          <h1 className="text-3xl font-semibold text-slate-900">
             {lead.firstName} {lead.lastName}
           </h1>
           <p className="text-sm text-slate-500">
