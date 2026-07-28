@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Clock, CalendarClock, Inbox } from "lucide-react";
+import { Clock, CalendarClock, Inbox, ChevronDown } from "lucide-react";
 import { updateLeadStageAction } from "@/lib/actions/leads";
 import { StageSelect } from "@/components/StageSelect";
 import { Avatar } from "@/components/Avatar";
@@ -37,6 +37,10 @@ function formatDate(date: Date | null) {
   return date.toLocaleDateString("nl-BE", { day: "numeric", month: "short" });
 }
 
+function isSecondaryStage(stage: BoardStage) {
+  return stage.isLost || stage.key === "niet_bereikbaar" || FOLLOWUP_KEYS.has(stage.key);
+}
+
 type BoardLead = {
   id: string;
   firstName: string;
@@ -58,6 +62,69 @@ type BoardStage = {
   leads: BoardLead[];
 };
 
+function LeadCard({
+  lead,
+  stages,
+  dragged,
+  onDragStart,
+  onDragEnd,
+}: {
+  lead: BoardLead;
+  stages: BoardStage[];
+  dragged: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
+  const nextContact = lead.activities[0]?.scheduledAt ?? null;
+  const lastContact = formatDate(lead.lastContactedAt);
+  const upcoming = formatDate(nextContact);
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={`cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md active:cursor-grabbing ${
+        dragged ? "opacity-40" : ""
+      }`}
+    >
+      <Link
+        href={`/leads/${lead.id}`}
+        className="font-medium text-slate-900 hover:underline"
+      >
+        {lead.firstName} {lead.lastName}
+      </Link>
+      {lead.company && <p className="text-sm text-slate-400">{lead.company}</p>}
+
+      <div className="mt-2 flex items-center gap-1.5">
+        <Avatar name={lead.owner.name} size="sm" />
+        <span className="text-sm text-slate-500">{lead.owner.name}</span>
+      </div>
+
+      {(lastContact || upcoming) && (
+        <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs text-slate-400">
+          {lastContact && (
+            <span className="flex items-center gap-1.5">
+              <Clock size={12} />
+              Laatste contact: {lastContact}
+            </span>
+          )}
+          {upcoming && (
+            <span className="flex items-center gap-1.5 text-amber-600">
+              <CalendarClock size={12} />
+              Volgend contact: {upcoming}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-2.5">
+        <StageSelect leadId={lead.id} currentStageId={lead.stageId} stages={stages} />
+      </div>
+    </div>
+  );
+}
+
 export function FunnelBoard({
   stages,
   leadType,
@@ -68,6 +135,7 @@ export function FunnelBoard({
   const [pending, startTransition] = useTransition();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
+  const [expandedStageIds, setExpandedStageIds] = useState<Set<string>>(new Set());
   const [pendingMove, setPendingMove] = useState<{
     leadId: string;
     leadName: string;
@@ -77,12 +145,23 @@ export function FunnelBoard({
   } | null>(null);
   const [notes, setNotes] = useState("");
 
-  const activeStageIds = stages
-    .filter(
-      (s) => !s.isWon && !s.isLost && s.key !== "niet_bereikbaar" && !FOLLOWUP_KEYS.has(s.key)
-    )
-    .sort((a, b) => a.order - b.order)
-    .map((s) => s.id);
+  const mainStages = stages
+    .filter((s) => !isSecondaryStage(s))
+    .sort((a, b) => a.order - b.order);
+  const secondaryStages = stages
+    .filter(isSecondaryStage)
+    .sort((a, b) => a.order - b.order);
+
+  const activeStageIds = mainStages.filter((s) => !s.isWon).map((s) => s.id);
+
+  function toggleExpanded(stageId: string) {
+    setExpandedStageIds((current) => {
+      const next = new Set(current);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      return next;
+    });
+  }
 
   function handleDrop(targetStage: BoardStage) {
     setDragOverStageId(null);
@@ -116,9 +195,9 @@ export function FunnelBoard({
   }
 
   return (
-    <>
-      <div className="flex snap-x snap-proximity gap-4 overflow-x-auto pb-4">
-        {stages.map((stage) => {
+    <div className="flex flex-col gap-6">
+      <div className="flex snap-x snap-proximity gap-3 overflow-x-auto pb-2">
+        {mainStages.map((stage) => {
           const accent = stageAccent(stage, leadType, activeStageIds.indexOf(stage.id));
           const isDragOver = dragOverStageId === stage.id;
           return (
@@ -135,7 +214,7 @@ export function FunnelBoard({
                 e.preventDefault();
                 handleDrop(stage);
               }}
-              className={`flex w-80 flex-shrink-0 snap-start flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm transition-colors ${
+              className={`flex w-64 flex-shrink-0 snap-start flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm transition-colors ${
                 isDragOver
                   ? "border-slate-400 ring-2 ring-slate-300"
                   : "border-slate-200"
@@ -145,10 +224,7 @@ export function FunnelBoard({
                 className="flex items-center justify-between rounded-lg px-3 py-2"
                 style={{ backgroundColor: accent.soft }}
               >
-                <span
-                  className="text-sm font-semibold"
-                  style={{ color: accent.ink }}
-                >
+                <span className="text-sm font-semibold" style={{ color: accent.ink }}>
                   {stage.label}
                 </span>
                 <span
@@ -160,64 +236,16 @@ export function FunnelBoard({
               </div>
 
               <div className="flex flex-col gap-2.5">
-                {stage.leads.map((lead) => {
-                  const nextContact = lead.activities[0]?.scheduledAt ?? null;
-                  const lastContact = formatDate(lead.lastContactedAt);
-                  const upcoming = formatDate(nextContact);
-                  return (
-                    <div
-                      key={lead.id}
-                      draggable
-                      onDragStart={() => setDraggedLeadId(lead.id)}
-                      onDragEnd={() => setDraggedLeadId(null)}
-                      className={`cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md active:cursor-grabbing ${
-                        draggedLeadId === lead.id ? "opacity-40" : ""
-                      }`}
-                    >
-                      <Link
-                        href={`/leads/${lead.id}`}
-                        className="font-medium text-slate-900 hover:underline"
-                      >
-                        {lead.firstName} {lead.lastName}
-                      </Link>
-                      {lead.company && (
-                        <p className="text-sm text-slate-400">{lead.company}</p>
-                      )}
-
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <Avatar name={lead.owner.name} size="sm" />
-                        <span className="text-sm text-slate-500">
-                          {lead.owner.name}
-                        </span>
-                      </div>
-
-                      {(lastContact || upcoming) && (
-                        <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs text-slate-400">
-                          {lastContact && (
-                            <span className="flex items-center gap-1.5">
-                              <Clock size={12} />
-                              Laatste contact: {lastContact}
-                            </span>
-                          )}
-                          {upcoming && (
-                            <span className="flex items-center gap-1.5 text-amber-600">
-                              <CalendarClock size={12} />
-                              Volgend contact: {upcoming}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="mt-2.5">
-                        <StageSelect
-                          leadId={lead.id}
-                          currentStageId={lead.stageId}
-                          stages={stages}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                {stage.leads.map((lead) => (
+                  <LeadCard
+                    key={lead.id}
+                    lead={lead}
+                    stages={stages}
+                    dragged={draggedLeadId === lead.id}
+                    onDragStart={() => setDraggedLeadId(lead.id)}
+                    onDragEnd={() => setDraggedLeadId(null)}
+                  />
+                ))}
                 {stage.leads.length === 0 && (
                   <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-200 py-6 text-slate-300">
                     <Inbox size={18} />
@@ -228,6 +256,84 @@ export function FunnelBoard({
             </div>
           );
         })}
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          Afgerond &amp; geparkeerd
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {secondaryStages.map((stage) => {
+            const accent = stageAccent(stage, leadType, -1);
+            const isDragOver = dragOverStageId === stage.id;
+            const isExpanded = expandedStageIds.has(stage.id);
+            return (
+              <div
+                key={stage.id}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (dragOverStageId !== stage.id) setDragOverStageId(stage.id);
+                }}
+                onDragLeave={() =>
+                  setDragOverStageId((cur) => (cur === stage.id ? null : cur))
+                }
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDrop(stage);
+                }}
+                className={`flex min-w-64 flex-1 flex-col gap-2 rounded-xl border bg-white p-2 shadow-sm transition-colors ${
+                  isDragOver
+                    ? "border-slate-400 ring-2 ring-slate-300"
+                    : "border-slate-200"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(stage.id)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2"
+                  style={{ backgroundColor: accent.soft }}
+                >
+                  <span className="text-sm font-semibold" style={{ color: accent.ink }}>
+                    {stage.label}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span
+                      style={{ backgroundColor: accent.solid }}
+                      className="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-medium text-white"
+                    >
+                      {stage.leads.length}
+                    </span>
+                    <ChevronDown
+                      size={15}
+                      className={`text-slate-400 transition-transform ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </span>
+                </button>
+                {isExpanded && (
+                  <div className="flex flex-col gap-2.5 px-1 pb-1">
+                    {stage.leads.map((lead) => (
+                      <LeadCard
+                        key={lead.id}
+                        lead={lead}
+                        stages={stages}
+                        dragged={draggedLeadId === lead.id}
+                        onDragStart={() => setDraggedLeadId(lead.id)}
+                        onDragEnd={() => setDraggedLeadId(null)}
+                      />
+                    ))}
+                    {stage.leads.length === 0 && (
+                      <p className="px-1 py-2 text-center text-xs text-slate-300">
+                        Geen leads
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {pendingMove && (
@@ -276,6 +382,6 @@ export function FunnelBoard({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
