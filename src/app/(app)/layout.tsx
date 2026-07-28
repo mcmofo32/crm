@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { LogOut, Sparkles } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canManageUsers, getVisibleUserIds, isBeheerder } from "@/lib/permissions";
+import { getVisibleUserIds } from "@/lib/permissions";
 import { logoutAction } from "@/lib/actions/auth";
 import { NavLinks } from "@/components/NavLinks";
 import { ProfileMenu } from "@/components/ProfileMenu";
@@ -37,12 +37,6 @@ export default async function AppLayout({
     { href: "/incentives", label: "Incentives" },
   ];
 
-  if (canManageUsers(user)) {
-    navItems.push({ href: "/beheer/gebruikers", label: "Gebruikers" });
-    navItems.push({ href: "/beheer/teams", label: "Teams" });
-  }
-  navItems.push({ href: "/instellingen", label: "Instellingen" });
-
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
@@ -57,11 +51,7 @@ export default async function AppLayout({
             <NavLinks items={navItems} />
           </div>
           <div className="flex items-center gap-3">
-            <ProfileMenu
-              name={user.name ?? "?"}
-              role={user.role}
-              isBeheerder={isBeheerder(user)}
-            />
+            <ProfileMenu name={user.name ?? "?"} user={user} />
             <form action={logoutAction}>
               <button
                 type="submit"

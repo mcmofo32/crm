@@ -1,32 +1,55 @@
 import Link from "next/link";
-import { BarChart3, Trash2, ChevronDown } from "lucide-react";
+import {
+  BarChart3,
+  Trash2,
+  UserCog,
+  Users2,
+  Settings,
+  ChevronDown,
+  type LucideIcon,
+} from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
-import type { Role } from "@/generated/prisma/client";
+import { canManageUsers, isBeheerder, type SessionUser } from "@/lib/permissions";
+
+function MenuLink({
+  href,
+  icon: Icon,
+  children,
+}: {
+  href: string;
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
+    >
+      <Icon size={16} />
+      {children}
+    </Link>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-2 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
+      {children}
+    </p>
+  );
+}
 
 export function ProfileMenu({
   name,
-  role,
-  isBeheerder,
+  user,
 }: {
   name: string;
-  role: Role;
-  isBeheerder: boolean;
+  user: SessionUser;
 }) {
-  if (!isBeheerder) {
-    return (
-      <div className="flex items-center gap-3">
-        <Avatar name={name} size="md" />
-        <div className="flex flex-col leading-tight">
-          <span className="text-base font-medium text-slate-800">{name}</span>
-          <Badge variant={ROLE_BADGE_VARIANT[role]} className="w-fit">
-            {ROLE_LABELS[role]}
-          </Badge>
-        </div>
-      </div>
-    );
-  }
+  const showUserManagement = canManageUsers(user);
+  const showBeheerderTools = isBeheerder(user);
 
   return (
     <details className="group relative">
@@ -34,8 +57,8 @@ export function ProfileMenu({
         <Avatar name={name} size="md" />
         <div className="flex flex-col leading-tight">
           <span className="text-base font-medium text-slate-800">{name}</span>
-          <Badge variant={ROLE_BADGE_VARIANT[role]} className="w-fit">
-            {ROLE_LABELS[role]}
+          <Badge variant={ROLE_BADGE_VARIANT[user.role]} className="w-fit">
+            {ROLE_LABELS[user.role]}
           </Badge>
         </div>
         <ChevronDown
@@ -44,23 +67,34 @@ export function ProfileMenu({
         />
       </summary>
       <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
-        <p className="px-2 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
-          Beheerderstools
-        </p>
-        <Link
-          href="/beheer/analyse"
-          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
-        >
-          <BarChart3 size={16} />
-          Analyse
-        </Link>
-        <Link
-          href="/beheer/prullenbak"
-          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
-        >
-          <Trash2 size={16} />
-          Verwijderde leads
-        </Link>
+        {showUserManagement && (
+          <>
+            <SectionLabel>Beheer</SectionLabel>
+            <MenuLink href="/beheer/gebruikers" icon={UserCog}>
+              Gebruikers
+            </MenuLink>
+            <MenuLink href="/beheer/teams" icon={Users2}>
+              Teams
+            </MenuLink>
+          </>
+        )}
+        {showBeheerderTools && (
+          <>
+            <SectionLabel>Beheerderstools</SectionLabel>
+            <MenuLink href="/beheer/analyse" icon={BarChart3}>
+              Analyse
+            </MenuLink>
+            <MenuLink href="/beheer/prullenbak" icon={Trash2}>
+              Verwijderde leads
+            </MenuLink>
+          </>
+        )}
+        {(showUserManagement || showBeheerderTools) && (
+          <hr className="my-1.5 border-slate-100" />
+        )}
+        <MenuLink href="/instellingen" icon={Settings}>
+          Instellingen
+        </MenuLink>
       </div>
     </details>
   );

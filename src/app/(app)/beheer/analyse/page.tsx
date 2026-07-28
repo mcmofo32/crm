@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { isBeheerder } from "@/lib/permissions";
@@ -20,13 +21,26 @@ function conversionBadgeVariant(rate: number | null): BadgeVariant {
   return "red";
 }
 
-export default async function AnalysePage() {
+export default async function AnalysePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ team?: string; person?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (!isBeheerder(session.user)) redirect("/dashboard");
 
-  const { byType, stageDistribution, perEmployee } = await getAnalytics();
+  const { team: teamFilter, person: personFilter } = await searchParams;
+  const { byType, stageDistribution, perEmployee, teams } = await getAnalytics();
   const maxStageCount = Math.max(1, ...stageDistribution.map((s) => s.count));
+
+  const filteredEmployees = personFilter
+    ? perEmployee.filter((e) => e.id === personFilter)
+    : !teamFilter || teamFilter === "alle"
+    ? perEmployee
+    : teamFilter === "geen"
+    ? perEmployee.filter((e) => !e.teamId)
+    : perEmployee.filter((e) => e.teamId === teamFilter);
 
   return (
     <div className="flex flex-col gap-8">
@@ -113,10 +127,67 @@ export default async function AnalysePage() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-100 p-6 pb-4">
-          <h2 className="text-lg font-medium text-slate-900">
-            Overzicht per medewerker
-          </h2>
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-6 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-medium text-slate-900">
+              Overzicht per medewerker
+            </h2>
+            <form method="GET" className="flex items-center gap-2 text-sm">
+              <select
+                name="person"
+                defaultValue={personFilter ?? ""}
+                className="rounded-md border border-slate-300 px-3 py-1.5"
+              >
+                <option value="">Alle medewerkers</option>
+                {perEmployee.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800"
+              >
+                Bekijken
+              </button>
+            </form>
+          </div>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Link
+              href="/beheer/analyse"
+              className={`rounded-full px-3 py-1.5 ${
+                !personFilter && (!teamFilter || teamFilter === "alle")
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white text-slate-600"
+              }`}
+            >
+              Alle teams
+            </Link>
+            {teams.map((team) => (
+              <Link
+                key={team.id}
+                href={`/beheer/analyse?team=${team.id}`}
+                className={`rounded-full px-3 py-1.5 ${
+                  !personFilter && teamFilter === team.id
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-600"
+                }`}
+              >
+                {team.name}
+              </Link>
+            ))}
+            <Link
+              href="/beheer/analyse?team=geen"
+              className={`rounded-full px-3 py-1.5 ${
+                !personFilter && teamFilter === "geen"
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white text-slate-600"
+              }`}
+            >
+              Zonder team
+            </Link>
+          </div>
         </div>
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
@@ -132,7 +203,7 @@ export default async function AnalysePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {perEmployee.map((employee) => (
+            {filteredEmployees.map((employee) => (
               <tr key={employee.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-slate-900">
                   <div className="flex items-center gap-2">
@@ -165,13 +236,13 @@ export default async function AnalysePage() {
                 </td>
               </tr>
             ))}
-            {perEmployee.length === 0 && (
+            {filteredEmployees.length === 0 && (
               <tr>
                 <td
                   colSpan={8}
                   className="px-6 py-8 text-center text-slate-400"
                 >
-                  Geen actieve gebruikers.
+                  Geen gebruikers in dit team.
                 </td>
               </tr>
             )}

@@ -31,6 +31,7 @@ export type EmployeeStats = {
   id: string;
   name: string;
   role: Role;
+  teamId: string | null;
   teamName: string | null;
   totalLeads: number;
   won: number;
@@ -42,7 +43,7 @@ export type EmployeeStats = {
 export async function getAnalytics() {
   await requireBeheerder();
 
-  const [leads, users, activityGroups] = await Promise.all([
+  const [leads, users, teams, activityGroups] = await Promise.all([
     prisma.lead.findMany({
       where: { deletedAt: null },
       select: {
@@ -58,9 +59,13 @@ export async function getAnalytics() {
         id: true,
         name: true,
         role: true,
-        team: { select: { name: true } },
-        coachedTeam: { select: { name: true } },
+        team: { select: { id: true, name: true } },
+        coachedTeam: { select: { id: true, name: true } },
       },
+      orderBy: { name: "asc" },
+    }),
+    prisma.team.findMany({
+      select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
     prisma.activity.groupBy({
@@ -142,11 +147,13 @@ export async function getAnalytics() {
         lost: 0,
       };
       const decided = stats.won + stats.lost;
+      const team = u.coachedTeam ?? u.team;
       return {
         id: u.id,
         name: u.name,
         role: u.role,
-        teamName: u.coachedTeam?.name ?? u.team?.name ?? null,
+        teamId: team?.id ?? null,
+        teamName: team?.name ?? null,
         totalLeads: stats.total,
         won: stats.won,
         lost: stats.lost,
@@ -157,5 +164,5 @@ export async function getAnalytics() {
     })
     .sort((a, b) => b.totalLeads - a.totalLeads);
 
-  return { byType, stageDistribution, perEmployee };
+  return { byType, stageDistribution, perEmployee, teams };
 }
