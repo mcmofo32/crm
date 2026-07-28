@@ -2,18 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessOwner, getVisibleUserIds } from "@/lib/permissions";
-import {
-  logCompletedActivityAction,
-  scheduleActivityAction,
-} from "@/lib/actions/activities";
+import { scheduleActivityAction } from "@/lib/actions/activities";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { StageSelect } from "./StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
-
-function toDatetimeLocalValue(date: Date) {
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
+import { ReportContactForm } from "@/components/ReportContactForm";
 
 const ACTIVITY_TYPE_LABELS = {
   CALL: "Telefoongesprek",
@@ -102,77 +95,11 @@ export default async function LeadDetailPage({
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-3 text-sm font-medium text-slate-900">
-              Contactmoment rapporteren
-            </h2>
-            <p className="mb-3 text-xs text-slate-400">
-              Had je net telefonisch/persoonlijk contact? Rapporteer hier wat
-              er besproken is, zodat dit meteen in de communicatiegeschiedenis
-              hieronder staat.
-            </p>
-            <form
-              action={logCompletedActivityAction}
-              className="grid grid-cols-2 gap-3 text-sm"
-            >
-              <input type="hidden" name="leadId" value={lead.id} />
-
-              <select
-                name="type"
-                defaultValue="CALL"
-                className="rounded-md border border-slate-300 px-3 py-2"
-              >
-                {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                name="assigneeId"
-                defaultValue={user.id}
-                className="rounded-md border border-slate-300 px-3 py-2"
-              >
-                {assignableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                name="subject"
-                placeholder="Onderwerp"
-                defaultValue="Telefoongesprek"
-                required
-                className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
-              />
-
-              <input
-                type="datetime-local"
-                name="occurredAt"
-                defaultValue={toDatetimeLocalValue(new Date())}
-                required
-                className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
-              />
-
-              <textarea
-                name="notes"
-                placeholder="Wat is er besproken? (bv. gesprek gehad over de offerte, klant twijfelt nog over prijs, terugbellen volgende week)"
-                rows={2}
-                required
-                className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
-              />
-
-              <button
-                type="submit"
-                className="col-span-2 mt-1 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
-              >
-                Rapporteren
-              </button>
-            </form>
-          </div>
+          <ReportContactForm
+            leadId={lead.id}
+            assignableUsers={assignableUsers}
+            currentUserId={user.id}
+          />
 
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <h2 className="mb-3 text-sm font-medium text-slate-900">
