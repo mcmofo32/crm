@@ -13,39 +13,51 @@ export function StageSelect({
   stages: { id: string; label: string }[];
 }) {
   const [pending, startTransition] = useTransition();
-  const [selectedStageId, setSelectedStageId] = useState(currentStageId);
-  const [pendingStageId, setPendingStageId] = useState<string | null>(null);
+  const [stageId, setStageId] = useState(currentStageId);
+  const [open, setOpen] = useState(false);
+  const [targetStageId, setTargetStageId] = useState("");
   const [notes, setNotes] = useState("");
 
-  const pendingStage = stages.find((s) => s.id === pendingStageId);
+  const currentStage = stages.find((s) => s.id === stageId);
+  const otherStages = stages.filter((s) => s.id !== stageId);
 
-  if (pendingStageId && pendingStage) {
+  if (open) {
     return (
       <div className="flex w-full flex-col gap-2 rounded-md border border-slate-300 bg-slate-50 p-2 text-sm">
-        <p className="text-slate-600">
-          Verplaatsen naar{" "}
-          <span className="font-medium text-slate-900">
-            {pendingStage.label}
-          </span>{" "}
-          — wat is de reden/uitkomst?
-        </p>
+        <label className="text-slate-600">
+          Wat moet er met deze lead gebeuren?
+        </label>
+        <select
+          aria-label="Volgende fase"
+          value={targetStageId}
+          onChange={(e) => setTargetStageId(e.target.value)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        >
+          <option value="">Kies fase…</option>
+          {otherStages.map((stage) => (
+            <option key={stage.id} value={stage.id}>
+              {stage.label}
+            </option>
+          ))}
+        </select>
         <textarea
           autoFocus
           rows={2}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="bv. financiële analyse afgerond, klant tekent volgende week"
+          placeholder="Wat is er besproken/gebeurd? (bv. financiële analyse afgerond, klant tekent volgende week)"
           className="rounded-md border border-slate-300 px-2 py-1 text-sm"
         />
         <div className="flex gap-2">
           <button
             type="button"
-            disabled={pending || !notes.trim()}
+            disabled={pending || !targetStageId || !notes.trim()}
             onClick={() =>
               startTransition(async () => {
-                await updateLeadStageAction(leadId, pendingStageId, notes);
-                setSelectedStageId(pendingStageId);
-                setPendingStageId(null);
+                await updateLeadStageAction(leadId, targetStageId, notes);
+                setStageId(targetStageId);
+                setOpen(false);
+                setTargetStageId("");
                 setNotes("");
               })
             }
@@ -57,7 +69,8 @@ export function StageSelect({
             type="button"
             disabled={pending}
             onClick={() => {
-              setPendingStageId(null);
+              setOpen(false);
+              setTargetStageId("");
               setNotes("");
             }}
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
@@ -70,18 +83,18 @@ export function StageSelect({
   }
 
   return (
-    <select
-      aria-label="Funnel-fase"
-      value={selectedStageId}
-      disabled={pending}
-      onChange={(e) => setPendingStageId(e.target.value)}
-      className="rounded-md border border-slate-300 px-3 py-2 text-sm disabled:opacity-60"
-    >
-      {stages.map((stage) => (
-        <option key={stage.id} value={stage.id}>
-          {stage.label}
-        </option>
-      ))}
-    </select>
+    <div className="flex items-center gap-2">
+      <span className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+        {currentStage?.label}
+      </span>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => setOpen(true)}
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+      >
+        Afgerond
+      </button>
+    </div>
   );
 }

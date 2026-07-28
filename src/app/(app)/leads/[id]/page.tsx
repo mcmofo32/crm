@@ -47,6 +47,14 @@ export default async function LeadDetailPage({
   if (!lead) notFound();
   if (!(await canAccessOwner(user, lead.ownerId))) notFound();
 
+  const now = new Date();
+  const nextContact = lead.activities
+    .filter(
+      (a): a is typeof a & { scheduledAt: Date } =>
+        a.status === "PLANNED" && a.scheduledAt !== null && a.scheduledAt >= now
+    )
+    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())[0];
+
   const visibleUserIds = await getVisibleUserIds(user);
   const [stages, assignableUsers] = await Promise.all([
     prisma.funnelStage.findMany({
@@ -69,6 +77,27 @@ export default async function LeadDetailPage({
           </h1>
           <p className="text-sm text-slate-500">
             {LEAD_TYPE_LABELS[lead.leadType]} · Eigenaar: {lead.owner.name}
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Laatste contact:{" "}
+            <span className="font-medium text-slate-700">
+              {lead.lastContactedAt
+                ? lead.lastContactedAt.toLocaleString("nl-BE", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })
+                : "Nog geen contact"}
+            </span>
+            {" · "}
+            Volgend contact:{" "}
+            <span className="font-medium text-slate-700">
+              {nextContact
+                ? nextContact.scheduledAt.toLocaleString("nl-BE", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })
+                : "Niet ingepland"}
+            </span>
           </p>
         </div>
         <StageSelect

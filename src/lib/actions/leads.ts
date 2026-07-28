@@ -135,7 +135,16 @@ export async function getLeadsForCurrentUser(leadType?: LeadType) {
       ...(ids ? { ownerId: { in: ids } } : {}),
       ...(leadType ? { leadType } : {}),
     },
-    include: { stage: true, owner: true },
+    include: {
+      stage: true,
+      owner: true,
+      activities: {
+        where: { status: "PLANNED", scheduledAt: { gte: new Date() } },
+        orderBy: { scheduledAt: "asc" },
+        take: 1,
+        select: { scheduledAt: true },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 }

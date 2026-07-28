@@ -39,7 +39,15 @@ export default async function TakenPage({
       lead: { ...ownerWhere, ...(leadType ? { leadType } : {}) },
     },
     include: {
-      lead: { select: { id: true, firstName: true, lastName: true, leadType: true } },
+      lead: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          leadType: true,
+          lastContactedAt: true,
+        },
+      },
       assignee: { select: { name: true } },
     },
     orderBy: { scheduledAt: "asc" },
@@ -141,14 +149,24 @@ export default async function TakenPage({
                           {ACTIVITY_TYPE_LABELS[task.type]} · {task.subject} ·{" "}
                           {task.assignee.name}
                         </p>
-                        {task.scheduledAt && (
-                          <p className="text-sm text-slate-400">
-                            {task.scheduledAt.toLocaleString("nl-BE", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })}
-                          </p>
-                        )}
+                        <p className="text-sm text-slate-400">
+                          Laatste contact:{" "}
+                          {task.lead.lastContactedAt
+                            ? task.lead.lastContactedAt.toLocaleString(
+                                "nl-BE",
+                                { dateStyle: "medium", timeStyle: "short" }
+                              )
+                            : "nog geen contact"}
+                          {task.scheduledAt && (
+                            <>
+                              {" · "}Volgend contact:{" "}
+                              {task.scheduledAt.toLocaleString("nl-BE", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </>
+                          )}
+                        </p>
                       </div>
                       <ActivityButtons activityId={task.id} />
                     </li>

@@ -5,6 +5,11 @@ import { LeadType } from "@/generated/prisma/client";
 
 const STATUS_LABELS = { OPEN: "Open", WON: "Gewonnen", LOST: "Verloren" };
 
+function formatDate(date: Date | null | undefined) {
+  if (!date) return "—";
+  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+}
+
 export default async function LeadsPage({
   searchParams,
 }: {
@@ -43,7 +48,7 @@ export default async function LeadsPage({
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
@@ -52,6 +57,8 @@ export default async function LeadsPage({
               <th className="px-6 py-3 font-medium">Fase</th>
               <th className="px-6 py-3 font-medium">Status</th>
               <th className="px-6 py-3 font-medium">Eigenaar</th>
+              <th className="px-6 py-3 font-medium">Laatste contact</th>
+              <th className="px-6 py-3 font-medium">Volgend contact</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -74,12 +81,20 @@ export default async function LeadsPage({
                 <td className="px-6 py-4">{lead.stage.label}</td>
                 <td className="px-6 py-4">{STATUS_LABELS[lead.status]}</td>
                 <td className="px-6 py-4">{lead.owner.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                  {formatDate(lead.lastContactedAt)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                  {lead.activities[0]
+                    ? formatDate(lead.activities[0].scheduledAt)
+                    : "—"}
+                </td>
               </tr>
             ))}
             {leads.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={7}
                   className="px-6 py-8 text-center text-slate-400"
                 >
                   Nog geen leads.
