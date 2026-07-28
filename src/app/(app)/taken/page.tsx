@@ -192,7 +192,14 @@ export default async function TakenPage({
                             </p>
                           </div>
                         </div>
-                        <ActivityButtons activityId={task.id} />
+                        <ActivityButtons
+                          activityId={task.id}
+                          type={task.type}
+                          subject={task.subject}
+                          scheduledAt={task.scheduledAt}
+                          durationMinutes={task.durationMinutes}
+                          notes={task.notes}
+                        />
                       </li>
                     );
                   })}

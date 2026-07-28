@@ -1,23 +1,55 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   cancelActivityAction,
   completeActivityAction,
+  updateActivityAction,
+  deleteActivityAction,
 } from "@/lib/actions/activities";
 
-export function ActivityButtons({ activityId }: { activityId: string }) {
-  const [pending, startTransition] = useTransition();
-  const [reporting, setReporting] = useState(false);
-  const [notes, setNotes] = useState("");
+const ACTIVITY_TYPE_OPTIONS = [
+  { value: "CALL", label: "Telefoongesprek" },
+  { value: "MEETING", label: "Afspraak" },
+  { value: "EMAIL", label: "E-mail" },
+  { value: "NOTE", label: "Notitie" },
+];
 
-  if (reporting) {
+function toDatetimeLocalValue(date: Date | null) {
+  if (!date) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function ActivityButtons({
+  activityId,
+  type,
+  subject,
+  scheduledAt,
+  durationMinutes,
+  notes,
+}: {
+  activityId: string;
+  type: string;
+  subject: string;
+  scheduledAt: Date | null;
+  durationMinutes: number | null;
+  notes: string | null;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [mode, setMode] = useState<"idle" | "reporting" | "editing">("idle");
+  const [reportNotes, setReportNotes] = useState("");
+
+  if (mode === "reporting") {
     return (
       <div className="mt-2 flex flex-col gap-2">
         <textarea
           autoFocus
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          value={reportNotes}
+          onChange={(e) => setReportNotes(e.target.value)}
           placeholder="Wat is er besproken? (bv. telefoongesprek gehad over ..., klant wil ..., volgende stap is ...)"
           rows={2}
           className="rounded-md border border-slate-300 px-2 py-1 text-xs"
@@ -28,8 +60,8 @@ export function ActivityButtons({ activityId }: { activityId: string }) {
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                await completeActivityAction(activityId, notes);
-                setReporting(false);
+                await completeActivityAction(activityId, reportNotes);
+                setMode("idle");
               })
             }
             className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
@@ -39,7 +71,7 @@ export function ActivityButtons({ activityId }: { activityId: string }) {
           <button
             type="button"
             disabled={pending}
-            onClick={() => setReporting(false)}
+            onClick={() => setMode("idle")}
             className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
           >
             Annuleren
@@ -49,12 +81,95 @@ export function ActivityButtons({ activityId }: { activityId: string }) {
     );
   }
 
+  if (mode === "editing") {
+    return (
+      <form
+        action={(formData) =>
+          startTransition(async () => {
+            await updateActivityAction(activityId, formData);
+            setMode("idle");
+          })
+        }
+        className="mt-2 grid w-64 grid-cols-2 gap-2 text-xs"
+      >
+        <select
+          name="type"
+          defaultValue={type}
+          className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+        >
+          {ACTIVITY_TYPE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <input
+          name="subject"
+          defaultValue={subject}
+          required
+          className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+        />
+        <input
+          type="datetime-local"
+          name="scheduledAt"
+          defaultValue={toDatetimeLocalValue(scheduledAt)}
+          required
+          className="rounded-md border border-slate-300 px-2 py-1"
+        />
+        <select
+          name="durationMinutes"
+          defaultValue={String(durationMinutes ?? 15)}
+          className="rounded-md border border-slate-300 px-2 py-1"
+        >
+          <option value="15">15 min</option>
+          <option value="30">30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">60 min</option>
+        </select>
+        <textarea
+          name="notes"
+          defaultValue={notes ?? ""}
+          rows={2}
+          placeholder="Notities"
+          className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+        />
+        <div className="col-span-2 flex gap-2">
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+          >
+            Opslaan
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setMode("idle")}
+            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Sluiten
+          </button>
+        </div>
+      </form>
+    );
+  }
+
   return (
-    <div className="flex gap-2">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         disabled={pending}
-        onClick={() => setReporting(true)}
+        onClick={() => setMode("editing")}
+        title="Wijzigen"
+        className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+      >
+        <Pencil size={12} />
+        Wijzigen
+      </button>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => setMode("reporting")}
         className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
       >
         Afgerond
@@ -70,6 +185,25 @@ export function ActivityButtons({ activityId }: { activityId: string }) {
         className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
       >
         Annuleren
+      </button>
+      <button
+        type="button"
+        disabled={pending}
+        title="Verwijderen"
+        onClick={() => {
+          if (
+            confirm(
+              "Deze afspraak definitief verwijderen? Dit kan niet ongedaan gemaakt worden."
+            )
+          ) {
+            startTransition(() => {
+              deleteActivityAction(activityId);
+            });
+          }
+        }}
+        className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+      >
+        <Trash2 size={14} />
       </button>
     </div>
   );

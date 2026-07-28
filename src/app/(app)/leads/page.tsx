@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { auth } from "@/lib/auth";
 import { getLeadsForCurrentUser } from "@/lib/actions/leads";
+import { canDeleteLeads } from "@/lib/permissions";
 import {
   LEAD_TYPE_LABELS,
   LEAD_TYPE_BADGE_VARIANT,
@@ -10,6 +12,7 @@ import {
 import { LeadType } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
@@ -25,6 +28,8 @@ export default async function LeadsPage({
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
   const leads = await getLeadsForCurrentUser(leadType);
+  const session = await auth();
+  const canDelete = canDeleteLeads(session!.user);
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,6 +71,7 @@ export default async function LeadsPage({
               <th className="px-6 py-3 font-medium">Eigenaar</th>
               <th className="px-6 py-3 font-medium">Laatste contact</th>
               <th className="px-6 py-3 font-medium">Volgend contact</th>
+              {canDelete && <th className="px-6 py-3 font-medium"></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -109,12 +115,20 @@ export default async function LeadsPage({
                     ? formatDate(lead.activities[0].scheduledAt)
                     : "—"}
                 </td>
+                {canDelete && (
+                  <td className="px-6 py-4 text-right">
+                    <DeleteLeadButton
+                      leadId={lead.id}
+                      leadName={`${lead.firstName} ${lead.lastName}`}
+                    />
+                  </td>
+                )}
               </tr>
             ))}
             {leads.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={canDelete ? 8 : 7}
                   className="px-6 py-8 text-center text-slate-400"
                 >
                   Nog geen leads.

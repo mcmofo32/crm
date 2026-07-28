@@ -138,6 +138,73 @@ export async function completeActivityAction(
   revalidatePath("/dashboard");
 }
 
+/**
+ * Past een nog geplande afspraak aan (bv. datum/tijd verzetten, onderwerp of
+ * notities wijzigen). Synchroniseert het bestaande Google Agenda-item mee.
+ */
+export async function updateActivityAction(
+  activityId: string,
+  formData: FormData
+) {
+  const activity = await prisma.activity.findUnique({
+    where: { id: activityId },
+  });
+  if (!activity) throw new Error("Activiteit niet gevonden");
+  if (activity.status !== ActivityStatus.PLANNED) {
+    throw new Error("Enkel geplande afspraken kunnen aangepast worden");
+  }
+  const { lead } = await requireLeadAccess(activity.leadId);
+
+  const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
+  const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : activity.scheduledAt;
+
+  const updated = await prisma.activity.update({
+    where: { id: activityId },
+    data: {
+      type: (formData.get("type") as ActivityType) ?? activity.type,
+      subject: String(formData.get("subject") ?? activity.subject),
+      notes: (formData.get("notes") as string) || null,
+      scheduledAt,
+      durationMinutes: Number(
+        formData.get("durationMinutes") ?? activity.durationMinutes ?? 15
+      ),
+    },
+  });
+
+  const assignee = await prisma.user.findUnique({
+    where: { id: activity.assigneeId },
+  });
+  if (assignee && scheduledAt) {
+    await syncActivityToGoogleCalendar(assignee, updated, lead);
+  }
+
+  revalidatePath(`/leads/${activity.leadId}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
+}
+
+/** Verwijdert een activiteit definitief (en het bijhorende Google Agenda-item). */
+export async function deleteActivityAction(activityId: string) {
+  const activity = await prisma.activity.findUnique({
+    where: { id: activityId },
+  });
+  if (!activity) throw new Error("Activiteit niet gevonden");
+  await requireLeadAccess(activity.leadId);
+
+  const assignee = await prisma.user.findUnique({
+    where: { id: activity.assigneeId },
+  });
+  if (assignee) {
+    await deleteActivityFromGoogleCalendar(assignee, activity);
+  }
+
+  await prisma.activity.delete({ where: { id: activityId } });
+
+  revalidatePath(`/leads/${activity.leadId}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
+}
+
 export async function cancelActivityAction(activityId: string) {
   const activity = await prisma.activity.findUnique({
     where: { id: activityId },

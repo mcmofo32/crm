@@ -10,7 +10,7 @@ import {
   LeadStatus,
   LeadType,
 } from "@/generated/prisma/client";
-import { canAccessOwner, getVisibleUserIds } from "@/lib/permissions";
+import { canAccessOwner, canDeleteLeads, getVisibleUserIds } from "@/lib/permissions";
 
 async function requireUser() {
   const session = await auth();
@@ -121,6 +121,23 @@ export async function updateLeadStageAction(
   ]);
 
   revalidatePath(`/leads/${leadId}`);
+  revalidatePath(`/funnel/${lead.leadType}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteLeadAction(leadId: string) {
+  const user = await requireUser();
+  if (!canDeleteLeads(user)) {
+    throw new Error("Je mag geen leads verwijderen");
+  }
+
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead) throw new Error("Lead niet gevonden");
+
+  await prisma.lead.delete({ where: { id: leadId } });
+
+  revalidatePath("/leads");
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/taken");
   revalidatePath("/dashboard");

@@ -31,6 +31,11 @@ export function canManageUsers(user: SessionUser) {
   return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
 }
 
+/** Enkel de Beheerder mag leads definitief verwijderen. */
+export function canDeleteLeads(user: SessionUser) {
+  return user.role === Role.BEHEERDER;
+}
+
 /** Wie mag incentive-events aanmaken/verwijderen? Iedereen mag ze bekijken. */
 export function canManageIncentives(user: SessionUser) {
   return (

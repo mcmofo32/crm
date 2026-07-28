@@ -9,12 +9,13 @@ import {
 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canAccessOwner, getVisibleUserIds } from "@/lib/permissions";
+import { canAccessOwner, canDeleteLeads, getVisibleUserIds } from "@/lib/permissions";
 import { scheduleActivityAction } from "@/lib/actions/activities";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { StageSelect } from "./StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
+import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
@@ -130,11 +131,20 @@ export default async function LeadDetailPage({
             </span>
           </p>
         </div>
-        <StageSelect
-          leadId={lead.id}
-          currentStageId={lead.stageId}
-          stages={stages}
-        />
+        <div className="flex items-start gap-3">
+          <StageSelect
+            leadId={lead.id}
+            currentStageId={lead.stageId}
+            stages={stages}
+          />
+          {canDeleteLeads(user) && (
+            <DeleteLeadButton
+              leadId={lead.id}
+              leadName={`${lead.firstName} ${lead.lastName}`}
+              variant="button"
+            />
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -282,7 +292,14 @@ export default async function LeadDetailPage({
                         </div>
                       </div>
                       {activity.status === "PLANNED" && (
-                        <ActivityButtons activityId={activity.id} />
+                        <ActivityButtons
+                          activityId={activity.id}
+                          type={activity.type}
+                          subject={activity.subject}
+                          scheduledAt={activity.scheduledAt}
+                          durationMinutes={activity.durationMinutes}
+                          notes={activity.notes}
+                        />
                       )}
                     </div>
                     {activity.scheduledAt && (
