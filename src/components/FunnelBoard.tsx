@@ -38,7 +38,12 @@ function formatDate(date: Date | null) {
 }
 
 function isSecondaryStage(stage: BoardStage) {
-  return stage.isLost || stage.key === "niet_bereikbaar" || FOLLOWUP_KEYS.has(stage.key);
+  return (
+    stage.isWon ||
+    stage.isLost ||
+    stage.key === "niet_bereikbaar" ||
+    FOLLOWUP_KEYS.has(stage.key)
+  );
 }
 
 type BoardLead = {
@@ -152,7 +157,7 @@ export function FunnelBoard({
     .filter(isSecondaryStage)
     .sort((a, b) => a.order - b.order);
 
-  const activeStageIds = mainStages.filter((s) => !s.isWon).map((s) => s.id);
+  const activeStageIds = mainStages.map((s) => s.id);
 
   function toggleExpanded(stageId: string) {
     setExpandedStageIds((current) => {
