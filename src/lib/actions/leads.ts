@@ -139,6 +139,48 @@ export async function updateLeadStageAction(
   revalidatePath("/dashboard");
 }
 
+/** Wijzigt de contactgegevens van een bestaande lead (naam, e-mail, telefoon, bedrijf, bron, notities). */
+export async function updateLeadDetailsAction(leadId: string, formData: FormData) {
+  const user = await requireUser();
+
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!(await canAccessOwner(user, lead.ownerId))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
+  if (!firstName || !lastName) {
+    throw new Error("Voornaam en achternaam zijn verplicht");
+  }
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      firstName,
+      lastName,
+      email: (formData.get("email") as string)?.trim() || null,
+      phone: (formData.get("phone") as string)?.trim() || null,
+      company: (formData.get("company") as string)?.trim() || null,
+      source: (formData.get("source") as string)?.trim() || null,
+      notes: (formData.get("notes") as string) || null,
+    },
+  });
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.updated",
+    entityType: "Lead",
+    entityId: leadId,
+    description: `Gegevens van lead "${firstName} ${lastName}" gewijzigd`,
+  });
+
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/leads");
+  revalidatePath(`/funnel/${lead.leadType}`);
+}
+
 /** Verwijdert een lead (soft delete): ze komt in de prullenbak i.p.v. definitief weg te zijn. */
 export async function deleteLeadAction(leadId: string) {
   const user = await requireUser();

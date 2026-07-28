@@ -4,7 +4,6 @@ import {
   CalendarClock,
   Mail,
   StickyNote,
-  Building2,
   type LucideIcon,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
@@ -16,6 +15,7 @@ import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
+import { LeadDetailsCard } from "@/components/LeadDetailsCard";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
@@ -148,20 +148,16 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
-          <h2 className="mb-3 font-medium text-slate-900">Contactgegevens</h2>
-          <dl className="flex flex-col gap-3">
-            <Row icon={Mail} label="E-mail" value={lead.email} />
-            <Row icon={Phone} label="Telefoon" value={lead.phone} />
-            <Row icon={Building2} label="Bedrijf" value={lead.company} />
-            <Row label="Bron" value={lead.source} />
-          </dl>
-          {lead.notes && (
-            <p className="mt-3 whitespace-pre-wrap text-slate-600">
-              {lead.notes}
-            </p>
-          )}
-        </div>
+        <LeadDetailsCard
+          leadId={lead.id}
+          firstName={lead.firstName}
+          lastName={lead.lastName}
+          email={lead.email}
+          phone={lead.phone}
+          company={lead.company}
+          source={lead.source}
+          notes={lead.notes}
+        />
 
         <div className="lg:col-span-2 flex flex-col gap-6">
           <ReportContactForm
@@ -333,27 +329,6 @@ export default async function LeadDetailPage({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string | null;
-  icon?: LucideIcon;
-}) {
-  if (!value) return null;
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <dt className="flex items-center gap-1.5 text-slate-400">
-        {Icon && <Icon size={14} />}
-        {label}
-      </dt>
-      <dd className="text-right text-slate-700">{value}</dd>
     </div>
   );
 }
