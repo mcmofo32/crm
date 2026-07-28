@@ -30,7 +30,15 @@ export default async function FunnelPage({
           deletedAt: null,
           ...(visibleUserIds ? { ownerId: { in: visibleUserIds } } : {}),
         },
-        include: { owner: true },
+        include: {
+          owner: true,
+          activities: {
+            where: { status: "PLANNED", scheduledAt: { gte: new Date() } },
+            orderBy: { scheduledAt: "asc" },
+            take: 1,
+            select: { scheduledAt: true },
+          },
+        },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -64,7 +72,7 @@ export default async function FunnelPage({
         Sleep een lead naar een andere kolom om de fase te wijzigen.
       </p>
 
-      <FunnelBoard stages={stages} />
+      <FunnelBoard stages={stages} leadType={leadType} />
     </div>
   );
 }

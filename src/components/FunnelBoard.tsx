@@ -2,20 +2,39 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { Clock, CalendarClock, Inbox } from "lucide-react";
 import { updateLeadStageAction } from "@/lib/actions/leads";
 import { StageSelect } from "@/components/StageSelect";
 import { Avatar } from "@/components/Avatar";
+import type { LeadType } from "@/generated/prisma/client";
 
-const PROGRESS_COLORS = ["#2563eb", "#4f46e5", "#7c3aed", "#a21caf", "#c026d3"];
+const BLUE_RAMP = ["#93c5fd", "#3b82f6", "#1d4ed8"];
+const PURPLE_RAMP = ["#c4b5fd", "#8b5cf6", "#6d28d9"];
+const FOLLOWUP_KEYS = new Set(["voorstel", "opvolging"]);
 
-function stageAccentColor(stage: {
-  isWon: boolean;
-  isLost: boolean;
-  order: number;
-}) {
-  if (stage.isWon) return "#16a34a";
-  if (stage.isLost) return "#dc2626";
-  return PROGRESS_COLORS[stage.order % PROGRESS_COLORS.length];
+type Accent = { solid: string; soft: string; ink: string };
+
+function stageAccent(
+  stage: BoardStage,
+  leadType: LeadType,
+  activeIndex: number
+): Accent {
+  if (stage.isWon) return { solid: "#16a34a", soft: "#16a34a1f", ink: "#166534" };
+  if (stage.isLost) return { solid: "#dc2626", soft: "#dc26261f", ink: "#991b1b" };
+  if (stage.key === "niet_bereikbaar") {
+    return { solid: "#64748b", soft: "#64748b1f", ink: "#475569" };
+  }
+  if (FOLLOWUP_KEYS.has(stage.key)) {
+    return { solid: "#d97706", soft: "#d977061f", ink: "#92400e" };
+  }
+  const ramp = leadType === "FA" ? BLUE_RAMP : PURPLE_RAMP;
+  const solid = ramp[activeIndex % ramp.length];
+  return { solid, soft: `${solid}1f`, ink: "#1e293b" };
+}
+
+function formatDate(date: Date | null) {
+  if (!date) return null;
+  return date.toLocaleDateString("nl-BE", { day: "numeric", month: "short" });
 }
 
 type BoardLead = {
@@ -24,11 +43,14 @@ type BoardLead = {
   lastName: string;
   company: string | null;
   stageId: string;
+  lastContactedAt: Date | null;
   owner: { name: string };
+  activities: { scheduledAt: Date | null }[];
 };
 
 type BoardStage = {
   id: string;
+  key: string;
   label: string;
   order: number;
   isWon: boolean;
@@ -36,7 +58,13 @@ type BoardStage = {
   leads: BoardLead[];
 };
 
-export function FunnelBoard({ stages }: { stages: BoardStage[] }) {
+export function FunnelBoard({
+  stages,
+  leadType,
+}: {
+  stages: BoardStage[];
+  leadType: LeadType;
+}) {
   const [pending, startTransition] = useTransition();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
@@ -48,6 +76,13 @@ export function FunnelBoard({ stages }: { stages: BoardStage[] }) {
     toStageLabel: string;
   } | null>(null);
   const [notes, setNotes] = useState("");
+
+  const activeStageIds = stages
+    .filter(
+      (s) => !s.isWon && !s.isLost && s.key !== "niet_bereikbaar" && !FOLLOWUP_KEYS.has(s.key)
+    )
+    .sort((a, b) => a.order - b.order)
+    .map((s) => s.id);
 
   function handleDrop(targetStage: BoardStage) {
     setDragOverStageId(null);
@@ -82,14 +117,13 @@ export function FunnelBoard({ stages }: { stages: BoardStage[] }) {
 
   return (
     <>
-      <div className="flex gap-5 overflow-x-auto pb-4">
+      <div className="flex snap-x snap-proximity gap-4 overflow-x-auto pb-4">
         {stages.map((stage) => {
-          const accent = stageAccentColor(stage);
+          const accent = stageAccent(stage, leadType, activeStageIds.indexOf(stage.id));
           const isDragOver = dragOverStageId === stage.id;
           return (
             <div
               key={stage.id}
-              style={{ borderTopColor: accent }}
               onDragOver={(e) => {
                 e.preventDefault();
                 if (dragOverStageId !== stage.id) setDragOverStageId(stage.id);
@@ -101,57 +135,94 @@ export function FunnelBoard({ stages }: { stages: BoardStage[] }) {
                 e.preventDefault();
                 handleDrop(stage);
               }}
-              className={`flex w-80 flex-shrink-0 flex-col gap-3 rounded-lg border-t-4 bg-slate-100 p-4 transition-colors ${
-                isDragOver ? "bg-slate-200 ring-2 ring-slate-400" : ""
+              className={`flex w-80 flex-shrink-0 snap-start flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm transition-colors ${
+                isDragOver
+                  ? "border-slate-400 ring-2 ring-slate-300"
+                  : "border-slate-200"
               }`}
             >
-              <div className="flex items-center justify-between px-1">
-                <span className="text-base font-semibold text-slate-800">
+              <div
+                className="flex items-center justify-between rounded-lg px-3 py-2"
+                style={{ backgroundColor: accent.soft }}
+              >
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: accent.ink }}
+                >
                   {stage.label}
                 </span>
                 <span
-                  style={{ backgroundColor: accent }}
+                  style={{ backgroundColor: accent.solid }}
                   className="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-medium text-white"
                 >
                   {stage.leads.length}
                 </span>
               </div>
 
-              <div className="flex flex-col gap-3">
-                {stage.leads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    draggable
-                    onDragStart={() => setDraggedLeadId(lead.id)}
-                    onDragEnd={() => setDraggedLeadId(null)}
-                    className={`cursor-grab rounded-md border border-slate-200 bg-white p-4 text-base shadow-sm transition hover:border-slate-300 hover:shadow-md active:cursor-grabbing ${
-                      draggedLeadId === lead.id ? "opacity-40" : ""
-                    }`}
-                  >
-                    <Link
-                      href={`/leads/${lead.id}`}
-                      className="font-medium text-slate-900 hover:underline"
+              <div className="flex flex-col gap-2.5">
+                {stage.leads.map((lead) => {
+                  const nextContact = lead.activities[0]?.scheduledAt ?? null;
+                  const lastContact = formatDate(lead.lastContactedAt);
+                  const upcoming = formatDate(nextContact);
+                  return (
+                    <div
+                      key={lead.id}
+                      draggable
+                      onDragStart={() => setDraggedLeadId(lead.id)}
+                      onDragEnd={() => setDraggedLeadId(null)}
+                      className={`cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md active:cursor-grabbing ${
+                        draggedLeadId === lead.id ? "opacity-40" : ""
+                      }`}
                     >
-                      {lead.firstName} {lead.lastName}
-                    </Link>
-                    {lead.company && (
-                      <p className="text-sm text-slate-400">{lead.company}</p>
-                    )}
-                    <div className="mb-2 mt-1 flex items-center gap-1.5">
-                      <Avatar name={lead.owner.name} />
-                      <span className="text-sm text-slate-500">
-                        {lead.owner.name}
-                      </span>
+                      <Link
+                        href={`/leads/${lead.id}`}
+                        className="font-medium text-slate-900 hover:underline"
+                      >
+                        {lead.firstName} {lead.lastName}
+                      </Link>
+                      {lead.company && (
+                        <p className="text-sm text-slate-400">{lead.company}</p>
+                      )}
+
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <Avatar name={lead.owner.name} size="sm" />
+                        <span className="text-sm text-slate-500">
+                          {lead.owner.name}
+                        </span>
+                      </div>
+
+                      {(lastContact || upcoming) && (
+                        <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs text-slate-400">
+                          {lastContact && (
+                            <span className="flex items-center gap-1.5">
+                              <Clock size={12} />
+                              Laatste contact: {lastContact}
+                            </span>
+                          )}
+                          {upcoming && (
+                            <span className="flex items-center gap-1.5 text-amber-600">
+                              <CalendarClock size={12} />
+                              Volgend contact: {upcoming}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-2.5">
+                        <StageSelect
+                          leadId={lead.id}
+                          currentStageId={lead.stageId}
+                          stages={stages}
+                        />
+                      </div>
                     </div>
-                    <StageSelect
-                      leadId={lead.id}
-                      currentStageId={lead.stageId}
-                      stages={stages}
-                    />
-                  </div>
-                ))}
+                  );
+                })}
                 {stage.leads.length === 0 && (
-                  <p className="px-1 text-sm text-slate-400">Geen leads</p>
+                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-200 py-6 text-slate-300">
+                    <Inbox size={18} />
+                    <p className="text-xs">Geen leads</p>
+                  </div>
                 )}
               </div>
             </div>
