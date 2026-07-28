@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { canAccessOwner, canDeleteLeads, getVisibleUserIds } from "@/lib/permissions";
 import { scheduleActivityAction } from "@/lib/actions/activities";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
-import { StageSelect } from "./StageSelect";
+import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
