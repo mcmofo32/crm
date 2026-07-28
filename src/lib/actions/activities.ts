@@ -72,6 +72,46 @@ export async function scheduleActivityAction(formData: FormData) {
   revalidatePath(`/leads/${leadId}`);
 }
 
+/**
+ * Rapporteert een contactmoment dat al heeft plaatsgevonden (bv. "telefoontje
+ * gehad met de klant over X"). Wordt meteen als afgerond gelogd in de
+ * communicatiegeschiedenis van de lead, zonder Google Agenda-item (dat is
+ * enkel voor toekomstige, in te plannen activiteiten).
+ */
+export async function logCompletedActivityAction(formData: FormData) {
+  const leadId = String(formData.get("leadId"));
+  const { user } = await requireLeadAccess(leadId);
+
+  const assigneeId = String(formData.get("assigneeId") ?? user.id);
+  if (!(await canAccessOwner(user, assigneeId))) {
+    throw new Error("Je mag deze activiteit niet aan deze gebruiker toewijzen");
+  }
+
+  const occurredAtRaw = String(formData.get("occurredAt") ?? "");
+  const occurredAt = occurredAtRaw ? new Date(occurredAtRaw) : new Date();
+
+  await prisma.activity.create({
+    data: {
+      leadId,
+      assigneeId,
+      type: (formData.get("type") as ActivityType) ?? ActivityType.CALL,
+      subject: String(formData.get("subject") ?? "Contact"),
+      notes: (formData.get("notes") as string) || null,
+      scheduledAt: occurredAt,
+      completedAt: occurredAt,
+      durationMinutes: Number(formData.get("durationMinutes") ?? 15),
+      status: ActivityStatus.COMPLETED,
+    },
+  });
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { lastContactedAt: occurredAt },
+  });
+
+  revalidatePath(`/leads/${leadId}`);
+}
+
 export async function completeActivityAction(
   activityId: string,
   notes?: string
