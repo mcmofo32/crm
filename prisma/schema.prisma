@@ -66,6 +66,7 @@ model User {
 
   leadsOwned        Lead[]            @relation("LeadOwner")
   leadsCreated      Lead[]            @relation("LeadCreatedBy")
+  leadsDeleted      Lead[]            @relation("LeadDeletedBy")
   activities        Activity[]        @relation("ActivityAssignee")
   stageChanges      LeadStageChange[] @relation("StageChangedBy")
   incentivesCreated Incentive[]       @relation("IncentiveCreatedBy")
@@ -138,11 +139,17 @@ model Lead {
   createdById String
   createdBy   User   @relation("LeadCreatedBy", fields: [createdById], references: [id])
 
+  /// Soft delete: verwijderde leads komen in de prullenbak i.p.v. definitief weg te zijn.
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("LeadDeletedBy", fields: [deletedById], references: [id])
+
   activities   Activity[]
   stageChanges LeadStageChange[]
 
   @@index([ownerId])
   @@index([leadType, stageId])
+  @@index([deletedAt])
 }
 
 model LeadStageChange {

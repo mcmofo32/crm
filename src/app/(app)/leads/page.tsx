@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { getLeadsForCurrentUser } from "@/lib/actions/leads";
 import { canDeleteLeads } from "@/lib/permissions";
@@ -22,42 +22,83 @@ function formatDate(date: Date | null | undefined) {
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; q?: string }>;
 }) {
-  const { type } = await searchParams;
+  const { type, q } = await searchParams;
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
-  const leads = await getLeadsForCurrentUser(leadType);
+  const leads = await getLeadsForCurrentUser(leadType, q);
   const session = await auth();
   const canDelete = canDeleteLeads(session!.user);
+
+  const exportParams = new URLSearchParams();
+  if (leadType) exportParams.set("type", leadType);
+  if (q) exportParams.set("q", q);
+  const exportHref = `/api/leads/export${
+    exportParams.size > 0 ? `?${exportParams.toString()}` : ""
+  }`;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold text-slate-900">Leads</h1>
-        <Link
-          href="/leads/new"
-          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
-        >
-          <Plus size={17} />
-          Nieuwe lead
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={exportHref}
+            className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2.5 text-base font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Download size={17} />
+            Exporteren
+          </Link>
+          <Link
+            href="/leads/new"
+            className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+          >
+            <Plus size={17} />
+            Nieuwe lead
+          </Link>
+        </div>
       </div>
 
-      <div className="flex gap-2 text-base">
-        {(["ALLE", "FA", "RG"] as const).map((t) => (
-          <Link
-            key={t}
-            href={t === "ALLE" ? "/leads" : `/leads?type=${t}`}
-            className={`rounded-full px-4 py-1.5 ${
-              (t === "ALLE" && !leadType) || t === leadType
-                ? "bg-slate-900 text-white"
-                : "bg-white text-slate-600 border border-slate-200"
-            }`}
-          >
-            {t === "ALLE" ? "Alle" : LEAD_TYPE_LABELS[t]}
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2 text-base">
+          {(["ALLE", "FA", "RG"] as const).map((t) => (
+            <Link
+              key={t}
+              href={
+                t === "ALLE"
+                  ? q
+                    ? `/leads?q=${encodeURIComponent(q)}`
+                    : "/leads"
+                  : `/leads?type=${t}${q ? `&q=${encodeURIComponent(q)}` : ""}`
+              }
+              className={`rounded-full px-4 py-1.5 ${
+                (t === "ALLE" && !leadType) || t === leadType
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 border border-slate-200"
+              }`}
+            >
+              {t === "ALLE" ? "Alle" : LEAD_TYPE_LABELS[t]}
+            </Link>
+          ))}
+        </div>
+
+        <form method="GET" className="flex items-center gap-2">
+          {leadType && <input type="hidden" name="type" value={leadType} />}
+          <div className="relative">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              type="search"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
+              className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+            />
+          </div>
+        </form>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

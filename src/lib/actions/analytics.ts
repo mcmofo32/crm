@@ -1,0 +1,161 @@
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { isBeheerder } from "@/lib/permissions";
+import { LeadType, Role } from "@/generated/prisma/client";
+
+async function requireBeheerder() {
+  const session = await auth();
+  if (!session?.user) throw new Error("Niet ingelogd");
+  if (!isBeheerder(session.user)) {
+    throw new Error("Enkel de Beheerder heeft toegang tot deze analyse");
+  }
+  return session.user;
+}
+
+export type LeadTypeStats = {
+  total: number;
+  open: number;
+  won: number;
+  lost: number;
+  conversionRate: number | null;
+};
+
+export type StageBucket = {
+  leadType: LeadType;
+  label: string;
+  order: number;
+  count: number;
+};
+
+export type EmployeeStats = {
+  id: string;
+  name: string;
+  role: Role;
+  teamName: string | null;
+  totalLeads: number;
+  won: number;
+  lost: number;
+  conversionRate: number | null;
+  activitiesCompleted: number;
+};
+
+export async function getAnalytics() {
+  await requireBeheerder();
+
+  const [leads, users, activityGroups] = await Promise.all([
+    prisma.lead.findMany({
+      where: { deletedAt: null },
+      select: {
+        leadType: true,
+        status: true,
+        ownerId: true,
+        stage: { select: { label: true, order: true } },
+      },
+    }),
+    prisma.user.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        team: { select: { name: true } },
+        coachedTeam: { select: { name: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.activity.groupBy({
+      by: ["assigneeId", "status"],
+      _count: { _all: true },
+    }),
+  ]);
+
+  const byType: Record<LeadType, LeadTypeStats> = {
+    FA: { total: 0, open: 0, won: 0, lost: 0, conversionRate: null },
+    RG: { total: 0, open: 0, won: 0, lost: 0, conversionRate: null },
+  };
+  for (const lead of leads) {
+    const bucket = byType[lead.leadType];
+    bucket.total += 1;
+    if (lead.status === "OPEN") bucket.open += 1;
+    if (lead.status === "WON") bucket.won += 1;
+    if (lead.status === "LOST") bucket.lost += 1;
+  }
+  for (const type of Object.keys(byType) as LeadType[]) {
+    const bucket = byType[type];
+    const decided = bucket.won + bucket.lost;
+    bucket.conversionRate =
+      decided > 0 ? Math.round((bucket.won / decided) * 100) : null;
+  }
+
+  const stageMap = new Map<string, StageBucket>();
+  for (const lead of leads) {
+    if (lead.status !== "OPEN") continue;
+    const key = `${lead.leadType}:${lead.stage.label}`;
+    const existing = stageMap.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      stageMap.set(key, {
+        leadType: lead.leadType,
+        label: lead.stage.label,
+        order: lead.stage.order,
+        count: 1,
+      });
+    }
+  }
+  const stageDistribution = Array.from(stageMap.values()).sort(
+    (a, b) => a.leadType.localeCompare(b.leadType) || a.order - b.order
+  );
+
+  const completedActivitiesByUser = new Map<string, number>();
+  for (const group of activityGroups) {
+    if (group.status === "COMPLETED") {
+      completedActivitiesByUser.set(
+        group.assigneeId,
+        (completedActivitiesByUser.get(group.assigneeId) ?? 0) +
+          group._count._all
+      );
+    }
+  }
+
+  const leadStatsByOwner = new Map<
+    string,
+    { total: number; won: number; lost: number }
+  >();
+  for (const lead of leads) {
+    const entry = leadStatsByOwner.get(lead.ownerId) ?? {
+      total: 0,
+      won: 0,
+      lost: 0,
+    };
+    entry.total += 1;
+    if (lead.status === "WON") entry.won += 1;
+    if (lead.status === "LOST") entry.lost += 1;
+    leadStatsByOwner.set(lead.ownerId, entry);
+  }
+
+  const perEmployee: EmployeeStats[] = users
+    .map((u) => {
+      const stats = leadStatsByOwner.get(u.id) ?? {
+        total: 0,
+        won: 0,
+        lost: 0,
+      };
+      const decided = stats.won + stats.lost;
+      return {
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        teamName: u.coachedTeam?.name ?? u.team?.name ?? null,
+        totalLeads: stats.total,
+        won: stats.won,
+        lost: stats.lost,
+        conversionRate:
+          decided > 0 ? Math.round((stats.won / decided) * 100) : null,
+        activitiesCompleted: completedActivitiesByUser.get(u.id) ?? 0,
+      };
+    })
+    .sort((a, b) => b.totalLeads - a.totalLeads);
+
+  return { byType, stageDistribution, perEmployee };
+}

@@ -69,7 +69,7 @@ export default async function LeadDetailPage({
     },
   });
 
-  if (!lead) notFound();
+  if (!lead || lead.deletedAt) notFound();
   if (!(await canAccessOwner(user, lead.ownerId))) notFound();
 
   const now = new Date();

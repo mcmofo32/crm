@@ -10,7 +10,11 @@ import {
   LeadStatus,
   LeadType,
 } from "@/generated/prisma/client";
-import { canAccessOwner, canDeleteLeads, getVisibleUserIds } from "@/lib/permissions";
+import {
+  canAccessOwner,
+  canDeleteLeads,
+  getVisibleUserIds,
+} from "@/lib/permissions";
 
 async function requireUser() {
   const session = await auth();
@@ -64,7 +68,7 @@ export async function updateLeadStageAction(
   const user = await requireUser();
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-  if (!lead) throw new Error("Lead niet gevonden");
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");
   }
@@ -126,6 +130,7 @@ export async function updateLeadStageAction(
   revalidatePath("/dashboard");
 }
 
+/** Verwijdert een lead (soft delete): ze komt in de prullenbak i.p.v. definitief weg te zijn. */
 export async function deleteLeadAction(leadId: string) {
   const user = await requireUser();
   if (!canDeleteLeads(user)) {
@@ -133,24 +138,78 @@ export async function deleteLeadAction(leadId: string) {
   }
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-  if (!lead) throw new Error("Lead niet gevonden");
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
 
-  await prisma.lead.delete({ where: { id: leadId } });
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { deletedAt: new Date(), deletedById: user.id },
+  });
 
   revalidatePath("/leads");
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/taken");
   revalidatePath("/dashboard");
+  revalidatePath("/beheer/prullenbak");
 }
 
-export async function getLeadsForCurrentUser(leadType?: LeadType) {
+/** Haalt een lead terug uit de prullenbak. */
+export async function restoreLeadAction(leadId: string) {
+  const user = await requireUser();
+  if (!canDeleteLeads(user)) {
+    throw new Error("Je mag geen leads herstellen");
+  }
+
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead || !lead.deletedAt) throw new Error("Lead niet gevonden in prullenbak");
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { deletedAt: null, deletedById: null },
+  });
+
+  revalidatePath("/leads");
+  revalidatePath(`/funnel/${lead.leadType}`);
+  revalidatePath("/beheer/prullenbak");
+}
+
+/** Lijst van verwijderde leads voor de prullenbak-pagina (enkel Beheerder). */
+export async function getDeletedLeads() {
+  const user = await requireUser();
+  if (!canDeleteLeads(user)) {
+    throw new Error("Je hebt geen toegang tot de prullenbak");
+  }
+
+  return prisma.lead.findMany({
+    where: { deletedAt: { not: null } },
+    include: { owner: true, deletedBy: true },
+    orderBy: { deletedAt: "desc" },
+  });
+}
+
+export async function getLeadsForCurrentUser(
+  leadType?: LeadType,
+  search?: string
+) {
   const user = await requireUser();
   const ids = await getVisibleUserIds(user);
+  const trimmedSearch = search?.trim();
 
   return prisma.lead.findMany({
     where: {
+      deletedAt: null,
       ...(ids ? { ownerId: { in: ids } } : {}),
       ...(leadType ? { leadType } : {}),
+      ...(trimmedSearch
+        ? {
+            OR: [
+              { firstName: { contains: trimmedSearch, mode: "insensitive" } },
+              { lastName: { contains: trimmedSearch, mode: "insensitive" } },
+              { email: { contains: trimmedSearch, mode: "insensitive" } },
+              { phone: { contains: trimmedSearch, mode: "insensitive" } },
+              { company: { contains: trimmedSearch, mode: "insensitive" } },
+            ],
+          }
+        : {}),
     },
     include: {
       stage: true,

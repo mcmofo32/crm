@@ -30,7 +30,7 @@ const ICONS: Record<string, LucideIcon> = {
 export function NavLinks({
   items,
 }: {
-  items: { href: string; label: string }[];
+  items: { href: string; label: string; badge?: number }[];
 }) {
   const pathname = usePathname();
 
@@ -54,6 +54,11 @@ export function NavLinks({
           >
             {Icon && <Icon size={17} strokeWidth={2} />}
             {item.label}
+            {!!item.badge && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-semibold text-white">
+                {item.badge}
+              </span>
+            )}
           </Link>
         );
       })}

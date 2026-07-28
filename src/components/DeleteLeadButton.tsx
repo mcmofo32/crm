@@ -20,7 +20,7 @@ export function DeleteLeadButton({
   const handleClick = () => {
     if (
       !confirm(
-        `Lead "${leadName}" definitief verwijderen? Dit kan niet ongedaan gemaakt worden.`
+        `Lead "${leadName}" verwijderen? Ze verhuist naar de prullenbak en kan daar hersteld worden.`
       )
     ) {
       return;

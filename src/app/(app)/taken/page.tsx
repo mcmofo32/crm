@@ -52,7 +52,7 @@ export default async function TakenPage({
   const tasks = await prisma.activity.findMany({
     where: {
       status: "PLANNED",
-      lead: { ...ownerWhere, ...(leadType ? { leadType } : {}) },
+      lead: { deletedAt: null, ...ownerWhere, ...(leadType ? { leadType } : {}) },
     },
     include: {
       lead: {

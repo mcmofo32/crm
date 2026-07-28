@@ -8,6 +8,7 @@ import {
   CalendarClock,
   Mail,
   StickyNote,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
@@ -28,29 +29,35 @@ export default async function DashboardPage() {
   const user = session!.user;
   const ids = await getVisibleUserIds(user);
   const ownerWhere = ids ? { ownerId: { in: ids } } : {};
+  const leadWhere = { deletedAt: null, ...ownerWhere };
+  const now = new Date();
 
-  const [openFA, openRG, wonCount, openTasks, upcomingCalls] = await Promise.all([
-    prisma.lead.count({
-      where: { ...ownerWhere, leadType: LeadType.FA, status: LeadStatus.OPEN },
-    }),
-    prisma.lead.count({
-      where: { ...ownerWhere, leadType: LeadType.RG, status: LeadStatus.OPEN },
-    }),
-    prisma.lead.count({ where: { ...ownerWhere, status: LeadStatus.WON } }),
-    prisma.activity.count({
-      where: { status: "PLANNED", lead: ownerWhere },
-    }),
-    prisma.activity.findMany({
-      where: {
-        status: "PLANNED",
-        scheduledAt: { gte: new Date() },
-        lead: ownerWhere,
-      },
-      include: { lead: true },
-      orderBy: { scheduledAt: "asc" },
-      take: 8,
-    }),
-  ]);
+  const [openFA, openRG, wonCount, openTasks, overdueTasks, upcomingCalls] =
+    await Promise.all([
+      prisma.lead.count({
+        where: { ...leadWhere, leadType: LeadType.FA, status: LeadStatus.OPEN },
+      }),
+      prisma.lead.count({
+        where: { ...leadWhere, leadType: LeadType.RG, status: LeadStatus.OPEN },
+      }),
+      prisma.lead.count({ where: { ...leadWhere, status: LeadStatus.WON } }),
+      prisma.activity.count({
+        where: { status: "PLANNED", lead: leadWhere },
+      }),
+      prisma.activity.count({
+        where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
+      }),
+      prisma.activity.findMany({
+        where: {
+          status: "PLANNED",
+          scheduledAt: { gte: now },
+          lead: leadWhere,
+        },
+        include: { lead: true },
+        orderBy: { scheduledAt: "asc" },
+        take: 8,
+      }),
+    ]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -62,6 +69,22 @@ export default async function DashboardPage() {
           Hier is een overzicht van je leads en geplande opvolging.
         </p>
       </div>
+
+      {overdueTasks > 0 && (
+        <Link
+          href="/taken"
+          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100"
+        >
+          <AlertTriangle size={20} className="flex-shrink-0" />
+          <span>
+            <strong>{overdueTasks}</strong>{" "}
+            {overdueTasks === 1
+              ? "geplande activiteit is verlopen zonder afronding."
+              : "geplande activiteiten zijn verlopen zonder afronding."}{" "}
+            Bekijk taken →
+          </span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

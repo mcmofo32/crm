@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
 import { LogOut, Sparkles } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { canManageUsers } from "@/lib/permissions";
-import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
+import { prisma } from "@/lib/prisma";
+import { canManageUsers, getVisibleUserIds, isBeheerder } from "@/lib/permissions";
 import { logoutAction } from "@/lib/actions/auth";
 import { NavLinks } from "@/components/NavLinks";
-import { Badge } from "@/components/Badge";
-import { Avatar } from "@/components/Avatar";
+import { ProfileMenu } from "@/components/ProfileMenu";
 
 export default async function AppLayout({
   children,
@@ -17,10 +16,22 @@ export default async function AppLayout({
   if (!session?.user) redirect("/login");
 
   const user = session.user;
+  const visibleUserIds = await getVisibleUserIds(user);
+  const overdueTasks = await prisma.activity.count({
+    where: {
+      status: "PLANNED",
+      scheduledAt: { lt: new Date() },
+      lead: {
+        deletedAt: null,
+        ...(visibleUserIds ? { ownerId: { in: visibleUserIds } } : {}),
+      },
+    },
+  });
+
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/leads", label: "Leads" },
-    { href: "/taken", label: "Taken" },
+    { href: "/taken", label: "Taken", badge: overdueTasks },
     { href: "/funnel/FA", label: "Funnel FA" },
     { href: "/funnel/RG", label: "Funnel RG" },
     { href: "/incentives", label: "Incentives" },
@@ -46,15 +57,11 @@ export default async function AppLayout({
             <NavLinks items={navItems} />
           </div>
           <div className="flex items-center gap-3">
-            <Avatar name={user.name ?? "?"} size="md" />
-            <div className="flex flex-col leading-tight">
-              <span className="text-base font-medium text-slate-800">
-                {user.name}
-              </span>
-              <Badge variant={ROLE_BADGE_VARIANT[user.role]} className="w-fit">
-                {ROLE_LABELS[user.role]}
-              </Badge>
-            </div>
+            <ProfileMenu
+              name={user.name ?? "?"}
+              role={user.role}
+              isBeheerder={isBeheerder(user)}
+            />
             <form action={logoutAction}>
               <button
                 type="submit"

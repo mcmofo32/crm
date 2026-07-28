@@ -39,7 +39,10 @@ export default async function FunnelPage({
     orderBy: { order: "asc" },
     include: {
       leads: {
-        where: visibleUserIds ? { ownerId: { in: visibleUserIds } } : {},
+        where: {
+          deletedAt: null,
+          ...(visibleUserIds ? { ownerId: { in: visibleUserIds } } : {}),
+        },
         include: { owner: true },
         orderBy: { createdAt: "desc" },
       },
