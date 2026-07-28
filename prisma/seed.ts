@@ -8,20 +8,23 @@ const prisma = new PrismaClient({ adapter });
 const FA_STAGES = [
   { key: "nieuw", label: "Nieuwe lead", order: 0 },
   { key: "contact", label: "Eerste contact", order: 1 },
-  { key: "afspraak", label: "Afspraak gepland", order: 2 },
-  { key: "analyse", label: "Financiële analyse uitgevoerd", order: 3 },
-  { key: "voorstel", label: "Voorstel verzonden", order: 4 },
-  { key: "gewonnen", label: "Klant", order: 5, isWon: true },
-  { key: "verloren", label: "Verloren", order: 6, isLost: true },
+  { key: "analyse", label: "Financiële analyse ingepland", order: 2 },
+  { key: "afspraak", label: "Adviesgesprek ingepland", order: 3 },
+  { key: "gewonnen", label: "Klant", order: 4, isWon: true },
+  { key: "verloren", label: "Geen Klant", order: 5, isLost: true },
+  { key: "voorstel", label: "Opvolging", order: 6 },
+  { key: "niet_bereikbaar", label: "Niet bereikbaar", order: 7 },
 ];
 
 const RG_STAGES = [
   { key: "nieuw", label: "Nieuwe lead", order: 0 },
   { key: "contact", label: "Eerste contact", order: 1 },
-  { key: "behoefte", label: "Behoefte in kaart gebracht", order: 2 },
-  { key: "offerte", label: "Offerte verzonden", order: 3 },
-  { key: "gewonnen", label: "Contract getekend", order: 4, isWon: true },
-  { key: "verloren", label: "Verloren", order: 5, isLost: true },
+  { key: "behoefte", label: "Kennismakingsgesprek ingepland", order: 2 },
+  { key: "offerte", label: "Carrière gesprek ingepland", order: 3 },
+  { key: "gewonnen", label: "Klant", order: 4, isWon: true },
+  { key: "verloren", label: "Geen Klant", order: 5, isLost: true },
+  { key: "opvolging", label: "Opvolging", order: 6 },
+  { key: "niet_bereikbaar", label: "Niet bereikbaar", order: 7 },
 ];
 
 async function seedStages(leadType: LeadType, stages: typeof FA_STAGES) {
