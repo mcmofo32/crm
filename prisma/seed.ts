@@ -21,8 +21,8 @@ const RG_STAGES = [
   { key: "contact", label: "Eerste contact", order: 1 },
   { key: "behoefte", label: "Kennismakingsgesprek ingepland", order: 2 },
   { key: "offerte", label: "Carrière gesprek ingepland", order: 3 },
-  { key: "gewonnen", label: "Klant", order: 4, isWon: true },
-  { key: "verloren", label: "Geen Klant", order: 5, isLost: true },
+  { key: "gewonnen", label: "Medewerker", order: 4, isWon: true },
+  { key: "verloren", label: "Geen medewerker", order: 5, isLost: true },
   { key: "opvolging", label: "Opvolging", order: 6 },
   { key: "niet_bereikbaar", label: "Niet bereikbaar", order: 7 },
 ];
