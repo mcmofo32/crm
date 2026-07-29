@@ -13,29 +13,38 @@ export function meetingTypeFromStageLabel(stageLabel: string) {
   return stageLabel.trim().replace(/\s+ingepland$/i, "");
 }
 
-/** Adviesgesprekken tonen de subagent-keuze in de planning-widget: zij sluiten mee af. */
-export function isAdviesgesprekStage(stageLabel: string) {
-  return meetingTypeFromStageLabel(stageLabel).toLowerCase() === "adviesgesprek";
+/**
+ * Adviesgesprekken/Financiële analyses tonen de rijke planning-widget (Van/Tot,
+ * fysiek/online, subagent). Werkt zowel op een fase-naam ("Adviesgesprek
+ * ingepland") als op een rechtstreeks gekozen onderwerp ("Adviesgesprek").
+ */
+export function isAdviesgesprekType(meetingType: string) {
+  return meetingTypeFromStageLabel(meetingType).toLowerCase() === "adviesgesprek";
 }
 
-/** Bij verplaatsen naar Financiële analyse ingepland vragen we een e-mailadres als dat nog ontbreekt. */
-export function isFinancieleAnalyseStage(stageLabel: string) {
+/** Bij Financiële analyse vragen we een e-mailadres als dat nog ontbreekt. */
+export function isFinancieleAnalyseType(meetingType: string) {
   return (
-    meetingTypeFromStageLabel(stageLabel).toLowerCase() === "financiële analyse"
+    meetingTypeFromStageLabel(meetingType).toLowerCase() === "financiële analyse"
   );
+}
+
+/** Onderwerpen die de rijke planning-widget (Van/Tot i.p.v. duurtijd) tonen. */
+export function isRichMeetingType(meetingType: string) {
+  return isAdviesgesprekType(meetingType) || isFinancieleAnalyseType(meetingType);
 }
 
 /** Bouwt de afspraaknaam op in het vaste formaat "Uur - Type Voornaam Achternaam". */
 export function buildMeetingSubject(
   scheduledAt: Date,
-  stageLabel: string,
+  meetingType: string,
   firstName: string,
   lastName: string
 ) {
   const hours = String(scheduledAt.getHours()).padStart(2, "0");
   const minutes = String(scheduledAt.getMinutes()).padStart(2, "0");
-  const meetingType = meetingTypeFromStageLabel(stageLabel);
-  return `${hours}:${minutes} - ${meetingType} ${firstName} ${lastName}`;
+  const type = meetingTypeFromStageLabel(meetingType);
+  return `${hours}:${minutes} - ${type} ${firstName} ${lastName}`;
 }
 
 export type MeetingPlannerValue = {
@@ -56,7 +65,7 @@ export const EMPTY_MEETING_PLANNER_VALUE: MeetingPlannerValue = {
   subagentId: "",
 };
 
-/** Zet de widget-waarden om in FormData voor `planStageMeetingAction`, of null als er geen tijdstip gekozen is. */
+/** Zet de widget-waarden om in FormData voor `planStageMeetingAction`/`scheduleActivityAction`, of null als er geen tijdstip gekozen is. */
 export function buildMeetingFormData(value: MeetingPlannerValue): FormData | null {
   if (!value.scheduledAt) return null;
   const formData = new FormData();

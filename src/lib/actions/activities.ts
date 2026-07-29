@@ -10,7 +10,11 @@ import {
 } from "@/lib/googleCalendar";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { isPlanningStage, buildMeetingSubject } from "@/lib/meetingPlanning";
+import {
+  isPlanningStage,
+  isRichMeetingType,
+  buildMeetingSubject,
+} from "@/lib/meetingPlanning";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -29,8 +33,13 @@ async function requireLeadAccess(leadId: string) {
 }
 
 /**
- * Plant een opvolgactiviteit (bv. een uitgaand telefoongesprek) in voor een
- * lead en zet ze automatisch in de Google Agenda van de toegewezen gebruiker.
+ * Plant een opvolgactiviteit in voor een lead en zet ze automatisch in de
+ * Google Agenda van de toegewezen gebruiker. Voor "Financiële analyse" en
+ * "Adviesgesprek" wordt dezelfde rijke planning toegepast als bij een
+ * stage-move (vast onderwerpformaat, fysiek/online, Zoom/Meet, subagent,
+ * automatische uitnodiging van de lead) — met een zelf in te vullen einduur
+ * i.p.v. een vaste duurtijd. Voor andere onderwerpen blijft het eenvoudige
+ * duurtijd-dropdown behouden.
  */
 export async function scheduleActivityAction(formData: FormData) {
   const leadId = String(formData.get("leadId"));
@@ -44,16 +53,72 @@ export async function scheduleActivityAction(formData: FormData) {
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
 
+  const rawSubject = String(formData.get("subject") ?? "Telefoongesprek").trim();
+  const richMeeting = Boolean(scheduledAt) && isRichMeetingType(rawSubject);
+
+  let subject = rawSubject;
+  let durationMinutes = Number(formData.get("durationMinutes") ?? 15);
+  let meetingMode: MeetingMode | null = null;
+  let location: string | null = null;
+  let meetingLink: string | null = null;
+  let subagentId: string | null = null;
+  let subagent = null;
+
+  if (richMeeting && scheduledAt) {
+    const endTimeRaw = String(formData.get("endTime") ?? "");
+    if (!endTimeRaw) throw new Error("Kies een einduur voor de afspraak");
+    const [endHours, endMinutes] = endTimeRaw.split(":").map(Number);
+    const endAt = new Date(scheduledAt);
+    endAt.setHours(endHours, endMinutes, 0, 0);
+    durationMinutes = Math.round((endAt.getTime() - scheduledAt.getTime()) / 60_000);
+    if (durationMinutes <= 0) {
+      throw new Error("Het einduur moet na het startuur liggen");
+    }
+
+    meetingMode =
+      formData.get("mode") === "ONLINE" ? MeetingMode.ONLINE : MeetingMode.ONSITE;
+    location =
+      meetingMode === MeetingMode.ONSITE
+        ? String(formData.get("location") ?? "").trim() || null
+        : null;
+    const useGoogleMeet =
+      meetingMode === MeetingMode.ONLINE && formData.get("useGoogleMeet") === "on";
+
+    if (meetingMode === MeetingMode.ONLINE && !useGoogleMeet) {
+      const assignee = await prisma.user.findUnique({ where: { id: assigneeId } });
+      meetingLink = assignee?.zoomLink ?? null;
+      if (!meetingLink) {
+        throw new Error(
+          "De toegewezen gebruiker heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag dit eerst in te stellen."
+        );
+      }
+    }
+
+    subagentId = String(formData.get("subagentId") ?? "").trim() || null;
+    if (subagentId) {
+      subagent = await prisma.subagent.findUnique({ where: { id: subagentId } });
+      if (!subagent) throw new Error("Subagent niet gevonden");
+    }
+
+    subject = buildMeetingSubject(scheduledAt, rawSubject, lead.firstName, lead.lastName);
+  }
+
   const activity = await prisma.activity.create({
     data: {
       leadId,
       assigneeId,
-      type: (formData.get("type") as ActivityType) ?? ActivityType.CALL,
-      subject: String(formData.get("subject") ?? "Telefoongesprek"),
+      type: richMeeting
+        ? ActivityType.MEETING
+        : (formData.get("type") as ActivityType) ?? ActivityType.CALL,
+      subject,
       notes: (formData.get("notes") as string) || null,
       scheduledAt,
-      durationMinutes: Number(formData.get("durationMinutes") ?? 15),
+      durationMinutes,
       status: ActivityStatus.PLANNED,
+      meetingMode,
+      location,
+      meetingLink,
+      subagentId,
     },
   });
 
@@ -67,7 +132,7 @@ export async function scheduleActivityAction(formData: FormData) {
       where: { id: assigneeId },
     });
     if (assignee) {
-      await syncActivityToGoogleCalendar(assignee, activity, lead);
+      await syncActivityToGoogleCalendar(assignee, activity, lead, subagent);
     }
   }
 

@@ -6,7 +6,7 @@ import { planStageMeetingAction } from "@/lib/actions/activities";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import {
   isPlanningStage,
-  isFinancieleAnalyseStage,
+  isFinancieleAnalyseType,
   buildMeetingFormData,
   EMPTY_MEETING_PLANNER_VALUE,
   type MeetingPlannerValue,
@@ -68,7 +68,7 @@ export function StageSelect({
           placeholder="Wat is er besproken/gebeurd? (bv. financiële analyse afgerond, klant tekent volgende week)"
           className="rounded-md border border-slate-300 px-2 py-1 text-sm"
         />
-        {targetStage && isFinancieleAnalyseStage(targetStage.label) && !leadEmail && (
+        {targetStage && isFinancieleAnalyseType(targetStage.label) && !leadEmail && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
             <label className="mb-1 block text-xs text-amber-800">
               Nog geen e-mailadres. Voeg er één toe (optioneel):
@@ -86,7 +86,7 @@ export function StageSelect({
           <MeetingPlannerFields
             value={meeting}
             onChange={setMeeting}
-            stageLabel={targetStage.label}
+            meetingType={targetStage.label}
             subagents={subagents.map((s) => ({
               id: s.id,
               name: s.name,

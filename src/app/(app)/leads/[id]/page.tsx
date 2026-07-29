@@ -14,24 +14,16 @@ import {
   canDeleteActivities,
   getVisibleUserIds,
 } from "@/lib/permissions";
-import { scheduleActivityAction } from "@/lib/actions/activities";
 import { getSubagents } from "@/lib/actions/subagents";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
-import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
 import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
+import { ScheduleActivityForm } from "@/components/ScheduleActivityForm";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { LeadDetailsCard } from "@/components/LeadDetailsCard";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
-
-const ACTIVITY_TYPE_LABELS = {
-  CALL: "Telefoongesprek",
-  MEETING: "Afspraak",
-  EMAIL: "E-mail",
-  NOTE: "Notitie",
-};
 
 const ACTIVITY_TYPE_ICONS: Record<string, LucideIcon> = {
   CALL: Phone,
@@ -175,93 +167,12 @@ export default async function LeadDetailPage({
             currentUserId={user.id}
           />
 
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-3 text-sm font-medium text-slate-900">
-              Volgend gesprek inplannen
-            </h2>
-            <form
-              action={scheduleActivityAction}
-              className="grid grid-cols-2 gap-3 text-sm"
-            >
-              <input type="hidden" name="leadId" value={lead.id} />
-
-              <select
-                name="type"
-                defaultValue="CALL"
-                className="rounded-md border border-slate-300 px-3 py-2"
-              >
-                {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                name="assigneeId"
-                defaultValue={user.id}
-                className="rounded-md border border-slate-300 px-3 py-2"
-              >
-                {assignableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                    {u.googleCalendarConnected ? " (agenda gekoppeld)" : ""}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                name="subject"
-                list="activity-subject-suggestions"
-                placeholder="Onderwerp"
-                defaultValue="Opvolgingsgesprek"
-                required
-                className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
-              />
-              <datalist id="activity-subject-suggestions">
-                {ACTIVITY_SUBJECT_SUGGESTIONS.map((subject) => (
-                  <option key={subject} value={subject} />
-                ))}
-              </datalist>
-
-              <input
-                type="datetime-local"
-                name="scheduledAt"
-                required
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
-
-              <select
-                name="durationMinutes"
-                defaultValue="15"
-                className="rounded-md border border-slate-300 px-3 py-2"
-              >
-                <option value="15">15 min</option>
-                <option value="30">30 min</option>
-                <option value="45">45 min</option>
-                <option value="60">60 min</option>
-              </select>
-
-              <textarea
-                name="notes"
-                placeholder="Notities"
-                rows={2}
-                className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
-              />
-
-              <button
-                type="submit"
-                className="col-span-2 mt-1 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
-              >
-                Inplannen
-              </button>
-            </form>
-            <p className="mt-2 text-xs text-slate-400">
-              Wanneer de toegewezen gebruiker zijn Google Agenda gekoppeld
-              heeft (zie Instellingen), wordt dit automatisch als
-              agenda-item aangemaakt.
-            </p>
-          </div>
+          <ScheduleActivityForm
+            leadId={lead.id}
+            assignableUsers={assignableUsers}
+            currentUserId={user.id}
+            subagents={subagents}
+          />
 
           <div>
             <h2 className="mb-1 text-sm font-medium text-slate-900">

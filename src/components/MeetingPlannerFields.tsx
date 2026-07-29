@@ -1,7 +1,7 @@
 "use client";
 
 import { Video, MapPin } from "lucide-react";
-import { isAdviesgesprekStage, type MeetingPlannerValue } from "@/lib/meetingPlanning";
+import { isAdviesgesprekType, type MeetingPlannerValue } from "@/lib/meetingPlanning";
 
 type SubagentOption = { id: string; name: string; teamName: string };
 
@@ -9,12 +9,12 @@ type SubagentOption = { id: string; name: string; teamName: string };
 export function MeetingPlannerFields({
   value,
   onChange,
-  stageLabel,
+  meetingType,
   subagents,
 }: {
   value: MeetingPlannerValue;
   onChange: (value: MeetingPlannerValue) => void;
-  stageLabel: string;
+  meetingType: string;
   subagents: SubagentOption[];
 }) {
   return (
@@ -100,7 +100,7 @@ export function MeetingPlannerFields({
           : "Enkel zichtbaar als locatie op het agenda-item."}
       </p>
 
-      {isAdviesgesprekStage(stageLabel) && (
+      {isAdviesgesprekType(meetingType) && (
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">
             Subagent uitnodigen (optioneel, om te closen)
