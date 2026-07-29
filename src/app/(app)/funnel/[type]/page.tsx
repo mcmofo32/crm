@@ -7,6 +7,7 @@ import { getVisibleUserIds } from "@/lib/permissions";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
 import { FunnelBoard } from "@/components/FunnelBoard";
+import { getSubagents } from "@/lib/actions/subagents";
 
 export default async function FunnelPage({
   params,
@@ -43,6 +44,8 @@ export default async function FunnelPage({
     },
   });
 
+  const subagents = await getSubagents();
+
   if (stages.length === 0) {
     return (
       <p className="text-base text-slate-500">
@@ -71,7 +74,7 @@ export default async function FunnelPage({
         Sleep een lead naar een andere kolom om de fase te wijzigen.
       </p>
 
-      <FunnelBoard stages={stages} leadType={leadType} />
+      <FunnelBoard stages={stages} leadType={leadType} subagents={subagents} />
     </div>
   );
 }

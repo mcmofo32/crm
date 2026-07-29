@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { prisma } from "@/lib/prisma";
-import type { Activity, Lead, User } from "@/generated/prisma/client";
+import type { Activity, Lead, Subagent, User } from "@/generated/prisma/client";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
@@ -78,7 +78,11 @@ function getClientForUser(user: Pick<User, "googleCalendarRefreshToken">) {
   return client;
 }
 
-function buildEventBody(activity: Activity, lead: Lead) {
+function buildEventBody(
+  activity: Activity,
+  lead: Lead,
+  subagent?: Subagent | null
+) {
   const start = activity.scheduledAt ?? new Date();
   const durationMinutes = activity.durationMinutes ?? 15;
   const end = new Date(start.getTime() + durationMinutes * 60_000);
@@ -93,12 +97,18 @@ function buildEventBody(activity: Activity, lead: Lead) {
 
   const useGoogleMeet = activity.meetingMode === "ONLINE" && !activity.meetingLink;
 
+  const attendees = [
+    lead.email ? { email: lead.email } : null,
+    subagent ? { email: subagent.email } : null,
+  ].filter((a): a is { email: string } => a !== null);
+
   return {
     summary,
     description: [
       `Type: ${activity.type}`,
       lead.phone ? `Telefoon: ${lead.phone}` : null,
       lead.email ? `E-mail: ${lead.email}` : null,
+      subagent ? `Subagent: ${subagent.name} (${subagent.email})` : null,
       activity.meetingMode === "ONLINE" && activity.meetingLink
         ? `\nOnline via: ${activity.meetingLink}`
         : null,
@@ -112,6 +122,7 @@ function buildEventBody(activity: Activity, lead: Lead) {
         : undefined,
     start: { dateTime: start.toISOString() },
     end: { dateTime: end.toISOString() },
+    ...(attendees.length > 0 ? { attendees } : {}),
     ...(useGoogleMeet
       ? {
           conferenceData: {
@@ -142,7 +153,8 @@ function extractMeetLink(eventData: {
 export async function syncActivityToGoogleCalendar(
   user: User,
   activity: Activity,
-  lead: Lead
+  lead: Lead,
+  subagent?: Subagent | null
 ) {
   if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
     return { synced: false as const, reason: "not_connected" as const };
@@ -154,8 +166,11 @@ export async function syncActivityToGoogleCalendar(
   const auth = getClientForUser(user);
   const calendar = google.calendar({ version: "v3", auth });
   const calendarId = user.googleCalendarId ?? "primary";
-  const eventBody = buildEventBody(activity, lead);
+  const eventBody = buildEventBody(activity, lead, subagent);
   const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
+  // Stuurt automatisch een uitnodigingsmail naar de lead (en eventuele
+  // subagent) als attendee op het agenda-item.
+  const sendUpdates = eventBody.attendees ? "all" : undefined;
 
   try {
     let eventId = activity.googleEventId;
@@ -166,6 +181,7 @@ export async function syncActivityToGoogleCalendar(
         calendarId,
         eventId,
         conferenceDataVersion,
+        sendUpdates,
         requestBody: eventBody,
       });
       meetLink = extractMeetLink(data);
@@ -173,6 +189,7 @@ export async function syncActivityToGoogleCalendar(
       const { data } = await calendar.events.insert({
         calendarId,
         conferenceDataVersion,
+        sendUpdates,
         requestBody: eventBody,
       });
       eventId = data.id ?? null;

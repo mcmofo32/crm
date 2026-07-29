@@ -181,6 +181,33 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
+/**
+ * Zet enkel het e-mailadres van een lead (bv. de melding om een e-mailadres
+ * toe te voegen bij het verplaatsen naar "Financiële analyse ingepland"),
+ * zonder de andere contactgegevens aan te raken.
+ */
+export async function updateLeadEmailAction(leadId: string, email: string) {
+  const user = await requireUser();
+
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!(await canAccessOwner(user, lead.ownerId))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+
+  const trimmedEmail = email.trim();
+  if (!trimmedEmail) return;
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { email: trimmedEmail },
+  });
+
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/leads");
+  revalidatePath(`/funnel/${lead.leadType}`);
+}
+
 /** Verwijdert een lead (soft delete): ze komt in de prullenbak i.p.v. definitief weg te zijn. */
 export async function deleteLeadAction(leadId: string) {
   const user = await requireUser();

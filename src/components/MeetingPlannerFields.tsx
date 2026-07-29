@@ -1,15 +1,21 @@
 "use client";
 
 import { Video, MapPin } from "lucide-react";
-import type { MeetingPlannerValue } from "@/lib/meetingPlanning";
+import { isAdviesgesprekStage, type MeetingPlannerValue } from "@/lib/meetingPlanning";
+
+type SubagentOption = { id: string; name: string; teamName: string };
 
 /** Invulvelden voor de planning-widget: datum/uur, online of fysiek, adres, Zoom/Google Meet-keuze. */
 export function MeetingPlannerFields({
   value,
   onChange,
+  stageLabel,
+  subagents,
 }: {
   value: MeetingPlannerValue;
   onChange: (value: MeetingPlannerValue) => void;
+  stageLabel: string;
+  subagents: SubagentOption[];
 }) {
   return (
     <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
@@ -92,6 +98,31 @@ export function MeetingPlannerFields({
             ? "Er wordt automatisch een Google Meet-link toegevoegd aan de agenda-afspraak."
             : "Onze vaste Zoom-link (Instellingen) wordt automatisch in de omschrijving gezet."
           : "Enkel zichtbaar als locatie op het agenda-item."}
+      </p>
+
+      {isAdviesgesprekStage(stageLabel) && (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">
+            Subagent uitnodigen (optioneel, om te closen)
+          </label>
+          <select
+            value={value.subagentId}
+            onChange={(e) => onChange({ ...value, subagentId: e.target.value })}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="">Geen subagent</option>
+            {subagents.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.teamName})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <p className="text-xs text-slate-400">
+        De lead wordt automatisch als deelnemer uitgenodigd via het
+        opgeslagen e-mailadres (indien gekend).
       </p>
     </div>
   );

@@ -1,24 +1,31 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateLeadStageAction } from "@/lib/actions/leads";
+import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import {
   isPlanningStage,
+  isFinancieleAnalyseStage,
   buildMeetingFormData,
   EMPTY_MEETING_PLANNER_VALUE,
   type MeetingPlannerValue,
 } from "@/lib/meetingPlanning";
 
+type SubagentRecord = { id: string; name: string; team: { name: string } };
+
 export function StageSelect({
   leadId,
   currentStageId,
+  leadEmail,
   stages,
+  subagents,
 }: {
   leadId: string;
   currentStageId: string;
+  leadEmail: string | null;
   stages: { id: string; label: string }[];
+  subagents: SubagentRecord[];
 }) {
   const [pending, startTransition] = useTransition();
   const [stageId, setStageId] = useState(currentStageId);
@@ -28,6 +35,7 @@ export function StageSelect({
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(
     EMPTY_MEETING_PLANNER_VALUE
   );
+  const [emailInput, setEmailInput] = useState("");
 
   const currentStage = stages.find((s) => s.id === stageId);
   const otherStages = stages.filter((s) => s.id !== stageId);
@@ -60,8 +68,31 @@ export function StageSelect({
           placeholder="Wat is er besproken/gebeurd? (bv. financiële analyse afgerond, klant tekent volgende week)"
           className="rounded-md border border-slate-300 px-2 py-1 text-sm"
         />
+        {targetStage && isFinancieleAnalyseStage(targetStage.label) && !leadEmail && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
+            <label className="mb-1 block text-xs text-amber-800">
+              Nog geen e-mailadres. Voeg er één toe (optioneel):
+            </label>
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="naam@voorbeeld.be"
+              className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+            />
+          </div>
+        )}
         {targetStage && isPlanningStage(targetStage.label) && (
-          <MeetingPlannerFields value={meeting} onChange={setMeeting} />
+          <MeetingPlannerFields
+            value={meeting}
+            onChange={setMeeting}
+            stageLabel={targetStage.label}
+            subagents={subagents.map((s) => ({
+              id: s.id,
+              name: s.name,
+              teamName: s.team.name,
+            }))}
+          />
         )}
         <div className="flex gap-2">
           <button
@@ -70,7 +101,11 @@ export function StageSelect({
             onClick={() =>
               startTransition(async () => {
                 const meetingFormData = buildMeetingFormData(meeting);
+                const trimmedEmail = emailInput.trim();
                 await updateLeadStageAction(leadId, targetStageId, notes);
+                if (trimmedEmail) {
+                  await updateLeadEmailAction(leadId, trimmedEmail);
+                }
                 if (meetingFormData) {
                   await planStageMeetingAction(leadId, meetingFormData);
                 }
@@ -79,6 +114,7 @@ export function StageSelect({
                 setTargetStageId("");
                 setNotes("");
                 setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+                setEmailInput("");
               })
             }
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
@@ -93,6 +129,7 @@ export function StageSelect({
               setMeeting(EMPTY_MEETING_PLANNER_VALUE);
               setTargetStageId("");
               setNotes("");
+              setEmailInput("");
             }}
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >

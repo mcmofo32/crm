@@ -37,6 +37,25 @@ model Team {
 
   /// De teamleden (rol USER) die aan deze coach rapporteren
   members User[] @relation("TeamMembers")
+
+  subagents Subagent[]
+}
+
+/// Subagent: sluit adviesgesprekken mee af, geen inlogaccount (enkel contactgegevens).
+model Subagent {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  activities Activity[] @relation("ActivitySubagent")
+
+  @@index([teamId])
 }
 
 model User {
@@ -242,6 +261,10 @@ model Activity {
   meetingMode MeetingMode?
   location    String?
   meetingLink String?
+
+  /// Subagent die mee uitgenodigd wordt (bv. bij een Adviesgesprek, om te closen).
+  subagentId String?
+  subagent   Subagent? @relation("ActivitySubagent", fields: [subagentId], references: [id])
 
   @@index([leadId])
   @@index([assigneeId])

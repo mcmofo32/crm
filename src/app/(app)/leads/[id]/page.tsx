@@ -15,6 +15,7 @@ import {
   getVisibleUserIds,
 } from "@/lib/permissions";
 import { scheduleActivityAction } from "@/lib/actions/activities";
+import { getSubagents } from "@/lib/actions/subagents";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
 import { StageSelect } from "@/components/StageSelect";
@@ -86,7 +87,7 @@ export default async function LeadDetailPage({
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())[0];
 
   const visibleUserIds = await getVisibleUserIds(user);
-  const [stages, assignableUsers] = await Promise.all([
+  const [stages, assignableUsers, subagents] = await Promise.all([
     prisma.funnelStage.findMany({
       where: { leadType: lead.leadType },
       orderBy: { order: "asc" },
@@ -96,6 +97,7 @@ export default async function LeadDetailPage({
       select: { id: true, name: true, googleCalendarConnected: true },
       orderBy: { name: "asc" },
     }),
+    getSubagents(),
   ]);
 
   return (
@@ -140,7 +142,9 @@ export default async function LeadDetailPage({
           <StageSelect
             leadId={lead.id}
             currentStageId={lead.stageId}
+            leadEmail={lead.email}
             stages={stages}
+            subagents={subagents}
           />
           {canDeleteLeads(user) && (
             <DeleteLeadButton

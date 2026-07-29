@@ -315,6 +315,12 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
     }
   }
 
+  const subagentId = String(formData.get("subagentId") ?? "").trim() || null;
+  const subagent = subagentId
+    ? await prisma.subagent.findUnique({ where: { id: subagentId } })
+    : null;
+  if (subagentId && !subagent) throw new Error("Subagent niet gevonden");
+
   const subject = buildMeetingSubject(
     scheduledAt,
     freshLead.stage.label,
@@ -334,6 +340,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
       meetingMode: mode,
       location,
       meetingLink,
+      subagentId,
     },
   });
 
@@ -342,7 +349,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
     data: { lastContactedAt: new Date() },
   });
 
-  await syncActivityToGoogleCalendar(assignee, activity, freshLead);
+  await syncActivityToGoogleCalendar(assignee, activity, freshLead, subagent);
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);

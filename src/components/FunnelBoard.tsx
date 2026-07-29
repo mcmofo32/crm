@@ -3,18 +3,25 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Clock, CalendarClock, Inbox, ChevronDown } from "lucide-react";
-import { updateLeadStageAction } from "@/lib/actions/leads";
+import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
 import { StageSelect } from "@/components/StageSelect";
 import { Avatar } from "@/components/Avatar";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import {
   isPlanningStage,
+  isFinancieleAnalyseStage,
   buildMeetingFormData,
   EMPTY_MEETING_PLANNER_VALUE,
   type MeetingPlannerValue,
 } from "@/lib/meetingPlanning";
 import type { LeadType } from "@/generated/prisma/client";
+
+type SubagentRecord = {
+  id: string;
+  name: string;
+  team: { name: string };
+};
 
 const BLUE_RAMP = ["#93c5fd", "#3b82f6", "#1d4ed8"];
 const PURPLE_RAMP = ["#c4b5fd", "#8b5cf6", "#6d28d9"];
@@ -58,6 +65,7 @@ type BoardLead = {
   id: string;
   firstName: string;
   lastName: string;
+  email: string | null;
   company: string | null;
   stageId: string;
   lastContactedAt: Date | null;
@@ -78,12 +86,14 @@ type BoardStage = {
 function LeadCard({
   lead,
   stages,
+  subagents,
   dragged,
   onDragStart,
   onDragEnd,
 }: {
   lead: BoardLead;
   stages: BoardStage[];
+  subagents: SubagentRecord[];
   dragged: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -132,7 +142,13 @@ function LeadCard({
       )}
 
       <div className="mt-2.5">
-        <StageSelect leadId={lead.id} currentStageId={lead.stageId} stages={stages} />
+        <StageSelect
+          leadId={lead.id}
+          currentStageId={lead.stageId}
+          leadEmail={lead.email}
+          stages={stages}
+          subagents={subagents}
+        />
       </div>
     </div>
   );
@@ -141,9 +157,11 @@ function LeadCard({
 export function FunnelBoard({
   stages,
   leadType,
+  subagents,
 }: {
   stages: BoardStage[];
   leadType: LeadType;
+  subagents: SubagentRecord[];
 }) {
   const [pending, startTransition] = useTransition();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
@@ -152,11 +170,13 @@ export function FunnelBoard({
   const [pendingMove, setPendingMove] = useState<{
     leadId: string;
     leadName: string;
+    leadEmail: string | null;
     fromStageLabel: string;
     toStageId: string;
     toStageLabel: string;
   } | null>(null);
   const [notes, setNotes] = useState("");
+  const [emailInput, setEmailInput] = useState("");
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(
     EMPTY_MEETING_PLANNER_VALUE
   );
@@ -191,9 +211,11 @@ export function FunnelBoard({
     const fromStage = stages.find((s) => s.id === lead.stageId);
     setNotes("");
     setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+    setEmailInput("");
     setPendingMove({
       leadId: lead.id,
       leadName: `${lead.firstName} ${lead.lastName}`,
+      leadEmail: lead.email,
       fromStageLabel: fromStage?.label ?? "",
       toStageId: targetStage.id,
       toStageLabel: targetStage.label,
@@ -204,15 +226,20 @@ export function FunnelBoard({
     if (!pendingMove) return;
     const { leadId, toStageId } = pendingMove;
     const trimmedNotes = notes;
+    const trimmedEmail = emailInput.trim();
     const meetingFormData = buildMeetingFormData(meeting);
     startTransition(async () => {
       await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+      if (trimmedEmail) {
+        await updateLeadEmailAction(leadId, trimmedEmail);
+      }
       if (meetingFormData) {
         await planStageMeetingAction(leadId, meetingFormData);
       }
       setPendingMove(null);
       setNotes("");
       setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+      setEmailInput("");
     });
   }
 
@@ -263,6 +290,7 @@ export function FunnelBoard({
                     key={lead.id}
                     lead={lead}
                     stages={stages}
+                    subagents={subagents}
                     dragged={draggedLeadId === lead.id}
                     onDragStart={() => setDraggedLeadId(lead.id)}
                     onDragEnd={() => setDraggedLeadId(null)}
@@ -340,6 +368,7 @@ export function FunnelBoard({
                         key={lead.id}
                         lead={lead}
                         stages={stages}
+                        subagents={subagents}
                         dragged={draggedLeadId === lead.id}
                         onDragStart={() => setDraggedLeadId(lead.id)}
                         onDragEnd={() => setDraggedLeadId(null)}
@@ -380,9 +409,34 @@ export function FunnelBoard({
               placeholder="Bv. financiële analyse afgerond, klant tekent volgende week"
               className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
+            {isFinancieleAnalyseStage(pendingMove.toStageLabel) &&
+              !pendingMove.leadEmail && (
+                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3">
+                  <label className="mb-1 block text-sm text-amber-800">
+                    Deze lead heeft nog geen e-mailadres. Voeg er één toe zodat
+                    we later kunnen uitnodigen voor afspraken (optioneel).
+                  </label>
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="naam@voorbeeld.be"
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              )}
             {isPlanningStage(pendingMove.toStageLabel) && (
               <div className="mb-4">
-                <MeetingPlannerFields value={meeting} onChange={setMeeting} />
+                <MeetingPlannerFields
+                  value={meeting}
+                  onChange={setMeeting}
+                  stageLabel={pendingMove.toStageLabel}
+                  subagents={subagents.map((s) => ({
+                    id: s.id,
+                    name: s.name,
+                    teamName: s.team.name,
+                  }))}
+                />
               </div>
             )}
             <div className="flex justify-end gap-2">
@@ -393,6 +447,7 @@ export function FunnelBoard({
                   setPendingMove(null);
                   setNotes("");
                   setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+                  setEmailInput("");
                 }}
                 className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >

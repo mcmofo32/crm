@@ -13,6 +13,18 @@ export function meetingTypeFromStageLabel(stageLabel: string) {
   return stageLabel.trim().replace(/\s+ingepland$/i, "");
 }
 
+/** Adviesgesprekken tonen de subagent-keuze in de planning-widget: zij sluiten mee af. */
+export function isAdviesgesprekStage(stageLabel: string) {
+  return meetingTypeFromStageLabel(stageLabel).toLowerCase() === "adviesgesprek";
+}
+
+/** Bij verplaatsen naar Financiële analyse ingepland vragen we een e-mailadres als dat nog ontbreekt. */
+export function isFinancieleAnalyseStage(stageLabel: string) {
+  return (
+    meetingTypeFromStageLabel(stageLabel).toLowerCase() === "financiële analyse"
+  );
+}
+
 /** Bouwt de afspraaknaam op in het vaste formaat "Uur - Type Voornaam Achternaam". */
 export function buildMeetingSubject(
   scheduledAt: Date,
@@ -32,6 +44,7 @@ export type MeetingPlannerValue = {
   mode: "ONSITE" | "ONLINE";
   location: string;
   useGoogleMeet: boolean;
+  subagentId: string;
 };
 
 export const EMPTY_MEETING_PLANNER_VALUE: MeetingPlannerValue = {
@@ -40,6 +53,7 @@ export const EMPTY_MEETING_PLANNER_VALUE: MeetingPlannerValue = {
   mode: "ONSITE",
   location: "",
   useGoogleMeet: false,
+  subagentId: "",
 };
 
 /** Zet de widget-waarden om in FormData voor `planStageMeetingAction`, of null als er geen tijdstip gekozen is. */
@@ -53,5 +67,6 @@ export function buildMeetingFormData(value: MeetingPlannerValue): FormData | nul
   if (value.mode === "ONLINE" && value.useGoogleMeet) {
     formData.set("useGoogleMeet", "on");
   }
+  if (value.subagentId) formData.set("subagentId", value.subagentId);
   return formData;
 }
