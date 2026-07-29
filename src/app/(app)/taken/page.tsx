@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
-import { getVisibleUserIds } from "@/lib/permissions";
+import { getVisibleUserIds, canDeleteActivities } from "@/lib/permissions";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
@@ -197,7 +197,8 @@ export default async function TakenPage({
                           subject={task.subject}
                           scheduledAt={task.scheduledAt}
                           durationMinutes={task.durationMinutes}
-                          notes={task.notes}
+                          status={task.status}
+                          canDelete={canDeleteActivities(user)}
                         />
                       </li>
                     );

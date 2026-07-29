@@ -36,6 +36,11 @@ export function canDeleteLeads(user: SessionUser) {
   return user.role === Role.BEHEERDER;
 }
 
+/** Enkel de Beheerder mag activiteiten/afspraken definitief verwijderen (ongeacht status). */
+export function canDeleteActivities(user: SessionUser) {
+  return user.role === Role.BEHEERDER;
+}
+
 /** Wie mag incentive-events aanmaken/verwijderen? Iedereen mag ze bekijken. */
 export function canManageIncentives(user: SessionUser) {
   return (

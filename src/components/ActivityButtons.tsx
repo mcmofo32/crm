@@ -8,6 +8,7 @@ import {
   updateActivityAction,
   deleteActivityAction,
 } from "@/lib/actions/activities";
+import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
 
 const ACTIVITY_TYPE_OPTIONS = [
   { value: "CALL", label: "Telefoongesprek" },
@@ -30,18 +31,46 @@ export function ActivityButtons({
   subject,
   scheduledAt,
   durationMinutes,
-  notes,
+  status,
+  canDelete,
 }: {
   activityId: string;
   type: string;
   subject: string;
   scheduledAt: Date | null;
   durationMinutes: number | null;
-  notes: string | null;
+  status: string;
+  canDelete: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"idle" | "reporting" | "editing">("idle");
   const [reportNotes, setReportNotes] = useState("");
+
+  const deleteButton = canDelete && (
+    <button
+      type="button"
+      disabled={pending}
+      title="Verwijderen"
+      onClick={() => {
+        if (
+          confirm(
+            "Deze afspraak definitief verwijderen? Dit kan niet ongedaan gemaakt worden."
+          )
+        ) {
+          startTransition(() => {
+            deleteActivityAction(activityId);
+          });
+        }
+      }}
+      className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+    >
+      <Trash2 size={14} />
+    </button>
+  );
+
+  if (status !== "PLANNED") {
+    return deleteButton ? <div className="flex items-center">{deleteButton}</div> : null;
+  }
 
   if (mode === "reporting") {
     return (
@@ -105,10 +134,16 @@ export function ActivityButtons({
         </select>
         <input
           name="subject"
+          list="activity-subject-suggestions-edit"
           defaultValue={subject}
           required
           className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
         />
+        <datalist id="activity-subject-suggestions-edit">
+          {ACTIVITY_SUBJECT_SUGGESTIONS.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
         <input
           type="datetime-local"
           name="scheduledAt"
@@ -128,9 +163,9 @@ export function ActivityButtons({
         </select>
         <textarea
           name="notes"
-          defaultValue={notes ?? ""}
+          required
           rows={2}
-          placeholder="Notities"
+          placeholder="Reden van wijziging (verplicht)"
           className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
         />
         <div className="col-span-2 flex gap-2">
@@ -186,25 +221,7 @@ export function ActivityButtons({
       >
         Annuleren
       </button>
-      <button
-        type="button"
-        disabled={pending}
-        title="Verwijderen"
-        onClick={() => {
-          if (
-            confirm(
-              "Deze afspraak definitief verwijderen? Dit kan niet ongedaan gemaakt worden."
-            )
-          ) {
-            startTransition(() => {
-              deleteActivityAction(activityId);
-            });
-          }
-        }}
-        className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
-      >
-        <Trash2 size={14} />
-      </button>
+      {deleteButton}
     </div>
   );
 }

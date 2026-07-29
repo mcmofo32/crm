@@ -8,9 +8,15 @@ import {
 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
-import { canAccessOwner, canDeleteLeads, getVisibleUserIds } from "@/lib/permissions";
+import {
+  canAccessOwner,
+  canDeleteLeads,
+  canDeleteActivities,
+  getVisibleUserIds,
+} from "@/lib/permissions";
 import { scheduleActivityAction } from "@/lib/actions/activities";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
+import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
 import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
@@ -202,11 +208,17 @@ export default async function LeadDetailPage({
 
               <input
                 name="subject"
+                list="activity-subject-suggestions"
                 placeholder="Onderwerp"
                 defaultValue="Opvolgingsgesprek"
                 required
                 className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
               />
+              <datalist id="activity-subject-suggestions">
+                {ACTIVITY_SUBJECT_SUGGESTIONS.map((subject) => (
+                  <option key={subject} value={subject} />
+                ))}
+              </datalist>
 
               <input
                 type="datetime-local"
@@ -286,16 +298,15 @@ export default async function LeadDetailPage({
                           </div>
                         </div>
                       </div>
-                      {activity.status === "PLANNED" && (
-                        <ActivityButtons
-                          activityId={activity.id}
-                          type={activity.type}
-                          subject={activity.subject}
-                          scheduledAt={activity.scheduledAt}
-                          durationMinutes={activity.durationMinutes}
-                          notes={activity.notes}
-                        />
-                      )}
+                      <ActivityButtons
+                        activityId={activity.id}
+                        type={activity.type}
+                        subject={activity.subject}
+                        scheduledAt={activity.scheduledAt}
+                        durationMinutes={activity.durationMinutes}
+                        status={activity.status}
+                        canDelete={canDeleteActivities(user)}
+                      />
                     </div>
                     {activity.scheduledAt && (
                       <p className="ml-[42px] mt-1 text-slate-500">

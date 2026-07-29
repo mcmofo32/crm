@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ActivityStatus, ActivityType, MeetingMode } from "@/generated/prisma/client";
-import { canAccessOwner } from "@/lib/permissions";
+import { canAccessOwner, canDeleteActivities } from "@/lib/permissions";
 import {
   deleteActivityFromGoogleCalendar,
   syncActivityToGoogleCalendar,
@@ -155,7 +155,12 @@ export async function updateActivityAction(
   if (activity.status !== ActivityStatus.PLANNED) {
     throw new Error("Enkel geplande afspraken kunnen aangepast worden");
   }
-  const { lead } = await requireLeadAccess(activity.leadId);
+  const { user, lead } = await requireLeadAccess(activity.leadId);
+
+  const feedback = String(formData.get("notes") ?? "").trim();
+  if (!feedback) {
+    throw new Error("Geef aan waarom deze afspraak gewijzigd wordt");
+  }
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : activity.scheduledAt;
@@ -165,12 +170,20 @@ export async function updateActivityAction(
     data: {
       type: (formData.get("type") as ActivityType) ?? activity.type,
       subject: String(formData.get("subject") ?? activity.subject),
-      notes: (formData.get("notes") as string) || null,
+      notes: feedback,
       scheduledAt,
       durationMinutes: Number(
         formData.get("durationMinutes") ?? activity.durationMinutes ?? 15
       ),
     },
+  });
+
+  await logAudit({
+    actorId: user.id,
+    action: "activity.updated",
+    entityType: "Activity",
+    entityId: activityId,
+    description: `Activiteit "${activity.subject}" bij lead "${lead.firstName} ${lead.lastName}" gewijzigd: ${feedback}`,
   });
 
   const assignee = await prisma.user.findUnique({
@@ -192,6 +205,9 @@ export async function deleteActivityAction(activityId: string) {
   });
   if (!activity) throw new Error("Activiteit niet gevonden");
   const { user, lead } = await requireLeadAccess(activity.leadId);
+  if (!canDeleteActivities(user)) {
+    throw new Error("Enkel de Beheerder mag activiteiten definitief verwijderen");
+  }
 
   const assignee = await prisma.user.findUnique({
     where: { id: activity.assigneeId },
