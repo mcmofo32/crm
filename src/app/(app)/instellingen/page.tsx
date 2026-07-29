@@ -1,7 +1,12 @@
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
-import { canManageSettings } from "@/lib/permissions";
-import { getZoomLink, updateZoomLinkAction } from "@/lib/actions/companySettings";
+import { updateMyZoomLinkAction } from "@/lib/actions/profile";
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  not_configured:
+    "Google Agenda-integratie is niet geconfigureerd voor deze omgeving. Vraag de Beheerder om de Google-instellingen na te kijken.",
+  invalid_state: "Koppelen van Google Agenda is mislukt. Probeer opnieuw.",
+};
 
 export default async function SettingsPage({
   searchParams,
@@ -13,7 +18,6 @@ export default async function SettingsPage({
   const user = await prisma.user.findUnique({
     where: { id: viewer.id },
   });
-  const zoomLink = canManageSettings(viewer) ? await getZoomLink() : null;
 
   return (
     <div className="max-w-lg">
@@ -28,7 +32,8 @@ export default async function SettingsPage({
       )}
       {google_error && (
         <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          Koppelen van Google Agenda is mislukt. Probeer opnieuw.
+          {GOOGLE_ERROR_MESSAGES[google_error] ??
+            "Koppelen van Google Agenda is mislukt. Probeer opnieuw."}
         </p>
       )}
 
@@ -63,33 +68,30 @@ export default async function SettingsPage({
         )}
       </div>
 
-      {canManageSettings(viewer) && (
-        <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
-          <h2 className="mb-2 font-medium text-slate-900">
-            Zoom-link (bedrijfsbreed)
-          </h2>
-          <p className="mb-3 text-slate-500">
-            Deze link wordt automatisch toegevoegd aan online-afspraken die
-            via de planning-widget worden ingepland (tenzij daar gekozen wordt
-            voor Google Meet).
-          </p>
-          <form action={updateZoomLinkAction} className="flex gap-2">
-            <input
-              type="url"
-              name="zoomLink"
-              defaultValue={zoomLink ?? ""}
-              placeholder="https://zoom.us/j/..."
-              className="flex-1 rounded-md border border-slate-300 px-3 py-2"
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
-            >
-              Opslaan
-            </button>
-          </form>
-        </div>
-      )}
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+        <h2 className="mb-2 font-medium text-slate-900">Mijn Zoom-link</h2>
+        <p className="mb-3 text-slate-500">
+          Je eigen, persoonlijke Zoom-ruimte. Wanneer je via de
+          planning-widget een online-afspraak inplant, wordt deze link
+          automatisch in de omschrijving gezet (tenzij je daar kiest voor
+          Google Meet).
+        </p>
+        <form action={updateMyZoomLinkAction} className="flex gap-2">
+          <input
+            type="url"
+            name="zoomLink"
+            defaultValue={user?.zoomLink ?? ""}
+            placeholder="https://zoom.us/j/..."
+            className="flex-1 rounded-md border border-slate-300 px-3 py-2"
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+          >
+            Opslaan
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -28,6 +28,7 @@ export function buildMeetingSubject(
 
 export type MeetingPlannerValue = {
   scheduledAt: string;
+  endTime: string;
   mode: "ONSITE" | "ONLINE";
   location: string;
   useGoogleMeet: boolean;
@@ -35,6 +36,7 @@ export type MeetingPlannerValue = {
 
 export const EMPTY_MEETING_PLANNER_VALUE: MeetingPlannerValue = {
   scheduledAt: "",
+  endTime: "",
   mode: "ONSITE",
   location: "",
   useGoogleMeet: false,
@@ -45,6 +47,7 @@ export function buildMeetingFormData(value: MeetingPlannerValue): FormData | nul
   if (!value.scheduledAt) return null;
   const formData = new FormData();
   formData.set("scheduledAt", value.scheduledAt);
+  formData.set("endTime", value.endTime);
   formData.set("mode", value.mode);
   if (value.mode === "ONSITE") formData.set("location", value.location);
   if (value.mode === "ONLINE" && value.useGoogleMeet) {

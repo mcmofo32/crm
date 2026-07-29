@@ -17,12 +17,26 @@ export function MeetingPlannerFields({
         Afspraak inplannen (optioneel)
       </p>
 
-      <input
-        type="datetime-local"
-        value={value.scheduledAt}
-        onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-      />
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Van</label>
+          <input
+            type="datetime-local"
+            value={value.scheduledAt}
+            onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Tot</label>
+          <input
+            type="time"
+            value={value.endTime}
+            onChange={(e) => onChange({ ...value, endTime: e.target.value })}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
 
       <div className="flex gap-2 text-sm">
         <button

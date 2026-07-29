@@ -10,7 +10,14 @@ export async function GET(req: NextRequest) {
   }
 
   const state = randomBytes(16).toString("hex");
-  const consentUrl = getGoogleConsentUrl(state);
+  let consentUrl: string;
+  try {
+    consentUrl = getGoogleConsentUrl(state);
+  } catch {
+    return NextResponse.redirect(
+      new URL("/instellingen?google_error=not_configured", req.url)
+    );
+  }
 
   const res = NextResponse.redirect(consentUrl);
   res.cookies.set("google_oauth_state", state, {

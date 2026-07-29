@@ -64,6 +64,9 @@ model User {
   googleCalendarId           String? @default("primary")
   googleCalendarEmail        String?
 
+  /// Eigen Zoom-link, gebruikt in online-afspraken die deze gebruiker inplant
+  zoomLink String?
+
   leadsOwned        Lead[]            @relation("LeadOwner")
   leadsCreated      Lead[]            @relation("LeadCreatedBy")
   leadsDeleted      Lead[]            @relation("LeadDeletedBy")
@@ -282,15 +285,4 @@ model Incentive {
   updatedAt   DateTime @updatedAt
 
   @@index([startDate, endDate])
-}
-
-// ---------------------------------------------------------------------------
-// Bedrijfsbrede instellingen (singleton rij, id is altijd "singleton")
-// ---------------------------------------------------------------------------
-
-model CompanySettings {
-  id        String   @id @default("singleton")
-  /// Vaste Zoom-link die automatisch in online-afspraken wordt gezet
-  zoomLink  String?
-  updatedAt DateTime @updatedAt
 }

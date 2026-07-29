@@ -10,7 +10,6 @@ import {
 } from "@/lib/googleCalendar";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { getZoomLink } from "@/lib/actions/companySettings";
 import { isPlanningStage, buildMeetingSubject } from "@/lib/meetingPlanning";
 
 async function requireUser() {
@@ -243,9 +242,10 @@ export async function cancelActivityAction(activityId: string) {
 /**
  * Plant meteen een afspraak (fysiek of online) in bij het verplaatsen van een
  * lead naar een "...ingepland"-fase (bv. Financiële analyse ingepland,
- * Adviesgesprek ingepland). Bij online zonder Google Meet wordt de vaste
- * bedrijfs-Zoom-link (Instellingen) in de omschrijving gezet; met Google Meet
- * genereert Google zelf een meet-link op het agenda-item.
+ * Adviesgesprek ingepland). Bij online zonder Google Meet wordt de eigen
+ * Zoom-link van de toegewezen gebruiker (Instellingen) in de omschrijving
+ * gezet; met Google Meet genereert Google zelf een meet-link op het
+ * agenda-item.
  */
 export async function planStageMeetingAction(leadId: string, formData: FormData) {
   const { lead } = await requireLeadAccess(leadId);
@@ -261,9 +261,24 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
     );
   }
 
+  const assignee = await prisma.user.findUnique({
+    where: { id: freshLead.ownerId },
+  });
+  if (!assignee) throw new Error("Eigenaar van deze lead niet gevonden");
+
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
   if (!scheduledAtRaw) throw new Error("Kies een datum en uur voor de afspraak");
   const scheduledAt = new Date(scheduledAtRaw);
+
+  const endTimeRaw = String(formData.get("endTime") ?? "");
+  if (!endTimeRaw) throw new Error("Kies een einduur voor de afspraak");
+  const [endHours, endMinutes] = endTimeRaw.split(":").map(Number);
+  const endAt = new Date(scheduledAt);
+  endAt.setHours(endHours, endMinutes, 0, 0);
+  const durationMinutes = Math.round((endAt.getTime() - scheduledAt.getTime()) / 60_000);
+  if (durationMinutes <= 0) {
+    throw new Error("Het einduur moet na het startuur liggen");
+  }
 
   const mode =
     formData.get("mode") === "ONLINE" ? MeetingMode.ONLINE : MeetingMode.ONSITE;
@@ -276,10 +291,10 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
 
   let meetingLink: string | null = null;
   if (mode === MeetingMode.ONLINE && !useGoogleMeet) {
-    meetingLink = await getZoomLink();
+    meetingLink = assignee.zoomLink;
     if (!meetingLink) {
       throw new Error(
-        "Er is nog geen Zoom-link ingesteld bij Instellingen. Vraag de Beheerder om deze in te stellen, of kies Google Meet."
+        "De eigenaar van deze lead heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag de eigenaar dit eerst in te stellen."
       );
     }
   }
@@ -298,7 +313,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
       type: ActivityType.MEETING,
       subject,
       scheduledAt,
-      durationMinutes: 30,
+      durationMinutes,
       status: ActivityStatus.PLANNED,
       meetingMode: mode,
       location,
@@ -311,12 +326,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
     data: { lastContactedAt: new Date() },
   });
 
-  const assignee = await prisma.user.findUnique({
-    where: { id: freshLead.ownerId },
-  });
-  if (assignee) {
-    await syncActivityToGoogleCalendar(assignee, activity, freshLead);
-  }
+  await syncActivityToGoogleCalendar(assignee, activity, freshLead);
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
