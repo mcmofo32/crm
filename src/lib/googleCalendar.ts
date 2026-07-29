@@ -81,19 +81,55 @@ function buildEventBody(activity: Activity, lead: Lead) {
   const end = new Date(start.getTime() + durationMinutes * 60_000);
   const leadName = `${lead.firstName} ${lead.lastName}`.trim();
 
+  // Afspraken vanuit de planning-widget dragen de leadnaam al in het
+  // onderwerp (bv. "18:00 - Financiële analyse Robin Ceuppens"), dus die
+  // hoeft dan niet nogmaals toegevoegd te worden aan de agenda-titel.
+  const summary = activity.meetingMode
+    ? activity.subject
+    : `${activity.subject} — ${leadName}`;
+
+  const useGoogleMeet = activity.meetingMode === "ONLINE" && !activity.meetingLink;
+
   return {
-    summary: `${activity.subject} — ${leadName}`,
+    summary,
     description: [
       `Type: ${activity.type}`,
       lead.phone ? `Telefoon: ${lead.phone}` : null,
       lead.email ? `E-mail: ${lead.email}` : null,
+      activity.meetingMode === "ONLINE" && activity.meetingLink
+        ? `\nOnline via: ${activity.meetingLink}`
+        : null,
       activity.notes ? `\nNotities:\n${activity.notes}` : null,
     ]
       .filter(Boolean)
       .join("\n"),
+    location:
+      activity.meetingMode === "ONSITE" && activity.location
+        ? activity.location
+        : undefined,
     start: { dateTime: start.toISOString() },
     end: { dateTime: end.toISOString() },
+    ...(useGoogleMeet
+      ? {
+          conferenceData: {
+            createRequest: {
+              requestId: activity.id,
+              conferenceSolutionKey: { type: "hangoutsMeet" },
+            },
+          },
+        }
+      : {}),
   };
+}
+
+function extractMeetLink(eventData: {
+  conferenceData?: { entryPoints?: { entryPointType?: string | null; uri?: string | null }[] | null } | null;
+  hangoutLink?: string | null;
+}) {
+  const videoEntry = eventData.conferenceData?.entryPoints?.find(
+    (entry) => entry.entryPointType === "video"
+  );
+  return videoEntry?.uri ?? eventData.hangoutLink ?? null;
 }
 
 /**
@@ -116,27 +152,38 @@ export async function syncActivityToGoogleCalendar(
   const calendar = google.calendar({ version: "v3", auth });
   const calendarId = user.googleCalendarId ?? "primary";
   const eventBody = buildEventBody(activity, lead);
+  const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
 
   try {
     let eventId = activity.googleEventId;
+    let meetLink: string | null = null;
 
     if (eventId) {
-      await calendar.events.update({
+      const { data } = await calendar.events.update({
         calendarId,
         eventId,
+        conferenceDataVersion,
         requestBody: eventBody,
       });
+      meetLink = extractMeetLink(data);
     } else {
       const { data } = await calendar.events.insert({
         calendarId,
+        conferenceDataVersion,
         requestBody: eventBody,
       });
       eventId = data.id ?? null;
+      meetLink = extractMeetLink(data);
     }
 
     await prisma.activity.update({
       where: { id: activity.id },
-      data: { googleEventId: eventId, googleCalendarId: calendarId, googleSyncError: null },
+      data: {
+        googleEventId: eventId,
+        googleCalendarId: calendarId,
+        googleSyncError: null,
+        ...(meetLink ? { meetingLink: meetLink } : {}),
+      },
     });
 
     return { synced: true as const, eventId };

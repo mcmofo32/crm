@@ -4,8 +4,16 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Clock, CalendarClock, Inbox, ChevronDown } from "lucide-react";
 import { updateLeadStageAction } from "@/lib/actions/leads";
+import { planStageMeetingAction } from "@/lib/actions/activities";
 import { StageSelect } from "@/components/StageSelect";
 import { Avatar } from "@/components/Avatar";
+import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import {
+  isPlanningStage,
+  buildMeetingFormData,
+  EMPTY_MEETING_PLANNER_VALUE,
+  type MeetingPlannerValue,
+} from "@/lib/meetingPlanning";
 import type { LeadType } from "@/generated/prisma/client";
 
 const BLUE_RAMP = ["#93c5fd", "#3b82f6", "#1d4ed8"];
@@ -149,6 +157,9 @@ export function FunnelBoard({
     toStageLabel: string;
   } | null>(null);
   const [notes, setNotes] = useState("");
+  const [meeting, setMeeting] = useState<MeetingPlannerValue>(
+    EMPTY_MEETING_PLANNER_VALUE
+  );
 
   const mainStages = stages
     .filter((s) => !isSecondaryStage(s))
@@ -179,6 +190,7 @@ export function FunnelBoard({
 
     const fromStage = stages.find((s) => s.id === lead.stageId);
     setNotes("");
+    setMeeting(EMPTY_MEETING_PLANNER_VALUE);
     setPendingMove({
       leadId: lead.id,
       leadName: `${lead.firstName} ${lead.lastName}`,
@@ -192,10 +204,15 @@ export function FunnelBoard({
     if (!pendingMove) return;
     const { leadId, toStageId } = pendingMove;
     const trimmedNotes = notes;
+    const meetingFormData = buildMeetingFormData(meeting);
     startTransition(async () => {
       await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+      if (meetingFormData) {
+        await planStageMeetingAction(leadId, meetingFormData);
+      }
       setPendingMove(null);
       setNotes("");
+      setMeeting(EMPTY_MEETING_PLANNER_VALUE);
     });
   }
 
@@ -361,8 +378,13 @@ export function FunnelBoard({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Bv. financiële analyse afgerond, klant tekent volgende week"
-              className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
+            {isPlanningStage(pendingMove.toStageLabel) && (
+              <div className="mb-4">
+                <MeetingPlannerFields value={meeting} onChange={setMeeting} />
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -370,6 +392,7 @@ export function FunnelBoard({
                 onClick={() => {
                   setPendingMove(null);
                   setNotes("");
+                  setMeeting(EMPTY_MEETING_PLANNER_VALUE);
                 }}
                 className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >

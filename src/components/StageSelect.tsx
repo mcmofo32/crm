@@ -2,6 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { updateLeadStageAction } from "@/lib/actions/leads";
+import { planStageMeetingAction } from "@/lib/actions/activities";
+import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import {
+  isPlanningStage,
+  buildMeetingFormData,
+  EMPTY_MEETING_PLANNER_VALUE,
+  type MeetingPlannerValue,
+} from "@/lib/meetingPlanning";
 
 export function StageSelect({
   leadId,
@@ -17,9 +25,13 @@ export function StageSelect({
   const [open, setOpen] = useState(false);
   const [targetStageId, setTargetStageId] = useState("");
   const [notes, setNotes] = useState("");
+  const [meeting, setMeeting] = useState<MeetingPlannerValue>(
+    EMPTY_MEETING_PLANNER_VALUE
+  );
 
   const currentStage = stages.find((s) => s.id === stageId);
   const otherStages = stages.filter((s) => s.id !== stageId);
+  const targetStage = stages.find((s) => s.id === targetStageId);
 
   if (open) {
     return (
@@ -48,17 +60,25 @@ export function StageSelect({
           placeholder="Wat is er besproken/gebeurd? (bv. financiële analyse afgerond, klant tekent volgende week)"
           className="rounded-md border border-slate-300 px-2 py-1 text-sm"
         />
+        {targetStage && isPlanningStage(targetStage.label) && (
+          <MeetingPlannerFields value={meeting} onChange={setMeeting} />
+        )}
         <div className="flex gap-2">
           <button
             type="button"
             disabled={pending || !targetStageId || !notes.trim()}
             onClick={() =>
               startTransition(async () => {
+                const meetingFormData = buildMeetingFormData(meeting);
                 await updateLeadStageAction(leadId, targetStageId, notes);
+                if (meetingFormData) {
+                  await planStageMeetingAction(leadId, meetingFormData);
+                }
                 setStageId(targetStageId);
                 setOpen(false);
                 setTargetStageId("");
                 setNotes("");
+                setMeeting(EMPTY_MEETING_PLANNER_VALUE);
               })
             }
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
@@ -70,6 +90,7 @@ export function StageSelect({
             disabled={pending}
             onClick={() => {
               setOpen(false);
+              setMeeting(EMPTY_MEETING_PLANNER_VALUE);
               setTargetStageId("");
               setNotes("");
             }}

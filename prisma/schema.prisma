@@ -204,6 +204,11 @@ enum ActivityStatus {
   NO_SHOW
 }
 
+enum MeetingMode {
+  ONSITE
+  ONLINE
+}
+
 model Activity {
   id              String         @id @default(cuid())
   type            ActivityType
@@ -227,6 +232,13 @@ model Activity {
   googleEventId    String?
   googleCalendarId String?
   googleSyncError  String?
+
+  // Planning-widget: locatie/online-gegevens voor een ingeplande afspraak
+  // (Financiële analyse/Adviesgesprek e.d.), meegenomen in het Google
+  // Agenda-item als locatie/omschrijving/Meet-koppeling.
+  meetingMode MeetingMode?
+  location    String?
+  meetingLink String?
 
   @@index([leadId])
   @@index([assigneeId])
@@ -270,4 +282,15 @@ model Incentive {
   updatedAt   DateTime @updatedAt
 
   @@index([startDate, endDate])
+}
+
+// ---------------------------------------------------------------------------
+// Bedrijfsbrede instellingen (singleton rij, id is altijd "singleton")
+// ---------------------------------------------------------------------------
+
+model CompanySettings {
+  id        String   @id @default("singleton")
+  /// Vaste Zoom-link die automatisch in online-afspraken wordt gezet
+  zoomLink  String?
+  updatedAt DateTime @updatedAt
 }

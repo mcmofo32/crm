@@ -1,5 +1,7 @@
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
+import { canManageSettings } from "@/lib/permissions";
+import { getZoomLink, updateZoomLinkAction } from "@/lib/actions/companySettings";
 
 export default async function SettingsPage({
   searchParams,
@@ -7,10 +9,11 @@ export default async function SettingsPage({
   searchParams: Promise<{ google_connected?: string; google_error?: string }>;
 }) {
   const { google_connected, google_error } = await searchParams;
-  const session = await auth();
+  const viewer = (await getEffectiveViewer())!;
   const user = await prisma.user.findUnique({
-    where: { id: session!.user.id },
+    where: { id: viewer.id },
   });
+  const zoomLink = canManageSettings(viewer) ? await getZoomLink() : null;
 
   return (
     <div className="max-w-lg">
@@ -59,6 +62,34 @@ export default async function SettingsPage({
           </a>
         )}
       </div>
+
+      {canManageSettings(viewer) && (
+        <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+          <h2 className="mb-2 font-medium text-slate-900">
+            Zoom-link (bedrijfsbreed)
+          </h2>
+          <p className="mb-3 text-slate-500">
+            Deze link wordt automatisch toegevoegd aan online-afspraken die
+            via de planning-widget worden ingepland (tenzij daar gekozen wordt
+            voor Google Meet).
+          </p>
+          <form action={updateZoomLinkAction} className="flex gap-2">
+            <input
+              type="url"
+              name="zoomLink"
+              defaultValue={zoomLink ?? ""}
+              placeholder="https://zoom.us/j/..."
+              className="flex-1 rounded-md border border-slate-300 px-3 py-2"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+            >
+              Opslaan
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
