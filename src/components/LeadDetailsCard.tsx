@@ -95,12 +95,21 @@ export function LeadDetailsCard({
         </button>
       </div>
       <dl className="flex flex-col gap-3">
+        <Row label="Voornaam" value={firstName} />
+        <Row label="Achternaam" value={lastName} />
         <Row icon={Mail} label="E-mail" value={email} />
         <Row icon={Phone} label="Telefoon" value={phone} />
         <Row icon={Building2} label="Bedrijf" value={company} />
         <Row label="Bron" value={source} />
       </dl>
-      {notes && <p className="mt-3 whitespace-pre-wrap text-slate-600">{notes}</p>}
+      <div className="mt-3 border-t border-slate-100 pt-3">
+        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+          Notities
+        </p>
+        <p className="whitespace-pre-wrap text-slate-600">
+          {notes || <span className="text-slate-300">Nog geen notities toegevoegd.</span>}
+        </p>
+      </div>
     </div>
   );
 }
@@ -144,14 +153,15 @@ function Row({
   value: string | null;
   icon?: typeof Mail;
 }) {
-  if (!value) return null;
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className="flex items-center gap-1.5 text-slate-400">
         {Icon && <Icon size={14} />}
         {label}
       </dt>
-      <dd className="text-right text-slate-700">{value}</dd>
+      <dd className="text-right text-slate-700">
+        {value || <span className="text-slate-300">—</span>}
+      </dd>
     </div>
   );
 }
