@@ -17,6 +17,8 @@ const ACTIVITY_TYPE_OPTIONS = [
   { value: "NOTE", label: "Notitie" },
 ];
 
+const CUSTOM_SUBJECT = "__custom__";
+
 function toDatetimeLocalValue(date: Date | null) {
   if (!date) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -45,6 +47,12 @@ export function ActivityButtons({
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"idle" | "reporting" | "editing">("idle");
   const [reportNotes, setReportNotes] = useState("");
+  const [subjectPreset, setSubjectPreset] = useState(
+    ACTIVITY_SUBJECT_SUGGESTIONS.includes(subject) ? subject : CUSTOM_SUBJECT
+  );
+  const [customSubject, setCustomSubject] = useState(
+    ACTIVITY_SUBJECT_SUGGESTIONS.includes(subject) ? "" : subject
+  );
 
   const deleteButton = canDelete && (
     <button
@@ -132,18 +140,29 @@ export function ActivityButtons({
             </option>
           ))}
         </select>
-        <input
-          name="subject"
-          list="activity-subject-suggestions-edit"
-          defaultValue={subject}
-          required
+        <select
+          value={subjectPreset}
+          onChange={(e) => setSubjectPreset(e.target.value)}
           className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
-        />
-        <datalist id="activity-subject-suggestions-edit">
+        >
           {ACTIVITY_SUBJECT_SUGGESTIONS.map((s) => (
-            <option key={s} value={s} />
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
-        </datalist>
+          <option value={CUSTOM_SUBJECT}>Andere (zelf ingeven)…</option>
+        </select>
+        {subjectPreset === CUSTOM_SUBJECT ? (
+          <input
+            name="subject"
+            value={customSubject}
+            onChange={(e) => setCustomSubject(e.target.value)}
+            required
+            className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+          />
+        ) : (
+          <input type="hidden" name="subject" value={subjectPreset} />
+        )}
         <input
           type="datetime-local"
           name="scheduledAt"

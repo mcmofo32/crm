@@ -18,6 +18,8 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   NOTE: "Notitie",
 };
 
+const CUSTOM_SUBJECT = "__custom__";
+
 type AssignableUser = { id: string; name: string; googleCalendarConnected: boolean };
 type SubagentRecord = { id: string; name: string; team: { name: string } };
 
@@ -42,7 +44,8 @@ export function ScheduleActivityForm({
   const [pending, startTransition] = useTransition();
   const [type, setType] = useState("CALL");
   const [assigneeId, setAssigneeId] = useState(currentUserId);
-  const [subject, setSubject] = useState("Opvolgingsgesprek");
+  const [subjectPreset, setSubjectPreset] = useState("Opvolgingsgesprek");
+  const [customSubject, setCustomSubject] = useState("");
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("15");
@@ -50,10 +53,12 @@ export function ScheduleActivityForm({
     EMPTY_MEETING_PLANNER_VALUE
   );
 
+  const subject = subjectPreset === CUSTOM_SUBJECT ? customSubject : subjectPreset;
   const richMeeting = isRichMeetingType(subject);
 
   function reset() {
-    setSubject("Opvolgingsgesprek");
+    setSubjectPreset("Opvolgingsgesprek");
+    setCustomSubject("");
     setNotes("");
     setScheduledAt("");
     setDurationMinutes("15");
@@ -121,19 +126,27 @@ export function ScheduleActivityForm({
           ))}
         </select>
 
-        <input
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          list="activity-subject-suggestions"
-          placeholder="Onderwerp"
-          required
+        <select
+          value={subjectPreset}
+          onChange={(e) => setSubjectPreset(e.target.value)}
           className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
-        />
-        <datalist id="activity-subject-suggestions">
+        >
           {ACTIVITY_SUBJECT_SUGGESTIONS.map((s) => (
-            <option key={s} value={s} />
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
-        </datalist>
+          <option value={CUSTOM_SUBJECT}>Andere (zelf ingeven)…</option>
+        </select>
+        {subjectPreset === CUSTOM_SUBJECT && (
+          <input
+            value={customSubject}
+            onChange={(e) => setCustomSubject(e.target.value)}
+            placeholder="Onderwerp"
+            required
+            className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
+          />
+        )}
 
         {richMeeting ? (
           <div className="col-span-2">
