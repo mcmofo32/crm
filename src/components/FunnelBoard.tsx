@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Clock, CalendarClock, Inbox, ChevronDown } from "lucide-react";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
@@ -163,6 +164,7 @@ export function FunnelBoard({
   leadType: LeadType;
   subagents: SubagentRecord[];
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
@@ -240,6 +242,7 @@ export function FunnelBoard({
       setNotes("");
       setMeeting(EMPTY_MEETING_PLANNER_VALUE);
       setEmailInput("");
+      router.refresh();
     });
   }
 

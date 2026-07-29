@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
@@ -27,8 +28,8 @@ export function StageSelect({
   stages: { id: string; label: string }[];
   subagents: SubagentRecord[];
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [stageId, setStageId] = useState(currentStageId);
   const [open, setOpen] = useState(false);
   const [targetStageId, setTargetStageId] = useState("");
   const [notes, setNotes] = useState("");
@@ -37,8 +38,8 @@ export function StageSelect({
   );
   const [emailInput, setEmailInput] = useState("");
 
-  const currentStage = stages.find((s) => s.id === stageId);
-  const otherStages = stages.filter((s) => s.id !== stageId);
+  const currentStage = stages.find((s) => s.id === currentStageId);
+  const otherStages = stages.filter((s) => s.id !== currentStageId);
   const targetStage = stages.find((s) => s.id === targetStageId);
 
   if (open) {
@@ -109,12 +110,12 @@ export function StageSelect({
                 if (meetingFormData) {
                   await planStageMeetingAction(leadId, meetingFormData);
                 }
-                setStageId(targetStageId);
                 setOpen(false);
                 setTargetStageId("");
                 setNotes("");
                 setMeeting(EMPTY_MEETING_PLANNER_VALUE);
                 setEmailInput("");
+                router.refresh();
               })
             }
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { logCompletedActivityAction } from "@/lib/actions/activities";
 
 const TYPE_OPTIONS = [
@@ -19,6 +20,7 @@ export function ReportContactForm({
   assignableUsers: { id: string; name: string }[];
   currentUserId: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [pending, startTransition] = useTransition();
@@ -42,6 +44,7 @@ export function ReportContactForm({
           await logCompletedActivityAction(formData);
           setNotes("");
           setOpen(false);
+          router.refresh();
         })
       }
       className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { scheduleActivityAction } from "@/lib/actions/activities";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
@@ -41,6 +42,7 @@ export function ScheduleActivityForm({
   currentUserId: string;
   subagents: SubagentRecord[];
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [type, setType] = useState("CALL");
   const [assigneeId, setAssigneeId] = useState(currentUserId);
@@ -85,6 +87,7 @@ export function ScheduleActivityForm({
     startTransition(async () => {
       await scheduleActivityAction(formData);
       reset();
+      router.refresh();
     });
   }
 

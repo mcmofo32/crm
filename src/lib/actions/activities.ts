@@ -10,6 +10,7 @@ import {
 } from "@/lib/googleCalendar";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { updateLeadStageAction } from "@/lib/actions/leads";
 import {
   isPlanningStage,
   isRichMeetingType,
@@ -136,6 +137,20 @@ export async function scheduleActivityAction(formData: FormData) {
     }
   }
 
+  // Het inplannen van bv. een Financiële analyse/Adviesgesprek verplaatst de
+  // lead meteen naar de bijhorende "...ingepland"-fase, als die bestaat.
+  if (richMeeting) {
+    const matchingStage = await prisma.funnelStage.findFirst({
+      where: {
+        leadType: lead.leadType,
+        label: { equals: `${rawSubject} ingepland`, mode: "insensitive" },
+      },
+    });
+    if (matchingStage && matchingStage.id !== lead.stageId) {
+      await updateLeadStageAction(leadId, matchingStage.id);
+    }
+  }
+
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/taken");
   revalidatePath("/dashboard");
@@ -149,7 +164,7 @@ export async function scheduleActivityAction(formData: FormData) {
  */
 export async function logCompletedActivityAction(formData: FormData) {
   const leadId = String(formData.get("leadId"));
-  const { user } = await requireLeadAccess(leadId);
+  const { user, lead } = await requireLeadAccess(leadId);
 
   const assigneeId = String(formData.get("assigneeId") ?? user.id);
   if (!(await canAccessOwner(user, assigneeId))) {
@@ -177,6 +192,21 @@ export async function logCompletedActivityAction(formData: FormData) {
     where: { id: leadId },
     data: { lastContactedAt: occurredAt },
   });
+
+  // Een eerste gerapporteerd contact verplaatst de lead automatisch van de
+  // openingsfase (bv. "Nieuwe lead") naar de eerstvolgende fase (bv. "Eerste
+  // contact"). Latere rapporten verplaatsen niets automatisch.
+  const currentStage = await prisma.funnelStage.findUnique({
+    where: { id: lead.stageId },
+  });
+  if (currentStage && currentStage.order === 0) {
+    const nextStage = await prisma.funnelStage.findFirst({
+      where: { leadType: lead.leadType, order: currentStage.order + 1 },
+    });
+    if (nextStage) {
+      await updateLeadStageAction(leadId, nextStage.id);
+    }
+  }
 
   revalidatePath(`/leads/${leadId}`);
 }
