@@ -2,7 +2,10 @@ import { google } from "googleapis";
 import { prisma } from "@/lib/prisma";
 import type { Activity, Lead, User } from "@/generated/prisma/client";
 
-const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
+const SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/userinfo.email",
+];
 
 function getOAuthClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID;

@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectGoogleCalendarForUser(session.user.id, code);
-  } catch {
+  } catch (error) {
+    console.error("Google Calendar koppelen mislukt:", error);
     return NextResponse.redirect(
       new URL("/instellingen?google_error=1", req.url)
     );
