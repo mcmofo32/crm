@@ -26,7 +26,7 @@ export function getGoogleConsentUrl(state: string) {
   const client = getOAuthClient();
   return client.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",
+    prompt: "select_account consent",
     scope: SCOPES,
     state,
   });
