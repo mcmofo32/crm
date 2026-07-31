@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { Plus, Search, Download } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { getLeadsForCurrentUser } from "@/lib/actions/leads";
+import {
+  getLeadsForCurrentUser,
+  getFunnelStagesForFilter,
+  getAssignableUsers,
+  type LeadContactFilter,
+  type LeadSortOption,
+} from "@/lib/actions/leads";
 import { canDeleteLeads } from "@/lib/permissions";
 import {
   LEAD_TYPE_LABELS,
@@ -22,14 +28,38 @@ function formatDate(date: Date | null | undefined) {
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; q?: string }>;
+  searchParams: Promise<{
+    type?: string;
+    q?: string;
+    stageId?: string;
+    ownerId?: string;
+    contact?: string;
+    sort?: string;
+  }>;
 }) {
-  const { type, q } = await searchParams;
+  const { type, q, stageId, ownerId, contact, sort } = await searchParams;
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
-  const leads = await getLeadsForCurrentUser(leadType, q);
+  const contactFilter =
+    contact === "none" || contact === "overdue"
+      ? (contact as LeadContactFilter)
+      : undefined;
+  const sortBy = sort === "stale" ? ("stale" as LeadSortOption) : undefined;
+
+  const [leads, stages, assignableUsers] = await Promise.all([
+    getLeadsForCurrentUser(leadType, q, {
+      stageId: stageId || undefined,
+      ownerId: ownerId || undefined,
+      contactFilter,
+      sortBy,
+    }),
+    getFunnelStagesForFilter(),
+    getAssignableUsers(),
+  ]);
   const viewer = (await getEffectiveViewer())!;
   const canDelete = canDeleteLeads(viewer);
+
+  const filtersActive = Boolean(stageId || ownerId || contactFilter || sortBy);
 
   const exportParams = new URLSearchParams();
   if (leadType) exportParams.set("type", leadType);
@@ -37,6 +67,30 @@ export default async function LeadsPage({
   const exportHref = `/api/leads/export${
     exportParams.size > 0 ? `?${exportParams.toString()}` : ""
   }`;
+
+  function tabHref(t: "ALLE" | "FA" | "RG") {
+    const params = new URLSearchParams();
+    if (t !== "ALLE") params.set("type", t);
+    if (q) params.set("q", q);
+    if (stageId) params.set("stageId", stageId);
+    if (ownerId) params.set("ownerId", ownerId);
+    if (contact) params.set("contact", contact);
+    if (sort) params.set("sort", sort);
+    const qs = params.toString();
+    return qs ? `/leads?${qs}` : "/leads";
+  }
+
+  function clearFiltersHref() {
+    const params = new URLSearchParams();
+    if (leadType) params.set("type", leadType);
+    if (q) params.set("q", q);
+    const qs = params.toString();
+    return qs ? `/leads?${qs}` : "/leads";
+  }
+
+  const visibleStages = leadType
+    ? stages.filter((s) => s.leadType === leadType)
+    : stages;
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,13 +119,7 @@ export default async function LeadsPage({
           {(["ALLE", "FA", "RG"] as const).map((t) => (
             <Link
               key={t}
-              href={
-                t === "ALLE"
-                  ? q
-                    ? `/leads?q=${encodeURIComponent(q)}`
-                    : "/leads"
-                  : `/leads?type=${t}${q ? `&q=${encodeURIComponent(q)}` : ""}`
-              }
+              href={tabHref(t)}
               className={`rounded-full px-4 py-1.5 ${
                 (t === "ALLE" && !leadType) || t === leadType
                   ? "bg-slate-900 text-white"
@@ -83,7 +131,7 @@ export default async function LeadsPage({
           ))}
         </div>
 
-        <form method="GET" className="flex items-center gap-2">
+        <form method="GET" className="flex flex-wrap items-center gap-2">
           {leadType && <input type="hidden" name="type" value={leadType} />}
           <div className="relative">
             <Search
@@ -98,6 +146,103 @@ export default async function LeadsPage({
               className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
             />
           </div>
+
+          <details className="relative">
+            <summary
+              className={`flex cursor-pointer list-none items-center gap-1.5 rounded-md border px-4 py-2 text-base font-medium ${
+                filtersActive
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              Filter
+              {filtersActive && (
+                <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900">
+                  •
+                </span>
+              )}
+            </summary>
+            <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Fase
+              </label>
+              <select
+                name="stageId"
+                defaultValue={stageId ?? ""}
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">Alle fases</option>
+                {visibleStages.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                    {!leadType ? ` (${LEAD_TYPE_LABELS[s.leadType]})` : ""}
+                  </option>
+                ))}
+              </select>
+
+              {assignableUsers.length > 1 && (
+                <>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                    Eigenaar
+                  </label>
+                  <select
+                    name="ownerId"
+                    defaultValue={ownerId ?? ""}
+                    className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">Alle eigenaars</option>
+                    {assignableUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Contactstatus
+              </label>
+              <select
+                name="contact"
+                defaultValue={contact ?? ""}
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">Alle</option>
+                <option value="none">Zonder contact</option>
+                <option value="overdue">Verlopen opvolging</option>
+              </select>
+
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Sorteren op
+              </label>
+              <select
+                name="sort"
+                defaultValue={sort ?? "recent"}
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="recent">Meest recent toegevoegd</option>
+                <option value="stale">Langst geen contact</option>
+              </select>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="submit"
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  Filters toepassen
+                </button>
+                {filtersActive && (
+                  <Link
+                    href={clearFiltersHref()}
+                    className="text-sm text-slate-500 underline hover:text-slate-700"
+                  >
+                    Filters wissen
+                  </Link>
+                )}
+              </div>
+            </div>
+          </details>
         </form>
       </div>
 
@@ -172,7 +317,9 @@ export default async function LeadsPage({
                   colSpan={canDelete ? 8 : 7}
                   className="px-6 py-8 text-center text-slate-400"
                 >
-                  Nog geen leads.
+                  {filtersActive || q
+                    ? "Geen leads gevonden voor deze filters."
+                    : "Nog geen leads."}
                 </td>
               </tr>
             )}

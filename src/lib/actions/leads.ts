@@ -280,19 +280,37 @@ export async function getDeletedLeads() {
   });
 }
 
+export type LeadContactFilter = "none" | "overdue";
+export type LeadSortOption = "recent" | "stale";
+
 export async function getLeadsForCurrentUser(
   leadType?: LeadType,
-  search?: string
+  search?: string,
+  options?: {
+    stageId?: string;
+    ownerId?: string;
+    contactFilter?: LeadContactFilter;
+    sortBy?: LeadSortOption;
+  }
 ) {
   const user = await requireUser();
   const ids = await getVisibleUserIds(user);
   const trimmedSearch = search?.trim();
+  const now = new Date();
 
   return prisma.lead.findMany({
     where: {
       deletedAt: null,
       ...(ids ? { ownerId: { in: ids } } : {}),
       ...(leadType ? { leadType } : {}),
+      ...(options?.stageId ? { stageId: options.stageId } : {}),
+      ...(options?.ownerId ? { ownerId: options.ownerId } : {}),
+      ...(options?.contactFilter === "none"
+        ? { lastContactedAt: null }
+        : {}),
+      ...(options?.contactFilter === "overdue"
+        ? { activities: { some: { status: "PLANNED", scheduledAt: { lt: now } } } }
+        : {}),
       ...(trimmedSearch
         ? {
             OR: [
@@ -309,13 +327,24 @@ export async function getLeadsForCurrentUser(
       stage: true,
       owner: true,
       activities: {
-        where: { status: "PLANNED", scheduledAt: { gte: new Date() } },
+        where: { status: "PLANNED", scheduledAt: { gte: now } },
         orderBy: { scheduledAt: "asc" },
         take: 1,
         select: { scheduledAt: true },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy:
+      options?.sortBy === "stale"
+        ? { lastContactedAt: { sort: "asc", nulls: "first" } }
+        : { createdAt: "desc" },
+  });
+}
+
+/** Alle funnel-stages (beide leadtypes), gebruikt om op fase te filteren op de leadslijst. */
+export async function getFunnelStagesForFilter() {
+  await requireUser();
+  return prisma.funnelStage.findMany({
+    orderBy: [{ leadType: "asc" }, { order: "asc" }],
   });
 }
 
