@@ -155,6 +155,10 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
     throw new Error("Voornaam en achternaam zijn verplicht");
   }
 
+  const unitsRaw = String(formData.get("units") ?? "").trim();
+  const unitsNumber = unitsRaw ? Number(unitsRaw) : null;
+  const units = unitsNumber !== null && Number.isFinite(unitsNumber) ? Math.round(unitsNumber) : null;
+
   await prisma.lead.update({
     where: { id: leadId },
     data: {
@@ -164,6 +168,7 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
       phone: (formData.get("phone") as string)?.trim() || null,
       company: (formData.get("company") as string)?.trim() || null,
       source: (formData.get("source") as string)?.trim() || null,
+      units,
       notes: (formData.get("notes") as string) || null,
     },
   });
@@ -289,6 +294,8 @@ export async function getLeadsForCurrentUser(
   options?: {
     stageId?: string;
     ownerId?: string;
+    /** Toont leads van al deze eigenaars samen (bv. "heel mijn team" voor een Coach). */
+    ownerIds?: string[];
     contactFilter?: LeadContactFilter;
     sortBy?: LeadSortOption;
   }
@@ -304,7 +311,11 @@ export async function getLeadsForCurrentUser(
       ...(ids ? { ownerId: { in: ids } } : {}),
       ...(leadType ? { leadType } : {}),
       ...(options?.stageId ? { stageId: options.stageId } : {}),
-      ...(options?.ownerId ? { ownerId: options.ownerId } : {}),
+      ...(options?.ownerIds
+        ? { ownerId: { in: options.ownerIds } }
+        : options?.ownerId
+        ? { ownerId: options.ownerId }
+        : {}),
       ...(options?.contactFilter === "none"
         ? { lastContactedAt: null }
         : {}),

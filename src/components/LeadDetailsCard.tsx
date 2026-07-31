@@ -12,6 +12,7 @@ export function LeadDetailsCard({
   phone,
   company,
   source,
+  units,
   notes,
 }: {
   leadId: string;
@@ -21,6 +22,7 @@ export function LeadDetailsCard({
   phone: string | null;
   company: string | null;
   source: string | null;
+  units: number | null;
   notes: string | null;
 }) {
   const [pending, startTransition] = useTransition();
@@ -48,7 +50,15 @@ export function LeadDetailsCard({
             <Field label="Telefoon" name="phone" type="tel" defaultValue={phone ?? ""} />
           </div>
           <Field label="Bedrijf" name="company" defaultValue={company ?? ""} />
-          <Field label="Bron" name="source" defaultValue={source ?? ""} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Bron" name="source" defaultValue={source ?? ""} />
+            <Field
+              label="Aantal eenheden"
+              name="units"
+              type="number"
+              defaultValue={units !== null ? String(units) : ""}
+            />
+          </div>
           <div className="flex flex-col gap-1">
             <label className="text-slate-600">Notities</label>
             <textarea
@@ -101,6 +111,7 @@ export function LeadDetailsCard({
         <Row icon={Phone} label="Telefoon" value={phone} />
         <Row icon={Building2} label="Bedrijf" value={company} />
         <Row label="Bron" value={source} />
+        <Row label="Aantal eenheden" value={units !== null ? String(units) : null} />
       </dl>
       <div className="mt-3 border-t border-slate-100 pt-3">
         <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">

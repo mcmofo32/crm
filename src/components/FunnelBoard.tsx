@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Clock, CalendarClock, Inbox, ChevronDown, Filter } from "lucide-react";
+import { Clock, CalendarClock, Inbox, ChevronDown, Filter, Phone, Tag } from "lucide-react";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
 import { StageSelect } from "@/components/StageSelect";
@@ -88,6 +88,8 @@ type BoardLead = {
   firstName: string;
   lastName: string;
   email: string | null;
+  phone: string | null;
+  source: string | null;
   company: string | null;
   stageId: string;
   lastContactedAt: Date | null;
@@ -140,6 +142,31 @@ function LeadCard({
         {lead.firstName} {lead.lastName}
       </Link>
       {lead.company && <p className="text-sm text-slate-400">{lead.company}</p>}
+
+      <div className="mt-1.5 flex flex-col gap-1 text-sm">
+        {lead.phone ? (
+          <a
+            href={`tel:${lead.phone}`}
+            onClick={(e) => e.stopPropagation()}
+            draggable={false}
+            className="flex items-center gap-1.5 text-slate-600 hover:underline"
+          >
+            <Phone size={12} className="shrink-0 text-slate-400" />
+            {lead.phone}
+          </a>
+        ) : (
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <Phone size={12} className="shrink-0" />
+            Geen telefoon
+          </span>
+        )}
+        {lead.source && (
+          <span className="flex items-center gap-1.5 text-slate-500">
+            <Tag size={12} className="shrink-0 text-slate-400" />
+            {lead.source}
+          </span>
+        )}
+      </div>
 
       <div className="mt-2 flex items-center gap-1.5">
         <Avatar name={lead.owner.name} size="sm" />

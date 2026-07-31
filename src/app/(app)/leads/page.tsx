@@ -15,7 +15,7 @@ import {
   leadStatusLabel,
   LEAD_STATUS_BADGE_VARIANT,
 } from "@/lib/roleLabels";
-import { LeadType } from "@/generated/prisma/client";
+import { LeadType, Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 
@@ -49,10 +49,15 @@ export default async function LeadsPage({
   const canDelete = canDeleteLeads(viewer);
   const assignableUsers = await getAssignableUsers();
   const requiresSelection = assignableUsers.length > 1;
+  const isCoach = viewer.role === Role.COACH;
+  const TEAM_OPTION = "team";
   const selectedOwnerId =
-    ownerId && assignableUsers.some((u) => u.id === ownerId)
+    isCoach && ownerId === TEAM_OPTION
+      ? TEAM_OPTION
+      : ownerId && assignableUsers.some((u) => u.id === ownerId)
       ? ownerId
       : viewer.id;
+  const isTeamView = selectedOwnerId === TEAM_OPTION;
 
   function tabHref(t: "ALLE" | "FA" | "RG") {
     const params = new URLSearchParams();
@@ -80,6 +85,7 @@ export default async function LeadsPage({
         defaultValue={selectedOwnerId}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
+        {isCoach && <option value={TEAM_OPTION}>Heel mijn team</option>}
         {assignableUsers.map((u) => (
           <option key={u.id} value={u.id}>
             {u.id === viewer.id ? `${u.name} (jezelf)` : u.name}
@@ -98,7 +104,8 @@ export default async function LeadsPage({
   const [leads, stages] = await Promise.all([
     getLeadsForCurrentUser(leadType, q, {
       stageId: stageId || undefined,
-      ownerId: selectedOwnerId,
+      ownerId: isTeamView ? undefined : selectedOwnerId,
+      ownerIds: isTeamView ? assignableUsers.map((u) => u.id) : undefined,
       contactFilter,
       sortBy,
     }),
@@ -274,6 +281,9 @@ export default async function LeadsPage({
               <th className="px-6 py-3 font-medium">Type</th>
               <th className="px-6 py-3 font-medium">Fase</th>
               <th className="px-6 py-3 font-medium">Status</th>
+              {isTeamView && (
+                <th className="px-6 py-3 font-medium">Eigenaar</th>
+              )}
               <th className="px-6 py-3 font-medium">Telefoon</th>
               <th className="px-6 py-3 font-medium">Aanbevolen door</th>
               <th className="px-4 py-3 font-medium">Laatste contact</th>
@@ -308,6 +318,11 @@ export default async function LeadsPage({
                     {leadStatusLabel(lead.status, lead.leadType)}
                   </Badge>
                 </td>
+                {isTeamView && (
+                  <td className="px-6 py-4 text-slate-600">
+                    {lead.owner.name}
+                  </td>
+                )}
                 <td className="px-6 py-4 text-slate-600">
                   {lead.phone || "—"}
                 </td>
@@ -335,7 +350,9 @@ export default async function LeadsPage({
             {leads.length === 0 && (
               <tr>
                 <td
-                  colSpan={canDelete ? 9 : 8}
+                  colSpan={
+                    (canDelete ? 9 : 8) + (isTeamView ? 1 : 0)
+                  }
                   className="px-6 py-8 text-center text-slate-400"
                 >
                   {filtersActive || q

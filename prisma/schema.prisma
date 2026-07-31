@@ -164,6 +164,8 @@ model Lead {
   source          String?
   notes           String?
   value           Decimal?   @db.Decimal(10, 2)
+  /// Aantal eenheden (bv. verzekerings-/beleggingsproduct-eenheden) bij winnen, gebruikt voor incentive-ranglijsten
+  units           Int?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   lastContactedAt DateTime?
@@ -275,26 +277,42 @@ model Activity {
 // Incentives: motivatie-events met een doel, poster en ranglijst
 // ---------------------------------------------------------------------------
 
-/// Waarop de ranglijst van een incentive gebaseerd is.
-enum IncentiveGoalType {
-  /// Aantal leads dat een gebruiker heeft gewonnen binnen de looptijd
-  LEADS_WON
+/// Op welke meting een categorie of top-N-ranglijst gebaseerd is.
+enum IncentiveMetric {
+  /// Aantal leads dat een gebruiker heeft gewonnen (klanten) binnen de looptijd
+  CLIENTS_WON
+  /// Som van het aantal eenheden van gewonnen leads binnen de looptijd
+  UNITS
+  /// Aantal afgeronde RG-gesprekken binnen de looptijd
+  RG_MEETINGS
   /// Aantal afgeronde contactmomenten/activiteiten binnen de looptijd
   ACTIVITIES_COMPLETED
 }
 
+/// Hoe winnaars bepaald worden: op richtcijfers per categorie, of gewoon top-N.
+enum IncentiveMode {
+  /// Elke categorie heeft een richtcijfer (bv. min 5 klanten); wie alle richtcijfers haalt wint
+  THRESHOLD
+  /// Geen richtcijfer: de top N op de ranglijst wint
+  TOP_N
+}
+
 model Incentive {
-  id          String            @id @default(cuid())
+  id          String        @id @default(cuid())
   title       String
   /// De regels/vereisten om te winnen, vrije tekst
   description String
-  goalType    IncentiveGoalType @default(LEADS_WON)
-  /// Optioneel: enkel leads van dit type meetellen (null = FA + RG samen)
-  leadType    LeadType?
-  /// Optioneel richtcijfer om te tonen (bv. "eerste die 10 haalt wint")
-  targetValue Int?
-  startDate   DateTime
-  endDate     DateTime
+  mode        IncentiveMode @default(THRESHOLD)
+
+  /// Enkel bij mode = TOP_N: op welke meting wordt gerangschikt
+  rankingMetric   IncentiveMetric?
+  /// Enkel bij mode = TOP_N: optioneel enkel leads van dit type meetellen
+  rankingLeadType LeadType?
+  /// Enkel bij mode = TOP_N: hoeveel plaatsen winnen (top 1 t.e.m. top 10)
+  topN            Int?
+
+  startDate DateTime
+  endDate   DateTime
 
   // De poster (jpeg of pdf) wordt als binaire data in de database bewaard,
   // zodat er geen aparte bestandsopslag nodig is.
@@ -307,5 +325,22 @@ model Incentive {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  categories IncentiveCategory[]
+
   @@index([startDate, endDate])
+}
+
+/// Enkel bij mode = THRESHOLD: één rij per categorie met een eigen richtcijfer
+/// (bv. "min 5 klanten", "min 800 eenheden", "min 1 RG-gesprek").
+model IncentiveCategory {
+  id          String          @id @default(cuid())
+  incentiveId String
+  incentive   Incentive       @relation(fields: [incentiveId], references: [id], onDelete: Cascade)
+  metric      IncentiveMetric
+  /// Optioneel: enkel leads van dit type meetellen voor deze categorie (null = FA + RG samen)
+  leadType    LeadType?
+  targetValue Int
+  order       Int             @default(0)
+
+  @@index([incentiveId])
 }

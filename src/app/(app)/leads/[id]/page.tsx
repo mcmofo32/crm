@@ -157,6 +157,7 @@ export default async function LeadDetailPage({
           phone={lead.phone}
           company={lead.company}
           source={lead.source}
+          units={lead.units}
           notes={lead.notes}
         />
 
