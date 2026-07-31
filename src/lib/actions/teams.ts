@@ -35,6 +35,26 @@ export async function getTeamsWithMembers() {
   });
 }
 
+/**
+ * Iedereen die onder dit team valt, ook via geneste sub-structuren (bv. een
+ * teamlid die zelf coach is, en diens hele team) — zo blijft zichtbaar wie
+ * er in de volledige structuur zit zonder elk niveau apart open te klikken.
+ */
+export async function getStructureMembers(teamId: string) {
+  await requireUserManager();
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  if (!team) return [];
+
+  const descendantIds = await getDescendantUserIds(team.coachId);
+  if (descendantIds.length === 0) return [];
+
+  return prisma.user.findMany({
+    where: { id: { in: descendantIds } },
+    select: { id: true, name: true, role: true },
+    orderBy: { name: "asc" },
+  });
+}
+
 /** Gebruikers die als coach van een NIEUW team aangeduid kunnen worden. */
 export async function getCoachCandidates() {
   await requireUserManager();

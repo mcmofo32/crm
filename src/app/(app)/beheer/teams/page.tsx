@@ -4,6 +4,7 @@ import {
   getCoachCandidates,
   getCoachChangeCandidates,
   getMemberCandidates,
+  getStructureMembers,
   createTeamAction,
   changeTeamCoachAction,
   addTeamMemberAction,
@@ -38,6 +39,7 @@ async function TeamCard({
   const nextSeen = new Set(seenTeamIds).add(team.id);
 
   const coachChangeCandidates = await getCoachChangeCandidates(team.id);
+  const structureMembers = await getStructureMembers(team.id);
   const boundAddMember = addTeamMemberAction.bind(null, team.id);
   const boundChangeCoach = changeTeamCoachAction.bind(null, team.id);
   const availableMembers = memberCandidates.filter(
@@ -248,6 +250,32 @@ async function TeamCard({
           </button>
         </form>
       </div>
+
+      {subTeams.length > 0 && (
+        <details className="group border-t border-slate-100 pt-3">
+          <summary className="mb-3 flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-900">
+            <ChevronRight
+              size={15}
+              className="text-slate-400 transition-transform group-open:rotate-90"
+            />
+            Iedereen in deze structuur ({structureMembers.length})
+          </summary>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {structureMembers.map((m) => (
+              <span
+                key={m.id}
+                className="flex items-center gap-1.5 rounded-full bg-slate-50 py-1 pl-1 pr-2.5 text-xs text-slate-600"
+              >
+                <Avatar name={m.name} size="sm" />
+                {m.name}
+                {m.role === "COACH" && (
+                  <span className="text-amber-600">· Coach</span>
+                )}
+              </span>
+            ))}
+          </div>
+        </details>
+      )}
 
       {subTeams.length > 0 && (
         <details className="group border-t border-slate-100 pt-3">
