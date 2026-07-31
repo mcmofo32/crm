@@ -50,16 +50,24 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
+export type CustomerSortOption = "recent" | "oldest" | "amount" | "units";
+
 /** Klanten (gewonnen leads) met hun producten, voor het klantenoverzicht. */
 export async function getCustomersForCurrentUser(options?: {
   leadType?: LeadType;
   ownerId?: string;
   ownerIds?: string[];
+  search?: string;
+  productType?: ProductType;
+  becameCustomerFrom?: Date;
+  becameCustomerTo?: Date;
+  sortBy?: CustomerSortOption;
 }) {
   const user = await requireUser();
   const ids = await getVisibleUserIds(user);
+  const trimmedSearch = options?.search?.trim();
 
-  return prisma.lead.findMany({
+  const customers = await prisma.lead.findMany({
     where: {
       deletedAt: null,
       status: "WON",
@@ -69,6 +77,20 @@ export async function getCustomersForCurrentUser(options?: {
         ? { ownerId: { in: options.ownerIds } }
         : options?.ownerId
         ? { ownerId: options.ownerId }
+        : {}),
+      ...(options?.productType
+        ? { products: { some: { type: options.productType } } }
+        : {}),
+      ...(trimmedSearch
+        ? {
+            OR: [
+              { firstName: { contains: trimmedSearch, mode: "insensitive" } },
+              { lastName: { contains: trimmedSearch, mode: "insensitive" } },
+              { email: { contains: trimmedSearch, mode: "insensitive" } },
+              { phone: { contains: trimmedSearch, mode: "insensitive" } },
+              { company: { contains: trimmedSearch, mode: "insensitive" } },
+            ],
+          }
         : {}),
     },
     include: {
@@ -81,7 +103,39 @@ export async function getCustomersForCurrentUser(options?: {
         select: { changedAt: true },
       },
     },
-    orderBy: { updatedAt: "desc" },
+  });
+
+  // "Klant sinds" is de datum van de laatste overgang naar een gewonnen fase;
+  // dat kan niet native gesorteerd/gefilterd worden door Prisma, dus gebeurt hier.
+  const withComputed = customers.map((customer) => ({
+    ...customer,
+    becameCustomerAt: customer.stageChanges[0]?.changedAt ?? customer.updatedAt,
+    totalAmount: customer.products.reduce((sum, p) => sum + Number(p.amount), 0),
+    totalUnits: customer.products.reduce((sum, p) => sum + p.units, 0),
+  }));
+
+  const dateFiltered = withComputed.filter((customer) => {
+    if (options?.becameCustomerFrom && customer.becameCustomerAt < options.becameCustomerFrom) {
+      return false;
+    }
+    if (options?.becameCustomerTo && customer.becameCustomerAt > options.becameCustomerTo) {
+      return false;
+    }
+    return true;
+  });
+
+  return dateFiltered.sort((a, b) => {
+    switch (options?.sortBy) {
+      case "oldest":
+        return a.becameCustomerAt.getTime() - b.becameCustomerAt.getTime();
+      case "amount":
+        return b.totalAmount - a.totalAmount;
+      case "units":
+        return b.totalUnits - a.totalUnits;
+      case "recent":
+      default:
+        return b.becameCustomerAt.getTime() - a.becameCustomerAt.getTime();
+    }
   });
 }
 
