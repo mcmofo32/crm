@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Briefcase,
   Trophy,
+  UserCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/taken": ListChecks,
   "/funnel/FA": TrendingUp,
   "/funnel/RG": Briefcase,
+  "/klanten": UserCheck,
   "/incentives": Trophy,
 };
 

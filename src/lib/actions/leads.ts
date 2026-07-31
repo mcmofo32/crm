@@ -155,10 +155,6 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
     throw new Error("Voornaam en achternaam zijn verplicht");
   }
 
-  const unitsRaw = String(formData.get("units") ?? "").trim();
-  const unitsNumber = unitsRaw ? Number(unitsRaw) : null;
-  const units = unitsNumber !== null && Number.isFinite(unitsNumber) ? Math.round(unitsNumber) : null;
-
   await prisma.lead.update({
     where: { id: leadId },
     data: {
@@ -168,7 +164,6 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
       phone: (formData.get("phone") as string)?.trim() || null,
       company: (formData.get("company") as string)?.trim() || null,
       source: (formData.get("source") as string)?.trim() || null,
-      units,
       notes: (formData.get("notes") as string) || null,
     },
   });

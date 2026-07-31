@@ -6,9 +6,17 @@ import Link from "next/link";
 import { Clock, CalendarClock, Inbox, ChevronDown, Filter, Phone, Tag } from "lucide-react";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
+import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
 import { Avatar } from "@/components/Avatar";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import {
+  ProductFields,
+  emptyProductsState,
+  hasAnyProduct,
+  buildProductsFormData,
+  type ProductsState,
+} from "@/components/ProductFields";
 import {
   isPlanningStage,
   isFinancieleAnalyseType,
@@ -227,12 +235,14 @@ export function FunnelBoard({
     fromStageLabel: string;
     toStageId: string;
     toStageLabel: string;
+    toStageIsWon: boolean;
   } | null>(null);
   const [notes, setNotes] = useState("");
   const [emailInput, setEmailInput] = useState("");
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(
     EMPTY_MEETING_PLANNER_VALUE
   );
+  const [products, setProducts] = useState<ProductsState>(emptyProductsState());
 
   const mainStages = stages
     .filter((s) => !isSecondaryStage(s))
@@ -265,6 +275,7 @@ export function FunnelBoard({
     setNotes("");
     setMeeting(EMPTY_MEETING_PLANNER_VALUE);
     setEmailInput("");
+    setProducts(emptyProductsState());
     setPendingMove({
       leadId: lead.id,
       leadName: `${lead.firstName} ${lead.lastName}`,
@@ -272,12 +283,13 @@ export function FunnelBoard({
       fromStageLabel: fromStage?.label ?? "",
       toStageId: targetStage.id,
       toStageLabel: targetStage.label,
+      toStageIsWon: targetStage.isWon,
     });
   }
 
   function confirmMove() {
     if (!pendingMove) return;
-    const { leadId, toStageId } = pendingMove;
+    const { leadId, toStageId, toStageIsWon } = pendingMove;
     const trimmedNotes = notes;
     const trimmedEmail = emailInput.trim();
     const meetingFormData = buildMeetingFormData(meeting);
@@ -289,10 +301,14 @@ export function FunnelBoard({
       if (meetingFormData) {
         await planStageMeetingAction(leadId, meetingFormData);
       }
+      if (toStageIsWon && hasAnyProduct(products)) {
+        await saveLeadProductsAction(leadId, buildProductsFormData(products));
+      }
       setPendingMove(null);
       setNotes("");
       setMeeting(EMPTY_MEETING_PLANNER_VALUE);
       setEmailInput("");
+      setProducts(emptyProductsState());
       router.refresh();
     });
   }
@@ -558,6 +574,11 @@ export function FunnelBoard({
                 />
               </div>
             )}
+            {pendingMove.toStageIsWon && (
+              <div className="mb-4">
+                <ProductFields value={products} onChange={setProducts} />
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -567,6 +588,7 @@ export function FunnelBoard({
                   setNotes("");
                   setMeeting(EMPTY_MEETING_PLANNER_VALUE);
                   setEmailInput("");
+                  setProducts(emptyProductsState());
                 }}
                 className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >

@@ -22,6 +22,7 @@ import { ReportContactForm } from "@/components/ReportContactForm";
 import { ScheduleActivityForm } from "@/components/ScheduleActivityForm";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { LeadDetailsCard } from "@/components/LeadDetailsCard";
+import { LeadProductsCard } from "@/components/LeadProductsCard";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
@@ -60,6 +61,7 @@ export default async function LeadDetailPage({
     include: {
       owner: true,
       stage: true,
+      products: true,
       activities: {
         include: { assignee: { select: { name: true } } },
         orderBy: { scheduledAt: "desc" },
@@ -149,17 +151,27 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <LeadDetailsCard
-          leadId={lead.id}
-          firstName={lead.firstName}
-          lastName={lead.lastName}
-          email={lead.email}
-          phone={lead.phone}
-          company={lead.company}
-          source={lead.source}
-          units={lead.units}
-          notes={lead.notes}
-        />
+        <div className="flex flex-col gap-6">
+          <LeadDetailsCard
+            leadId={lead.id}
+            firstName={lead.firstName}
+            lastName={lead.lastName}
+            email={lead.email}
+            phone={lead.phone}
+            company={lead.company}
+            source={lead.source}
+            notes={lead.notes}
+          />
+
+          <LeadProductsCard
+            leadId={lead.id}
+            products={lead.products.map((p) => ({
+              type: p.type,
+              amount: Number(p.amount),
+              units: p.units,
+            }))}
+          />
+        </div>
 
         <div className="lg:col-span-2 flex flex-col gap-6">
           <ReportContactForm

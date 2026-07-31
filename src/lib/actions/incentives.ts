@@ -196,10 +196,18 @@ async function computeMetricScores(
         toStage: { isWon: true },
         ...(leadTypeFilter ? { lead: { leadType: leadTypeFilter } } : {}),
       },
-      include: { lead: { select: { ownerId: true, units: true } } },
+      include: {
+        lead: {
+          select: {
+            ownerId: true,
+            products: { select: { units: true } },
+          },
+        },
+      },
     });
     for (const win of wins) {
-      add(win.lead.ownerId, metric === IncentiveMetric.UNITS ? win.lead.units ?? 0 : 1);
+      const totalUnits = win.lead.products.reduce((sum, p) => sum + p.units, 0);
+      add(win.lead.ownerId, metric === IncentiveMetric.UNITS ? totalUnits : 1);
     }
   } else {
     // RG_MEETINGS telt altijd enkel RG-leads, ongeacht een gekozen funnel-filter.

@@ -35,6 +35,7 @@ export default async function AppLayout({
     { href: "/taken", label: "Taken", badge: overdueTasks },
     { href: "/funnel/FA", label: "Funnel FA" },
     { href: "/funnel/RG", label: "Funnel RG" },
+    { href: "/klanten", label: "Klanten" },
     { href: "/incentives", label: "Incentives" },
   ];
 

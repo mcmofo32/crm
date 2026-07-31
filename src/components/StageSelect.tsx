@@ -4,7 +4,15 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
+import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import {
+  ProductFields,
+  emptyProductsState,
+  hasAnyProduct,
+  buildProductsFormData,
+  type ProductsState,
+} from "@/components/ProductFields";
 import {
   isPlanningStage,
   isFinancieleAnalyseType,
@@ -25,7 +33,7 @@ export function StageSelect({
   leadId: string;
   currentStageId: string;
   leadEmail: string | null;
-  stages: { id: string; label: string }[];
+  stages: { id: string; label: string; isWon: boolean }[];
   subagents: SubagentRecord[];
 }) {
   const router = useRouter();
@@ -37,6 +45,7 @@ export function StageSelect({
     EMPTY_MEETING_PLANNER_VALUE
   );
   const [emailInput, setEmailInput] = useState("");
+  const [products, setProducts] = useState<ProductsState>(emptyProductsState());
 
   const currentStage = stages.find((s) => s.id === currentStageId);
   const otherStages = stages.filter((s) => s.id !== currentStageId);
@@ -95,6 +104,9 @@ export function StageSelect({
             }))}
           />
         )}
+        {targetStage?.isWon && (
+          <ProductFields value={products} onChange={setProducts} />
+        )}
         <div className="flex gap-2">
           <button
             type="button"
@@ -110,11 +122,15 @@ export function StageSelect({
                 if (meetingFormData) {
                   await planStageMeetingAction(leadId, meetingFormData);
                 }
+                if (targetStage?.isWon && hasAnyProduct(products)) {
+                  await saveLeadProductsAction(leadId, buildProductsFormData(products));
+                }
                 setOpen(false);
                 setTargetStageId("");
                 setNotes("");
                 setMeeting(EMPTY_MEETING_PLANNER_VALUE);
                 setEmailInput("");
+                setProducts(emptyProductsState());
                 router.refresh();
               })
             }
@@ -131,6 +147,7 @@ export function StageSelect({
               setTargetStageId("");
               setNotes("");
               setEmailInput("");
+              setProducts(emptyProductsState());
             }}
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
