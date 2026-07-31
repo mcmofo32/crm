@@ -28,23 +28,12 @@ export default async function NewUserPage() {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">E-mail</label>
+          <label className="font-medium text-slate-700">
+            E-mail <span className="font-normal text-slate-400">(optioneel, mag later toegevoegd worden)</span>
+          </label>
           <input
             name="email"
             type="email"
-            required
-            className="rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Tijdelijk wachtwoord
-          </label>
-          <input
-            name="password"
-            type="password"
-            minLength={8}
-            required
             className="rounded-md border border-slate-300 px-3 py-2"
           />
         </div>
@@ -82,6 +71,10 @@ export default async function NewUserPage() {
         <p className="text-xs text-slate-400">
           Kies je &quot;Coach&quot; als rol, dan wordt automatisch een nieuw
           team voor deze coach aangemaakt.
+        </p>
+        <p className="text-xs text-slate-400">
+          Tijdelijk wachtwoord: <code>veranderditwachtwoord123</code>. De
+          gebruiker wijzigt dit best zelf na de eerste login.
         </p>
         <button
           type="submit"

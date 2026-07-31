@@ -45,7 +45,7 @@ export default async function UsersPage() {
                     {u.name}
                   </Link>
                 </td>
-                <td className="px-6 py-4 text-slate-500">{u.email}</td>
+                <td className="px-6 py-4 text-slate-500">{u.email || "—"}</td>
                 <td className="px-6 py-4">
                   <Badge variant={ROLE_BADGE_VARIANT[u.role]}>
                     {ROLE_LABELS[u.role]}

@@ -41,7 +41,9 @@ export default async function EditUserPage({
         <h1 className="text-3xl font-semibold text-slate-900">
           Gebruiker bewerken
         </h1>
-        <p className="text-sm text-slate-500">{target.email}</p>
+        <p className="text-sm text-slate-500">
+          {target.email || <span className="text-slate-300">Geen e-mailadres</span>}
+        </p>
       </div>
 
       <form action={boundUpdate} className="flex flex-col gap-4 text-sm">
@@ -59,7 +61,7 @@ export default async function EditUserPage({
           <input
             name="email"
             type="email"
-            defaultValue={target.email}
+            defaultValue={target.email ?? ""}
             required
             className="rounded-md border border-slate-300 px-3 py-2"
           />

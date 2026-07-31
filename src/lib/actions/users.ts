@@ -10,6 +10,9 @@ import { logAudit } from "@/lib/audit";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { getEffectiveViewer } from "@/lib/impersonation";
 
+/** Vast tijdelijk wachtwoord voor nieuwe gebruikers; zij wijzigen dit zelf na de eerste login. */
+const DEFAULT_TEMP_PASSWORD = "veranderditwachtwoord123";
+
 async function requireUserManager() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
@@ -27,18 +30,15 @@ export async function createUserAction(formData: FormData) {
     throw new Error("Je mag deze rol niet toekennen");
   }
 
-  const name = String(formData.get("name") ?? "");
-  const email = String(formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim() || null;
   const teamId = (formData.get("teamId") as string) || null;
 
-  if (!name || !email || password.length < 8) {
-    throw new Error(
-      "Naam en e-mail zijn verplicht, wachtwoord moet minstens 8 tekens hebben"
-    );
+  if (!name) {
+    throw new Error("Naam is verplicht");
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(DEFAULT_TEMP_PASSWORD, 10);
 
   const user = await prisma.user.create({
     data: {
