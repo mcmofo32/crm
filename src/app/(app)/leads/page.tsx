@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, Download } from "lucide-react";
+import { Plus, Search, Download, Users } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import {
   getLeadsForCurrentUser,
@@ -17,7 +17,6 @@ import {
 } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
-import { Avatar } from "@/components/Avatar";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 
 function formatDate(date: Date | null | undefined) {
@@ -46,20 +45,88 @@ export default async function LeadsPage({
       : undefined;
   const sortBy = sort === "stale" ? ("stale" as LeadSortOption) : undefined;
 
-  const [leads, stages, assignableUsers] = await Promise.all([
+  const assignableUsers = await getAssignableUsers();
+  const requiresSelection = assignableUsers.length > 1;
+  const selectedOwnerId =
+    ownerId && assignableUsers.some((u) => u.id === ownerId)
+      ? ownerId
+      : requiresSelection
+        ? null
+        : (assignableUsers[0]?.id ?? null);
+
+  const viewer = (await getEffectiveViewer())!;
+  const canDelete = canDeleteLeads(viewer);
+
+  function tabHref(t: "ALLE" | "FA" | "RG") {
+    const params = new URLSearchParams();
+    if (t !== "ALLE") params.set("type", t);
+    if (q) params.set("q", q);
+    if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
+    if (stageId) params.set("stageId", stageId);
+    if (contact) params.set("contact", contact);
+    if (sort) params.set("sort", sort);
+    const qs = params.toString();
+    return qs ? `/leads?${qs}` : "/leads";
+  }
+
+  const ownerSwitcher = requiresSelection && (
+    <form
+      method="GET"
+      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+    >
+      {leadType && <input type="hidden" name="type" value={leadType} />}
+      {q && <input type="hidden" name="q" value={q} />}
+      <Users size={17} className="text-slate-400" />
+      <label className="text-sm text-slate-600">Bekijk leads van:</label>
+      <select
+        name="ownerId"
+        defaultValue={selectedOwnerId ?? ""}
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+      >
+        <option value="" disabled>
+          Kies een medewerker…
+        </option>
+        {assignableUsers.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.name}
+          </option>
+        ))}
+      </select>
+      <button
+        type="submit"
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+      >
+        Bekijken
+      </button>
+    </form>
+  );
+
+  if (!selectedOwnerId) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-3xl font-semibold text-slate-900">Leads</h1>
+        {ownerSwitcher}
+        <p className="text-base text-slate-500">
+          Kies hierboven een medewerker om diens leads te bekijken. Om te
+          voorkomen dat leads van verschillende medewerkers door elkaar
+          worden getoond, toont deze lijst altijd de leads van precies één
+          persoon tegelijk.
+        </p>
+      </div>
+    );
+  }
+
+  const [leads, stages] = await Promise.all([
     getLeadsForCurrentUser(leadType, q, {
       stageId: stageId || undefined,
-      ownerId: ownerId || undefined,
+      ownerId: selectedOwnerId,
       contactFilter,
       sortBy,
     }),
     getFunnelStagesForFilter(),
-    getAssignableUsers(),
   ]);
-  const viewer = (await getEffectiveViewer())!;
-  const canDelete = canDeleteLeads(viewer);
 
-  const filtersActive = Boolean(stageId || ownerId || contactFilter || sortBy);
+  const filtersActive = Boolean(stageId || contactFilter || sortBy);
 
   const exportParams = new URLSearchParams();
   if (leadType) exportParams.set("type", leadType);
@@ -68,22 +135,11 @@ export default async function LeadsPage({
     exportParams.size > 0 ? `?${exportParams.toString()}` : ""
   }`;
 
-  function tabHref(t: "ALLE" | "FA" | "RG") {
-    const params = new URLSearchParams();
-    if (t !== "ALLE") params.set("type", t);
-    if (q) params.set("q", q);
-    if (stageId) params.set("stageId", stageId);
-    if (ownerId) params.set("ownerId", ownerId);
-    if (contact) params.set("contact", contact);
-    if (sort) params.set("sort", sort);
-    const qs = params.toString();
-    return qs ? `/leads?${qs}` : "/leads";
-  }
-
   function clearFiltersHref() {
     const params = new URLSearchParams();
     if (leadType) params.set("type", leadType);
     if (q) params.set("q", q);
+    if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
     const qs = params.toString();
     return qs ? `/leads?${qs}` : "/leads";
   }
@@ -114,6 +170,8 @@ export default async function LeadsPage({
         </div>
       </div>
 
+      {ownerSwitcher}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2 text-base">
           {(["ALLE", "FA", "RG"] as const).map((t) => (
@@ -133,6 +191,9 @@ export default async function LeadsPage({
 
         <form method="GET" className="flex flex-wrap items-center gap-2">
           {leadType && <input type="hidden" name="type" value={leadType} />}
+          {selectedOwnerId && (
+            <input type="hidden" name="ownerId" value={selectedOwnerId} />
+          )}
           <div className="relative">
             <Search
               size={16}
@@ -179,26 +240,6 @@ export default async function LeadsPage({
                   </option>
                 ))}
               </select>
-
-              {assignableUsers.length > 1 && (
-                <>
-                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Eigenaar
-                  </label>
-                  <select
-                    name="ownerId"
-                    defaultValue={ownerId ?? ""}
-                    className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  >
-                    <option value="">Alle eigenaars</option>
-                    {assignableUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
 
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
                 Contactstatus
@@ -254,9 +295,10 @@ export default async function LeadsPage({
               <th className="px-6 py-3 font-medium">Type</th>
               <th className="px-6 py-3 font-medium">Fase</th>
               <th className="px-6 py-3 font-medium">Status</th>
-              <th className="px-6 py-3 font-medium">Eigenaar</th>
-              <th className="px-6 py-3 font-medium">Laatste contact</th>
-              <th className="px-6 py-3 font-medium">Volgend contact</th>
+              <th className="px-6 py-3 font-medium">Telefoon</th>
+              <th className="px-6 py-3 font-medium">Aanbevolen door</th>
+              <th className="px-4 py-3 font-medium">Laatste contact</th>
+              <th className="px-4 py-3 font-medium">Volgend contact</th>
               {canDelete && <th className="px-6 py-3 font-medium"></th>}
             </tr>
           </thead>
@@ -287,16 +329,16 @@ export default async function LeadsPage({
                     {leadStatusLabel(lead.status, lead.leadType)}
                   </Badge>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={lead.owner.name} />
-                    <span className="text-slate-700">{lead.owner.name}</span>
-                  </div>
+                <td className="px-6 py-4 text-slate-600">
+                  {lead.phone || "—"}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                <td className="px-6 py-4 text-slate-600">
+                  {lead.source || "—"}
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
                   {formatDate(lead.lastContactedAt)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
                   {lead.activities[0]
                     ? formatDate(lead.activities[0].scheduledAt)
                     : "—"}
@@ -314,7 +356,7 @@ export default async function LeadsPage({
             {leads.length === 0 && (
               <tr>
                 <td
-                  colSpan={canDelete ? 8 : 7}
+                  colSpan={canDelete ? 9 : 8}
                   className="px-6 py-8 text-center text-slate-400"
                 >
                   {filtersActive || q

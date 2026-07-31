@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { getVisibleUserIds } from "@/lib/permissions";
+import { getAssignableUsers } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
 import { FunnelBoard } from "@/components/FunnelBoard";
@@ -11,15 +11,73 @@ import { getSubagents } from "@/lib/actions/subagents";
 
 export default async function FunnelPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string }>;
+  searchParams: Promise<{ ownerId?: string }>;
 }) {
   const { type } = await params;
+  const { ownerId } = await searchParams;
   const leadType = type.toUpperCase();
   if (leadType !== "FA" && leadType !== "RG") notFound();
 
   const user = (await getEffectiveViewer())!;
-  const visibleUserIds = await getVisibleUserIds(user);
+  const assignableUsers = await getAssignableUsers();
+  const requiresSelection = assignableUsers.length > 1;
+  const selectedOwnerId = ownerId && assignableUsers.some((u) => u.id === ownerId)
+    ? ownerId
+    : requiresSelection
+      ? null
+      : (assignableUsers[0]?.id ?? user.id);
+
+  const ownerSwitcher = requiresSelection && (
+    <form
+      method="GET"
+      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+    >
+      <Users size={17} className="text-slate-400" />
+      <label className="text-sm text-slate-600">Bekijk funnel van:</label>
+      <select
+        name="ownerId"
+        defaultValue={selectedOwnerId ?? ""}
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+      >
+        <option value="" disabled>
+          Kies een medewerker…
+        </option>
+        {assignableUsers.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.name}
+          </option>
+        ))}
+      </select>
+      <button
+        type="submit"
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+      >
+        Bekijken
+      </button>
+    </form>
+  );
+
+  if (!selectedOwnerId) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-semibold text-slate-900">
+            {LEAD_TYPE_LABELS[leadType]} — funnel
+          </h1>
+        </div>
+        {ownerSwitcher}
+        <p className="text-base text-slate-500">
+          Kies hierboven een medewerker om diens funnel te bekijken. Om te
+          voorkomen dat leads van verschillende medewerkers door elkaar
+          worden getoond, toont dit bord altijd de leads van precies één
+          persoon tegelijk.
+        </p>
+      </div>
+    );
+  }
 
   const stages = await prisma.funnelStage.findMany({
     where: { leadType: leadType as LeadType },
@@ -28,7 +86,7 @@ export default async function FunnelPage({
       leads: {
         where: {
           deletedAt: null,
-          ...(visibleUserIds ? { ownerId: { in: visibleUserIds } } : {}),
+          ownerId: selectedOwnerId,
         },
         include: {
           owner: true,
@@ -69,6 +127,8 @@ export default async function FunnelPage({
           Nieuwe lead
         </Link>
       </div>
+
+      {ownerSwitcher}
 
       <p className="-mt-2 text-sm text-slate-400">
         Sleep een lead naar een andere kolom om de fase te wijzigen.
