@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { UserCheck, Users, Search } from "lucide-react";
+import { UserCheck, Users, Search, MoreVertical } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import {
@@ -282,6 +282,7 @@ export default async function KlantenPage({
               <th className="px-6 py-3 font-medium">Producten</th>
               <th className="px-6 py-3 font-medium text-right">Totaal bedrag</th>
               <th className="px-6 py-3 font-medium text-right">Totaal eenheden</th>
+              <th className="px-6 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -338,13 +339,22 @@ export default async function KlantenPage({
                   <td className="px-6 py-4 text-right text-slate-600">
                     {customer.totalUnits}
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <Link
+                      href={`/leads/${customer.id}`}
+                      title="Wijzigingen doorvoeren"
+                      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    >
+                      <MoreVertical size={18} />
+                    </Link>
+                  </td>
                 </tr>
               );
             })}
             {customers.length === 0 && (
               <tr>
                 <td
-                  colSpan={isTeamView ? 7 : 6}
+                  colSpan={isTeamView ? 8 : 7}
                   className="px-6 py-8 text-center text-slate-400"
                 >
                   {filtersActive || q
