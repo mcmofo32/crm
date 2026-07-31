@@ -133,7 +133,11 @@ export async function scheduleActivityAction(formData: FormData) {
       where: { id: assigneeId },
     });
     if (assignee) {
-      await syncActivityToGoogleCalendar(assignee, activity, lead, subagent);
+      // Wie de afspraak effectief inplant (bv. een Coach die dit voor een
+      // teamlid doet) wordt mee uitgenodigd als dat niet dezelfde persoon is.
+      const scheduledBy =
+        user.id !== assigneeId ? { name: user.name, email: user.email || null } : null;
+      await syncActivityToGoogleCalendar(assignee, activity, lead, subagent, scheduledBy);
     }
   }
 
@@ -359,7 +363,7 @@ export async function cancelActivityAction(activityId: string) {
  * agenda-item.
  */
 export async function planStageMeetingAction(leadId: string, formData: FormData) {
-  const { lead } = await requireLeadAccess(leadId);
+  const { user, lead } = await requireLeadAccess(leadId);
 
   const freshLead = await prisma.lead.findUnique({
     where: { id: leadId },
@@ -444,7 +448,11 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
     data: { lastContactedAt: new Date() },
   });
 
-  await syncActivityToGoogleCalendar(assignee, activity, freshLead, subagent);
+  // Wie de afspraak effectief inplant (bv. een Coach die dit voor een
+  // teamlid doet) wordt mee uitgenodigd als dat niet dezelfde persoon is.
+  const scheduledBy =
+    user.id !== freshLead.ownerId ? { name: user.name, email: user.email || null } : null;
+  await syncActivityToGoogleCalendar(assignee, activity, freshLead, subagent, scheduledBy);
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);

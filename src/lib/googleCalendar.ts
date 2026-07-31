@@ -81,7 +81,8 @@ function getClientForUser(user: Pick<User, "googleCalendarRefreshToken">) {
 function buildEventBody(
   activity: Activity,
   lead: Lead,
-  subagent?: Subagent | null
+  subagent?: Subagent | null,
+  scheduledBy?: { name: string; email: string | null } | null
 ) {
   const start = activity.scheduledAt ?? new Date();
   const durationMinutes = activity.durationMinutes ?? 15;
@@ -97,10 +98,20 @@ function buildEventBody(
 
   const useGoogleMeet = activity.meetingMode === "ONLINE" && !activity.meetingLink;
 
-  const attendees = [
-    lead.email ? { email: lead.email } : null,
-    subagent ? { email: subagent.email } : null,
-  ].filter((a): a is { email: string } => a !== null);
+  // Wie deze afspraak heeft ingepland (bv. een Coach die inplant namens een
+  // teamlid) wordt mee uitgenodigd als die niet dezelfde persoon is als de
+  // toegewezen gebruiker (die de afspraak al op zijn eigen agenda heeft staan).
+  const seenEmails = new Set<string>();
+  const attendees: { email: string }[] = [];
+  function addAttendee(email: string | null | undefined) {
+    if (email && !seenEmails.has(email)) {
+      seenEmails.add(email);
+      attendees.push({ email });
+    }
+  }
+  addAttendee(lead.email);
+  addAttendee(subagent?.email);
+  addAttendee(scheduledBy?.email);
 
   return {
     summary,
@@ -109,6 +120,7 @@ function buildEventBody(
       lead.phone ? `Telefoon: ${lead.phone}` : null,
       lead.email ? `E-mail: ${lead.email}` : null,
       subagent ? `Subagent: ${subagent.name} (${subagent.email})` : null,
+      scheduledBy ? `Ingepland door: ${scheduledBy.name}` : null,
       activity.meetingMode === "ONLINE" && activity.meetingLink
         ? `\nOnline via: ${activity.meetingLink}`
         : null,
@@ -154,7 +166,8 @@ export async function syncActivityToGoogleCalendar(
   user: User,
   activity: Activity,
   lead: Lead,
-  subagent?: Subagent | null
+  subagent?: Subagent | null,
+  scheduledBy?: { name: string; email: string | null } | null
 ) {
   if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
     return { synced: false as const, reason: "not_connected" as const };
@@ -166,7 +179,7 @@ export async function syncActivityToGoogleCalendar(
   const auth = getClientForUser(user);
   const calendar = google.calendar({ version: "v3", auth });
   const calendarId = user.googleCalendarId ?? "primary";
-  const eventBody = buildEventBody(activity, lead, subagent);
+  const eventBody = buildEventBody(activity, lead, subagent, scheduledBy);
   const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
   // Stuurt automatisch een uitnodigingsmail naar de lead (en eventuele
   // subagent) als attendee op het agenda-item.
