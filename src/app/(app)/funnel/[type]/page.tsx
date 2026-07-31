@@ -22,7 +22,10 @@ export default async function FunnelPage({
   if (leadType !== "FA" && leadType !== "RG") notFound();
 
   const user = (await getEffectiveViewer())!;
-  const assignableUsers = await getAssignableUsers();
+  const [assignableUsers, subagents] = await Promise.all([
+    getAssignableUsers(),
+    getSubagents(),
+  ]);
   // Coach ziet de balk altijd (ook met een klein/leeg team), zodat duidelijk
   // is dat hij enkel toegang heeft tot zichzelf + zijn teamleden.
   const requiresSelection =
@@ -59,17 +62,35 @@ export default async function FunnelPage({
     </form>
   );
 
+  // Enkel de velden selecteren die FunnelBoard effectief tekent (bv. geen
+  // notities, geen volledige owner-rij) — dat scheelt zowel databasewerk als
+  // de hoeveelheid data die naar de client geserialiseerd moet worden.
   const stages = await prisma.funnelStage.findMany({
     where: { leadType: leadType as LeadType },
     orderBy: { order: "asc" },
-    include: {
+    select: {
+      id: true,
+      key: true,
+      label: true,
+      order: true,
+      isWon: true,
+      isLost: true,
       leads: {
         where: {
           deletedAt: null,
           ownerId: selectedOwnerId,
         },
-        include: {
-          owner: true,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          source: true,
+          company: true,
+          stageId: true,
+          lastContactedAt: true,
+          owner: { select: { name: true } },
           activities: {
             where: { status: "PLANNED", scheduledAt: { gte: new Date() } },
             orderBy: { scheduledAt: "asc" },
@@ -81,8 +102,6 @@ export default async function FunnelPage({
       },
     },
   });
-
-  const subagents = await getSubagents();
 
   if (stages.length === 0) {
     return (
