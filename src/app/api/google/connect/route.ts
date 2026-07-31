@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const state = randomBytes(16).toString("hex");
   let consentUrl: string;
   try {
-    consentUrl = getGoogleConsentUrl(state);
+    consentUrl = await getGoogleConsentUrl(state);
   } catch {
     return NextResponse.redirect(
       new URL("/instellingen?google_error=not_configured", req.url)

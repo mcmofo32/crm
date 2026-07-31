@@ -1,4 +1,3 @@
-import { google } from "googleapis";
 import { prisma } from "@/lib/prisma";
 import type { Activity, Lead, Subagent, User } from "@/generated/prisma/client";
 
@@ -7,7 +6,18 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
-function getOAuthClient() {
+// `googleapis` is a very large package. It's only needed by the handful of
+// requests that actually touch Google Calendar, but this module is reachable
+// from almost every page (via ActivityButtons/ScheduleActivityForm), so a
+// static import would bloat the server bundle — and cold-start time — for
+// every route. Importing it lazily keeps it out of routes that never call
+// these functions.
+async function getGoogle() {
+  const { google } = await import("googleapis");
+  return google;
+}
+
+async function getOAuthClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI;
@@ -18,12 +28,13 @@ function getOAuthClient() {
     );
   }
 
+  const google = await getGoogle();
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
 
 /** Bouwt de consent-URL waarmee een gebruiker zijn Google agenda koppelt. */
-export function getGoogleConsentUrl(state: string) {
-  const client = getOAuthClient();
+export async function getGoogleConsentUrl(state: string) {
+  const client = await getOAuthClient();
   return client.generateAuthUrl({
     access_type: "offline",
     prompt: "select_account consent",
@@ -37,7 +48,7 @@ export async function connectGoogleCalendarForUser(
   userId: string,
   code: string
 ) {
-  const client = getOAuthClient();
+  const client = await getOAuthClient();
   const { tokens } = await client.getToken(code);
 
   if (!tokens.refresh_token) {
@@ -47,6 +58,7 @@ export async function connectGoogleCalendarForUser(
   }
 
   client.setCredentials(tokens);
+  const google = await getGoogle();
   const oauth2 = google.oauth2({ auth: client, version: "v2" });
   const { data: profile } = await oauth2.userinfo.get();
 
@@ -72,8 +84,8 @@ export async function disconnectGoogleCalendarForUser(userId: string) {
   });
 }
 
-function getClientForUser(user: Pick<User, "googleCalendarRefreshToken">) {
-  const client = getOAuthClient();
+async function getClientForUser(user: Pick<User, "googleCalendarRefreshToken">) {
+  const client = await getOAuthClient();
   client.setCredentials({ refresh_token: user.googleCalendarRefreshToken });
   return client;
 }
@@ -176,7 +188,8 @@ export async function syncActivityToGoogleCalendar(
     return { synced: false as const, reason: "no_schedule" as const };
   }
 
-  const auth = getClientForUser(user);
+  const auth = await getClientForUser(user);
+  const google = await getGoogle();
   const calendar = google.calendar({ version: "v3", auth });
   const calendarId = user.googleCalendarId ?? "primary";
   const eventBody = buildEventBody(activity, lead, subagent, scheduledBy);
@@ -242,7 +255,8 @@ export async function deleteActivityFromGoogleCalendar(
     return;
   }
 
-  const auth = getClientForUser(user);
+  const auth = await getClientForUser(user);
+  const google = await getGoogle();
   const calendar = google.calendar({ version: "v3", auth });
   const calendarId = activity.googleCalendarId ?? user.googleCalendarId ?? "primary";
 
