@@ -198,6 +198,53 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
   revalidatePath("/beheer/gebruikers");
 }
 
+/**
+ * Verplaatst een bestaand teamlid rechtstreeks naar een ander team — dit is
+ * wat er onder de motorkap gebeurt bij het verslepen van iemand naar een
+ * andere structuur op de Teams-pagina. Simpelweg zijn teamId aanpassen
+ * volstaat (geen aparte "verwijder uit oud team"-stap nodig).
+ */
+export async function moveTeamMemberAction(userId: string, targetTeamId: string) {
+  const actor = await requireUserManager();
+
+  const targetTeam = await prisma.team.findUnique({ where: { id: targetTeamId } });
+  if (!targetTeam) throw new Error("Team niet gevonden");
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || (user.role !== Role.USER && user.role !== Role.COACH)) {
+    throw new Error(
+      "Enkel gebruikers met rol 'User' of 'Coach' kunnen aan een team toegevoegd worden"
+    );
+  }
+  if (!canManageUser(actor, user)) {
+    throw new Error("Je mag deze gebruiker niet beheren");
+  }
+  if (userId === targetTeam.coachId) {
+    throw new Error("Deze gebruiker is zelf coach van dit team");
+  }
+  if (user.teamId === targetTeamId) return;
+
+  if (user.role === Role.COACH && (await wouldCreateCoachCycle(userId, targetTeam.coachId))) {
+    throw new Error(
+      "Dit zou een cirkel in de structuur veroorzaken (deze coach zit al boven de coach van dit team)"
+    );
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { teamId: targetTeamId } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: "team.member_moved",
+    entityType: "Team",
+    entityId: targetTeamId,
+    description: `"${user.name}" verplaatst naar team "${targetTeam.name}"`,
+  });
+
+  revalidatePath("/beheer/teams");
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/organigram");
+}
+
 /** Vervangt de coach van een bestaand team door een andere gebruiker. */
 export async function changeTeamCoachAction(teamId: string, formData: FormData) {
   const actor = await requireUserManager();

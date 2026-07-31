@@ -17,6 +17,8 @@ import {
 } from "@/lib/actions/subagents";
 import { Avatar } from "@/components/Avatar";
 import { DeleteTeamButton } from "@/components/DeleteTeamButton";
+import { DraggableMemberRow } from "@/components/DraggableMemberRow";
+import { TeamDropZone } from "@/components/TeamDropZone";
 
 type TeamWithMembers = Awaited<ReturnType<typeof getTeamsWithMembers>>[number];
 type MemberCandidate = Awaited<ReturnType<typeof getMemberCandidates>>[number];
@@ -56,6 +58,7 @@ async function TeamCard({
     .filter((t): t is TeamWithMembers => Boolean(t));
 
   return (
+    <TeamDropZone teamId={team.id}>
     <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -126,29 +129,28 @@ async function TeamCard({
         {team.members.map((member) => {
           const boundRemove = removeTeamMemberAction.bind(null, team.id, member.id);
           return (
-            <div
-              key={member.id}
-              className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
-            >
-              <div className="flex items-center gap-2">
-                <Avatar name={member.name} />
-                <span className="text-sm text-slate-700">{member.name}</span>
-                {member.role === "COACH" && (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                    Coach — heeft zelf ook een team
-                  </span>
-                )}
+            <DraggableMemberRow key={member.id} userId={member.id}>
+              <div className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Avatar name={member.name} />
+                  <span className="text-sm text-slate-700">{member.name}</span>
+                  {member.role === "COACH" && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      Coach — heeft zelf ook een team
+                    </span>
+                  )}
+                </div>
+                <form action={boundRemove}>
+                  <button
+                    type="submit"
+                    title="Verwijder uit team"
+                    className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                  >
+                    <X size={16} />
+                  </button>
+                </form>
               </div>
-              <form action={boundRemove}>
-                <button
-                  type="submit"
-                  title="Verwijder uit team"
-                  className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
-                >
-                  <X size={16} />
-                </button>
-              </form>
-            </div>
+            </DraggableMemberRow>
           );
         })}
         {team.members.length === 0 && (
@@ -301,6 +303,7 @@ async function TeamCard({
         </details>
       )}
     </div>
+    </TeamDropZone>
   );
 }
 
@@ -325,7 +328,8 @@ export default async function TeamsPage() {
         <p className="text-base text-slate-500">
           Maak teams aan, duid een coach aan en voeg gebruikers toe als
           teamlid. Een teamlid die zelf ook coach is, wordt genest getoond
-          onder zijn eigen structuur.
+          onder zijn eigen structuur. Sleep een teamlid naar een andere
+          structuur om die persoon meteen te verplaatsen.
         </p>
       </div>
 
