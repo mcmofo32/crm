@@ -45,6 +45,7 @@ export async function createUserAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim() || null;
+  const phone = String(formData.get("phone") ?? "").trim() || null;
   // Komt deze aanmaak vanuit "Nieuwe gebruiker toevoegen" naast iemands naam
   // op de Teams-pagina, dan wordt de nieuwe gebruiker meteen onder die
   // persoon geplaatst i.p.v. via de gewone team-dropdown hieronder.
@@ -73,6 +74,7 @@ export async function createUserAction(formData: FormData) {
     data: {
       name,
       email,
+      phone,
       passwordHash,
       role,
       // Een Coach kan zelf ook lid zijn van het team van een andere coach
@@ -190,6 +192,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
 
   const name = String(formData.get("name") ?? "");
   const email = String(formData.get("email") ?? "");
+  const phone = String(formData.get("phone") ?? "").trim() || null;
   const teamId = (formData.get("teamId") as string) || null;
 
   if (!name || !email) {
@@ -210,6 +213,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
     data: {
       name,
       email,
+      phone,
       role,
       // Een Coach kan zelf ook lid zijn van het team van een andere coach
       // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.

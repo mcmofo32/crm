@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -57,15 +58,9 @@ export function canManageUser(actor: SessionUser, target: { role: Role }) {
   return false;
 }
 
-/**
- * Verzamelt recursief iedereen die (rechtstreeks of via een keten van
- * onder-coaches) onder deze coach valt: de leden van zijn team, en voor elk
- * lid dat zelf ook coach is, ook diens volledige structuur. `seen` voorkomt
- * een oneindige lus bij een (foutieve) cirkel in de teamstructuur.
- */
-export async function getDescendantUserIds(
+async function collectDescendantUserIds(
   coachId: string,
-  seen: Set<string> = new Set()
+  seen: Set<string>
 ): Promise<string[]> {
   if (seen.has(coachId)) return [];
   seen.add(coachId);
@@ -81,11 +76,27 @@ export async function getDescendantUserIds(
     if (seen.has(member.id)) continue;
     ids.push(member.id);
     if (member.role === Role.COACH) {
-      ids.push(...(await getDescendantUserIds(member.id, seen)));
+      ids.push(...(await collectDescendantUserIds(member.id, seen)));
     }
   }
   return ids;
 }
+
+/**
+ * Verzamelt recursief iedereen die (rechtstreeks of via een keten van
+ * onder-coaches) onder deze coach valt: de leden van zijn team, en voor elk
+ * lid dat zelf ook coach is, ook diens volledige structuur.
+ *
+ * Meerdere plekken op eenzelfde pagina (bv. leads ophalen + de
+ * eigenaar-dropdown vullen) roepen dit vaak op met dezelfde coachId. Zonder
+ * geheugen zou de volledige (mogelijk meerdere niveaus diepe) structuur dan
+ * telkens opnieuw uit de database opgehaald worden — met `cache()` gebeurt
+ * dat maar één keer per paginarender.
+ */
+export const getDescendantUserIds = cache(
+  (coachId: string): Promise<string[]> =>
+    collectDescendantUserIds(coachId, new Set())
+);
 
 /**
  * Geeft de lijst van user-id's die de gegeven gebruiker mag zien/beheren

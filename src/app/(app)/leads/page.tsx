@@ -47,7 +47,10 @@ export default async function LeadsPage({
 
   const viewer = (await getEffectiveViewer())!;
   const canDelete = canDeleteLeads(viewer);
-  const assignableUsers = await getAssignableUsers();
+  const [assignableUsers, stages] = await Promise.all([
+    getAssignableUsers(),
+    getFunnelStagesForFilter(),
+  ]);
   const isCoach = viewer.role === Role.COACH;
   // Coach ziet de balk altijd (ook met een klein/leeg team), zodat duidelijk
   // is dat hij enkel toegang heeft tot zichzelf + zijn teamleden.
@@ -103,16 +106,13 @@ export default async function LeadsPage({
     </form>
   );
 
-  const [leads, stages] = await Promise.all([
-    getLeadsForCurrentUser(leadType, q, {
-      stageId: stageId || undefined,
-      ownerId: isTeamView ? undefined : selectedOwnerId,
-      ownerIds: isTeamView ? assignableUsers.map((u) => u.id) : undefined,
-      contactFilter,
-      sortBy,
-    }),
-    getFunnelStagesForFilter(),
-  ]);
+  const leads = await getLeadsForCurrentUser(leadType, q, {
+    stageId: stageId || undefined,
+    ownerId: isTeamView ? undefined : selectedOwnerId,
+    ownerIds: isTeamView ? assignableUsers.map((u) => u.id) : undefined,
+    contactFilter,
+    sortBy,
+  });
 
   const filtersActive = Boolean(stageId || contactFilter || sortBy);
 

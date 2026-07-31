@@ -62,6 +62,7 @@ model User {
   id           String   @id @default(cuid())
   name         String
   email        String?  @unique
+  phone        String?
   passwordHash String
   role         Role     @default(USER)
   active       Boolean  @default(true)

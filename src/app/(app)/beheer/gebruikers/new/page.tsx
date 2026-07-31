@@ -51,6 +51,16 @@ export default async function NewUserPage({
           />
         </div>
         <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">
+            Telefoon <span className="font-normal text-slate-400">(optioneel)</span>
+          </label>
+          <input
+            name="phone"
+            type="tel"
+            className="rounded-md border border-slate-300 px-3 py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">Rol</label>
           <select
             name="role"
