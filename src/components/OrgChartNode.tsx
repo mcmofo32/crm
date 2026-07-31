@@ -3,10 +3,10 @@ import { Badge } from "@/components/Badge";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import type { OrgNode } from "@/lib/actions/orgChart";
 
-export function OrgChartNode({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
+export function OrgChartNode({ node }: { node: OrgNode }) {
   return (
-    <div className={depth > 0 ? "ml-6 border-l border-slate-200 pl-6" : ""}>
-      <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+    <li>
+      <div className="inline-flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm">
         <Avatar name={node.name} />
         <div>
           <div className="flex items-center gap-2">
@@ -22,12 +22,12 @@ export function OrgChartNode({ node, depth = 0 }: { node: OrgNode; depth?: numbe
         </div>
       </div>
       {node.children.length > 0 && (
-        <div className="mt-3 flex flex-col gap-3">
+        <ul>
           {node.children.map((child) => (
-            <OrgChartNode key={child.id} node={child} depth={depth + 1} />
+            <OrgChartNode key={child.id} node={child} />
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </li>
   );
 }

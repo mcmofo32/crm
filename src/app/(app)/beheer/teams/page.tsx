@@ -1,9 +1,11 @@
-import { UserPlus, X } from "lucide-react";
+import { UserPlus, X, Pencil } from "lucide-react";
 import {
   getTeamsWithMembers,
   getCoachCandidates,
+  getCoachChangeCandidates,
   getMemberCandidates,
   createTeamAction,
+  changeTeamCoachAction,
   addTeamMemberAction,
   removeTeamMemberAction,
 } from "@/lib/actions/teams";
@@ -13,6 +15,248 @@ import {
   deleteSubagentAction,
 } from "@/lib/actions/subagents";
 import { Avatar } from "@/components/Avatar";
+import { DeleteTeamButton } from "@/components/DeleteTeamButton";
+
+type TeamWithMembers = Awaited<ReturnType<typeof getTeamsWithMembers>>[number];
+type MemberCandidate = Awaited<ReturnType<typeof getMemberCandidates>>[number];
+type SubagentRecord = Awaited<ReturnType<typeof getSubagents>>[number];
+
+async function TeamCard({
+  team,
+  teamByCoachId,
+  memberCandidates,
+  subagents,
+  seenTeamIds = new Set(),
+}: {
+  team: TeamWithMembers;
+  teamByCoachId: Map<string, TeamWithMembers>;
+  memberCandidates: MemberCandidate[];
+  subagents: SubagentRecord[];
+  seenTeamIds?: Set<string>;
+}) {
+  if (seenTeamIds.has(team.id)) return null;
+  const nextSeen = new Set(seenTeamIds).add(team.id);
+
+  const coachChangeCandidates = await getCoachChangeCandidates(team.id);
+  const boundAddMember = addTeamMemberAction.bind(null, team.id);
+  const boundChangeCoach = changeTeamCoachAction.bind(null, team.id);
+  const availableMembers = memberCandidates.filter(
+    (m) => m.teamId !== team.id && m.id !== team.coachId
+  );
+  const teamSubagents = subagents.filter((s) => s.teamId === team.id);
+  const boundAddSubagent = createSubagentAction.bind(null, team.id);
+
+  // Sub-structuren: teamleden die zelf ook coach zijn, met hun eigen team —
+  // die tonen we genest in deze kaart i.p.v. als apart, los vak op de pagina.
+  const subTeams = team.members
+    .filter((m) => m.role === "COACH")
+    .map((m) => teamByCoachId.get(m.id))
+    .filter((t): t is TeamWithMembers => Boolean(t));
+
+  return (
+    <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-medium text-slate-900">{team.name}</h3>
+          <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+            <Avatar name={team.coach.name} />
+            Coach: {team.coach.name}
+          </div>
+        </div>
+        <DeleteTeamButton
+          teamId={team.id}
+          teamName={team.name}
+          memberCount={team.members.length}
+        />
+      </div>
+
+      <details className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-600">
+          <Pencil size={13} />
+          Coach wijzigen
+        </summary>
+        <form action={boundChangeCoach} className="mt-2 flex items-center gap-2">
+          <select
+            name="coachId"
+            required
+            defaultValue=""
+            className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="" disabled>
+              Kies nieuwe coach
+            </option>
+            {coachChangeCandidates.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.email})
+                {c.role === "COACH" ? " · Coach" : ""}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Wijzigen
+          </button>
+        </form>
+        {coachChangeCandidates.length === 0 && (
+          <p className="mt-2 text-xs text-slate-400">
+            Niemand beschikbaar om als nieuwe coach aan te duiden.
+          </p>
+        )}
+      </details>
+
+      <div className="flex flex-col gap-2">
+        {team.members.map((member) => {
+          const boundRemove = removeTeamMemberAction.bind(null, team.id, member.id);
+          return (
+            <div
+              key={member.id}
+              className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+            >
+              <div className="flex items-center gap-2">
+                <Avatar name={member.name} />
+                <span className="text-sm text-slate-700">{member.name}</span>
+                {member.role === "COACH" && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    Coach — heeft zelf ook een team
+                  </span>
+                )}
+              </div>
+              <form action={boundRemove}>
+                <button
+                  type="submit"
+                  title="Verwijder uit team"
+                  className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                >
+                  <X size={16} />
+                </button>
+              </form>
+            </div>
+          );
+        })}
+        {team.members.length === 0 && (
+          <p className="text-sm text-slate-400">Nog geen teamleden.</p>
+        )}
+      </div>
+
+      <form
+        action={boundAddMember}
+        className="flex items-center gap-2 border-t border-slate-100 pt-3"
+      >
+        <select
+          name="userId"
+          required
+          defaultValue=""
+          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="" disabled>
+            Kies gebruiker
+          </option>
+          {availableMembers.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name} ({m.email})
+              {m.role === "COACH" ? " · Coach" : ""}
+              {m.teamId ? " · andere team" : ""}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+          <UserPlus size={16} />
+          Toevoegen
+        </button>
+      </form>
+
+      <div className="border-t border-slate-100 pt-3">
+        <h4 className="mb-2 text-sm font-medium text-slate-900">Subagenten</h4>
+        <p className="mb-2 text-xs text-slate-400">
+          Kunnen bij een adviesgesprek mee uitgenodigd worden om te closen.
+        </p>
+        <div className="flex flex-col gap-2">
+          {teamSubagents.map((subagent) => {
+            const boundDelete = deleteSubagentAction.bind(null, subagent.id);
+            return (
+              <div
+                key={subagent.id}
+                className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+              >
+                <div className="text-sm text-slate-700">
+                  <div className="font-medium">{subagent.name}</div>
+                  <div className="text-xs text-slate-400">
+                    {subagent.email}
+                    {subagent.phone ? ` · ${subagent.phone}` : ""}
+                  </div>
+                </div>
+                <form action={boundDelete}>
+                  <button
+                    type="submit"
+                    title="Subagent verwijderen"
+                    className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                  >
+                    <X size={16} />
+                  </button>
+                </form>
+              </div>
+            );
+          })}
+          {teamSubagents.length === 0 && (
+            <p className="text-sm text-slate-400">Nog geen subagenten.</p>
+          )}
+        </div>
+        <form action={boundAddSubagent} className="mt-2 grid grid-cols-2 gap-2">
+          <input
+            name="name"
+            placeholder="Naam"
+            required
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <input
+            name="email"
+            type="email"
+            placeholder="E-mail"
+            required
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <input
+            name="phone"
+            placeholder="Telefoon (optioneel)"
+            className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            className="col-span-2 flex items-center justify-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            <UserPlus size={16} />
+            Subagent toevoegen
+          </button>
+        </form>
+      </div>
+
+      {subTeams.length > 0 && (
+        <div className="border-t border-slate-100 pt-3">
+          <h4 className="mb-3 text-sm font-medium text-slate-900">
+            Sub-structuren
+          </h4>
+          <div className="flex flex-col gap-4 border-l-2 border-slate-200 pl-4">
+            {subTeams.map((subTeam) => (
+              <TeamCard
+                key={subTeam.id}
+                team={subTeam}
+                teamByCoachId={teamByCoachId}
+                memberCandidates={memberCandidates}
+                subagents={subagents}
+                seenTeamIds={nextSeen}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default async function TeamsPage() {
   const [teams, coachCandidates, memberCandidates, subagents] = await Promise.all([
@@ -22,13 +266,20 @@ export default async function TeamsPage() {
     getSubagents(),
   ]);
 
+  const teamByCoachId = new Map(teams.map((t) => [t.coachId, t]));
+  // Root-structuren: teams waarvan de coach zelf nergens teamlid van is —
+  // hun eventuele sub-coaches (en diens teams) worden genest getoond i.p.v.
+  // als los, apart vak op de pagina.
+  const rootTeams = teams.filter((t) => !t.coach.teamId);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-semibold text-slate-900">Teams</h1>
         <p className="text-base text-slate-500">
           Maak teams aan, duid een coach aan en voeg gebruikers toe als
-          teamlid.
+          teamlid. Een teamlid die zelf ook coach is, wordt genest getoond
+          onder zijn eigen structuur.
         </p>
       </div>
 
@@ -76,181 +327,17 @@ export default async function TeamsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {teams.map((team) => {
-          const boundAddMember = addTeamMemberAction.bind(null, team.id);
-          const availableMembers = memberCandidates.filter(
-            (m) => m.teamId !== team.id && m.id !== team.coachId
-          );
-          const teamSubagents = subagents.filter((s) => s.teamId === team.id);
-          const boundAddSubagent = createSubagentAction.bind(null, team.id);
-
-          return (
-            <div
-              key={team.id}
-              className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6"
-            >
-              <div>
-                <h3 className="text-lg font-medium text-slate-900">
-                  {team.name}
-                </h3>
-                <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                  <Avatar name={team.coach.name} />
-                  Coach: {team.coach.name}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {team.members.map((member) => {
-                  const boundRemove = removeTeamMemberAction.bind(
-                    null,
-                    team.id,
-                    member.id
-                  );
-                  return (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Avatar name={member.name} />
-                        <span className="text-sm text-slate-700">
-                          {member.name}
-                        </span>
-                        {member.role === "COACH" && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                            Coach — heeft zelf ook een team
-                          </span>
-                        )}
-                      </div>
-                      <form action={boundRemove}>
-                        <button
-                          type="submit"
-                          title="Verwijder uit team"
-                          className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
-                        >
-                          <X size={16} />
-                        </button>
-                      </form>
-                    </div>
-                  );
-                })}
-                {team.members.length === 0 && (
-                  <p className="text-sm text-slate-400">
-                    Nog geen teamleden.
-                  </p>
-                )}
-              </div>
-
-              <form
-                action={boundAddMember}
-                className="flex items-center gap-2 border-t border-slate-100 pt-3"
-              >
-                <select
-                  name="userId"
-                  required
-                  defaultValue=""
-                  className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="" disabled>
-                    Kies gebruiker
-                  </option>
-                  {availableMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} ({m.email})
-                      {m.role === "COACH" ? " · Coach" : ""}
-                      {m.teamId ? " · andere team" : ""}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-                >
-                  <UserPlus size={16} />
-                  Toevoegen
-                </button>
-              </form>
-
-              <div className="border-t border-slate-100 pt-3">
-                <h4 className="mb-2 text-sm font-medium text-slate-900">
-                  Subagenten
-                </h4>
-                <p className="mb-2 text-xs text-slate-400">
-                  Kunnen bij een adviesgesprek mee uitgenodigd worden om te
-                  closen.
-                </p>
-                <div className="flex flex-col gap-2">
-                  {teamSubagents.map((subagent) => {
-                    const boundDelete = deleteSubagentAction.bind(
-                      null,
-                      subagent.id
-                    );
-                    return (
-                      <div
-                        key={subagent.id}
-                        className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
-                      >
-                        <div className="text-sm text-slate-700">
-                          <div className="font-medium">{subagent.name}</div>
-                          <div className="text-xs text-slate-400">
-                            {subagent.email}
-                            {subagent.phone ? ` · ${subagent.phone}` : ""}
-                          </div>
-                        </div>
-                        <form action={boundDelete}>
-                          <button
-                            type="submit"
-                            title="Subagent verwijderen"
-                            className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
-                          >
-                            <X size={16} />
-                          </button>
-                        </form>
-                      </div>
-                    );
-                  })}
-                  {teamSubagents.length === 0 && (
-                    <p className="text-sm text-slate-400">
-                      Nog geen subagenten.
-                    </p>
-                  )}
-                </div>
-                <form
-                  action={boundAddSubagent}
-                  className="mt-2 grid grid-cols-2 gap-2"
-                >
-                  <input
-                    name="name"
-                    placeholder="Naam"
-                    required
-                    className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  />
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="E-mail"
-                    required
-                    className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  />
-                  <input
-                    name="phone"
-                    placeholder="Telefoon (optioneel)"
-                    className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="col-span-2 flex items-center justify-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-                  >
-                    <UserPlus size={16} />
-                    Subagent toevoegen
-                  </button>
-                </form>
-              </div>
-            </div>
-          );
-        })}
-        {teams.length === 0 && (
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {rootTeams.map((team) => (
+          <TeamCard
+            key={team.id}
+            team={team}
+            teamByCoachId={teamByCoachId}
+            memberCandidates={memberCandidates}
+            subagents={subagents}
+          />
+        ))}
+        {rootTeams.length === 0 && (
           <p className="text-base text-slate-400">Nog geen teams.</p>
         )}
       </div>

@@ -7,6 +7,7 @@ import {
   canManageUsers,
   canManageUser,
   wouldCreateCoachCycle,
+  getDescendantUserIds,
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -24,7 +25,7 @@ export async function getTeamsWithMembers() {
   await requireUserManager();
   return prisma.team.findMany({
     include: {
-      coach: { select: { id: true, name: true, email: true } },
+      coach: { select: { id: true, name: true, email: true, teamId: true } },
       members: {
         select: { id: true, name: true, email: true, role: true },
         orderBy: { name: "asc" },
@@ -42,6 +43,28 @@ export async function getCoachCandidates() {
     select: { id: true, name: true, email: true, role: true },
     orderBy: { name: "asc" },
   });
+}
+
+/**
+ * Gebruikers die de coach van een BESTAAND team kunnen vervangen: dezelfde
+ * voorwaarden als een nieuwe coach, maar exclusief de huidige coach zelf en
+ * exclusief iedereen die nu al onder dit team valt (anders ontstaat een
+ * cirkel: de nieuwe coach zou dan onder zichzelf komen te staan).
+ */
+export async function getCoachChangeCandidates(teamId: string) {
+  await requireUserManager();
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  if (!team) return [];
+
+  const descendantIds = await getDescendantUserIds(team.coachId);
+  const candidates = await prisma.user.findMany({
+    where: { coachedTeam: null, role: { not: Role.BEHEERDER }, active: true },
+    select: { id: true, name: true, email: true, role: true },
+    orderBy: { name: "asc" },
+  });
+  return candidates.filter(
+    (c) => c.id !== team.coachId && !descendantIds.includes(c.id)
+  );
 }
 
 /**
@@ -135,6 +158,89 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
 
   revalidatePath("/beheer/teams");
   revalidatePath("/beheer/gebruikers");
+}
+
+/** Vervangt de coach van een bestaand team door een andere gebruiker. */
+export async function changeTeamCoachAction(teamId: string, formData: FormData) {
+  const actor = await requireUserManager();
+
+  const newCoachId = String(formData.get("coachId") ?? "");
+  if (!newCoachId) throw new Error("Kies een nieuwe coach");
+
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  if (!team) throw new Error("Team niet gevonden");
+  if (newCoachId === team.coachId) return;
+
+  const newCoach = await prisma.user.findUnique({
+    where: { id: newCoachId },
+    include: { coachedTeam: true },
+  });
+  if (!newCoach) throw new Error("Gebruiker niet gevonden");
+  if (!canManageUser(actor, newCoach)) {
+    throw new Error("Je mag deze gebruiker niet als coach aanduiden");
+  }
+  if (newCoach.coachedTeam) {
+    throw new Error("Deze gebruiker leidt al een ander team");
+  }
+
+  const descendantIds = await getDescendantUserIds(team.coachId);
+  if (descendantIds.includes(newCoachId)) {
+    throw new Error(
+      "Dit zou een cirkel in de structuur veroorzaken (deze gebruiker zit al onder dit team)"
+    );
+  }
+
+  await prisma.$transaction([
+    prisma.team.update({ where: { id: teamId }, data: { coachId: newCoachId } }),
+    prisma.user.update({
+      where: { id: newCoachId },
+      data: { role: Role.COACH, teamId: null },
+    }),
+  ]);
+
+  await logAudit({
+    actorId: actor.id,
+    action: "team.coach_changed",
+    entityType: "Team",
+    entityId: teamId,
+    description: `Coach van team "${team.name}" gewijzigd naar "${newCoach.name}"`,
+  });
+
+  revalidatePath("/beheer/teams");
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/organigram");
+}
+
+/**
+ * Verwijdert een team volledig. Teamleden (en een eventuele sub-coach met
+ * zijn hele structuur) worden losgekoppeld, niet mee verwijderd — ze
+ * hebben nadien gewoon geen team meer tot ze opnieuw ingedeeld worden.
+ */
+export async function deleteTeamAction(teamId: string) {
+  const actor = await requireUserManager();
+
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    include: { members: true },
+  });
+  if (!team) throw new Error("Team niet gevonden");
+
+  await prisma.$transaction([
+    prisma.user.updateMany({ where: { teamId }, data: { teamId: null } }),
+    prisma.team.delete({ where: { id: teamId } }),
+  ]);
+
+  await logAudit({
+    actorId: actor.id,
+    action: "team.deleted",
+    entityType: "Team",
+    entityId: teamId,
+    description: `Team "${team.name}" verwijderd (${team.members.length} teamleden losgekoppeld)`,
+  });
+
+  revalidatePath("/beheer/teams");
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/organigram");
 }
 
 export async function removeTeamMemberAction(teamId: string, userId: string) {
