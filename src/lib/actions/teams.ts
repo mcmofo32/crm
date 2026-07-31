@@ -199,45 +199,96 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
 }
 
 /**
- * Verplaatst een bestaand teamlid rechtstreeks naar een ander team — dit is
- * wat er onder de motorkap gebeurt bij het verslepen van iemand naar een
- * andere structuur op de Teams-pagina. Simpelweg zijn teamId aanpassen
- * volstaat (geen aparte "verwijder uit oud team"-stap nodig).
+ * Gebruikers die rechtstreeks ONDER een gegeven persoon geplaatst kunnen
+ * worden (bv. via het "Medewerker toevoegen"-menu naast diens naam): niet
+ * de persoon zelf, niet wie al bij hem rapporteert, en geen enkele coach
+ * wiens structuur die persoon al zelf bevat (anders ontstaat een cirkel).
  */
-export async function moveTeamMemberAction(userId: string, targetTeamId: string) {
+export async function getSubordinateCandidates(personId: string) {
+  await requireUserManager();
+  const person = await prisma.user.findUnique({
+    where: { id: personId },
+    include: { coachedTeam: { include: { members: { select: { id: true } } } } },
+  });
+  if (!person) return [];
+
+  const existingMemberIds = new Set(
+    (person.coachedTeam?.members ?? []).map((m) => m.id)
+  );
+
+  const candidates = await prisma.user.findMany({
+    where: { role: { in: [Role.USER, Role.COACH] }, active: true },
+    select: { id: true, name: true, email: true, role: true },
+    orderBy: { name: "asc" },
+  });
+
+  const result: typeof candidates = [];
+  for (const c of candidates) {
+    if (c.id === personId || existingMemberIds.has(c.id)) continue;
+    if (c.role === Role.COACH && (await wouldCreateCoachCycle(c.id, personId))) continue;
+    result.push(c);
+  }
+  return result;
+}
+
+/**
+ * Plaatst een gebruiker rechtstreeks onder een andere persoon, ongeacht of
+ * die persoon al coach is. Is hij dat nog niet, dan wordt hij dat nu
+ * automatisch (met een eigen team) — dat is precies wat er anders manueel
+ * via "Nieuw team aanmaken" + "Toevoegen" moest gebeuren. Zo kan je recht
+ * op de naam van iemand doorbouwen: onder Jeroen, dan onder zijn
+ * medewerkers, enzovoort.
+ */
+export async function addSubordinateAction(personId: string, formData: FormData) {
   const actor = await requireUserManager();
 
-  const targetTeam = await prisma.team.findUnique({ where: { id: targetTeamId } });
-  if (!targetTeam) throw new Error("Team niet gevonden");
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) throw new Error("Kies een gebruiker");
+  if (userId === personId) {
+    throw new Error("Je kan iemand niet onder zichzelf plaatsen");
+  }
+
+  const person = await prisma.user.findUnique({
+    where: { id: personId },
+    include: { coachedTeam: true },
+  });
+  if (!person) throw new Error("Gebruiker niet gevonden");
+  if (!canManageUser(actor, person)) {
+    throw new Error("Je mag deze gebruiker niet beheren");
+  }
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || (user.role !== Role.USER && user.role !== Role.COACH)) {
     throw new Error(
-      "Enkel gebruikers met rol 'User' of 'Coach' kunnen aan een team toegevoegd worden"
+      "Enkel gebruikers met rol 'User' of 'Coach' kunnen toegevoegd worden"
     );
   }
   if (!canManageUser(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
-  if (userId === targetTeam.coachId) {
-    throw new Error("Deze gebruiker is zelf coach van dit team");
-  }
-  if (user.teamId === targetTeamId) return;
-
-  if (user.role === Role.COACH && (await wouldCreateCoachCycle(userId, targetTeam.coachId))) {
+  if (user.role === Role.COACH && (await wouldCreateCoachCycle(userId, personId))) {
     throw new Error(
-      "Dit zou een cirkel in de structuur veroorzaken (deze coach zit al boven de coach van dit team)"
+      "Dit zou een cirkel in de structuur veroorzaken (deze coach zit al boven deze persoon)"
     );
   }
 
-  await prisma.user.update({ where: { id: userId }, data: { teamId: targetTeamId } });
+  let team = person.coachedTeam;
+  if (!team) {
+    const [newTeam] = await prisma.$transaction([
+      prisma.team.create({ data: { name: `Team ${person.name}`, coachId: personId } }),
+      prisma.user.update({ where: { id: personId }, data: { role: Role.COACH } }),
+    ]);
+    team = newTeam;
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { teamId: team.id } });
 
   await logAudit({
     actorId: actor.id,
-    action: "team.member_moved",
+    action: "team.member_added",
     entityType: "Team",
-    entityId: targetTeamId,
-    description: `"${user.name}" verplaatst naar team "${targetTeam.name}"`,
+    entityId: team.id,
+    description: `"${user.name}" toegevoegd onder "${person.name}"`,
   });
 
   revalidatePath("/beheer/teams");
