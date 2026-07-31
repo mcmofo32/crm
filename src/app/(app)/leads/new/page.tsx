@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { createLeadAction } from "@/lib/actions/leads";
 import { getAssignableUsers } from "@/lib/actions/leads";
@@ -9,9 +10,17 @@ export default async function NewLeadPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="mb-4 text-3xl font-semibold text-slate-900">
-        Nieuwe lead
-      </h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-3xl font-semibold text-slate-900">
+          Nieuwe lead
+        </h1>
+        <Link
+          href="/leads/bulk"
+          className="text-sm text-slate-500 underline hover:text-slate-700"
+        >
+          Meerdere leads in bulk toevoegen
+        </Link>
+      </div>
       <form action={createLeadAction} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Voornaam" name="firstName" required />

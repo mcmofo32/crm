@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, Download, Users } from "lucide-react";
+import { Plus, Search, Download, Users, Table2 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import {
   getLeadsForCurrentUser,
@@ -147,6 +147,13 @@ export default async function LeadsPage({
           >
             <Download size={17} />
             Exporteren
+          </Link>
+          <Link
+            href="/leads/bulk"
+            className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2.5 text-base font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Table2 size={17} />
+            Bulk toevoegen
           </Link>
           <Link
             href="/leads/new"

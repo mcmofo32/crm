@@ -69,6 +69,82 @@ export async function createLeadAction(formData: FormData) {
   redirect(`/leads/${lead.id}`);
 }
 
+/**
+ * Maakt meerdere leads tegelijk aan vanuit een Excel-achtige invoertabel:
+ * elke ingevulde rij (met minstens voornaam + achternaam) wordt één lead,
+ * allemaal met dezelfde funnel en eigenaar.
+ */
+export async function createLeadsBulkAction(formData: FormData) {
+  const user = await requireUser();
+
+  const leadType = formData.get("leadType") as LeadType;
+  const requestedOwnerId = String(formData.get("ownerId") ?? user.id);
+  const ownerId = (await canAccessOwner(user, requestedOwnerId))
+    ? requestedOwnerId
+    : user.id;
+
+  const firstNames = formData.getAll("firstName");
+  const lastNames = formData.getAll("lastName");
+  const emails = formData.getAll("email");
+  const phones = formData.getAll("phone");
+  const companies = formData.getAll("company");
+  const sources = formData.getAll("source");
+
+  const rows = firstNames
+    .map((_, i) => ({
+      firstName: String(firstNames[i] ?? "").trim(),
+      lastName: String(lastNames[i] ?? "").trim(),
+      email: String(emails[i] ?? "").trim() || null,
+      phone: String(phones[i] ?? "").trim() || null,
+      company: String(companies[i] ?? "").trim() || null,
+      source: String(sources[i] ?? "").trim() || null,
+    }))
+    .filter((row) => row.firstName || row.lastName);
+
+  if (rows.length === 0) {
+    throw new Error("Vul minstens één rij in met voornaam en achternaam");
+  }
+  if (rows.some((row) => !row.firstName || !row.lastName)) {
+    throw new Error(
+      "Elke ingevulde rij moet zowel een voornaam als achternaam hebben"
+    );
+  }
+
+  const firstStage = await prisma.funnelStage.findFirst({
+    where: { leadType },
+    orderBy: { order: "asc" },
+  });
+  if (!firstStage) {
+    throw new Error(`Geen funnel-stages geconfigureerd voor ${leadType}`);
+  }
+
+  const created = await prisma.$transaction(
+    rows.map((row) =>
+      prisma.lead.create({
+        data: {
+          ...row,
+          leadType,
+          ownerId,
+          createdById: user.id,
+          stageId: firstStage.id,
+        },
+      })
+    )
+  );
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.bulk_created",
+    entityType: "Lead",
+    entityId: created[0].id,
+    description: `${created.length} leads in bulk aangemaakt (${leadType})`,
+  });
+
+  revalidatePath("/leads");
+  revalidatePath(`/funnel/${leadType}`);
+  redirect("/leads");
+}
+
 export async function updateLeadStageAction(
   leadId: string,
   toStageId: string,
