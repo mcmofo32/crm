@@ -110,7 +110,7 @@ export function StageSelect({
         <div className="flex gap-2">
           <button
             type="button"
-            disabled={pending || !targetStageId || !notes.trim()}
+            disabled={pending || !targetStageId}
             onClick={() =>
               startTransition(async () => {
                 const meetingFormData = buildMeetingFormData(meeting);

@@ -133,10 +133,9 @@ export async function scheduleActivityAction(formData: FormData) {
       where: { id: assigneeId },
     });
     if (assignee) {
-      // Wie de afspraak effectief inplant (bv. een Coach die dit voor een
-      // teamlid doet) wordt mee uitgenodigd als dat niet dezelfde persoon is.
-      const scheduledBy =
-        user.id !== assigneeId ? { name: user.name, email: user.email || null } : null;
+      // Wie de afspraak effectief inplant staat altijd mee als deelnemer,
+      // ook als dat dezelfde persoon is als de toegewezen gebruiker.
+      const scheduledBy = { name: user.name, email: user.email || null };
       await syncActivityToGoogleCalendar(assignee, activity, lead, subagent, scheduledBy);
     }
   }
@@ -448,10 +447,9 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
     data: { lastContactedAt: new Date() },
   });
 
-  // Wie de afspraak effectief inplant (bv. een Coach die dit voor een
-  // teamlid doet) wordt mee uitgenodigd als dat niet dezelfde persoon is.
-  const scheduledBy =
-    user.id !== freshLead.ownerId ? { name: user.name, email: user.email || null } : null;
+  // Wie de afspraak effectief inplant staat altijd mee als deelnemer, ook
+  // als dat dezelfde persoon is als de eigenaar van de lead.
+  const scheduledBy = { name: user.name, email: user.email || null };
   await syncActivityToGoogleCalendar(assignee, activity, freshLead, subagent, scheduledBy);
 
   revalidatePath(`/leads/${leadId}`);

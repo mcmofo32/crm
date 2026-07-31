@@ -81,7 +81,6 @@ export function ReportContactForm({
       <textarea
         name="notes"
         autoFocus
-        required
         rows={3}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
@@ -92,7 +91,7 @@ export function ReportContactForm({
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={pending || !notes.trim()}
+          disabled={pending}
           className="rounded-md bg-slate-900 px-4 py-2 text-base font-medium text-white hover:bg-slate-800 disabled:opacity-60"
         >
           Bevestigen
