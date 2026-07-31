@@ -83,7 +83,7 @@ export default async function EditUserPage({
         </div>
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">
-            Team (enkel voor rol &quot;User&quot;)
+            Team (voor rol &quot;User&quot; of &quot;Coach&quot;)
           </label>
           <select
             name="teamId"
@@ -91,12 +91,18 @@ export default async function EditUserPage({
             className="rounded-md border border-slate-300 px-3 py-2"
           >
             <option value="">Geen team</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name} (coach: {team.coach.name})
-              </option>
-            ))}
+            {teams
+              .filter((team) => team.coachId !== target.id)
+              .map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name} (coach: {team.coach.name})
+                </option>
+              ))}
           </select>
+          <p className="text-xs text-slate-400">
+            Kies dit voor een Coach om aan te geven dat die zelf ook
+            rapporteert aan de coach van dit team (meerlaagse structuur).
+          </p>
         </div>
         <button
           type="submit"

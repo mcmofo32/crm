@@ -54,7 +54,7 @@ export default async function NewUserPage() {
         </div>
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">
-            Team (enkel voor rol &quot;User&quot;)
+            Team (voor rol &quot;User&quot; of &quot;Coach&quot;)
           </label>
           <select
             name="teamId"
@@ -70,7 +70,10 @@ export default async function NewUserPage() {
         </div>
         <p className="text-xs text-slate-400">
           Kies je &quot;Coach&quot; als rol, dan wordt automatisch een nieuw
-          team voor deze coach aangemaakt.
+          team voor deze coach aangemaakt. Kies je hierboven ook nog een team,
+          dan wordt deze coach zelf lid van dat team — zo bouw je een
+          meerlaagse structuur op (bv. een coach die op zijn beurt rapporteert
+          aan een andere coach).
         </p>
         <p className="text-xs text-slate-400">
           Tijdelijk wachtwoord: <code>veranderditwachtwoord123</code>. De

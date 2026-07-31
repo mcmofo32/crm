@@ -80,7 +80,7 @@ export default async function TeamsPage() {
         {teams.map((team) => {
           const boundAddMember = addTeamMemberAction.bind(null, team.id);
           const availableMembers = memberCandidates.filter(
-            (m) => m.teamId !== team.id
+            (m) => m.teamId !== team.id && m.id !== team.coachId
           );
           const teamSubagents = subagents.filter((s) => s.teamId === team.id);
           const boundAddSubagent = createSubagentAction.bind(null, team.id);
@@ -117,6 +117,11 @@ export default async function TeamsPage() {
                         <span className="text-sm text-slate-700">
                           {member.name}
                         </span>
+                        {member.role === "COACH" && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            Coach — heeft zelf ook een team
+                          </span>
+                        )}
                       </div>
                       <form action={boundRemove}>
                         <button
@@ -153,6 +158,7 @@ export default async function TeamsPage() {
                   {availableMembers.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} ({m.email})
+                      {m.role === "COACH" ? " · Coach" : ""}
                       {m.teamId ? " · andere team" : ""}
                     </option>
                   ))}

@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/client";
-import { canManageUsers, canManageUser } from "@/lib/permissions";
+import {
+  canManageUsers,
+  canManageUser,
+  wouldCreateCoachCycle,
+} from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
 
@@ -22,7 +26,7 @@ export async function getTeamsWithMembers() {
     include: {
       coach: { select: { id: true, name: true, email: true } },
       members: {
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, role: true },
         orderBy: { name: "asc" },
       },
     },
@@ -40,12 +44,16 @@ export async function getCoachCandidates() {
   });
 }
 
-/** Gebruikers (rol User) die als lid aan een team toegevoegd kunnen worden. */
+/**
+ * Gebruikers die als lid aan een team toegevoegd kunnen worden: rol User
+ * (gewoon teamlid), of rol Coach (zo rapporteert die coach op zijn beurt aan
+ * de coach van dit team — dit is hoe een meerlaagse structuur ontstaat).
+ */
 export async function getMemberCandidates() {
   await requireUserManager();
   return prisma.user.findMany({
-    where: { role: Role.USER, active: true },
-    select: { id: true, name: true, email: true, teamId: true },
+    where: { role: { in: [Role.USER, Role.COACH] }, active: true },
+    select: { id: true, name: true, email: true, teamId: true, role: true },
     orderBy: { name: "asc" },
   });
 }
@@ -101,13 +109,18 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
   if (!team) throw new Error("Team niet gevonden");
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role !== Role.USER) {
+  if (!user || (user.role !== Role.USER && user.role !== Role.COACH)) {
     throw new Error(
-      "Enkel gebruikers met rol 'User' kunnen aan een team toegevoegd worden"
+      "Enkel gebruikers met rol 'User' of 'Coach' kunnen aan een team toegevoegd worden"
     );
   }
   if (!canManageUser(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
+  }
+  if (user.role === Role.COACH && (await wouldCreateCoachCycle(userId, team.coachId))) {
+    throw new Error(
+      "Dit zou een cirkel in de structuur veroorzaken (deze coach zit al boven de coach van dit team)"
+    );
   }
 
   await prisma.user.update({ where: { id: userId }, data: { teamId } });

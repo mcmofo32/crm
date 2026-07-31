@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/client";
-import { canManageUser, canManageUsers } from "@/lib/permissions";
+import {
+  canManageUser,
+  canManageUsers,
+  wouldCreateCoachCycle,
+} from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -46,7 +50,9 @@ export async function createUserAction(formData: FormData) {
       email,
       passwordHash,
       role,
-      teamId: role === Role.USER ? teamId : null,
+      // Een Coach kan zelf ook lid zijn van het team van een andere coach
+      // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
+      teamId: role === Role.USER || role === Role.COACH ? teamId : null,
     },
   });
 
@@ -144,13 +150,24 @@ export async function updateUserAction(userId: string, formData: FormData) {
     throw new Error("Naam en e-mail zijn verplicht");
   }
 
+  if (role === Role.COACH && teamId) {
+    const targetTeam = await prisma.team.findUnique({ where: { id: teamId } });
+    if (targetTeam && (await wouldCreateCoachCycle(userId, targetTeam.coachId))) {
+      throw new Error(
+        "Dit zou een cirkel in de structuur veroorzaken (deze coach zit al boven de coach van dit team)"
+      );
+    }
+  }
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       name,
       email,
       role,
-      teamId: role === Role.USER ? teamId : null,
+      // Een Coach kan zelf ook lid zijn van het team van een andere coach
+      // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
+      teamId: role === Role.USER || role === Role.COACH ? teamId : null,
     },
   });
 

@@ -58,6 +58,36 @@ export function canManageUser(actor: SessionUser, target: { role: Role }) {
 }
 
 /**
+ * Verzamelt recursief iedereen die (rechtstreeks of via een keten van
+ * onder-coaches) onder deze coach valt: de leden van zijn team, en voor elk
+ * lid dat zelf ook coach is, ook diens volledige structuur. `seen` voorkomt
+ * een oneindige lus bij een (foutieve) cirkel in de teamstructuur.
+ */
+export async function getDescendantUserIds(
+  coachId: string,
+  seen: Set<string> = new Set()
+): Promise<string[]> {
+  if (seen.has(coachId)) return [];
+  seen.add(coachId);
+
+  const team = await prisma.team.findUnique({
+    where: { coachId },
+    include: { members: { select: { id: true, role: true } } },
+  });
+  if (!team) return [];
+
+  const ids: string[] = [];
+  for (const member of team.members) {
+    if (seen.has(member.id)) continue;
+    ids.push(member.id);
+    if (member.role === Role.COACH) {
+      ids.push(...(await getDescendantUserIds(member.id, seen)));
+    }
+  }
+  return ids;
+}
+
+/**
  * Geeft de lijst van user-id's die de gegeven gebruiker mag zien/beheren
  * op basis van zijn rol. `null` betekent: geen beperking (alle gebruikers).
  */
@@ -69,17 +99,28 @@ export async function getVisibleUserIds(
     case Role.ADMIN:
       return null;
     case Role.COACH: {
-      const team = await prisma.team.findUnique({
-        where: { coachId: user.id },
-        include: { members: { select: { id: true } } },
-      });
-      const memberIds = team?.members.map((m) => m.id) ?? [];
-      return [user.id, ...memberIds];
+      const descendantIds = await getDescendantUserIds(user.id);
+      return [user.id, ...descendantIds];
     }
     case Role.USER:
     default:
       return [user.id];
   }
+}
+
+/**
+ * Zou het toewijzen van `candidateId` (een coach) als teamlid onder
+ * `targetCoachId` een cirkel in de structuur veroorzaken? Dat is het geval
+ * als `targetCoachId` al (rechtstreeks of onrechtstreeks) onder
+ * `candidateId` valt, of als het om dezelfde persoon gaat.
+ */
+export async function wouldCreateCoachCycle(
+  candidateId: string,
+  targetCoachId: string
+): Promise<boolean> {
+  if (candidateId === targetCoachId) return true;
+  const descendantIds = await getDescendantUserIds(candidateId);
+  return descendantIds.includes(targetCoachId);
 }
 
 /** Prisma `where`-fragment om leads/activiteiten te beperken tot wat de gebruiker mag zien. */

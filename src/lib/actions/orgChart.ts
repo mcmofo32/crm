@@ -1,0 +1,119 @@
+"use server";
+
+import { prisma } from "@/lib/prisma";
+import { Role } from "@/generated/prisma/client";
+import { getEffectiveViewer } from "@/lib/impersonation";
+import { canManageUsers } from "@/lib/permissions";
+
+export type OrgNode = {
+  id: string;
+  name: string;
+  email: string | null;
+  role: Role;
+  teamName: string | null;
+  children: OrgNode[];
+};
+
+type TeamWithPeople = {
+  id: string;
+  name: string;
+  coachId: string;
+  coach: { id: string; name: string; email: string | null; role: Role };
+  members: { id: string; name: string; email: string | null; role: Role }[];
+};
+
+async function requireViewer() {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  return viewer;
+}
+
+async function loadAllTeams(): Promise<TeamWithPeople[]> {
+  return prisma.team.findMany({
+    include: {
+      coach: { select: { id: true, name: true, email: true, role: true } },
+      members: { select: { id: true, name: true, email: true, role: true } },
+    },
+  });
+}
+
+/** `seen` voorkomt een oneindige lus bij een (foutieve) cirkel in de structuur. */
+function buildNode(
+  teamByCoachId: Map<string, TeamWithPeople>,
+  person: { id: string; name: string; email: string | null; role: Role },
+  seen: Set<string>
+): OrgNode {
+  if (seen.has(person.id)) {
+    return {
+      id: person.id,
+      name: person.name,
+      email: person.email,
+      role: person.role,
+      teamName: null,
+      children: [],
+    };
+  }
+  seen.add(person.id);
+
+  const team = teamByCoachId.get(person.id);
+  return {
+    id: person.id,
+    name: person.name,
+    email: person.email,
+    role: person.role,
+    teamName: team?.name ?? null,
+    children: team ? team.members.map((m) => buildNode(teamByCoachId, m, seen)) : [],
+  };
+}
+
+/** Volledige bedrijfsstructuur (enkel Beheerder/Admin): elke top-coach als apart rootnode. */
+export async function getFullOrgChart(): Promise<OrgNode[]> {
+  const viewer = await requireViewer();
+  if (!canManageUsers(viewer)) {
+    throw new Error("Je hebt geen rechten om het volledige organigram te bekijken");
+  }
+
+  const teams = await loadAllTeams();
+  const teamByCoachId = new Map(teams.map((t) => [t.coachId, t]));
+  const memberIds = new Set(teams.flatMap((t) => t.members.map((m) => m.id)));
+
+  // Root = een coach die zelf nergens teamlid van is (staat aan de top van zijn keten).
+  const roots = teams.filter((t) => !memberIds.has(t.coachId));
+  const seen = new Set<string>();
+  return roots.map((t) => buildNode(teamByCoachId, t.coach, seen));
+}
+
+/** Eigen structuur van een Coach: zichzelf als root, plus wie zijn eigen coach is (indien van toepassing). */
+export async function getMyOrgChart(): Promise<{
+  upline: { id: string; name: string } | null;
+  tree: OrgNode;
+}> {
+  const viewer = await requireViewer();
+  if (viewer.role !== Role.COACH) {
+    throw new Error("Enkel coaches hebben een eigen structuur");
+  }
+
+  const [teams, me] = await Promise.all([
+    loadAllTeams(),
+    prisma.user.findUnique({
+      where: { id: viewer.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        team: { select: { coach: { select: { id: true, name: true } } } },
+      },
+    }),
+  ]);
+  if (!me) throw new Error("Gebruiker niet gevonden");
+
+  const teamByCoachId = new Map(teams.map((t) => [t.coachId, t]));
+  const seen = new Set<string>();
+  const tree = buildNode(teamByCoachId, me, seen);
+
+  return {
+    upline: me.team?.coach ? { id: me.team.coach.id, name: me.team.coach.name } : null,
+    tree,
+  };
+}
