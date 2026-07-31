@@ -1,11 +1,23 @@
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { createUserAction, getTeamsForAssignment } from "@/lib/actions/users";
+import {
+  createUserAction,
+  getTeamsForAssignment,
+  getUserBasicInfo,
+} from "@/lib/actions/users";
 import { Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 
-export default async function NewUserPage() {
+export default async function NewUserPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ under?: string }>;
+}) {
+  const { under } = await searchParams;
   const actor = (await getEffectiveViewer())!;
-  const teams = await getTeamsForAssignment();
+  const [teams, underPerson] = await Promise.all([
+    getTeamsForAssignment(),
+    under ? getUserBasicInfo(under) : Promise.resolve(null),
+  ]);
 
   const assignableRoles = (
     actor.role === Role.BEHEERDER
@@ -19,6 +31,7 @@ export default async function NewUserPage() {
         Nieuwe gebruiker
       </h1>
       <form action={createUserAction} className="flex flex-col gap-4 text-sm">
+        {underPerson && <input type="hidden" name="underId" value={underPerson.id} />}
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">Naam</label>
           <input
@@ -52,22 +65,28 @@ export default async function NewUserPage() {
             ))}
           </select>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Team (voor rol &quot;User&quot; of &quot;Coach&quot;)
-          </label>
-          <select
-            name="teamId"
-            className="rounded-md border border-slate-300 px-3 py-2"
-          >
-            <option value="">Geen team</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name} (coach: {team.coach.name})
-              </option>
-            ))}
-          </select>
-        </div>
+        {underPerson ? (
+          <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            Wordt automatisch geplaatst onder <strong>{underPerson.name}</strong>.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <label className="font-medium text-slate-700">
+              Team (voor rol &quot;User&quot; of &quot;Coach&quot;)
+            </label>
+            <select
+              name="teamId"
+              className="rounded-md border border-slate-300 px-3 py-2"
+            >
+              <option value="">Geen team</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name} (coach: {team.coach.name})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <p className="text-xs text-slate-400">
           Kies je &quot;Coach&quot; als rol, dan wordt automatisch een nieuw
           team voor deze coach aangemaakt. Kies je hierboven ook nog een team,

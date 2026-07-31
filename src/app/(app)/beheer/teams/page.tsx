@@ -1,11 +1,8 @@
-import { UserPlus, X, Pencil, ChevronRight, MoreVertical } from "lucide-react";
+import Link from "next/link";
+import { UserPlus, UserRoundPlus, X, Pencil, ChevronRight, MoreVertical } from "lucide-react";
 import {
   getTeamsWithMembers,
-  getCoachCandidates,
-  getCoachChangeCandidates,
-  getMemberCandidates,
-  getStructureMembers,
-  getSubordinateCandidates,
+  getAllActiveUsersForPlanning,
   createTeamAction,
   changeTeamCoachAction,
   addTeamMemberAction,
@@ -17,36 +14,37 @@ import {
   createSubagentAction,
   deleteSubagentAction,
 } from "@/lib/actions/subagents";
+import { TeamPlanningContext } from "@/lib/teamPlanning";
 import { Avatar } from "@/components/Avatar";
 import { DeleteTeamButton } from "@/components/DeleteTeamButton";
 
 type TeamWithMembers = Awaited<ReturnType<typeof getTeamsWithMembers>>[number];
-type MemberCandidate = Awaited<ReturnType<typeof getMemberCandidates>>[number];
 type SubagentRecord = Awaited<ReturnType<typeof getSubagents>>[number];
 
-async function TeamCard({
+function TeamCard({
   team,
   teamByCoachId,
-  memberCandidates,
+  ctx,
   subagents,
   seenTeamIds = new Set(),
 }: {
   team: TeamWithMembers;
   teamByCoachId: Map<string, TeamWithMembers>;
-  memberCandidates: MemberCandidate[];
+  ctx: TeamPlanningContext;
   subagents: SubagentRecord[];
   seenTeamIds?: Set<string>;
 }) {
   if (seenTeamIds.has(team.id)) return null;
   const nextSeen = new Set(seenTeamIds).add(team.id);
 
-  const coachChangeCandidates = await getCoachChangeCandidates(team.id);
-  const structureMembers = await getStructureMembers(team.id);
+  const coachChangeCandidates = ctx.coachChangeCandidates(team);
+  const structureMembers = ctx.structureMembers(team);
+  const coachSubordinateCandidates = ctx.subordinateCandidates(team.coachId);
   const boundAddMember = addTeamMemberAction.bind(null, team.id);
   const boundChangeCoach = changeTeamCoachAction.bind(null, team.id);
-  const availableMembers = memberCandidates.filter(
-    (m) => m.teamId !== team.id && m.id !== team.coachId
-  );
+  const availableMembers = ctx
+    .memberCandidates()
+    .filter((m) => m.teamId !== team.id && m.id !== team.coachId);
   const teamSubagents = subagents.filter((s) => s.teamId === team.id);
   const boundAddSubagent = createSubagentAction.bind(null, team.id);
 
@@ -56,16 +54,6 @@ async function TeamCard({
     .filter((m) => m.role === "COACH")
     .map((m) => teamByCoachId.get(m.id))
     .filter((t): t is TeamWithMembers => Boolean(t));
-
-  // Per teamlid: wie kan er rechtstreeks onder hem/haar geplaatst worden via
-  // het "Medewerker toevoegen"-menu naast zijn naam.
-  const memberSubordinateCandidates = new Map(
-    await Promise.all(
-      team.members.map(
-        async (m) => [m.id, await getSubordinateCandidates(m.id)] as const
-      )
-    )
-  );
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
@@ -85,6 +73,52 @@ async function TeamCard({
             <MoreVertical size={18} />
           </summary>
           <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                <UserPlus size={14} />
+                Medewerker toevoegen onder {team.coach.name}
+              </summary>
+              <form
+                action={boundAddMember}
+                className="mt-2 flex flex-col gap-2 px-2 pb-2"
+              >
+                <select
+                  name="userId"
+                  required
+                  defaultValue=""
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                >
+                  <option value="" disabled>
+                    Kies gebruiker
+                  </option>
+                  {coachSubordinateCandidates.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.email})
+                      {c.role === "COACH" ? " · Coach" : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  Toevoegen
+                </button>
+              </form>
+              {coachSubordinateCandidates.length === 0 && (
+                <p className="px-2 pb-2 text-xs text-slate-400">
+                  Niemand beschikbaar om toe te voegen.
+                </p>
+              )}
+            </details>
+            <Link
+              href={`/beheer/gebruikers/new?under=${team.coachId}`}
+              className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <UserRoundPlus size={14} />
+              Nieuwe gebruiker toevoegen
+            </Link>
+            <hr className="my-1 border-slate-100" />
             <details className="group">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
                 <Pencil size={14} />
@@ -138,7 +172,7 @@ async function TeamCard({
         {team.members.map((member) => {
           const boundRemove = removeTeamMemberAction.bind(null, team.id, member.id);
           const boundAddSubordinate = addSubordinateAction.bind(null, member.id);
-          const subordinateCandidates = memberSubordinateCandidates.get(member.id) ?? [];
+          const subordinateCandidates = ctx.subordinateCandidates(member.id);
           return (
             <div
               key={member.id}
@@ -199,6 +233,13 @@ async function TeamCard({
                       </p>
                     )}
                   </details>
+                  <Link
+                    href={`/beheer/gebruikers/new?under=${member.id}`}
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                  >
+                    <UserRoundPlus size={14} />
+                    Nieuwe gebruiker toevoegen
+                  </Link>
                   <hr className="my-1 border-slate-100" />
                   <form action={boundRemove}>
                     <button
@@ -355,7 +396,7 @@ async function TeamCard({
                 key={subTeam.id}
                 team={subTeam}
                 teamByCoachId={teamByCoachId}
-                memberCandidates={memberCandidates}
+                ctx={ctx}
                 subagents={subagents}
                 seenTeamIds={nextSeen}
               />
@@ -368,12 +409,14 @@ async function TeamCard({
 }
 
 export default async function TeamsPage() {
-  const [teams, coachCandidates, memberCandidates, subagents] = await Promise.all([
+  const [teams, allUsers, subagents] = await Promise.all([
     getTeamsWithMembers(),
-    getCoachCandidates(),
-    getMemberCandidates(),
+    getAllActiveUsersForPlanning(),
     getSubagents(),
   ]);
+
+  const ctx = new TeamPlanningContext(teams, allUsers, subagents);
+  const coachCandidates = ctx.coachCandidates();
 
   const teamByCoachId = new Map(teams.map((t) => [t.coachId, t]));
   // Root-structuren: teams waarvan de coach zelf nergens teamlid van is —
@@ -443,7 +486,7 @@ export default async function TeamsPage() {
             key={team.id}
             team={team}
             teamByCoachId={teamByCoachId}
-            memberCandidates={memberCandidates}
+            ctx={ctx}
             subagents={subagents}
           />
         ))}

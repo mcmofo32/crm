@@ -36,85 +36,17 @@ export async function getTeamsWithMembers() {
 }
 
 /**
- * Iedereen die onder dit team valt, ook via geneste sub-structuren (bv. een
- * teamlid die zelf coach is, en diens hele team) — zo blijft zichtbaar wie
- * er in de volledige structuur zit zonder elk niveau apart open te klikken.
+ * Alle actieve gebruikers, in bulk — dit is de enige databasetoegang die
+ * nodig is om (samen met getTeamsWithMembers en getSubagents) alle
+ * kandidatenlijsten op de Teams-pagina in het geheugen te berekenen via
+ * TeamPlanningContext, in plaats van per team-kaartje of teamlid telkens
+ * opnieuw de database te bevragen.
  */
-export async function getStructureMembers(teamId: string) {
-  await requireUserManager();
-  const team = await prisma.team.findUnique({ where: { id: teamId } });
-  if (!team) return [];
-
-  const descendantIds = await getDescendantUserIds(team.coachId);
-  if (descendantIds.length === 0) return [];
-
-  return prisma.user.findMany({
-    where: { id: { in: descendantIds } },
-    select: { id: true, name: true, role: true },
-    orderBy: { name: "asc" },
-  });
-}
-
-/** Gebruikers die als coach van een NIEUW team aangeduid kunnen worden. */
-export async function getCoachCandidates() {
+export async function getAllActiveUsersForPlanning() {
   await requireUserManager();
   return prisma.user.findMany({
-    where: { coachedTeam: null, role: { not: Role.BEHEERDER }, active: true },
-    select: { id: true, name: true, email: true, role: true },
-    orderBy: { name: "asc" },
-  });
-}
-
-/**
- * Gebruikers die de coach van een BESTAAND team kunnen vervangen: dezelfde
- * voorwaarden als een nieuwe coach, maar exclusief de huidige coach zelf en
- * exclusief iedereen die nu al onder dit team valt (anders ontstaat een
- * cirkel: de nieuwe coach zou dan onder zichzelf komen te staan).
- *
- * Een kandidaat die zelf al coach is van een LEEG team (bv. automatisch
- * aangemaakt bij het toekennen van de rol Coach, maar nog zonder leden of
- * subagenten) mag ook gekozen worden: dat lege team wordt dan gewoon
- * opgeruimd zodra hij coach van dit team wordt.
- */
-export async function getCoachChangeCandidates(teamId: string) {
-  await requireUserManager();
-  const team = await prisma.team.findUnique({ where: { id: teamId } });
-  if (!team) return [];
-
-  const descendantIds = await getDescendantUserIds(team.coachId);
-  const candidates = await prisma.user.findMany({
-    where: { role: { not: Role.BEHEERDER }, active: true },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      coachedTeam: {
-        select: { _count: { select: { members: true, subagents: true } } },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
-  return candidates
-    .filter((c) => c.id !== team.coachId && !descendantIds.includes(c.id))
-    .filter(
-      (c) =>
-        !c.coachedTeam ||
-        (c.coachedTeam._count.members === 0 && c.coachedTeam._count.subagents === 0)
-    )
-    .map((c) => ({ id: c.id, name: c.name, email: c.email, role: c.role }));
-}
-
-/**
- * Gebruikers die als lid aan een team toegevoegd kunnen worden: rol User
- * (gewoon teamlid), of rol Coach (zo rapporteert die coach op zijn beurt aan
- * de coach van dit team — dit is hoe een meerlaagse structuur ontstaat).
- */
-export async function getMemberCandidates() {
-  await requireUserManager();
-  return prisma.user.findMany({
-    where: { role: { in: [Role.USER, Role.COACH] }, active: true },
-    select: { id: true, name: true, email: true, teamId: true, role: true },
+    where: { active: true },
+    select: { id: true, name: true, email: true, role: true, teamId: true },
     orderBy: { name: "asc" },
   });
 }
@@ -196,39 +128,6 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
 
   revalidatePath("/beheer/teams");
   revalidatePath("/beheer/gebruikers");
-}
-
-/**
- * Gebruikers die rechtstreeks ONDER een gegeven persoon geplaatst kunnen
- * worden (bv. via het "Medewerker toevoegen"-menu naast diens naam): niet
- * de persoon zelf, niet wie al bij hem rapporteert, en geen enkele coach
- * wiens structuur die persoon al zelf bevat (anders ontstaat een cirkel).
- */
-export async function getSubordinateCandidates(personId: string) {
-  await requireUserManager();
-  const person = await prisma.user.findUnique({
-    where: { id: personId },
-    include: { coachedTeam: { include: { members: { select: { id: true } } } } },
-  });
-  if (!person) return [];
-
-  const existingMemberIds = new Set(
-    (person.coachedTeam?.members ?? []).map((m) => m.id)
-  );
-
-  const candidates = await prisma.user.findMany({
-    where: { role: { in: [Role.USER, Role.COACH] }, active: true },
-    select: { id: true, name: true, email: true, role: true },
-    orderBy: { name: "asc" },
-  });
-
-  const result: typeof candidates = [];
-  for (const c of candidates) {
-    if (c.id === personId || existingMemberIds.has(c.id)) continue;
-    if (c.role === Role.COACH && (await wouldCreateCoachCycle(c.id, personId))) continue;
-    result.push(c);
-  }
-  return result;
 }
 
 /**

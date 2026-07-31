@@ -26,6 +26,15 @@ async function requireUserManager() {
   return viewer;
 }
 
+/** Basisinfo van een gebruiker, voor bv. "wordt geplaatst onder X" op het nieuwe-gebruikerformulier. */
+export async function getUserBasicInfo(userId: string) {
+  await requireUserManager();
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true },
+  });
+}
+
 export async function createUserAction(formData: FormData) {
   const actor = await requireUserManager();
 
@@ -36,10 +45,26 @@ export async function createUserAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim() || null;
-  const teamId = (formData.get("teamId") as string) || null;
+  // Komt deze aanmaak vanuit "Nieuwe gebruiker toevoegen" naast iemands naam
+  // op de Teams-pagina, dan wordt de nieuwe gebruiker meteen onder die
+  // persoon geplaatst i.p.v. via de gewone team-dropdown hieronder.
+  const underId = (formData.get("underId") as string) || null;
+  const teamId = underId ? null : (formData.get("teamId") as string) || null;
 
   if (!name) {
     throw new Error("Naam is verplicht");
+  }
+
+  let underPerson = null;
+  if (underId) {
+    underPerson = await prisma.user.findUnique({
+      where: { id: underId },
+      include: { coachedTeam: true },
+    });
+    if (!underPerson) throw new Error("Gebruiker niet gevonden");
+    if (!canManageUser(actor, underPerson)) {
+      throw new Error("Je mag deze gebruiker niet beheren");
+    }
   }
 
   const passwordHash = await bcrypt.hash(DEFAULT_TEMP_PASSWORD, 10);
@@ -62,16 +87,37 @@ export async function createUserAction(formData: FormData) {
     });
   }
 
+  if (underPerson) {
+    let team = underPerson.coachedTeam;
+    if (!team) {
+      const [newTeam] = await prisma.$transaction([
+        prisma.team.create({
+          data: { name: `Team ${underPerson.name}`, coachId: underPerson.id },
+        }),
+        prisma.user.update({
+          where: { id: underPerson.id },
+          data: { role: Role.COACH },
+        }),
+      ]);
+      team = newTeam;
+    }
+    await prisma.user.update({ where: { id: user.id }, data: { teamId: team.id } });
+  }
+
   await logAudit({
     actorId: actor.id,
     action: "user.created",
     entityType: "User",
     entityId: user.id,
-    description: `Gebruiker "${name}" aangemaakt (${ROLE_LABELS[role]})`,
+    description: underPerson
+      ? `Gebruiker "${name}" aangemaakt (${ROLE_LABELS[role]}) onder "${underPerson.name}"`
+      : `Gebruiker "${name}" aangemaakt (${ROLE_LABELS[role]})`,
   });
 
   revalidatePath("/beheer/gebruikers");
-  redirect("/beheer/gebruikers");
+  revalidatePath("/beheer/teams");
+  revalidatePath("/organigram");
+  redirect(underPerson ? "/beheer/teams" : "/beheer/gebruikers");
 }
 
 export async function setUserActiveAction(userId: string, active: boolean) {
