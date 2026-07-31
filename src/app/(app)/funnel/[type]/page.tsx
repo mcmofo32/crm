@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
-import { LeadType } from "@/generated/prisma/client";
+import { LeadType, Role } from "@/generated/prisma/client";
 import { FunnelBoard } from "@/components/FunnelBoard";
 import { getSubagents } from "@/lib/actions/subagents";
 
@@ -23,7 +23,10 @@ export default async function FunnelPage({
 
   const user = (await getEffectiveViewer())!;
   const assignableUsers = await getAssignableUsers();
-  const requiresSelection = assignableUsers.length > 1;
+  // Coach ziet de balk altijd (ook met een klein/leeg team), zodat duidelijk
+  // is dat hij enkel toegang heeft tot zichzelf + zijn teamleden.
+  const requiresSelection =
+    assignableUsers.length > 1 || user.role === Role.COACH;
   const selectedOwnerId =
     ownerId && assignableUsers.some((u) => u.id === ownerId)
       ? ownerId

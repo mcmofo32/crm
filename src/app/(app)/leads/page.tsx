@@ -48,8 +48,10 @@ export default async function LeadsPage({
   const viewer = (await getEffectiveViewer())!;
   const canDelete = canDeleteLeads(viewer);
   const assignableUsers = await getAssignableUsers();
-  const requiresSelection = assignableUsers.length > 1;
   const isCoach = viewer.role === Role.COACH;
+  // Coach ziet de balk altijd (ook met een klein/leeg team), zodat duidelijk
+  // is dat hij enkel toegang heeft tot zichzelf + zijn teamleden.
+  const requiresSelection = assignableUsers.length > 1 || isCoach;
   const TEAM_OPTION = "team";
   const selectedOwnerId =
     isCoach && ownerId === TEAM_OPTION
