@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Clock, CalendarClock, Inbox, ChevronDown } from "lucide-react";
+import { Clock, CalendarClock, Inbox, ChevronDown, Filter } from "lucide-react";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
 import { StageSelect } from "@/components/StageSelect";
@@ -59,6 +59,27 @@ function isSecondaryStage(stage: BoardStage) {
     stage.isLost ||
     stage.key === "niet_bereikbaar" ||
     FOLLOWUP_KEYS.has(stage.key)
+  );
+}
+
+type SortOption = "recent" | "stale";
+
+/** "Nog geen contact" telt als het langst wachtend op opvolging. */
+function contactPriorityTime(lead: BoardLead) {
+  return lead.lastContactedAt ? lead.lastContactedAt.getTime() : -Infinity;
+}
+
+function applyLeadFilters(
+  leads: BoardLead[],
+  { sortBy, onlyNoContact }: { sortBy: SortOption; onlyNoContact: boolean }
+) {
+  const filtered = onlyNoContact
+    ? leads.filter((l) => l.lastContactedAt === null)
+    : leads;
+  // De server levert leads al op in "meest recent toegevoegd"-volgorde.
+  if (sortBy === "recent") return filtered;
+  return [...filtered].sort(
+    (a, b) => contactPriorityTime(a) - contactPriorityTime(b)
   );
 }
 
@@ -166,6 +187,9 @@ export function FunnelBoard({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("recent");
+  const [onlyNoContact, setOnlyNoContact] = useState(false);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
   const [expandedStageIds, setExpandedStageIds] = useState<Set<string>>(new Set());
@@ -246,12 +270,70 @@ export function FunnelBoard({
     });
   }
 
+  const filtersActive = sortBy !== "recent" || onlyNoContact;
+
   return (
     <div className="flex flex-col gap-6">
+      <div className="relative self-start">
+        <button
+          type="button"
+          onClick={() => setFilterOpen((v) => !v)}
+          className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium ${
+            filtersActive
+              ? "border-slate-900 bg-slate-900 text-white"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          <Filter size={15} />
+          Filter
+          {filtersActive && (
+            <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900">
+              •
+            </span>
+          )}
+        </button>
+        {filterOpen && (
+          <div className="absolute left-0 top-full z-20 mt-2 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+              Sorteren op
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="recent">Meest recent toegevoegd</option>
+              <option value="stale">Langst geen contact</option>
+            </select>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={onlyNoContact}
+                onChange={(e) => setOnlyNoContact(e.target.checked)}
+              />
+              Enkel leads zonder contact
+            </label>
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSortBy("recent");
+                  setOnlyNoContact(false);
+                }}
+                className="mt-3 text-sm text-slate-500 underline hover:text-slate-700"
+              >
+                Filters wissen
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-3">
         {mainStages.map((stage) => {
           const accent = stageAccent(stage, leadType, activeStageIds.indexOf(stage.id));
           const isDragOver = dragOverStageId === stage.id;
+          const visibleLeads = applyLeadFilters(stage.leads, { sortBy, onlyNoContact });
           return (
             <div
               key={stage.id}
@@ -283,12 +365,12 @@ export function FunnelBoard({
                   style={{ backgroundColor: accent.solid }}
                   className="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-medium text-white"
                 >
-                  {stage.leads.length}
+                  {visibleLeads.length}
                 </span>
               </div>
 
               <div className="flex flex-col gap-2.5">
-                {stage.leads.map((lead) => (
+                {visibleLeads.map((lead) => (
                   <LeadCard
                     key={lead.id}
                     lead={lead}
@@ -299,10 +381,14 @@ export function FunnelBoard({
                     onDragEnd={() => setDraggedLeadId(null)}
                   />
                 ))}
-                {stage.leads.length === 0 && (
+                {visibleLeads.length === 0 && (
                   <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-200 py-6 text-slate-300">
                     <Inbox size={18} />
-                    <p className="text-xs">Geen leads</p>
+                    <p className="text-xs">
+                      {stage.leads.length === 0
+                        ? "Geen leads"
+                        : "Geen leads na filter"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -320,6 +406,7 @@ export function FunnelBoard({
             const accent = stageAccent(stage, leadType, -1);
             const isDragOver = dragOverStageId === stage.id;
             const isExpanded = expandedStageIds.has(stage.id);
+            const visibleLeads = applyLeadFilters(stage.leads, { sortBy, onlyNoContact });
             return (
               <div
                 key={stage.id}
@@ -354,7 +441,7 @@ export function FunnelBoard({
                       style={{ backgroundColor: accent.solid }}
                       className="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-medium text-white"
                     >
-                      {stage.leads.length}
+                      {visibleLeads.length}
                     </span>
                     <ChevronDown
                       size={15}
@@ -366,7 +453,7 @@ export function FunnelBoard({
                 </button>
                 {isExpanded && (
                   <div className="flex flex-col gap-2.5 px-1 pb-1">
-                    {stage.leads.map((lead) => (
+                    {visibleLeads.map((lead) => (
                       <LeadCard
                         key={lead.id}
                         lead={lead}
@@ -377,9 +464,11 @@ export function FunnelBoard({
                         onDragEnd={() => setDraggedLeadId(null)}
                       />
                     ))}
-                    {stage.leads.length === 0 && (
+                    {visibleLeads.length === 0 && (
                       <p className="px-1 py-2 text-center text-xs text-slate-300">
-                        Geen leads
+                        {stage.leads.length === 0
+                          ? "Geen leads"
+                          : "Geen leads na filter"}
                       </p>
                     )}
                   </div>
