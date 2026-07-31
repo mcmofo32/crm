@@ -1,4 +1,4 @@
-import { UserPlus, X, Pencil } from "lucide-react";
+import { UserPlus, X, Pencil, ChevronRight, MoreVertical } from "lucide-react";
 import {
   getTeamsWithMembers,
   getCoachCandidates,
@@ -63,48 +63,62 @@ async function TeamCard({
             Coach: {team.coach.name}
           </div>
         </div>
-        <DeleteTeamButton
-          teamId={team.id}
-          teamName={team.name}
-          memberCount={team.members.length}
-        />
+        <details className="group/menu relative">
+          <summary
+            title="Team-opties"
+            className="flex cursor-pointer list-none rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 [&::-webkit-details-marker]:hidden"
+          >
+            <MoreVertical size={18} />
+          </summary>
+          <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                <Pencil size={14} />
+                Coach wijzigen
+              </summary>
+              <form
+                action={boundChangeCoach}
+                className="mt-2 flex flex-col gap-2 px-2 pb-2"
+              >
+                <select
+                  name="coachId"
+                  required
+                  defaultValue=""
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                >
+                  <option value="" disabled>
+                    Kies nieuwe coach
+                  </option>
+                  {coachChangeCandidates.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.email})
+                      {c.role === "COACH" ? " · Coach" : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  Wijzigen
+                </button>
+              </form>
+              {coachChangeCandidates.length === 0 && (
+                <p className="px-2 pb-2 text-xs text-slate-400">
+                  Niemand beschikbaar om als nieuwe coach aan te duiden.
+                </p>
+              )}
+            </details>
+            <hr className="my-1 border-slate-100" />
+            <DeleteTeamButton
+              teamId={team.id}
+              teamName={team.name}
+              memberCount={team.members.length}
+              variant="menu-item"
+            />
+          </div>
+        </details>
       </div>
-
-      <details className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
-        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-600">
-          <Pencil size={13} />
-          Coach wijzigen
-        </summary>
-        <form action={boundChangeCoach} className="mt-2 flex items-center gap-2">
-          <select
-            name="coachId"
-            required
-            defaultValue=""
-            className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="" disabled>
-              Kies nieuwe coach
-            </option>
-            {coachChangeCandidates.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.email})
-                {c.role === "COACH" ? " · Coach" : ""}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            Wijzigen
-          </button>
-        </form>
-        {coachChangeCandidates.length === 0 && (
-          <p className="mt-2 text-xs text-slate-400">
-            Niemand beschikbaar om als nieuwe coach aan te duiden.
-          </p>
-        )}
-      </details>
 
       <div className="flex flex-col gap-2">
         {team.members.map((member) => {
@@ -236,10 +250,14 @@ async function TeamCard({
       </div>
 
       {subTeams.length > 0 && (
-        <div className="border-t border-slate-100 pt-3">
-          <h4 className="mb-3 text-sm font-medium text-slate-900">
-            Sub-structuren
-          </h4>
+        <details className="group border-t border-slate-100 pt-3">
+          <summary className="mb-3 flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-900">
+            <ChevronRight
+              size={15}
+              className="text-slate-400 transition-transform group-open:rotate-90"
+            />
+            Sub-structuren ({subTeams.length})
+          </summary>
           <div className="flex flex-col gap-4 border-l-2 border-slate-200 pl-4">
             {subTeams.map((subTeam) => (
               <TeamCard
@@ -252,7 +270,7 @@ async function TeamCard({
               />
             ))}
           </div>
-        </div>
+        </details>
       )}
     </div>
   );

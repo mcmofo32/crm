@@ -9,10 +9,12 @@ export function DeleteTeamButton({
   teamId,
   teamName,
   memberCount,
+  variant = "button",
 }: {
   teamId: string;
   teamName: string;
   memberCount: number;
+  variant?: "button" | "menu-item";
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -27,6 +29,20 @@ export function DeleteTeamButton({
       await deleteTeamAction(teamId);
       router.refresh();
     });
+  }
+
+  if (variant === "menu-item") {
+    return (
+      <button
+        type="button"
+        disabled={pending}
+        onClick={handleClick}
+        className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
+      >
+        <Trash2 size={15} />
+        Team verwijderen
+      </button>
+    );
   }
 
   return (
