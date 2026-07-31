@@ -45,17 +45,14 @@ export default async function LeadsPage({
       : undefined;
   const sortBy = sort === "stale" ? ("stale" as LeadSortOption) : undefined;
 
+  const viewer = (await getEffectiveViewer())!;
+  const canDelete = canDeleteLeads(viewer);
   const assignableUsers = await getAssignableUsers();
   const requiresSelection = assignableUsers.length > 1;
   const selectedOwnerId =
     ownerId && assignableUsers.some((u) => u.id === ownerId)
       ? ownerId
-      : requiresSelection
-        ? null
-        : (assignableUsers[0]?.id ?? null);
-
-  const viewer = (await getEffectiveViewer())!;
-  const canDelete = canDeleteLeads(viewer);
+      : viewer.id;
 
   function tabHref(t: "ALLE" | "FA" | "RG") {
     const params = new URLSearchParams();
@@ -80,15 +77,12 @@ export default async function LeadsPage({
       <label className="text-sm text-slate-600">Bekijk leads van:</label>
       <select
         name="ownerId"
-        defaultValue={selectedOwnerId ?? ""}
+        defaultValue={selectedOwnerId}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
-        <option value="" disabled>
-          Kies een medewerker…
-        </option>
         {assignableUsers.map((u) => (
           <option key={u.id} value={u.id}>
-            {u.name}
+            {u.id === viewer.id ? `${u.name} (jezelf)` : u.name}
           </option>
         ))}
       </select>
@@ -100,21 +94,6 @@ export default async function LeadsPage({
       </button>
     </form>
   );
-
-  if (!selectedOwnerId) {
-    return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-3xl font-semibold text-slate-900">Leads</h1>
-        {ownerSwitcher}
-        <p className="text-base text-slate-500">
-          Kies hierboven een medewerker om diens leads te bekijken. Om te
-          voorkomen dat leads van verschillende medewerkers door elkaar
-          worden getoond, toont deze lijst altijd de leads van precies één
-          persoon tegelijk.
-        </p>
-      </div>
-    );
-  }
 
   const [leads, stages] = await Promise.all([
     getLeadsForCurrentUser(leadType, q, {
