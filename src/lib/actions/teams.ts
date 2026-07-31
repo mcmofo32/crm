@@ -70,6 +70,11 @@ export async function getCoachCandidates() {
  * voorwaarden als een nieuwe coach, maar exclusief de huidige coach zelf en
  * exclusief iedereen die nu al onder dit team valt (anders ontstaat een
  * cirkel: de nieuwe coach zou dan onder zichzelf komen te staan).
+ *
+ * Een kandidaat die zelf al coach is van een LEEG team (bv. automatisch
+ * aangemaakt bij het toekennen van de rol Coach, maar nog zonder leden of
+ * subagenten) mag ook gekozen worden: dat lege team wordt dan gewoon
+ * opgeruimd zodra hij coach van dit team wordt.
  */
 export async function getCoachChangeCandidates(teamId: string) {
   await requireUserManager();
@@ -78,13 +83,26 @@ export async function getCoachChangeCandidates(teamId: string) {
 
   const descendantIds = await getDescendantUserIds(team.coachId);
   const candidates = await prisma.user.findMany({
-    where: { coachedTeam: null, role: { not: Role.BEHEERDER }, active: true },
-    select: { id: true, name: true, email: true, role: true },
+    where: { role: { not: Role.BEHEERDER }, active: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      coachedTeam: {
+        select: { _count: { select: { members: true, subagents: true } } },
+      },
+    },
     orderBy: { name: "asc" },
   });
-  return candidates.filter(
-    (c) => c.id !== team.coachId && !descendantIds.includes(c.id)
-  );
+  return candidates
+    .filter((c) => c.id !== team.coachId && !descendantIds.includes(c.id))
+    .filter(
+      (c) =>
+        !c.coachedTeam ||
+        (c.coachedTeam._count.members === 0 && c.coachedTeam._count.subagents === 0)
+    )
+    .map((c) => ({ id: c.id, name: c.name, email: c.email, role: c.role }));
 }
 
 /**
@@ -193,13 +211,25 @@ export async function changeTeamCoachAction(teamId: string, formData: FormData) 
 
   const newCoach = await prisma.user.findUnique({
     where: { id: newCoachId },
-    include: { coachedTeam: true },
+    include: {
+      coachedTeam: {
+        include: { _count: { select: { members: true, subagents: true } } },
+      },
+    },
   });
   if (!newCoach) throw new Error("Gebruiker niet gevonden");
   if (!canManageUser(actor, newCoach)) {
     throw new Error("Je mag deze gebruiker niet als coach aanduiden");
   }
-  if (newCoach.coachedTeam) {
+  // Een kandidaat die zelf al coach is van een eigen team mag enkel gekozen
+  // worden als dat team nog helemaal leeg is (bv. automatisch aangemaakt bij
+  // het toekennen van de rol Coach) — dat team wordt dan mee opgeruimd.
+  // Anders zouden zijn bestaande teamleden/subagenten wees worden.
+  if (
+    newCoach.coachedTeam &&
+    (newCoach.coachedTeam._count.members > 0 ||
+      newCoach.coachedTeam._count.subagents > 0)
+  ) {
     throw new Error("Deze gebruiker leidt al een ander team");
   }
 
@@ -211,6 +241,9 @@ export async function changeTeamCoachAction(teamId: string, formData: FormData) 
   }
 
   await prisma.$transaction([
+    ...(newCoach.coachedTeam
+      ? [prisma.team.delete({ where: { id: newCoach.coachedTeam.id } })]
+      : []),
     prisma.team.update({ where: { id: teamId }, data: { coachId: newCoachId } }),
     prisma.user.update({
       where: { id: newCoachId },
