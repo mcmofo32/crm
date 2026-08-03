@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { encryptToken, decryptToken } from "@/lib/tokenCrypto";
 import type { Activity, Lead, Subagent, User } from "@/generated/prisma/client";
 
 const SCOPES = [
@@ -66,7 +67,7 @@ export async function connectGoogleCalendarForUser(
     where: { id: userId },
     data: {
       googleCalendarConnected: true,
-      googleCalendarRefreshToken: tokens.refresh_token,
+      googleCalendarRefreshToken: encryptToken(tokens.refresh_token),
       googleCalendarEmail: profile.email ?? null,
       googleCalendarId: "primary",
     },
@@ -86,7 +87,9 @@ export async function disconnectGoogleCalendarForUser(userId: string) {
 
 async function getClientForUser(user: Pick<User, "googleCalendarRefreshToken">) {
   const client = await getOAuthClient();
-  client.setCredentials({ refresh_token: user.googleCalendarRefreshToken });
+  client.setCredentials({
+    refresh_token: decryptToken(user.googleCalendarRefreshToken),
+  });
   return client;
 }
 

@@ -89,6 +89,11 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  /// Aantal opeenvolgende mislukte inlogpogingen sinds de laatste geslaagde login.
+  failedLoginAttempts Int       @default(0)
+  /// Tijdelijke lock na te veel mislukte pogingen (brute-force-bescherming).
+  lockedUntil         DateTime?
+
   /// Team waarvan deze gebruiker lid is (enkel relevant voor rol USER)
   teamId String?
   team   Team?   @relation("TeamMembers", fields: [teamId], references: [id])
