@@ -114,7 +114,7 @@ export default async function DashboardPage() {
         <h2 className="mb-4 text-xl font-medium text-slate-900">
           Productie jaarlijks
         </h2>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
           {otherKpis.map((kpi) => (
             <GoalCard
               key={kpi.metric}
