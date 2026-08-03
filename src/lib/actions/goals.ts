@@ -248,11 +248,17 @@ export type GoalProgress = {
 };
 
 /**
- * Wekelijkse "stand van zaken" per doel, voor de ingelogde gebruiker.
+ * Wekelijkse/periodieke "stand van zaken" per doel, voor de ingelogde gebruiker.
  *
- * Aannames (nog te bevestigen): Eenheden/Klanten/ABV worden geteld op het
- * moment dat een lead deze week klant wordt (stage-overgang naar een
- * "gewonnen"-fase); Gesprekken = deze week afgeronde activiteiten (CALL/MEETING).
+ * - Eenheden/Klanten: geteld op het moment dat een lead binnen de periode
+ *   klant wordt (stage-overgang naar een "gewonnen"-fase).
+ * - Gesprekken: aantal FA-activiteiten (CALL/MEETING) die binnen de periode
+ *   ingepland staan (status PLANNED, op `scheduledAt`) — dus geplande
+ *   financiële analyses, niet per se al afgerond.
+ * - ABV verkoop/RG: het gemiddelde bedrag per nieuwe lead binnen de periode
+ *   — totale omzet (van leads die binnen de periode klant werden) gedeeld
+ *   door het aantal nieuwe leads van dat type dat binnen de periode is
+ *   toegevoegd.
  */
 export async function getWeeklyGoalProgress(
   userId: string,
@@ -265,40 +271,58 @@ export async function getWeeklyGoalProgress(
     ? new Date(period.endDate.getTime() + 1)
     : currentWeekRange().end;
 
-  const [targets, wonThisWeek, conversations] = await Promise.all([
-    prisma.userGoal.findMany({ where: { userId } }),
-    prisma.leadStageChange.findMany({
-      where: {
-        changedById: userId,
-        toStage: { isWon: true },
-        changedAt: { gte: start, lt: end },
-      },
-      select: {
-        lead: {
-          select: {
-            id: true,
-            leadType: true,
-            products: { select: { amount: true, units: true } },
+  const [targets, wonThisPeriod, conversations, newFaLeads, newRgLeads] =
+    await Promise.all([
+      prisma.userGoal.findMany({ where: { userId } }),
+      prisma.leadStageChange.findMany({
+        where: {
+          changedById: userId,
+          toStage: { isWon: true },
+          changedAt: { gte: start, lt: end },
+        },
+        select: {
+          lead: {
+            select: {
+              id: true,
+              leadType: true,
+              products: { select: { amount: true, units: true } },
+            },
           },
         },
-      },
-    }),
-    prisma.activity.count({
-      where: {
-        assigneeId: userId,
-        status: "COMPLETED",
-        type: { in: ["CALL", "MEETING"] },
-        completedAt: { gte: start, lt: end },
-      },
-    }),
-  ]);
+      }),
+      prisma.activity.count({
+        where: {
+          assigneeId: userId,
+          status: "PLANNED",
+          type: { in: ["CALL", "MEETING"] },
+          scheduledAt: { gte: start, lt: end },
+          lead: { leadType: "FA" },
+        },
+      }),
+      prisma.lead.count({
+        where: {
+          ownerId: userId,
+          deletedAt: null,
+          leadType: "FA",
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+      prisma.lead.count({
+        where: {
+          ownerId: userId,
+          deletedAt: null,
+          leadType: "RG",
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+    ]);
 
   const targetByMetric = new Map(
     targets.map((t) => [t.metric, Number(t.target)])
   );
 
   const seenLeadIds = new Set<string>();
-  const wonLeads = wonThisWeek
+  const wonLeads = wonThisPeriod
     .map((c) => c.lead)
     .filter((lead) => {
       if (seenLeadIds.has(lead.id)) return false;
@@ -312,23 +336,30 @@ export async function getWeeklyGoalProgress(
   );
   const customers = wonLeads.length;
 
-  const dealValue = (leadType: LeadType) => {
-    const leads = wonLeads.filter((l) => l.leadType === leadType);
-    if (leads.length === 0) return 0;
-    const total = leads.reduce(
-      (sum, lead) =>
-        sum + lead.products.reduce((s, p) => s + Number(p.amount), 0),
-      0
-    );
-    return total / leads.length;
+  const newLeadCountByType: Record<LeadType, number> = {
+    FA: newFaLeads,
+    RG: newRgLeads,
+  };
+
+  const avgValuePerNewLead = (leadType: LeadType) => {
+    const newLeadCount = newLeadCountByType[leadType];
+    if (newLeadCount === 0) return 0;
+    const total = wonLeads
+      .filter((l) => l.leadType === leadType)
+      .reduce(
+        (sum, lead) =>
+          sum + lead.products.reduce((s, p) => s + Number(p.amount), 0),
+        0
+      );
+    return total / newLeadCount;
   };
 
   const actualByMetric: Record<GoalMetric, number> = {
     UNITS: units,
     CUSTOMERS: customers,
     CONVERSATIONS: conversations,
-    ABV_SALES: dealValue("FA"),
-    ABV_RG: dealValue("RG"),
+    ABV_SALES: avgValuePerNewLead("FA"),
+    ABV_RG: avgValuePerNewLead("RG"),
   };
 
   return GOAL_METRIC_ORDER.map((metric) => {
