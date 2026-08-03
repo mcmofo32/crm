@@ -31,7 +31,14 @@ export default async function AppLayout({
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/leads", label: "Leads" },
+    {
+      href: "/pipeline/verkoop",
+      label: "Pipeline",
+      children: [
+        { href: "/pipeline/verkoop", label: "Pipeline verkoop" },
+        { href: "/pipeline/recrutering", label: "Pipeline recrutering" },
+      ],
+    },
     { href: "/taken", label: "Taken", badge: overdueTasks },
     { href: "/funnel/FA", label: "Funnel FA" },
     { href: "/funnel/RG", label: "Funnel RG" },

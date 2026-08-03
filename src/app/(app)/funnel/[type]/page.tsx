@@ -8,6 +8,7 @@ import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType, Role } from "@/generated/prisma/client";
 import { FunnelBoard } from "@/components/FunnelBoard";
 import { getSubagents } from "@/lib/actions/subagents";
+import { ensureFunnelStages, funnelStageKeys } from "@/lib/funnelStages";
 
 export default async function FunnelPage({
   params,
@@ -22,6 +23,7 @@ export default async function FunnelPage({
   if (leadType !== "FA" && leadType !== "RG") notFound();
 
   const user = (await getEffectiveViewer())!;
+  await ensureFunnelStages(leadType as LeadType);
   const [assignableUsers, subagents] = await Promise.all([
     getAssignableUsers(),
     getSubagents(),
@@ -66,7 +68,10 @@ export default async function FunnelPage({
   // notities, geen volledige owner-rij) — dat scheelt zowel databasewerk als
   // de hoeveelheid data die naar de client geserialiseerd moet worden.
   const stages = await prisma.funnelStage.findMany({
-    where: { leadType: leadType as LeadType },
+    where: {
+      leadType: leadType as LeadType,
+      key: { in: funnelStageKeys(leadType as LeadType) },
+    },
     orderBy: { order: "asc" },
     select: {
       id: true,

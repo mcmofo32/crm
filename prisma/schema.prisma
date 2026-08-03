@@ -211,6 +211,13 @@ model Lead {
   /// Status van de belastingsaangifte voor deze klant (enkel relevant voor klanten).
   taxDeclarationStatus TaxDeclarationStatus?
 
+  /// Pipeline: handmatig cijfer op 10 voor de inschatting van deze lead.
+  qualityScore Int?
+  /// Pipeline: handmatig aan te vinken of de lead al op de hoogte is (bv. van de aanbeveling).
+  isInformed Boolean @default(false)
+  /// Pipeline recrutering: vrij in te vullen kenmerken van de kandidaat.
+  characteristics String?
+
   activities   Activity[]
   stageChanges LeadStageChange[]
   products     LeadProduct[]
@@ -298,6 +305,9 @@ model Activity {
   completedAt     DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+
+  /// Enkel relevant bij een afgerond CALL: kwam je voicemail uit i.p.v. de lead te bereiken?
+  wasVoicemail Boolean @default(false)
 
   leadId String
   lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)

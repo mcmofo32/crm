@@ -216,7 +216,8 @@ export async function logCompletedActivityAction(formData: FormData) {
 
 export async function completeActivityAction(
   activityId: string,
-  notes?: string
+  notes?: string,
+  wasVoicemail?: boolean
 ) {
   const activity = await prisma.activity.findUnique({
     where: { id: activityId },
@@ -230,12 +231,17 @@ export async function completeActivityAction(
       status: ActivityStatus.COMPLETED,
       completedAt: new Date(),
       notes: notes ?? activity.notes,
+      ...(activity.type === ActivityType.CALL
+        ? { wasVoicemail: Boolean(wasVoicemail) }
+        : {}),
     },
   });
 
   revalidatePath(`/leads/${activity.leadId}`);
   revalidatePath("/taken");
   revalidatePath("/dashboard");
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
 }
 
 /**

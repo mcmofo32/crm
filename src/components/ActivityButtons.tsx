@@ -47,6 +47,7 @@ export function ActivityButtons({
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"idle" | "reporting" | "editing">("idle");
   const [reportNotes, setReportNotes] = useState("");
+  const [wasVoicemail, setWasVoicemail] = useState(false);
   const [subjectPreset, setSubjectPreset] = useState(
     ACTIVITY_SUBJECT_SUGGESTIONS.includes(subject) ? subject : CUSTOM_SUBJECT
   );
@@ -91,13 +92,23 @@ export function ActivityButtons({
           rows={2}
           className="rounded-md border border-slate-300 px-2 py-1 text-xs"
         />
+        {type === "CALL" && (
+          <label className="flex items-center gap-1.5 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={wasVoicemail}
+              onChange={(e) => setWasVoicemail(e.target.checked)}
+            />
+            Voicemail (niet bereikt)
+          </label>
+        )}
         <div className="flex gap-2">
           <button
             type="button"
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                await completeActivityAction(activityId, reportNotes);
+                await completeActivityAction(activityId, reportNotes, wasVoicemail);
                 setMode("idle");
               })
             }

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Clock, CalendarClock, Inbox, ChevronDown, Filter, Phone, Tag } from "lucide-react";
+import { Clock, CalendarClock, Inbox, ChevronDown, Filter, Phone, Tag, Plus, Search, X } from "lucide-react";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
@@ -228,6 +228,8 @@ export function FunnelBoard({
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
   const [expandedStageIds, setExpandedStageIds] = useState<Set<string>>(new Set());
+  const [pickerStageId, setPickerStageId] = useState<string | null>(null);
+  const [pickerQuery, setPickerQuery] = useState("");
   const [pendingMove, setPendingMove] = useState<{
     leadId: string;
     leadName: string;
@@ -262,15 +264,7 @@ export function FunnelBoard({
     });
   }
 
-  function handleDrop(targetStage: BoardStage) {
-    setDragOverStageId(null);
-    const leadId = draggedLeadId;
-    setDraggedLeadId(null);
-    if (!leadId) return;
-
-    const lead = stages.flatMap((s) => s.leads).find((l) => l.id === leadId);
-    if (!lead || lead.stageId === targetStage.id) return;
-
+  function startMove(lead: BoardLead, targetStage: BoardStage) {
     const fromStage = stages.find((s) => s.id === lead.stageId);
     setNotes("");
     setMeeting(EMPTY_MEETING_PLANNER_VALUE);
@@ -285,6 +279,37 @@ export function FunnelBoard({
       toStageLabel: targetStage.label,
       toStageIsWon: targetStage.isWon,
     });
+  }
+
+  function handleDrop(targetStage: BoardStage) {
+    setDragOverStageId(null);
+    const leadId = draggedLeadId;
+    setDraggedLeadId(null);
+    if (!leadId) return;
+
+    const lead = stages.flatMap((s) => s.leads).find((l) => l.id === leadId);
+    if (!lead || lead.stageId === targetStage.id) return;
+
+    startMove(lead, targetStage);
+  }
+
+  const pickerStage = mainStages.find((s) => s.id === pickerStageId) ?? null;
+  const pickerResults = pickerStage
+    ? stages
+        .flatMap((s) => s.leads)
+        .filter((l) => {
+          const q = pickerQuery.trim().toLowerCase();
+          if (!q) return true;
+          return `${l.firstName} ${l.lastName}`.toLowerCase().includes(q);
+        })
+        .slice(0, 25)
+    : [];
+
+  function pickLead(lead: BoardLead) {
+    if (!pickerStage) return;
+    setPickerStageId(null);
+    setPickerQuery("");
+    startMove(lead, pickerStage);
   }
 
   function confirmMove() {
@@ -373,8 +398,9 @@ export function FunnelBoard({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {mainStages.map((stage) => {
+        {mainStages.map((stage, stageIndex) => {
           const accent = stageAccent(stage, leadType, activeStageIds.indexOf(stage.id));
+          const showPicker = stageIndex < 2;
           const isDragOver = dragOverStageId === stage.id;
           const visibleLeads = applyLeadFilters(stage.leads, { sortBy, onlyNoContact });
           return (
@@ -404,11 +430,26 @@ export function FunnelBoard({
                 <span className="text-sm font-semibold" style={{ color: accent.ink }}>
                   {stage.label}
                 </span>
-                <span
-                  style={{ backgroundColor: accent.solid }}
-                  className="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-medium text-white"
-                >
-                  {visibleLeads.length}
+                <span className="flex items-center gap-1.5">
+                  {showPicker && (
+                    <button
+                      type="button"
+                      title={`Bestaande lead inplannen bij ${stage.label}`}
+                      onClick={() => {
+                        setPickerStageId(stage.id);
+                        setPickerQuery("");
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-white/70 text-slate-600 hover:bg-white"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  )}
+                  <span
+                    style={{ backgroundColor: accent.solid }}
+                    className="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-medium text-white"
+                  >
+                    {visibleLeads.length}
+                  </span>
                 </span>
               </div>
 
@@ -521,6 +562,65 @@ export function FunnelBoard({
           })}
         </div>
       </div>
+
+      {pickerStage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="flex max-h-[80vh] w-full max-w-md flex-col rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-medium text-slate-900">
+                Lead inplannen bij &quot;{pickerStage.label}&quot;
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setPickerStageId(null);
+                  setPickerQuery("");
+                }}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="relative mb-3">
+              <Search
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                autoFocus
+                type="search"
+                value={pickerQuery}
+                onChange={(e) => setPickerQuery(e.target.value)}
+                placeholder="Zoek op naam…"
+                className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-sm"
+              />
+            </div>
+            <div className="flex flex-col gap-1 overflow-y-auto">
+              {pickerResults.map((lead) => (
+                <button
+                  key={lead.id}
+                  type="button"
+                  onClick={() => pickLead(lead)}
+                  className="flex flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left hover:bg-slate-50"
+                >
+                  <span className="font-medium text-slate-900">
+                    {lead.firstName} {lead.lastName}
+                  </span>
+                  <span className="flex flex-wrap gap-x-3 text-xs text-slate-500">
+                    <span>{lead.phone || "Geen telefoon"}</span>
+                    {lead.source && <span>Aanbevolen door: {lead.source}</span>}
+                  </span>
+                </button>
+              ))}
+              {pickerResults.length === 0 && (
+                <p className="px-3 py-6 text-center text-sm text-slate-400">
+                  Geen leads gevonden.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingMove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
