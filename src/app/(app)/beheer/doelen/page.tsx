@@ -32,6 +32,13 @@ export default async function DoelenPage() {
         </p>
       </div>
 
+      <Link
+        href="/beheer/doelen/productie"
+        className="self-start rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      >
+        Maandelijkse doelen (Klanten/Eenheden) voor Productie-tab →
+      </Link>
+
       <form
         action={setGoalPeriodAction}
         className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4"

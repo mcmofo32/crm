@@ -11,6 +11,7 @@ import {
   UserCheck,
   CalendarDays,
   Network,
+  LineChart,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/incentives": Trophy,
   "/evenementen": CalendarDays,
   "/organigram": Network,
+  "/productie": LineChart,
 };
 
 type NavItem = {

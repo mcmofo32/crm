@@ -58,6 +58,7 @@ export default async function AppLayout({
     { href: "/incentives", label: "Incentives" },
     { href: "/evenementen", label: "Evenementen" },
     { href: "/organigram", label: "Organigram" },
+    { href: "/productie", label: "Productie" },
   ];
 
   return (
