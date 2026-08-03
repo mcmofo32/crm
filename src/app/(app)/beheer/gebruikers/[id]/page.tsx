@@ -10,6 +10,7 @@ import {
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
+import { EditUserForm } from "@/components/EditUserForm";
 
 const JOB_FUNCTIONS = Object.values(JobFunction);
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
@@ -53,7 +54,7 @@ export default async function EditUserPage({
         </p>
       </div>
 
-      <form action={boundUpdate} className="flex flex-col gap-4 text-sm">
+      <EditUserForm action={boundUpdate}>
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">Naam</label>
           <input
@@ -159,7 +160,7 @@ export default async function EditUserPage({
         >
           Wijzigingen opslaan
         </button>
-      </form>
+      </EditUserForm>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="mb-2 text-sm font-medium text-slate-900">Status</h2>

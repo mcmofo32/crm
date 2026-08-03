@@ -207,87 +207,107 @@ export async function getUserForEdit(userId: string) {
   return target;
 }
 
-export async function updateUserAction(userId: string, formData: FormData) {
-  const actor = await requireUserManager();
-  const target = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { coachedTeam: true },
-  });
-  if (!target) throw new Error("Gebruiker niet gevonden");
-  if (!canManageUser(actor, target)) {
-    throw new Error("Je mag deze gebruiker niet beheren");
-  }
+export type UpdateUserState = { error?: string } | null;
 
-  const role = formData.get("role") as Role;
-  if (!canManageUser(actor, { role })) {
-    throw new Error("Je mag deze rol niet toekennen");
-  }
-  if (target.role === Role.COACH && role !== Role.COACH && target.coachedTeam) {
-    throw new Error(
-      "Deze coach heeft nog een team. Verwijder of herverdeel het team eerst."
-    );
-  }
+/**
+ * Geeft fouten terug als state i.p.v. te throwen: Next.js redact in productie
+ * de boodschap van elke fout die tijdens een server-actie/render gegooid
+ * wordt (enkel een digest blijft over), dus een throw hier kwam nooit
+ * zichtbaar bij de gebruiker terecht. Via useActionState (zie EditUserForm)
+ * krijgt de gebruiker de effectieve foutmelding wel te zien.
+ */
+export async function updateUserAction(
+  userId: string,
+  _prevState: UpdateUserState,
+  formData: FormData
+): Promise<UpdateUserState> {
+  try {
+    const actor = await requireUserManager();
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { coachedTeam: true },
+    });
+    if (!target) throw new Error("Gebruiker niet gevonden");
+    if (!canManageUser(actor, target)) {
+      throw new Error("Je mag deze gebruiker niet beheren");
+    }
 
-  const name = String(formData.get("name") ?? "");
-  const email = String(formData.get("email") ?? "");
-  const phone = String(formData.get("phone") ?? "").trim() || null;
-  const teamId = (formData.get("teamId") as string) || null;
-  const jobFunction = parseJobFunction(formData.get("jobFunction"));
-  const agentType = parseAgentType(formData.get("agentType"));
-
-  if (!name || !email) {
-    throw new Error("Naam en e-mail zijn verplicht");
-  }
-
-  if (role === Role.COACH && teamId) {
-    const targetTeam = await prisma.team.findUnique({ where: { id: teamId } });
-    if (targetTeam && (await wouldCreateCoachCycle(userId, targetTeam.coachId))) {
+    const role = formData.get("role") as Role;
+    if (!canManageUser(actor, { role })) {
+      throw new Error("Je mag deze rol niet toekennen");
+    }
+    if (target.role === Role.COACH && role !== Role.COACH && target.coachedTeam) {
       throw new Error(
-        "Dit zou een cirkel in de structuur veroorzaken (deze coach zit al boven de coach van dit team)"
+        "Deze coach heeft nog een team. Verwijder of herverdeel het team eerst."
       );
     }
-  }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      name,
-      email,
-      phone,
-      role,
-      jobFunction,
-      agentType,
-      // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
-      // iedereen ergens in de organigram-structuur kan hangen.
-      teamId,
-    },
-  });
+    const name = String(formData.get("name") ?? "");
+    const email = String(formData.get("email") ?? "");
+    const phone = String(formData.get("phone") ?? "").trim() || null;
+    const teamId = (formData.get("teamId") as string) || null;
+    const jobFunction = parseJobFunction(formData.get("jobFunction"));
+    const agentType = parseAgentType(formData.get("agentType"));
 
-  if (role === Role.COACH && !target.coachedTeam) {
-    await prisma.team.create({
-      data: { name: `Team ${name}`, coachId: userId },
+    if (!name || !email) {
+      throw new Error("Naam en e-mail zijn verplicht");
+    }
+
+    if (role === Role.COACH && teamId) {
+      const targetTeam = await prisma.team.findUnique({ where: { id: teamId } });
+      if (targetTeam && (await wouldCreateCoachCycle(userId, targetTeam.coachId))) {
+        throw new Error(
+          "Dit zou een cirkel in de structuur veroorzaken (deze coach zit al boven de coach van dit team)"
+        );
+      }
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        email,
+        phone,
+        role,
+        jobFunction,
+        agentType,
+        // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
+        // iedereen ergens in de organigram-structuur kan hangen.
+        teamId,
+      },
     });
-  }
 
-  const changes: string[] = [];
-  if (target.name !== name) changes.push(`naam: "${target.name}" → "${name}"`);
-  if (target.email !== email) changes.push(`e-mail: "${target.email}" → "${email}"`);
-  if (target.role !== role) {
-    changes.push(`rol: ${ROLE_LABELS[target.role]} → ${ROLE_LABELS[role]}`);
-  }
-  if (changes.length > 0) {
-    await logAudit({
-      actorId: actor.id,
-      action: "user.updated",
-      entityType: "User",
-      entityId: userId,
-      description: `Gebruiker "${target.name}" gewijzigd (${changes.join(", ")})`,
-    });
-  }
+    if (role === Role.COACH && !target.coachedTeam) {
+      await prisma.team.create({
+        data: { name: `Team ${name}`, coachId: userId },
+      });
+    }
 
-  revalidatePath("/beheer/gebruikers");
-  revalidatePath(`/beheer/gebruikers/${userId}`);
-  revalidatePath("/organigram");
+    const changes: string[] = [];
+    if (target.name !== name) changes.push(`naam: "${target.name}" → "${name}"`);
+    if (target.email !== email) changes.push(`e-mail: "${target.email}" → "${email}"`);
+    if (target.role !== role) {
+      changes.push(`rol: ${ROLE_LABELS[target.role]} → ${ROLE_LABELS[role]}`);
+    }
+    if (changes.length > 0) {
+      await logAudit({
+        actorId: actor.id,
+        action: "user.updated",
+        entityType: "User",
+        entityId: userId,
+        description: `Gebruiker "${target.name}" gewijzigd (${changes.join(", ")})`,
+      });
+    }
+
+    revalidatePath("/beheer/gebruikers");
+    revalidatePath(`/beheer/gebruikers/${userId}`);
+    revalidatePath("/organigram");
+    return null;
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Er ging iets mis. Probeer opnieuw.",
+    };
+  }
 }
 
 export async function resetUserPasswordAction(

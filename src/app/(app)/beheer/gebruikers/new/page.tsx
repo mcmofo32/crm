@@ -7,6 +7,7 @@ import {
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
+import { RoleConfirmForm } from "@/components/RoleConfirmForm";
 
 const JOB_FUNCTIONS = Object.values(JobFunction);
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
@@ -37,7 +38,7 @@ export default async function NewUserPage({
       <h1 className="mb-4 text-3xl font-semibold text-slate-900">
         Nieuwe gebruiker
       </h1>
-      <form action={createUserAction} className="flex flex-col gap-4 text-sm">
+      <RoleConfirmForm action={createUserAction} className="flex flex-col gap-4 text-sm">
         {underPerson && <input type="hidden" name="underId" value={underPerson.id} />}
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">Naam</label>
@@ -152,7 +153,7 @@ export default async function NewUserPage({
         >
           Gebruiker aanmaken
         </button>
-      </form>
+      </RoleConfirmForm>
     </div>
   );
 }
