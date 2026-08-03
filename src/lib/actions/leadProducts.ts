@@ -241,27 +241,39 @@ export async function getCustomerStats(
   const monthEnd = new Date(monthPeriod.endDate.getTime() + 1);
   const yearEnd = new Date(yearPeriod.endDate.getTime() + 1);
 
-  const [totalCustomers, newThisMonth, newThisYear] = await Promise.all([
+  // .count() telt elke stage-overgang apart; komt een lead vaker dan één keer
+  // in de periode in een "gewonnen"-fase terecht (bv. per ongeluk terug- en
+  // opnieuw omgezet), dan telde dat eerder dubbel. distinct op leadId telt
+  // elke lead nog maar één keer, ongeacht hoeveel keer die overgang gebeurde.
+  const [totalCustomers, newThisMonthLeads, newThisYearLeads] = await Promise.all([
     prisma.lead.count({
       where: { deletedAt: null, status: "WON", ...ownerWhere },
     }),
-    prisma.leadStageChange.count({
+    prisma.leadStageChange.findMany({
       where: {
         toStage: { isWon: true },
         changedAt: { gte: monthPeriod.startDate, lt: monthEnd },
         lead: { deletedAt: null, ...ownerWhere },
       },
+      distinct: ["leadId"],
+      select: { leadId: true },
     }),
-    prisma.leadStageChange.count({
+    prisma.leadStageChange.findMany({
       where: {
         toStage: { isWon: true },
         changedAt: { gte: yearPeriod.startDate, lt: yearEnd },
         lead: { deletedAt: null, ...ownerWhere },
       },
+      distinct: ["leadId"],
+      select: { leadId: true },
     }),
   ]);
 
-  return { totalCustomers, newThisMonth, newThisYear };
+  return {
+    totalCustomers,
+    newThisMonth: newThisMonthLeads.length,
+    newThisYear: newThisYearLeads.length,
+  };
 }
 
 function toDateInputValue(date: Date) {
