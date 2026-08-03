@@ -389,6 +389,16 @@ enum GoalMetric {
   ABV_RG
 }
 
+/// De actieve periode ("deze week"/"deze maand") waartegen de wekelijkse
+/// doelen van alle gebruikers tegelijk afgezet worden. Er is telkens maar
+/// één actieve periode; een Beheerder/Admin werkt die bij (bv. maandelijks).
+model GoalPeriod {
+  id        String   @id @default(cuid())
+  startDate DateTime
+  endDate   DateTime
+  updatedAt DateTime @updatedAt
+}
+
 /// Eén wekelijks doel per gebruiker per metric, ingesteld door een Beheerder/Admin.
 /// Het `target` geldt vanaf het moment van instellen (geen historiek per week).
 model UserGoal {

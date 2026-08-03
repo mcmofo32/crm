@@ -34,6 +34,60 @@ function currentWeekRange() {
   return { start, end };
 }
 
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+// ---------------------------------------------------------------------------
+// Actieve periode: geldt voor alle gebruikers tegelijk
+// ---------------------------------------------------------------------------
+
+/** De actieve doelperiode, of de huidige kalenderweek als er nog niets is ingesteld. */
+export async function getCurrentGoalPeriod() {
+  const period = await prisma.goalPeriod.findFirst({
+    orderBy: { updatedAt: "desc" },
+  });
+  if (period) {
+    return { startDate: period.startDate, endDate: period.endDate };
+  }
+  const { start, end } = currentWeekRange();
+  return { startDate: start, endDate: new Date(end.getTime() - 1) };
+}
+
+/** Voor het formulier bovenaan de doelentabel: begin/einddatum als input-strings. */
+export async function getCurrentGoalPeriodForInput() {
+  const { startDate, endDate } = await getCurrentGoalPeriod();
+  return {
+    startDate: toDateInputValue(startDate),
+    endDate: toDateInputValue(endDate),
+  };
+}
+
+export async function setGoalPeriodAction(formData: FormData) {
+  await requireGoalManager();
+
+  const startRaw = String(formData.get("periodStart") ?? "");
+  const endRaw = String(formData.get("periodEnd") ?? "");
+  const startDate = new Date(`${startRaw}T00:00:00`);
+  const endDate = new Date(`${endRaw}T23:59:59.999`);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    throw new Error("Ongeldige begin- of einddatum");
+  }
+
+  const existing = await prisma.goalPeriod.findFirst();
+  if (existing) {
+    await prisma.goalPeriod.update({
+      where: { id: existing.id },
+      data: { startDate, endDate },
+    });
+  } else {
+    await prisma.goalPeriod.create({ data: { startDate, endDate } });
+  }
+
+  revalidatePath("/beheer/doelen");
+  revalidatePath("/dashboard");
+}
+
 // ---------------------------------------------------------------------------
 // Beheer: doelen per gebruiker instellen
 // ---------------------------------------------------------------------------
@@ -50,6 +104,59 @@ export async function getGoalManagementUsers() {
     : users.filter((u) => u.role !== Role.BEHEERDER);
 }
 
+/** Alle beheerbare gebruikers met hun 5 huidige wekelijkse doelen, voor de doelentabel. */
+export async function getAllUserGoalsForTable() {
+  const actor = await requireGoalManager();
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      goals: { select: { metric: true, target: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+  const visible =
+    actor.role === Role.BEHEERDER
+      ? users
+      : users.filter((u) => u.role !== Role.BEHEERDER);
+
+  return visible.map((u) => ({
+    id: u.id,
+    name: u.name,
+    role: u.role,
+    targetByMetric: new Map(u.goals.map((g) => [g.metric, Number(g.target)])),
+  }));
+}
+
+/** Slaat de 5 wekelijkse doelen van alle gebruikers in de tabel in één keer op. */
+export async function saveAllUserGoalsAction(
+  userIds: string[],
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const upserts = userIds.flatMap((userId) =>
+    GOAL_METRIC_ORDER.map((metric) => {
+      const raw = String(
+        formData.get(`goal_${userId}_${metric}`) ?? ""
+      ).trim();
+      const target = raw ? Number(raw) : 0;
+      return prisma.userGoal.upsert({
+        where: { userId_metric: { userId, metric } },
+        create: { userId, metric, target },
+        update: { target },
+      });
+    })
+  );
+
+  await prisma.$transaction(upserts);
+
+  revalidatePath("/beheer/doelen");
+  revalidatePath("/dashboard");
+}
+
 export async function getUserForGoals(userId: string) {
   await requireGoalManager();
   return prisma.user.findUnique({
@@ -58,19 +165,10 @@ export async function getUserForGoals(userId: string) {
   });
 }
 
-export async function getUserGoals(userId: string) {
+export async function getUserKpiGoals(userId: string) {
   await requireGoalManager();
-  const [goals, kpiGoals] = await Promise.all([
-    prisma.userGoal.findMany({ where: { userId } }),
-    prisma.userKpiGoal.findMany({ where: { userId } }),
-  ]);
-
-  const goalByMetric = new Map(goals.map((g) => [g.metric, Number(g.target)]));
-  const kpiGoalByMetricYear = new Map(
-    kpiGoals.map((g) => [`${g.metric}:${g.year}`, Number(g.target)])
-  );
-
-  return { goalByMetric, kpiGoalByMetricYear };
+  const kpiGoals = await prisma.userKpiGoal.findMany({ where: { userId } });
+  return new Map(kpiGoals.map((g) => [`${g.metric}:${g.year}`, Number(g.target)]));
 }
 
 export async function getUserKpiMonthlyEntries(userId: string, year: number) {
@@ -84,23 +182,13 @@ export async function getUserKpiMonthlyEntries(userId: string, year: number) {
   return byMetricMonth;
 }
 
-/** Slaat de 5 wekelijkse doelen + 4 jaarlijkse KPI-doelen (voor `year`) in één keer op. */
-export async function saveUserGoalsAction(
+/** Slaat de 4 jaarlijkse KPI-doelen (voor `year`) van deze gebruiker op. */
+export async function saveUserKpiGoalsAction(
   userId: string,
   year: number,
   formData: FormData
 ) {
   await requireGoalManager();
-
-  const goalUpserts = GOAL_METRIC_ORDER.map((metric) => {
-    const raw = String(formData.get(`goal_${metric}`) ?? "").trim();
-    const target = raw ? Number(raw) : 0;
-    return prisma.userGoal.upsert({
-      where: { userId_metric: { userId, metric } },
-      create: { userId, metric, target },
-      update: { target },
-    });
-  });
 
   const kpiGoalUpserts = KPI_METRIC_ORDER.map((metric) => {
     const raw = String(formData.get(`kpiGoal_${metric}`) ?? "").trim();
@@ -112,7 +200,7 @@ export async function saveUserGoalsAction(
     });
   });
 
-  await prisma.$transaction([...goalUpserts, ...kpiGoalUpserts]);
+  await prisma.$transaction(kpiGoalUpserts);
 
   revalidatePath(`/beheer/doelen/${userId}`);
   revalidatePath("/dashboard");
@@ -167,9 +255,15 @@ export type GoalProgress = {
  * "gewonnen"-fase); Gesprekken = deze week afgeronde activiteiten (CALL/MEETING).
  */
 export async function getWeeklyGoalProgress(
-  userId: string
+  userId: string,
+  period?: { startDate: Date; endDate: Date }
 ): Promise<GoalProgress[]> {
-  const { start, end } = currentWeekRange();
+  const start = period?.startDate ?? currentWeekRange().start;
+  // `endDate` is inclusief (einde van de dag); de query hieronder werkt met
+  // een exclusieve bovengrens.
+  const end = period
+    ? new Date(period.endDate.getTime() + 1)
+    : currentWeekRange().end;
 
   const [targets, wonThisWeek, conversations] = await Promise.all([
     prisma.userGoal.findMany({ where: { userId } }),

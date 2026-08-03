@@ -15,7 +15,11 @@ import { getVisibleUserIds } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { conversionBadgeVariant } from "@/lib/roleLabels";
 import { getTeamOverviewForCoach } from "@/lib/actions/analytics";
-import { getWeeklyGoalProgress, getYearlyKpiProgress } from "@/lib/actions/goals";
+import {
+  getCurrentGoalPeriod,
+  getWeeklyGoalProgress,
+  getYearlyKpiProgress,
+} from "@/lib/actions/goals";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
@@ -57,11 +61,13 @@ export default async function DashboardPage() {
   const now = new Date();
   const currentYear = now.getFullYear();
 
+  const goalPeriod = await getCurrentGoalPeriod();
+
   const [overdueTasks, weeklyGoals, yearlyKpis, teamOverview] = await Promise.all([
     prisma.activity.count({
       where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
     }),
-    getWeeklyGoalProgress(user.id),
+    getWeeklyGoalProgress(user.id, goalPeriod),
     getYearlyKpiProgress(user.id, currentYear),
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
   ]);
@@ -95,6 +101,13 @@ export default async function DashboardPage() {
           </span>
         </Link>
       )}
+
+      <p className="-mb-2 text-sm text-slate-400">
+        Periode:{" "}
+        {goalPeriod.startDate.toLocaleDateString("nl-BE", { dateStyle: "medium" })}
+        {" – "}
+        {goalPeriod.endDate.toLocaleDateString("nl-BE", { dateStyle: "medium" })}
+      </p>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
         {weeklyGoals.map((goal) => (

@@ -3,14 +3,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Target } from "lucide-react";
 import {
   getUserForGoals,
-  getUserGoals,
+  getUserKpiGoals,
   getUserKpiMonthlyEntries,
-  saveUserGoalsAction,
+  saveUserKpiGoalsAction,
   saveUserKpiMonthlyEntriesAction,
 } from "@/lib/actions/goals";
 import {
-  GOAL_METRIC_LABELS,
-  GOAL_METRIC_ORDER,
   KPI_METRIC_LABELS,
   KPI_METRIC_ORDER,
   MONTH_LABELS,
@@ -33,13 +31,12 @@ export default async function UserDoelenPage({
   const user = await getUserForGoals(id);
   if (!user) notFound();
 
-  const [{ goalByMetric, kpiGoalByMetricYear }, monthlyByMetricMonth] =
-    await Promise.all([
-      getUserGoals(id),
-      getUserKpiMonthlyEntries(id, year),
-    ]);
+  const [kpiGoalByMetricYear, monthlyByMetricMonth] = await Promise.all([
+    getUserKpiGoals(id),
+    getUserKpiMonthlyEntries(id, year),
+  ]);
 
-  const boundSaveGoals = saveUserGoalsAction.bind(null, id, year);
+  const boundSaveKpiGoals = saveUserKpiGoalsAction.bind(null, id, year);
   const boundSaveMonthly = saveUserKpiMonthlyEntriesAction.bind(null, id, year);
 
   const yearOptions = [year - 1, year, year + 1];
@@ -64,37 +61,9 @@ export default async function UserDoelenPage({
       </div>
 
       <form
-        action={boundSaveGoals}
+        action={boundSaveKpiGoals}
         className="flex flex-col gap-6 rounded-lg border border-slate-200 bg-white p-6"
       >
-        <div>
-          <h2 className="text-lg font-medium text-slate-900">
-            Wekelijkse doelen
-          </h2>
-          <p className="text-sm text-slate-500">
-            Tonen bovenaan het dashboard, vergeleken met deze week.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {GOAL_METRIC_ORDER.map((metric) => (
-            <label key={metric} className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-slate-700">
-                {GOAL_METRIC_LABELS[metric]}
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name={`goal_${metric}`}
-                defaultValue={goalByMetric.get(metric) ?? ""}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-            </label>
-          ))}
-        </div>
-
-        <hr className="border-slate-100" />
-
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-medium text-slate-900">
