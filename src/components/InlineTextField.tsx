@@ -9,19 +9,27 @@ export function InlineTextField({
   value,
   placeholder,
   className,
+  type = "text",
+  min,
+  step,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   name: string;
   value: string;
   placeholder?: string;
   className?: string;
+  type?: "text" | "number";
+  min?: string | number;
+  step?: string | number;
 }) {
   const [pending, startTransition] = useTransition();
 
   return (
     <input
-      type="text"
+      type={type}
       name={name}
+      min={min}
+      step={step}
       defaultValue={value}
       placeholder={placeholder}
       disabled={pending}

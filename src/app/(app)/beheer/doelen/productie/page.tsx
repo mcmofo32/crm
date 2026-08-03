@@ -6,7 +6,7 @@ import {
   getCurrentProductionMonth,
 } from "@/lib/actions/production";
 import { GoalMetric } from "@/generated/prisma/client";
-import { GOAL_METRIC_LABELS, MONTH_LABELS } from "@/lib/goalLabels";
+import { GOAL_METRIC_LABELS } from "@/lib/goalLabels";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { Avatar } from "@/components/Avatar";
 
@@ -55,7 +55,7 @@ export default async function ProductieDoelenPage({
           <ChevronLeft size={16} />
         </Link>
         <span className="min-w-40 text-center text-base font-medium text-slate-900">
-          {MONTH_LABELS[month - 1]} {year}
+          Productiemaand {String(month).padStart(2, "0")}
         </span>
         <Link
           href={`/beheer/doelen/productie?year=${next.year}&month=${next.month}`}
@@ -129,7 +129,8 @@ export default async function ProductieDoelenPage({
               type="submit"
               className="rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
             >
-              Doelen opslaan voor {MONTH_LABELS[month - 1]} {year}
+              Doelen opslaan voor productiemaand{" "}
+              {String(month).padStart(2, "0")}
             </button>
           </div>
         )}

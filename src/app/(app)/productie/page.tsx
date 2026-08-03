@@ -4,9 +4,13 @@ import {
   getProductionLeaderboard,
   getConversationsLeaderboard,
   getCurrentProductionMonth,
+  setUserMonthlyGoalAction,
 } from "@/lib/actions/production";
 import { getCurrentGoalPeriod } from "@/lib/actions/goals";
-import { MONTH_LABELS } from "@/lib/goalLabels";
+import { getEffectiveViewer } from "@/lib/impersonation";
+import { canManageUsers } from "@/lib/permissions";
+import { GoalMetric } from "@/generated/prisma/client";
+import { InlineTextField } from "@/components/InlineTextField";
 
 function shiftMonth(year: number, month: number, delta: number) {
   const d = new Date(year, month - 1 + delta, 1);
@@ -65,6 +69,9 @@ export default async function ProductiePage({
   const conversationsRows =
     activeTab === "gesprekken" ? await getConversationsLeaderboard() : null;
 
+  const viewer = await getEffectiveViewer();
+  const canEditGoals = viewer ? canManageUsers(viewer) : false;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -110,7 +117,7 @@ export default async function ProductiePage({
               <ChevronLeft size={16} />
             </Link>
             <span className="min-w-40 text-center text-base font-medium text-slate-900">
-              {MONTH_LABELS[month - 1]} {year}
+              Productiemaand {String(month).padStart(2, "0")}
             </span>
             {!isCurrentMonth ? (
               <Link
@@ -161,7 +168,25 @@ export default async function ProductiePage({
                       {row.coachName ?? "—"}
                     </td>
                     <td className="px-3 py-2.5 text-center text-slate-600">
-                      {row.targetCustomers || "—"}
+                      {canEditGoals ? (
+                        <InlineTextField
+                          type="number"
+                          min={0}
+                          step={1}
+                          name="target"
+                          value={row.targetCustomers ? String(row.targetCustomers) : ""}
+                          action={setUserMonthlyGoalAction.bind(
+                            null,
+                            row.id,
+                            GoalMetric.CUSTOMERS,
+                            year,
+                            month
+                          )}
+                          className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                        />
+                      ) : (
+                        row.targetCustomers || "—"
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-center text-slate-900">
                       {row.actualCustomers}
@@ -172,7 +197,25 @@ export default async function ProductiePage({
                       {row.percentCustomers === null ? "—" : `${row.percentCustomers}%`}
                     </td>
                     <td className="px-3 py-2.5 text-center text-slate-600">
-                      {row.targetUnits || "—"}
+                      {canEditGoals ? (
+                        <InlineTextField
+                          type="number"
+                          min={0}
+                          step={1}
+                          name="target"
+                          value={row.targetUnits ? String(row.targetUnits) : ""}
+                          action={setUserMonthlyGoalAction.bind(
+                            null,
+                            row.id,
+                            GoalMetric.UNITS,
+                            year,
+                            month
+                          )}
+                          className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                        />
+                      ) : (
+                        row.targetUnits || "—"
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-center text-slate-900">
                       {row.actualUnits}

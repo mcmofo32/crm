@@ -69,7 +69,10 @@ export async function getProductionLeaderboard(
 ): Promise<ProductionRow[]> {
   await requireViewer();
   const { start, end } = monthRange(year, month);
-  const weeksInMonth = (end.getTime() - start.getTime()) / (7 * 24 * 3600 * 1000);
+  // "Gesprekken/week" toont het effectieve aantal van de lopende week
+  // (maandag t.e.m. zondag) — niet een gemiddelde over de maand, want een
+  // gesprek is een geheel getal (je hebt er wel of geen).
+  const week = currentWeekRange();
 
   const users = await prisma.user.findMany({
     where: { active: true },
@@ -84,7 +87,7 @@ export async function getProductionLeaderboard(
   });
   const userIds = users.map((u) => u.id);
 
-  const [wonThisMonth, conversations] = await Promise.all([
+  const [wonThisMonth, conversationsThisWeek] = await Promise.all([
     prisma.leadStageChange.findMany({
       where: {
         changedById: { in: userIds },
@@ -102,7 +105,7 @@ export async function getProductionLeaderboard(
         assigneeId: { in: userIds },
         status: "PLANNED",
         type: { in: ["CALL", "MEETING"] },
-        scheduledAt: { gte: start, lt: end },
+        scheduledAt: { gte: week.start, lt: week.end },
         lead: { leadType: "FA" },
       },
       _count: { _all: true },
@@ -110,7 +113,7 @@ export async function getProductionLeaderboard(
   ]);
 
   const conversationsByUser = new Map(
-    conversations.map((c) => [c.assigneeId, c._count._all])
+    conversationsThisWeek.map((c) => [c.assigneeId, c._count._all])
   );
 
   const wonByUser = new Map<string, { customers: Set<string>; units: number }>();
@@ -135,7 +138,6 @@ export async function getProductionLeaderboard(
     const actualUnits = won?.units ?? 0;
     const targetCustomers = goalByMetric.get(GoalMetric.CUSTOMERS) ?? 0;
     const targetUnits = goalByMetric.get(GoalMetric.UNITS) ?? 0;
-    const conversationsTotal = conversationsByUser.get(u.id) ?? 0;
 
     return {
       id: u.id,
@@ -152,8 +154,7 @@ export async function getProductionLeaderboard(
       actualUnits,
       percentUnits:
         targetUnits > 0 ? Math.round((actualUnits / targetUnits) * 100) : null,
-      conversationsPerWeek:
-        weeksInMonth > 0 ? Math.round((conversationsTotal / weeksInMonth) * 10) / 10 : 0,
+      conversationsPerWeek: conversationsByUser.get(u.id) ?? 0,
     };
   });
 
@@ -259,6 +260,28 @@ export async function getAllUserMonthlyGoalsForTable(year: number, month: number
     role: u.role,
     targetByMetric: new Map(u.monthlyGoals.map((g) => [g.metric, Number(g.target)])),
   }));
+}
+
+export async function setUserMonthlyGoalAction(
+  userId: string,
+  metric: (typeof MONTHLY_GOAL_METRICS)[number],
+  year: number,
+  month: number,
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const raw = String(formData.get("target") ?? "").trim();
+  const target = raw ? Number(raw) : 0;
+
+  await prisma.userMonthlyGoal.upsert({
+    where: { userId_metric_year_month: { userId, metric, year, month } },
+    create: { userId, metric, year, month, target },
+    update: { target },
+  });
+
+  revalidatePath("/productie");
+  revalidatePath("/beheer/doelen/productie");
 }
 
 export async function saveAllUserMonthlyGoalsAction(
