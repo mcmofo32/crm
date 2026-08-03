@@ -10,6 +10,13 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Deze config geldt enkel voor Prisma CLI-commando's (generate, migrate
+    // deploy/dev) — de draaiende app leest DATABASE_URL rechtstreeks in
+    // src/lib/prisma.ts en gebruikt deze config niet. CLI-commando's lopen
+    // daarom bij voorkeur via de directe, ongepoolde verbinding: Prisma's
+    // advisory lock voor migraties werkt niet betrouwbaar via Neon's pooler,
+    // wat leidde tot P1002-timeouts bij zowat elke build. Valt terug op
+    // DATABASE_URL als DIRECT_DATABASE_URL niet ingesteld is (bv. lokaal).
+    url: process.env["DIRECT_DATABASE_URL"] || process.env["DATABASE_URL"],
   },
 });
