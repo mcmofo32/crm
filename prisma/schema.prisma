@@ -95,6 +95,10 @@ model User {
   incentivesCreated Incentive[]       @relation("IncentiveCreatedBy")
   auditLogEntries   AuditLog[]        @relation("AuditActor")
 
+  goals             UserGoal[]            @relation("UserGoals")
+  kpiGoals          UserKpiGoal[]         @relation("UserKpiGoals")
+  kpiMonthlyEntries UserKpiMonthlyEntry[] @relation("UserKpiMonthlyEntries")
+
   @@index([teamId])
 }
 
@@ -370,4 +374,70 @@ model IncentiveCategory {
   order       Int             @default(0)
 
   @@index([incentiveId])
+}
+
+// ---------------------------------------------------------------------------
+// Doelen / KPI's per gebruiker (dashboard-management)
+// ---------------------------------------------------------------------------
+
+/// De wekelijkse doelen bovenaan het dashboard.
+enum GoalMetric {
+  UNITS
+  CUSTOMERS
+  CONVERSATIONS
+  ABV_SALES
+  ABV_RG
+}
+
+/// Eén wekelijks doel per gebruiker per metric, ingesteld door een Beheerder/Admin.
+/// Het `target` geldt vanaf het moment van instellen (geen historiek per week).
+model UserGoal {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation("UserGoals", fields: [userId], references: [id], onDelete: Cascade)
+  metric    GoalMetric
+  target    Decimal    @db.Decimal(12, 2)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, metric])
+}
+
+/// De 4 jaarlijkse KPI's onder "Productie jaarlijks".
+enum KpiMetric {
+  CONVERSATIONS
+  PRODUCTION
+  CALLING_SESSION
+  SEMINAR
+}
+
+/// Jaarlijks doel per gebruiker per KPI (per jaar apart in te stellen).
+model UserKpiGoal {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("UserKpiGoals", fields: [userId], references: [id], onDelete: Cascade)
+  metric    KpiMetric
+  year      Int
+  target    Decimal   @db.Decimal(12, 2)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, metric, year])
+}
+
+/// Manueel ingevoerde maandstand per KPI; de som van de 12 maanden vormt het jaarcijfer.
+model UserKpiMonthlyEntry {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("UserKpiMonthlyEntries", fields: [userId], references: [id], onDelete: Cascade)
+  metric    KpiMetric
+  year      Int
+  /// 1 (januari) t.e.m. 12 (december)
+  month     Int
+  value     Decimal   @db.Decimal(12, 2)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, metric, year, month])
+  @@index([userId, metric, year])
 }

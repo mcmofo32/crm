@@ -1,32 +1,53 @@
 import Link from "next/link";
 import {
-  TrendingUp,
-  Briefcase,
-  Trophy,
-  ListChecks,
-  Phone,
-  CalendarClock,
-  Mail,
-  StickyNote,
   AlertTriangle,
   Users2,
+  Boxes,
+  UserCheck,
+  Phone,
+  Euro,
+  Briefcase,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { LEAD_TYPE_LABELS, conversionBadgeVariant } from "@/lib/roleLabels";
+import { conversionBadgeVariant } from "@/lib/roleLabels";
 import { getTeamOverviewForCoach } from "@/lib/actions/analytics";
-import { LeadStatus, LeadType, Role } from "@/generated/prisma/client";
+import { getWeeklyGoalProgress, getYearlyKpiProgress } from "@/lib/actions/goals";
+import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
+import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
-const ACTIVITY_ICONS: Record<string, LucideIcon> = {
-  CALL: Phone,
-  MEETING: CalendarClock,
-  EMAIL: Mail,
-  NOTE: StickyNote,
+const GOAL_ICONS: Record<string, LucideIcon> = {
+  UNITS: Boxes,
+  CUSTOMERS: UserCheck,
+  CONVERSATIONS: Phone,
+  ABV_SALES: Euro,
+  ABV_RG: Briefcase,
 };
+
+const KPI_ICONS: Record<string, LucideIcon> = {
+  CONVERSATIONS: Phone,
+  PRODUCTION: Euro,
+  CALLING_SESSION: Phone,
+  SEMINAR: Presentation,
+};
+
+function formatValue(value: number) {
+  return value % 1 === 0
+    ? value.toLocaleString("nl-BE")
+    : value.toLocaleString("nl-BE", { maximumFractionDigits: 2 });
+}
+
+function percentColor(percent: number | null) {
+  if (percent === null) return "text-slate-400";
+  if (percent >= 100) return "text-green-600";
+  if (percent >= 50) return "text-amber-600";
+  return "text-red-600";
+}
 
 export default async function DashboardPage() {
   const user = (await getEffectiveViewer())!;
@@ -34,36 +55,19 @@ export default async function DashboardPage() {
   const ownerWhere = ids ? { ownerId: { in: ids } } : {};
   const leadWhere = { deletedAt: null, ...ownerWhere };
   const now = new Date();
+  const currentYear = now.getFullYear();
 
-  const [openFA, openRG, wonCount, openTasks, overdueTasks, upcomingCalls] =
-    await Promise.all([
-      prisma.lead.count({
-        where: { ...leadWhere, leadType: LeadType.FA, status: LeadStatus.OPEN },
-      }),
-      prisma.lead.count({
-        where: { ...leadWhere, leadType: LeadType.RG, status: LeadStatus.OPEN },
-      }),
-      prisma.lead.count({ where: { ...leadWhere, status: LeadStatus.WON } }),
-      prisma.activity.count({
-        where: { status: "PLANNED", lead: leadWhere },
-      }),
-      prisma.activity.count({
-        where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
-      }),
-      prisma.activity.findMany({
-        where: {
-          status: "PLANNED",
-          scheduledAt: { gte: now },
-          lead: leadWhere,
-        },
-        include: { lead: true },
-        orderBy: { scheduledAt: "asc" },
-        take: 8,
-      }),
-    ]);
+  const [overdueTasks, weeklyGoals, yearlyKpis, teamOverview] = await Promise.all([
+    prisma.activity.count({
+      where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
+    }),
+    getWeeklyGoalProgress(user.id),
+    getYearlyKpiProgress(user.id, currentYear),
+    user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
+  ]);
 
-  const teamOverview =
-    user.role === Role.COACH ? await getTeamOverviewForCoach() : null;
+  const seminarKpi = yearlyKpis.find((k) => k.metric === "SEMINAR");
+  const otherKpis = yearlyKpis.filter((k) => k.metric !== "SEMINAR");
 
   return (
     <div className="flex flex-col gap-10">
@@ -72,7 +76,7 @@ export default async function DashboardPage() {
           Welkom, {user.name}
         </h1>
         <p className="mt-1 text-base text-slate-500">
-          Hier is een overzicht van je leads en geplande opvolging.
+          Hier is een overzicht van je doelen en opvolging.
         </p>
       </div>
 
@@ -92,81 +96,50 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label={`Open — ${LEAD_TYPE_LABELS.FA}`}
-          value={openFA}
-          href="/funnel/FA"
-          icon={TrendingUp}
-          color="bg-blue-100 text-blue-700"
-        />
-        <StatCard
-          label={`Open — ${LEAD_TYPE_LABELS.RG}`}
-          value={openRG}
-          href="/funnel/RG"
-          icon={Briefcase}
-          color="bg-purple-100 text-purple-700"
-        />
-        <StatCard
-          label="Gewonnen leads"
-          value={wonCount}
-          href="/leads"
-          icon={Trophy}
-          color="bg-green-100 text-green-700"
-        />
-        <StatCard
-          label="Openstaande taken"
-          value={openTasks}
-          href="/taken"
-          icon={ListChecks}
-          color="bg-amber-100 text-amber-700"
-        />
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
+        {weeklyGoals.map((goal) => (
+          <GoalCard
+            key={goal.metric}
+            label={GOAL_METRIC_LABELS[goal.metric]}
+            actual={goal.actual}
+            target={goal.target}
+            percent={goal.percent}
+            icon={GOAL_ICONS[goal.metric]}
+            percentPosition={goal.metric === "ABV_RG" ? "beside" : "below"}
+          />
+        ))}
       </div>
 
       <div>
         <h2 className="mb-4 text-xl font-medium text-slate-900">
-          Geplande gesprekken
+          Productie jaarlijks
         </h2>
-        {upcomingCalls.length === 0 ? (
-          <p className="text-base text-slate-500">
-            Geen geplande activiteiten.
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-            {upcomingCalls.map((activity) => {
-              const Icon = ACTIVITY_ICONS[activity.type] ?? Phone;
-              return (
-                <li
-                  key={activity.id}
-                  className="flex items-center justify-between px-6 py-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-                      <Icon size={17} />
-                    </span>
-                    <div>
-                      <Link
-                        href={`/leads/${activity.leadId}`}
-                        className="text-base font-medium text-slate-900 hover:underline"
-                      >
-                        {activity.subject}
-                      </Link>
-                      <p className="text-base text-slate-500">
-                        {activity.lead.firstName} {activity.lead.lastName}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-base text-slate-500">
-                    {activity.scheduledAt?.toLocaleString("nl-BE", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {otherKpis.map((kpi) => (
+            <GoalCard
+              key={kpi.metric}
+              label={KPI_METRIC_LABELS[kpi.metric]}
+              actual={kpi.actual}
+              target={kpi.target}
+              percent={kpi.percent}
+              icon={KPI_ICONS[kpi.metric]}
+              percentPosition="below"
+            />
+          ))}
+          {seminarKpi && (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <Presentation size={20} />
+              </span>
+              <p className="text-base text-slate-500">
+                {KPI_METRIC_LABELS.SEMINAR}
+              </p>
+              <p className={`mt-1 text-4xl font-semibold ${percentColor(seminarKpi.percent)}`}>
+                {seminarKpi.percent === null ? "—" : `${seminarKpi.percent}%`}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {teamOverview && (
@@ -220,31 +193,49 @@ export default async function DashboardPage() {
   );
 }
 
-function StatCard({
+function GoalCard({
   label,
-  value,
-  href,
+  actual,
+  target,
+  percent,
   icon: Icon,
-  color,
+  percentPosition,
 }: {
   label: string;
-  value: number;
-  href: string;
+  actual: number;
+  target: number;
+  percent: number | null;
   icon: LucideIcon;
-  color: string;
+  percentPosition: "below" | "beside";
 }) {
   return (
-    <Link
-      href={href}
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-    >
-      <span
-        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
-      >
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
         <Icon size={20} />
       </span>
       <p className="text-base text-slate-500">{label}</p>
-      <p className="mt-1 text-4xl font-semibold text-slate-900">{value}</p>
-    </Link>
+      <div
+        className={
+          percentPosition === "beside"
+            ? "mt-1 flex items-baseline gap-3"
+            : "flex flex-col"
+        }
+      >
+        <p className="text-3xl font-semibold text-slate-900">
+          {formatValue(actual)}
+          <span className="text-lg font-normal text-slate-400">
+            {" "}
+            / {formatValue(target)}
+          </span>
+        </p>
+        <p
+          className={`text-sm font-medium ${percentColor(percent)} ${
+            percentPosition === "below" ? "mt-1" : ""
+          }`}
+        >
+          {percent === null ? "—" : `${percent}%`}
+        </p>
+      </div>
+    </div>
   );
 }

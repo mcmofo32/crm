@@ -10,6 +10,7 @@ import {
   ScrollText,
   Eye,
   Network,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -103,6 +104,9 @@ export function ProfileMenu({
             </MenuLink>
             <MenuLink href="/organigram" icon={Network}>
               Organigram
+            </MenuLink>
+            <MenuLink href="/beheer/doelen" icon={Target}>
+              Doelen
             </MenuLink>
           </>
         )}
