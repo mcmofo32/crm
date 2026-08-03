@@ -176,18 +176,22 @@ export async function logCompletedActivityAction(formData: FormData) {
 
   const occurredAtRaw = String(formData.get("occurredAt") ?? "");
   const occurredAt = occurredAtRaw ? new Date(occurredAtRaw) : new Date();
+  const type = (formData.get("type") as ActivityType) ?? ActivityType.CALL;
 
   await prisma.activity.create({
     data: {
       leadId,
       assigneeId,
-      type: (formData.get("type") as ActivityType) ?? ActivityType.CALL,
+      type,
       subject: String(formData.get("subject") ?? "Contact"),
       notes: (formData.get("notes") as string) || null,
       scheduledAt: occurredAt,
       completedAt: occurredAt,
       durationMinutes: Number(formData.get("durationMinutes") ?? 15),
       status: ActivityStatus.COMPLETED,
+      ...(type === ActivityType.CALL
+        ? { wasVoicemail: formData.get("wasVoicemail") === "on" }
+        : {}),
     },
   });
 
@@ -212,6 +216,8 @@ export async function logCompletedActivityAction(formData: FormData) {
   }
 
   revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
 }
 
 export async function completeActivityAction(

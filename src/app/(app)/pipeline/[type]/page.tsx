@@ -15,6 +15,7 @@ import { InlineSelect } from "@/components/InlineSelect";
 import { InlineCheckbox } from "@/components/InlineCheckbox";
 import { InlineTextField } from "@/components/InlineTextField";
 import { StageSelect } from "@/components/StageSelect";
+import { QuickCallLogButton } from "@/components/QuickCallLogButton";
 
 const TYPE_MAP = { verkoop: "FA", recrutering: "RG" } as const;
 const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline recrutering" } as const;
@@ -166,15 +167,18 @@ export default async function PipelinePage({
                     </td>
                   </>
                 )}
-                <td className="px-4 py-2.5 text-right">
-                  <StageSelect
-                    leadId={lead.id}
-                    currentStageId={lead.stageId}
-                    leadEmail={lead.email}
-                    stages={stages}
-                    subagents={subagents}
-                    variant="icon"
-                  />
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <QuickCallLogButton leadId={lead.id} />
+                    <StageSelect
+                      leadId={lead.id}
+                      currentStageId={lead.stageId}
+                      leadEmail={lead.email}
+                      stages={stages}
+                      subagents={subagents}
+                      variant="icon"
+                    />
+                  </div>
                 </td>
               </tr>
             ))}

@@ -133,8 +133,12 @@ export async function getPipelineLeads(
     stageId: lead.stageId,
     statusLabel: lead.stage.label,
     characteristics: lead.characteristics,
+    // Telt elk telefoongesprek (bereikt of voicemail) én elke ingeplande
+    // afspraak — die laatste vereist immers ook een telefoongesprek om in
+    // te plannen, maar telt maar één keer mee (dus niet nog eens apart
+    // loggen als telefoongesprek voor diezelfde inplanning).
     callCount: lead.activities.filter(
-      (a) => a.type === "CALL" && a.status === "COMPLETED"
+      (a) => (a.type === "CALL" && a.status === "COMPLETED") || a.type === "MEETING"
     ).length,
   }));
 }
