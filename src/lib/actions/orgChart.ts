@@ -10,20 +10,24 @@ export type OrgNode = {
   name: string;
   role: Role;
   jobFunction: JobFunction | null;
+  isSubagent: boolean;
   children: OrgNode[];
+};
+
+type Person = {
+  id: string;
+  name: string;
+  role: Role;
+  jobFunction: JobFunction | null;
+  isSubagent: boolean;
 };
 
 type TeamWithPeople = {
   id: string;
   name: string;
   coachId: string;
-  coach: { id: string; name: string; role: Role; jobFunction: JobFunction | null };
-  members: {
-    id: string;
-    name: string;
-    role: Role;
-    jobFunction: JobFunction | null;
-  }[];
+  coach: Person;
+  members: Person[];
 };
 
 async function requireViewer() {
@@ -33,10 +37,17 @@ async function requireViewer() {
 }
 
 async function loadAllTeams(): Promise<TeamWithPeople[]> {
+  const personSelect = {
+    id: true,
+    name: true,
+    role: true,
+    jobFunction: true,
+    isSubagent: true,
+  } as const;
   return prisma.team.findMany({
     include: {
-      coach: { select: { id: true, name: true, role: true, jobFunction: true } },
-      members: { select: { id: true, name: true, role: true, jobFunction: true } },
+      coach: { select: personSelect },
+      members: { select: personSelect },
     },
   });
 }
@@ -44,7 +55,7 @@ async function loadAllTeams(): Promise<TeamWithPeople[]> {
 /** `seen` voorkomt een oneindige lus bij een (foutieve) cirkel in de structuur. */
 function buildNode(
   teamByCoachId: Map<string, TeamWithPeople>,
-  person: { id: string; name: string; role: Role; jobFunction: JobFunction | null },
+  person: Person,
   seen: Set<string>
 ): OrgNode {
   if (seen.has(person.id)) {
@@ -53,6 +64,7 @@ function buildNode(
       name: person.name,
       role: person.role,
       jobFunction: person.jobFunction,
+      isSubagent: person.isSubagent,
       children: [],
     };
   }
@@ -64,6 +76,7 @@ function buildNode(
     name: person.name,
     role: person.role,
     jobFunction: person.jobFunction,
+    isSubagent: person.isSubagent,
     children: team ? team.members.map((m) => buildNode(teamByCoachId, m, seen)) : [],
   };
 }
@@ -104,6 +117,7 @@ export async function getMyOrgChart(): Promise<{
         name: true,
         role: true,
         jobFunction: true,
+        isSubagent: true,
         team: { select: { coach: { select: { id: true, name: true } } } },
       },
     }),

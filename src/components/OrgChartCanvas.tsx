@@ -1,10 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Link2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
-import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import type { OrgNode } from "@/lib/actions/orgChart";
 
 const NODE_WIDTH = 200;
@@ -58,17 +57,24 @@ function flatten(p: PositionedNode, acc: PositionedNode[] = []) {
 
 function NodeCard({ node }: { node: OrgNode }) {
   return (
-    <div className="flex w-full flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center shadow-sm">
+    <div className="relative flex w-full flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center shadow-sm">
+      {node.isSubagent && (
+        <span
+          title="Subagent"
+          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-amber-700"
+        >
+          <Link2 size={11} strokeWidth={2.5} />
+        </span>
+      )}
       <Avatar name={node.name} />
       <span className="line-clamp-1 text-sm font-medium text-slate-900">
         {node.name}
       </span>
-      <div className="flex flex-wrap items-center justify-center gap-1">
-        <Badge variant={ROLE_BADGE_VARIANT[node.role]}>
-          {ROLE_LABELS[node.role]}
-        </Badge>
-        {node.jobFunction && <Badge variant="slate">{node.jobFunction}</Badge>}
-      </div>
+      {node.jobFunction ? (
+        <Badge variant="blue">{node.jobFunction}</Badge>
+      ) : (
+        <Badge variant="slate">Geen functie</Badge>
+      )}
     </div>
   );
 }

@@ -111,6 +111,15 @@ export default async function EditUserPage({
             ))}
           </select>
         </div>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            name="isSubagent"
+            defaultChecked={target.isSubagent}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Subagent (werkt onder het nummer van een andere agent)
+        </label>
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">
             Team (voor rol &quot;User&quot; of &quot;Coach&quot;)

@@ -7,7 +7,6 @@ import {
   Users,
   ListChecks,
   TrendingUp,
-  Briefcase,
   Trophy,
   UserCheck,
   CalendarDays,
@@ -21,7 +20,6 @@ const ICONS: Record<string, LucideIcon> = {
   "/pipeline/verkoop": Users,
   "/taken": ListChecks,
   "/funnel/FA": TrendingUp,
-  "/funnel/RG": Briefcase,
   "/klanten": UserCheck,
   "/incentives": Trophy,
   "/evenementen": CalendarDays,
@@ -39,7 +37,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-1">
+    <nav className="flex items-center gap-0.5">
       {items.map((item) => {
         const Icon = ICONS[item.href];
         const isActive =
@@ -50,17 +48,17 @@ export function NavLinks({ items }: { items: NavItem[] }) {
         const link = (
           <Link
             href={item.href}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-base font-medium transition-colors ${
+            className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
               isActive
                 ? "bg-slate-900 text-white"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             }`}
           >
-            {Icon && <Icon size={17} strokeWidth={2} />}
+            {Icon && <Icon size={15} strokeWidth={2} />}
             {item.label}
-            {item.children && <ChevronDown size={14} />}
+            {item.children && <ChevronDown size={12} />}
             {!!item.badge && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-semibold text-white">
+              <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
                 {item.badge}
               </span>
             )}

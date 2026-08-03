@@ -104,6 +104,9 @@ model User {
   /// Functie/graad, getoond op het organigram.
   jobFunction JobFunction?
 
+  /// Werkt als subagent (onder het nummer van een andere agent); getoond als icoon op het organigram.
+  isSubagent Boolean @default(false)
+
   leadsOwned        Lead[]            @relation("LeadOwner")
   leadsCreated      Lead[]            @relation("LeadCreatedBy")
   leadsDeleted      Lead[]            @relation("LeadDeletedBy")

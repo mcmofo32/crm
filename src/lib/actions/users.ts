@@ -56,6 +56,7 @@ export async function createUserAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const jobFunction = parseJobFunction(formData.get("jobFunction"));
+  const isSubagent = formData.get("isSubagent") === "on";
   // Komt deze aanmaak vanuit "Nieuwe gebruiker toevoegen" naast iemands naam
   // op de Teams-pagina, dan wordt de nieuwe gebruiker meteen onder die
   // persoon geplaatst i.p.v. via de gewone team-dropdown hieronder.
@@ -88,6 +89,7 @@ export async function createUserAction(formData: FormData) {
       passwordHash,
       role,
       jobFunction,
+      isSubagent,
       // Een Coach kan zelf ook lid zijn van het team van een andere coach
       // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
       teamId: role === Role.USER || role === Role.COACH ? teamId : null,
@@ -206,6 +208,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const teamId = (formData.get("teamId") as string) || null;
   const jobFunction = parseJobFunction(formData.get("jobFunction"));
+  const isSubagent = formData.get("isSubagent") === "on";
 
   if (!name || !email) {
     throw new Error("Naam en e-mail zijn verplicht");
@@ -228,6 +231,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
       phone,
       role,
       jobFunction,
+      isSubagent,
       // Een Coach kan zelf ook lid zijn van het team van een andere coach
       // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
       teamId: role === Role.USER || role === Role.COACH ? teamId : null,

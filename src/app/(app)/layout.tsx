@@ -41,8 +41,14 @@ export default async function AppLayout({
       ],
     },
     { href: "/taken", label: "Taken", badge: overdueTasks },
-    { href: "/funnel/FA", label: "Funnel FA" },
-    { href: "/funnel/RG", label: "Funnel RG" },
+    {
+      href: "/funnel/FA",
+      label: "Funnel",
+      children: [
+        { href: "/funnel/FA", label: "Funnel FA" },
+        { href: "/funnel/RG", label: "Funnel RG" },
+      ],
+    },
     { href: "/klanten", label: "Klanten" },
     { href: "/incentives", label: "Incentives" },
     { href: "/evenementen", label: "Evenementen" },
@@ -59,11 +65,11 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3 lg:px-10">
-          <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-white">
-                <Sparkles size={18} />
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-2.5 lg:px-10">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white">
+                <Sparkles size={16} />
               </span>
               CRM
             </span>
