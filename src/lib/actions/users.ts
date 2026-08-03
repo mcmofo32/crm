@@ -189,7 +189,7 @@ export async function getManageableUsers() {
   });
   return actor.role === Role.BEHEERDER
     ? users
-    : users.filter((u) => u.role !== Role.BEHEERDER);
+    : users.filter((u) => u.role !== Role.BEHEERDER && u.role !== Role.ADMIN);
 }
 
 export async function getTeamsForAssignment() {
@@ -236,7 +236,10 @@ export async function updateUserAction(
     if (!canManageUser(actor, { role })) {
       throw new Error("Je mag deze rol niet toekennen");
     }
-    if (target.role === Role.COACH && role !== Role.COACH && target.coachedTeam) {
+    // Enkel USER heeft geen eigen zicht op een team (getVisibleUserIds geeft
+    // enkel zichzelf terug); Admin/Beheerder zien toch alles, dus die mogen
+    // een team blijven coachen ook al is hun rol niet (meer) Coach.
+    if (target.role === Role.COACH && role === Role.USER && target.coachedTeam) {
       throw new Error(
         "Deze coach heeft nog een team. Verwijder of herverdeel het team eerst."
       );

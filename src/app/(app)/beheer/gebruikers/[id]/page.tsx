@@ -33,10 +33,11 @@ export default async function EditUserPage({
   ]);
   if (!target) notFound();
 
+  // Enkel de Beheerder mag iemand Admin maken (gevoelige data, bewust beperkt tot 1 persoon).
   const assignableRoles = (
     actorRole === Role.BEHEERDER
       ? [Role.BEHEERDER, Role.ADMIN, Role.COACH, Role.USER]
-      : [Role.ADMIN, Role.COACH, Role.USER]
+      : [Role.COACH, Role.USER]
   ) as Role[];
 
   const boundUpdate = updateUserAction.bind(null, id);

@@ -60,10 +60,18 @@ export function canManageEvents(user: SessionUser) {
   );
 }
 
-/** Mag `actor` het account `target` aanmaken/wijzigen/verwijderen? */
+/**
+ * Mag `actor` het account `target` aanmaken/wijzigen/verwijderen? Ook gebruikt
+ * om te bepalen of `actor` een bepaalde rol mag *toekennen* (dan is `target`
+ * de nieuw gekozen rol). Enkel de Beheerder mag Admin-accounts aanmaken,
+ * bewerken of de rol Admin toekennen — een Admin mag dat niet bij een andere
+ * Admin (of bij zichzelf een collega-Admin maken), gezien de gevoelige data.
+ */
 export function canManageUser(actor: SessionUser, target: { role: Role }) {
   if (actor.role === Role.BEHEERDER) return true;
-  if (actor.role === Role.ADMIN) return target.role !== Role.BEHEERDER;
+  if (actor.role === Role.ADMIN) {
+    return target.role !== Role.BEHEERDER && target.role !== Role.ADMIN;
+  }
   return false;
 }
 

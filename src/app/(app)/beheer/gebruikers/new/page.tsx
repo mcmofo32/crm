@@ -27,10 +27,11 @@ export default async function NewUserPage({
     under ? getUserBasicInfo(under) : Promise.resolve(null),
   ]);
 
+  // Enkel de Beheerder mag iemand Admin maken (gevoelige data, bewust beperkt tot 1 persoon).
   const assignableRoles = (
     actor.role === Role.BEHEERDER
       ? [Role.BEHEERDER, Role.ADMIN, Role.COACH, Role.USER]
-      : [Role.ADMIN, Role.COACH, Role.USER]
+      : [Role.COACH, Role.USER]
   ) as Role[];
 
   return (
