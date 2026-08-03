@@ -117,6 +117,28 @@ export default async function FunnelPage({
     );
   }
 
+  // Voor de "+"-zoekpopup: alle leads van dit type (dus ook leads die nog
+  // niet op dit bord staan, bv. leads die nog in Pipeline/"Nieuwe lead"
+  // zitten), zodat je vanuit zowel Pipeline als de Funnel kan werken.
+  const pickerLeads = await prisma.lead.findMany({
+    where: {
+      deletedAt: null,
+      leadType: leadType as LeadType,
+      ownerId: selectedOwnerId,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      source: true,
+      stageId: true,
+      stage: { select: { label: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -138,7 +160,21 @@ export default async function FunnelPage({
         Sleep een lead naar een andere kolom om de fase te wijzigen.
       </p>
 
-      <FunnelBoard stages={stages} leadType={leadType} subagents={subagents} />
+      <FunnelBoard
+        stages={stages}
+        leadType={leadType}
+        subagents={subagents}
+        pickerLeads={pickerLeads.map((l) => ({
+          id: l.id,
+          firstName: l.firstName,
+          lastName: l.lastName,
+          email: l.email,
+          phone: l.phone,
+          source: l.source,
+          stageId: l.stageId,
+          stageLabel: l.stage.label,
+        }))}
+      />
     </div>
   );
 }

@@ -211,14 +211,28 @@ function LeadCard({
   );
 }
 
+export type PickerLead = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  source: string | null;
+  stageId: string;
+  stageLabel: string;
+};
+
 export function FunnelBoard({
   stages,
   leadType,
   subagents,
+  pickerLeads,
 }: {
   stages: BoardStage[];
   leadType: LeadType;
   subagents: SubagentRecord[];
+  /** Alle leads van dit type (ook buiten dit bord, bv. nog in Pipeline), voor de "+"-zoekpopup. */
+  pickerLeads: PickerLead[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -295,8 +309,7 @@ export function FunnelBoard({
 
   const pickerStage = mainStages.find((s) => s.id === pickerStageId) ?? null;
   const pickerResults = pickerStage
-    ? stages
-        .flatMap((s) => s.leads)
+    ? pickerLeads
         .filter((l) => {
           const q = pickerQuery.trim().toLowerCase();
           if (!q) return true;
@@ -305,11 +318,23 @@ export function FunnelBoard({
         .slice(0, 25)
     : [];
 
-  function pickLead(lead: BoardLead) {
+  function pickLead(pickerLead: PickerLead) {
     if (!pickerStage) return;
     setPickerStageId(null);
     setPickerQuery("");
-    startMove(lead, pickerStage);
+    setNotes("");
+    setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+    setEmailInput("");
+    setProducts(emptyProductsState());
+    setPendingMove({
+      leadId: pickerLead.id,
+      leadName: `${pickerLead.firstName} ${pickerLead.lastName}`,
+      leadEmail: pickerLead.email,
+      fromStageLabel: pickerLead.stageLabel,
+      toStageId: pickerStage.id,
+      toStageLabel: pickerStage.label,
+      toStageIsWon: pickerStage.isWon,
+    });
   }
 
   function confirmMove() {
