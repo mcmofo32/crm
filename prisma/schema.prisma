@@ -54,6 +54,7 @@ model Subagent {
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   activities Activity[] @relation("ActivitySubagent")
+  caseManagedLeads Lead[] @relation("LeadCaseManagerSubagent")
 
   @@index([teamId])
 }
@@ -100,7 +101,9 @@ model User {
   kpiMonthlyEntries UserKpiMonthlyEntry[] @relation("UserKpiMonthlyEntries")
 
   eventsCreated    Event[]           @relation("EventCreatedBy")
+  eventsVerified   Event[]           @relation("EventVerifiedBy")
   eventAttendances EventAttendance[] @relation("EventAttendances")
+  caseManagedLeads Lead[]            @relation("LeadCaseManagerUser")
 
   @@index([teamId])
 }
@@ -137,6 +140,12 @@ enum LeadStatus {
   OPEN
   WON
   LOST
+}
+
+enum TaxDeclarationStatus {
+  DONE
+  TODO
+  SCHEDULED
 }
 
 /// Configureerbare kolommen van de funnel-boards, per leadtype.
@@ -190,6 +199,17 @@ model Lead {
   deletedAt   DateTime?
   deletedById String?
   deletedBy   User?     @relation("LeadDeletedBy", fields: [deletedById], references: [id])
+
+  /// Dossierbeheerder van deze klant: standaard de medewerker die de lead via
+  /// de funnel klant maakte, maar hier eventueel te vervangen door een
+  /// subagent. Er is telkens maar één van beide ingevuld.
+  caseManagerUserId     String?
+  caseManagerUser       User?     @relation("LeadCaseManagerUser", fields: [caseManagerUserId], references: [id])
+  caseManagerSubagentId String?
+  caseManagerSubagent   Subagent? @relation("LeadCaseManagerSubagent", fields: [caseManagerSubagentId], references: [id])
+
+  /// Status van de belastingsaangifte voor deze klant (enkel relevant voor klanten).
+  taxDeclarationStatus TaxDeclarationStatus?
 
   activities   Activity[]
   stageChanges LeadStageChange[]
@@ -483,22 +503,43 @@ model Event {
   createdById String
   createdBy   User      @relation("EventCreatedBy", fields: [createdById], references: [id])
 
+  /// Voor seminaries: pas na bevestiging door een Beheerder/Admin telt de
+  /// aanwezigheid mee voor KPI Seminarie van de werknemers.
+  verifiedAt   DateTime?
+  verifiedById String?
+  verifiedBy   User?     @relation("EventVerifiedBy", fields: [verifiedById], references: [id])
+
   attendances EventAttendance[]
 
   @@index([type, date])
 }
 
-/// Of een gebruiker aanwezig zal zijn op een evenement. Voor seminaries vormt
-/// dit meteen de basis voor KPI Seminarie (% seminaries met status GOING).
+/// Of een gebruiker aanwezig zal zijn op een evenement (RSVP vooraf), en de
+/// nadien door een Beheerder/Admin bevestigde effectieve aanwezigheid.
+/// Enkel `actualStatus` (na verificatie) telt mee voor KPI Seminarie.
 model EventAttendance {
-  id        String           @id @default(cuid())
-  eventId   String
-  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User             @relation("EventAttendances", fields: [userId], references: [id], onDelete: Cascade)
-  status    AttendanceStatus @default(PENDING)
-  updatedAt DateTime         @updatedAt
+  id           String            @id @default(cuid())
+  eventId      String
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User              @relation("EventAttendances", fields: [userId], references: [id], onDelete: Cascade)
+  status       AttendanceStatus  @default(PENDING)
+  actualStatus AttendanceStatus?
+  updatedAt    DateTime          @updatedAt
 
   @@unique([eventId, userId])
   @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Klanten: statistieken bovenaan de Klanten-pagina
+// ---------------------------------------------------------------------------
+
+/// De actieve periode ("dit jaar") voor "nieuwe klanten dit jaar" op de
+/// Klanten-pagina — door een Beheerder/Admin ingesteld begin/einde.
+model CustomerYearPeriod {
+  id        String   @id @default(cuid())
+  startDate DateTime
+  endDate   DateTime
+  updatedAt DateTime @updatedAt
 }

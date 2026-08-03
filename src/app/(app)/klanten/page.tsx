@@ -1,15 +1,32 @@
 import Link from "next/link";
-import { UserCheck, Users, Search, MoreVertical } from "lucide-react";
+import {
+  UserCheck,
+  Users,
+  Search,
+  MoreVertical,
+  Users2,
+  UserPlus,
+  CalendarRange,
+  Coins,
+} from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { getAssignableUsers } from "@/lib/actions/leads";
+import { getSubagents } from "@/lib/actions/subagents";
 import {
   getCustomersForCurrentUser,
+  getCustomerStats,
+  getCurrentCustomerYearPeriodForInput,
+  setCustomerYearPeriodAction,
+  setCaseManagerAction,
+  setTaxDeclarationStatusAction,
   type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
-import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
+import { getCurrentGoalPeriod } from "@/lib/actions/goals";
+import { canManageUsers } from "@/lib/permissions";
+import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { LeadType, ProductType, Role } from "@/generated/prisma/client";
-import { Badge } from "@/components/Badge";
+import { InlineSelect } from "@/components/InlineSelect";
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
@@ -49,8 +66,15 @@ export default async function KlantenPage({
     sort === "oldest" || sort === "amount" || sort === "units" ? sort : undefined;
 
   const viewer = (await getEffectiveViewer())!;
-  const assignableUsers = await getAssignableUsers();
+  const [assignableUsers, subagents, monthPeriod, yearPeriodInput] =
+    await Promise.all([
+      getAssignableUsers(),
+      getSubagents(),
+      getCurrentGoalPeriod(),
+      getCurrentCustomerYearPeriodForInput(),
+    ]);
   const isCoach = viewer.role === Role.COACH;
+  const canManageYearPeriod = canManageUsers(viewer);
   const requiresSelection = assignableUsers.length > 1 || isCoach;
   const selectedOwnerId =
     ownerId && (ownerId === TEAM_OPTION ? isCoach : assignableUsers.some((u) => u.id === ownerId))
@@ -116,18 +140,30 @@ export default async function KlantenPage({
     </form>
   );
 
-  const customers = await getCustomersForCurrentUser({
-    leadType,
-    ownerId: isTeamView ? undefined : selectedOwnerId,
-    ownerIds: isTeamView ? assignableUsers.map((u) => u.id) : undefined,
-    search: q,
-    productType,
-    becameCustomerFrom: from ? new Date(`${from}T00:00:00`) : undefined,
-    becameCustomerTo: to ? new Date(`${to}T23:59:59.999`) : undefined,
-    sortBy,
-  });
+  const [customers, stats] = await Promise.all([
+    getCustomersForCurrentUser({
+      leadType,
+      ownerId: isTeamView ? undefined : selectedOwnerId,
+      ownerIds: isTeamView ? assignableUsers.map((u) => u.id) : undefined,
+      search: q,
+      productType,
+      becameCustomerFrom: from ? new Date(`${from}T00:00:00`) : undefined,
+      becameCustomerTo: to ? new Date(`${to}T23:59:59.999`) : undefined,
+      sortBy,
+    }),
+    getCustomerStats(monthPeriod, {
+      startDate: new Date(`${yearPeriodInput.startDate}T00:00:00`),
+      endDate: new Date(`${yearPeriodInput.endDate}T23:59:59.999`),
+    }),
+  ]);
 
   const filtersActive = Boolean(product || from || to || sortBy);
+  const currentYear = new Date().getFullYear();
+  const taxStatusOptions = [
+    { value: "TODO", label: `${currentYear} nog te doen` },
+    { value: "SCHEDULED", label: `${currentYear} ingepland` },
+    { value: "DONE", label: `${currentYear} gedaan` },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -144,6 +180,73 @@ export default async function KlantenPage({
           </p>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Totaal klanten"
+          value={stats.totalCustomers.toLocaleString("nl-BE")}
+          icon={Users2}
+          color="bg-green-100 text-green-700"
+        />
+        <StatCard
+          label="Nieuwe klanten (deze maand)"
+          value={stats.newThisMonth.toLocaleString("nl-BE")}
+          icon={UserPlus}
+          color="bg-blue-100 text-blue-700"
+          hint={`${formatDate(monthPeriod.startDate)} – ${formatDate(monthPeriod.endDate)}`}
+        />
+        <StatCard
+          label="Nieuwe klanten dit jaar"
+          value={stats.newThisYear.toLocaleString("nl-BE")}
+          icon={CalendarRange}
+          color="bg-purple-100 text-purple-700"
+          hint={`${yearPeriodInput.startDate} – ${yearPeriodInput.endDate}`}
+        />
+        <StatCard
+          label="Totaal maandelijks incasso"
+          value={formatAmount(stats.monthlyPremiumTotal)}
+          icon={Coins}
+          color="bg-amber-100 text-amber-700"
+        />
+      </div>
+
+      {canManageYearPeriod && (
+        <form
+          action={setCustomerYearPeriodAction}
+          className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4"
+        >
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-slate-700">
+              "Dit jaar" begint op
+            </span>
+            <input
+              type="date"
+              name="yearPeriodStart"
+              defaultValue={yearPeriodInput.startDate}
+              required
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-slate-700">
+              "Dit jaar" eindigt op
+            </span>
+            <input
+              type="date"
+              name="yearPeriodEnd"
+              defaultValue={yearPeriodInput.endDate}
+              required
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <button
+            type="submit"
+            className="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Periode toepassen
+          </button>
+        </form>
+      )}
 
       {ownerSwitcher}
 
@@ -273,27 +376,33 @@ export default async function KlantenPage({
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              <th className="px-6 py-3 font-medium">Naam</th>
-              <th className="px-6 py-3 font-medium">Type</th>
-              {isTeamView && (
-                <th className="px-6 py-3 font-medium">Eigenaar</th>
-              )}
               <th className="px-6 py-3 font-medium">Klant sinds</th>
-              <th className="px-6 py-3 font-medium">Producten</th>
-              <th className="px-6 py-3 font-medium text-right">Totaal bedrag</th>
-              <th className="px-6 py-3 font-medium text-right">Totaal eenheden</th>
+              <th className="px-6 py-3 font-medium">Naam</th>
+              <th className="px-6 py-3 font-medium">Dossierbeheerder</th>
+              <th className="px-6 py-3 font-medium">Telefoonnummer</th>
+              <th className="px-6 py-3 font-medium">E-mailadres</th>
+              <th className="px-6 py-3 font-medium">Belastingsaangifte</th>
+              <th className="px-6 py-3 font-medium text-right">Totale premies</th>
+              <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
               <th className="px-6 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {customers.map((customer) => {
-              const sortedProducts = [...customer.products].sort(
-                (a, b) =>
-                  PRODUCT_TYPE_ORDER.indexOf(a.type) - PRODUCT_TYPE_ORDER.indexOf(b.type)
+              const boundSetCaseManager = setCaseManagerAction.bind(
+                null,
+                customer.id
+              );
+              const boundSetTaxStatus = setTaxDeclarationStatusAction.bind(
+                null,
+                customer.id
               );
 
               return (
                 <tr key={customer.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 text-slate-600">
+                    {formatDate(customer.becameCustomerAt)}
+                  </td>
                   <td className="px-6 py-4">
                     <Link
                       href={`/leads/${customer.id}`}
@@ -306,32 +415,32 @@ export default async function KlantenPage({
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant={LEAD_TYPE_BADGE_VARIANT[customer.leadType]}>
-                      {LEAD_TYPE_LABELS[customer.leadType]}
-                    </Badge>
+                    <InlineSelect
+                      action={boundSetCaseManager}
+                      name="subagentId"
+                      value={customer.caseManagerSubagentId ?? ""}
+                      options={[
+                        { value: "", label: customer.caseManagerName },
+                        ...subagents.map((s) => ({
+                          value: s.id,
+                          label: `${s.name} (${s.team.name})`,
+                        })),
+                      ]}
+                    />
                   </td>
-                  {isTeamView && (
-                    <td className="px-6 py-4 text-slate-600">{customer.owner.name}</td>
-                  )}
                   <td className="px-6 py-4 text-slate-600">
-                    {formatDate(customer.becameCustomerAt)}
+                    {customer.phone || "—"}
+                  </td>
+                  <td className="px-6 py-4 text-slate-600">
+                    {customer.email || "—"}
                   </td>
                   <td className="px-6 py-4">
-                    {sortedProducts.length === 0 ? (
-                      <span className="text-slate-300">—</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {sortedProducts.map((p) => (
-                          <span
-                            key={p.type}
-                            title={`${formatAmount(Number(p.amount))} · ${p.units} eenh.`}
-                            className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
-                          >
-                            {PRODUCT_TYPE_LABELS[p.type]}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <InlineSelect
+                      action={boundSetTaxStatus}
+                      name="status"
+                      value={customer.taxDeclarationStatus ?? "TODO"}
+                      options={taxStatusOptions}
+                    />
                   </td>
                   <td className="px-6 py-4 text-right font-medium text-slate-900">
                     {formatAmount(customer.totalAmount)}
@@ -354,7 +463,7 @@ export default async function KlantenPage({
             {customers.length === 0 && (
               <tr>
                 <td
-                  colSpan={isTeamView ? 8 : 7}
+                  colSpan={9}
                   className="px-6 py-8 text-center text-slate-400"
                 >
                   {filtersActive || q
@@ -366,6 +475,33 @@ export default async function KlantenPage({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  hint,
+}: {
+  label: string;
+  value: string;
+  icon: typeof Users2;
+  color: string;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <span
+        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
+      >
+        <Icon size={20} />
+      </span>
+      <p className="text-base text-slate-500">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-slate-900">{value}</p>
+      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   Briefcase,
   Trophy,
   UserCheck,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/funnel/RG": Briefcase,
   "/klanten": UserCheck,
   "/incentives": Trophy,
+  "/evenementen": CalendarDays,
 };
 
 export function NavLinks({

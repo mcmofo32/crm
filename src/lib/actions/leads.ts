@@ -181,6 +181,13 @@ export async function updateLeadStageAction(
         stageId: toStageId,
         status,
         ...(trimmedNotes ? { lastContactedAt: now } : {}),
+        // Dossierbeheerder standaard op wie de klant maakte, tenzij al
+        // eerder (bv. manueel) ingesteld.
+        ...(status === LeadStatus.WON &&
+        !lead.caseManagerUserId &&
+        !lead.caseManagerSubagentId
+          ? { caseManagerUserId: user.id }
+          : {}),
       },
     }),
     prisma.leadStageChange.create({

@@ -20,6 +20,7 @@ import {
   getWeeklyGoalProgress,
   getYearlyKpiProgress,
 } from "@/lib/actions/goals";
+import { getUnverifiedPastSeminars } from "@/lib/actions/events";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
@@ -63,14 +64,16 @@ export default async function DashboardPage() {
 
   const goalPeriod = await getCurrentGoalPeriod();
 
-  const [overdueTasks, weeklyGoals, yearlyKpis, teamOverview] = await Promise.all([
-    prisma.activity.count({
-      where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
-    }),
-    getWeeklyGoalProgress(user.id, goalPeriod),
-    getYearlyKpiProgress(user.id, currentYear),
-    user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
-  ]);
+  const [overdueTasks, weeklyGoals, yearlyKpis, teamOverview, unverifiedSeminars] =
+    await Promise.all([
+      prisma.activity.count({
+        where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
+      }),
+      getWeeklyGoalProgress(user.id, goalPeriod),
+      getYearlyKpiProgress(user.id, currentYear),
+      user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
+      getUnverifiedPastSeminars(),
+    ]);
 
   const seminarKpi = yearlyKpis.find((k) => k.metric === "SEMINAR");
   const otherKpis = yearlyKpis.filter((k) => k.metric !== "SEMINAR");
@@ -98,6 +101,22 @@ export default async function DashboardPage() {
               ? "geplande activiteit is verlopen zonder afronding."
               : "geplande activiteiten zijn verlopen zonder afronding."}{" "}
             Bekijk taken →
+          </span>
+        </Link>
+      )}
+
+      {unverifiedSeminars.length > 0 && (
+        <Link
+          href={`/evenementen/${unverifiedSeminars[0].id}`}
+          className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-800 hover:bg-amber-100"
+        >
+          <AlertTriangle size={20} className="flex-shrink-0" />
+          <span>
+            <strong>{unverifiedSeminars.length}</strong>{" "}
+            {unverifiedSeminars.length === 1
+              ? "seminarie wacht op bevestiging van de aanwezigheid."
+              : "seminaries wachten op bevestiging van de aanwezigheid."}{" "}
+            Bevestig nu →
           </span>
         </Link>
       )}
