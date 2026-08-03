@@ -79,11 +79,13 @@ export type PipelineLeadRow = {
   createdAt: Date;
   firstName: string;
   lastName: string;
+  email: string | null;
   phone: string | null;
   source: string | null;
   isInformed: boolean;
   qualityScore: number | null;
   lastContactedAt: Date | null;
+  stageId: string;
   statusLabel: string;
   characteristics: string | null;
   callCount: number;
@@ -103,12 +105,14 @@ export async function getPipelineLeads(
       createdAt: true,
       firstName: true,
       lastName: true,
+      email: true,
       phone: true,
       source: true,
       isInformed: true,
       qualityScore: true,
       lastContactedAt: true,
       characteristics: true,
+      stageId: true,
       stage: { select: { label: true } },
       activities: { select: { type: true, status: true } },
     },
@@ -120,11 +124,13 @@ export async function getPipelineLeads(
     createdAt: lead.createdAt,
     firstName: lead.firstName,
     lastName: lead.lastName,
+    email: lead.email,
     phone: lead.phone,
     source: lead.source,
     isInformed: lead.isInformed,
     qualityScore: lead.qualityScore,
     lastContactedAt: lead.lastContactedAt,
+    stageId: lead.stageId,
     statusLabel: lead.stage.label,
     characteristics: lead.characteristics,
     callCount: lead.activities.filter(

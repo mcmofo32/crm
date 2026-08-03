@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Phone, Voicemail, PhoneCall, Megaphone } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 import {
   getPipelineStats,
   getPipelineLeads,
@@ -8,9 +9,12 @@ import {
   setLeadInformedAction,
   setLeadCharacteristicsAction,
 } from "@/lib/actions/pipeline";
+import { getSubagents } from "@/lib/actions/subagents";
+import { ensureFunnelStages, funnelStageKeys } from "@/lib/funnelStages";
 import { InlineSelect } from "@/components/InlineSelect";
 import { InlineCheckbox } from "@/components/InlineCheckbox";
 import { InlineTextField } from "@/components/InlineTextField";
+import { StageSelect } from "@/components/StageSelect";
 
 const TYPE_MAP = { verkoop: "FA", recrutering: "RG" } as const;
 const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline recrutering" } as const;
@@ -36,9 +40,16 @@ export default async function PipelinePage({
   const leadType = TYPE_MAP[type];
   const isRecrutering = type === "recrutering";
 
-  const [stats, leads] = await Promise.all([
+  await ensureFunnelStages(leadType);
+  const [stats, leads, stages, subagents] = await Promise.all([
     getPipelineStats(leadType),
     getPipelineLeads(leadType),
+    prisma.funnelStage.findMany({
+      where: { leadType, key: { in: funnelStageKeys(leadType) } },
+      orderBy: { order: "asc" },
+      select: { id: true, label: true, isWon: true },
+    }),
+    getSubagents(),
   ]);
 
   return (
@@ -103,6 +114,7 @@ export default async function PipelinePage({
                   <th className="px-4 py-3 text-center font-medium">Aantal keer gebeld</th>
                 </>
               )}
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -154,12 +166,22 @@ export default async function PipelinePage({
                     </td>
                   </>
                 )}
+                <td className="px-4 py-2.5 text-right">
+                  <StageSelect
+                    leadId={lead.id}
+                    currentStageId={lead.stageId}
+                    leadEmail={lead.email}
+                    stages={stages}
+                    subagents={subagents}
+                    variant="icon"
+                  />
+                </td>
               </tr>
             ))}
             {leads.length === 0 && (
               <tr>
                 <td
-                  colSpan={isRecrutering ? 5 : 9}
+                  colSpan={isRecrutering ? 6 : 10}
                   className="px-4 py-8 text-center text-slate-400"
                 >
                   Nog geen leads.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction } from "@/lib/actions/activities";
@@ -29,12 +30,15 @@ export function StageSelect({
   leadEmail,
   stages,
   subagents,
+  variant = "full",
 }: {
   leadId: string;
   currentStageId: string;
   leadEmail: string | null;
   stages: { id: string; label: string; isWon: boolean }[];
   subagents: SubagentRecord[];
+  /** "icon" toont enkel een compacte "+"-knop (bv. in een tabelrij) i.p.v. de huidige fase + "Afgerond". */
+  variant?: "full" | "icon";
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -52,7 +56,7 @@ export function StageSelect({
   const targetStage = stages.find((s) => s.id === targetStageId);
 
   if (open) {
-    return (
+    const formContent = (
       <div className="flex w-full flex-col gap-2 rounded-md border border-slate-300 bg-slate-50 p-2 text-sm">
         <label className="text-slate-600">
           Wat moet er met deze lead gebeuren?
@@ -155,6 +159,31 @@ export function StageSelect({
           </button>
         </div>
       </div>
+    );
+
+    if (variant === "icon") {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-3 shadow-xl">
+            {formContent}
+          </div>
+        </div>
+      );
+    }
+    return formContent;
+  }
+
+  if (variant === "icon") {
+    return (
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => setOpen(true)}
+        title="Afspraak inplannen / fase wijzigen"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-60"
+      >
+        <Plus size={16} />
+      </button>
     );
   }
 
