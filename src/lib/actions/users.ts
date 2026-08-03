@@ -167,6 +167,7 @@ export async function setUserActiveAction(userId: string, active: boolean) {
   });
 
   revalidatePath("/beheer/gebruikers");
+  revalidatePath("/organigram");
 }
 
 export async function getManageableUsers() {

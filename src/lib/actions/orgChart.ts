@@ -20,6 +20,7 @@ type Person = {
   role: Role;
   jobFunction: JobFunction | null;
   isSubagent: boolean;
+  active: boolean;
 };
 
 type TeamWithPeople = {
@@ -43,6 +44,7 @@ async function loadAllTeams(): Promise<TeamWithPeople[]> {
     role: true,
     jobFunction: true,
     isSubagent: true,
+    active: true,
   } as const;
   return prisma.team.findMany({
     include: {
@@ -70,15 +72,41 @@ function buildNode(
   }
   seen.add(person.id);
 
-  const team = teamByCoachId.get(person.id);
   return {
     id: person.id,
     name: person.name,
     role: person.role,
     jobFunction: person.jobFunction,
     isSubagent: person.isSubagent,
-    children: team ? team.members.map((m) => buildNode(teamByCoachId, m, seen)) : [],
+    children: buildActiveChildren(teamByCoachId, person, seen),
   };
+}
+
+/**
+ * Bouwt de kinderen van `person`, met inactieve gebruikers overgeslagen.
+ * Is een teamlid zelf inactief maar coacht die nog een eigen (deels actief)
+ * team, dan komen diens actieve mensen rechtstreeks als kind van `person`
+ * te staan i.p.v. helemaal te verdwijnen.
+ */
+function buildActiveChildren(
+  teamByCoachId: Map<string, TeamWithPeople>,
+  person: Person,
+  seen: Set<string>
+): OrgNode[] {
+  const team = teamByCoachId.get(person.id);
+  if (!team) return [];
+
+  const children: OrgNode[] = [];
+  for (const member of team.members) {
+    if (seen.has(member.id)) continue;
+    if (member.active) {
+      children.push(buildNode(teamByCoachId, member, seen));
+    } else {
+      seen.add(member.id);
+      children.push(...buildActiveChildren(teamByCoachId, member, seen));
+    }
+  }
+  return children;
 }
 
 /** Volledige bedrijfsstructuur (enkel Beheerder/Admin): elke top-coach als apart rootnode. */
@@ -95,7 +123,18 @@ export async function getFullOrgChart(): Promise<OrgNode[]> {
   // Root = een coach die zelf nergens teamlid van is (staat aan de top van zijn keten).
   const roots = teams.filter((t) => !memberIds.has(t.coachId));
   const seen = new Set<string>();
-  return roots.map((t) => buildNode(teamByCoachId, t.coach, seen));
+  const result: OrgNode[] = [];
+  for (const t of roots) {
+    if (t.coach.active) {
+      result.push(buildNode(teamByCoachId, t.coach, seen));
+    } else {
+      // Inactieve top-coach: zelf niet tonen, maar actieve mensen in zijn
+      // structuur alsnog als eigen rootnodes tonen i.p.v. laten verdwijnen.
+      seen.add(t.coach.id);
+      result.push(...buildActiveChildren(teamByCoachId, t.coach, seen));
+    }
+  }
+  return result;
 }
 
 /** Eigen structuur van een Coach: zichzelf als root, plus wie zijn eigen coach is (indien van toepassing). */
@@ -118,6 +157,7 @@ export async function getMyOrgChart(): Promise<{
         role: true,
         jobFunction: true,
         isSubagent: true,
+        active: true,
         team: { select: { coach: { select: { id: true, name: true } } } },
       },
     }),
