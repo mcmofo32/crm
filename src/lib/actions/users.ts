@@ -39,8 +39,15 @@ function parseJobFunction(raw: FormDataEntryValue | null): JobFunction | null {
   return VALID_JOB_FUNCTIONS.has(value) ? (value as JobFunction) : null;
 }
 
+/**
+ * Letterlijke strings i.p.v. AgentType.SUBAGENT/ANALYST: dezelfde reden als
+ * bij VALID_JOB_FUNCTIONS hierboven — een property-lookup op het
+ * gegenereerde enum-object bleek in deze server-actionbundel niet
+ * betrouwbaar, waardoor de waarde stilzwijgend nooit veranderde (Prisma
+ * negeert een `undefined` veld bij een update i.p.v. een fout te geven).
+ */
 function parseAgentType(raw: FormDataEntryValue | null): AgentType {
-  return String(raw ?? "") === "SUBAGENT" ? AgentType.SUBAGENT : AgentType.ANALYST;
+  return (String(raw ?? "") === "SUBAGENT" ? "SUBAGENT" : "ANALYST") as AgentType;
 }
 
 async function requireUserManager() {

@@ -31,6 +31,11 @@ export default function AppError({
         <p className="mt-1 text-sm text-red-700">
           {error.message || "Onbekende fout. Probeer het opnieuw."}
         </p>
+        {error.digest && (
+          <p className="mt-2 text-xs text-red-400">
+            Referentie: <code>{error.digest}</code> (voor in Vercel-logs)
+          </p>
+        )}
       </div>
       <button
         type="button"
