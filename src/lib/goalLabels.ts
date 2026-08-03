@@ -32,6 +32,17 @@ export const KPI_METRIC_ORDER: KpiMetric[] = [
   "SEMINAR",
 ];
 
+/**
+ * KPI's die manueel ingesteld/ingevoerd worden op de doelenpagina.
+ * KPI Seminarie zit hier niet bij: die wordt automatisch berekend uit de
+ * aanwezigheidsregistratie op Evenementen.
+ */
+export const MANUAL_KPI_METRIC_ORDER: KpiMetric[] = [
+  "CONVERSATIONS",
+  "PRODUCTION",
+  "CALLING_SESSION",
+];
+
 export const MONTH_LABELS = [
   "Januari",
   "Februari",

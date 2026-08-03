@@ -5,7 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric, KpiMetric, Role } from "@/generated/prisma/client";
-import { GOAL_METRIC_ORDER, KPI_METRIC_ORDER } from "@/lib/goalLabels";
+import {
+  GOAL_METRIC_ORDER,
+  KPI_METRIC_ORDER,
+  MANUAL_KPI_METRIC_ORDER,
+} from "@/lib/goalLabels";
+import { getSeminarAttendancePercent } from "@/lib/actions/events";
 
 async function requireGoalManager() {
   const viewer = await getEffectiveViewer();
@@ -177,7 +182,7 @@ export async function getUserKpiMonthlyEntries(userId: string, year: number) {
   return byMetricMonth;
 }
 
-/** Slaat de 4 jaarlijkse KPI-doelen (voor `year`) van deze gebruiker op. */
+/** Slaat de 3 manueel ingestelde jaarlijkse KPI-doelen (voor `year`) van deze gebruiker op. */
 export async function saveUserKpiGoalsAction(
   userId: string,
   year: number,
@@ -185,7 +190,7 @@ export async function saveUserKpiGoalsAction(
 ) {
   await requireGoalManager();
 
-  const kpiGoalUpserts = KPI_METRIC_ORDER.map((metric) => {
+  const kpiGoalUpserts = MANUAL_KPI_METRIC_ORDER.map((metric) => {
     const raw = String(formData.get(`kpiGoal_${metric}`) ?? "").trim();
     const target = raw ? Number(raw) : 0;
     return prisma.userKpiGoal.upsert({
@@ -201,7 +206,7 @@ export async function saveUserKpiGoalsAction(
   revalidatePath("/dashboard");
 }
 
-/** Slaat de 12 maandwaarden van de 4 jaarlijkse KPI's voor `year` op. */
+/** Slaat de 12 maandwaarden van de 3 manuele jaarlijkse KPI's voor `year` op. */
 export async function saveUserKpiMonthlyEntriesAction(
   userId: string,
   year: number,
@@ -209,7 +214,7 @@ export async function saveUserKpiMonthlyEntriesAction(
 ) {
   await requireGoalManager();
 
-  const upserts = KPI_METRIC_ORDER.flatMap((metric) =>
+  const upserts = MANUAL_KPI_METRIC_ORDER.flatMap((metric) =>
     Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
       const raw = String(
         formData.get(`monthly_${metric}_${month}`) ?? ""
@@ -361,9 +366,10 @@ export async function getYearlyKpiProgress(
   userId: string,
   year: number
 ): Promise<KpiProgress[]> {
-  const [targets, entries] = await Promise.all([
+  const [targets, entries, seminarAttendance] = await Promise.all([
     prisma.userKpiGoal.findMany({ where: { userId, year } }),
     prisma.userKpiMonthlyEntry.findMany({ where: { userId, year } }),
+    getSeminarAttendancePercent(userId, year),
   ]);
 
   const targetByMetric = new Map(
@@ -378,6 +384,14 @@ export async function getYearlyKpiProgress(
   }
 
   return KPI_METRIC_ORDER.map((metric) => {
+    if (metric === "SEMINAR") {
+      return {
+        metric,
+        actual: seminarAttendance.actual,
+        target: seminarAttendance.total,
+        percent: seminarAttendance.percent,
+      };
+    }
     const target = targetByMetric.get(metric) ?? 0;
     const actual = actualByMetric.get(metric) ?? 0;
     return {

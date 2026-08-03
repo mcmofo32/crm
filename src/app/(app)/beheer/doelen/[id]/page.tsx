@@ -10,7 +10,7 @@ import {
 } from "@/lib/actions/goals";
 import {
   KPI_METRIC_LABELS,
-  KPI_METRIC_ORDER,
+  MANUAL_KPI_METRIC_ORDER,
   MONTH_LABELS,
 } from "@/lib/goalLabels";
 import { ROLE_LABELS } from "@/lib/roleLabels";
@@ -60,6 +60,15 @@ export default async function UserDoelenPage({
         </p>
       </div>
 
+      <p className="text-sm text-slate-400">
+        KPI Seminarie staat hier niet bij: die wordt automatisch berekend uit
+        de aanwezigheidsregistratie op{" "}
+        <Link href="/evenementen" className="underline hover:text-slate-600">
+          Evenementen
+        </Link>
+        .
+      </p>
+
       <form
         action={boundSaveKpiGoals}
         className="flex flex-col gap-6 rounded-lg border border-slate-200 bg-white p-6"
@@ -76,7 +85,7 @@ export default async function UserDoelenPage({
           <YearSwitcher basePath={`/beheer/doelen/${id}`} year={year} options={yearOptions} />
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {KPI_METRIC_ORDER.map((metric) => (
+          {MANUAL_KPI_METRIC_ORDER.map((metric) => (
             <label key={metric} className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-slate-700">
                 {KPI_METRIC_LABELS[metric]}
@@ -129,7 +138,7 @@ export default async function UserDoelenPage({
               </tr>
             </thead>
             <tbody>
-              {KPI_METRIC_ORDER.map((metric) => (
+              {MANUAL_KPI_METRIC_ORDER.map((metric) => (
                 <tr key={metric} className="border-t border-slate-100">
                   <td className="py-2 pr-3 font-medium text-slate-900 whitespace-nowrap">
                     {KPI_METRIC_LABELS[metric]}

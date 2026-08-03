@@ -99,6 +99,9 @@ model User {
   kpiGoals          UserKpiGoal[]         @relation("UserKpiGoals")
   kpiMonthlyEntries UserKpiMonthlyEntry[] @relation("UserKpiMonthlyEntries")
 
+  eventsCreated    Event[]           @relation("EventCreatedBy")
+  eventAttendances EventAttendance[] @relation("EventAttendances")
+
   @@index([teamId])
 }
 
@@ -450,4 +453,52 @@ model UserKpiMonthlyEntry {
 
   @@unique([userId, metric, year, month])
   @@index([userId, metric, year])
+}
+
+// ---------------------------------------------------------------------------
+// Evenementen: vergaderingen & seminaries met aanwezigheidsregistratie
+// ---------------------------------------------------------------------------
+
+enum EventType {
+  MEETING
+  SEMINAR
+}
+
+enum AttendanceStatus {
+  PENDING
+  GOING
+  NOT_GOING
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  type        EventType
+  date        DateTime
+  location    String?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdById String
+  createdBy   User      @relation("EventCreatedBy", fields: [createdById], references: [id])
+
+  attendances EventAttendance[]
+
+  @@index([type, date])
+}
+
+/// Of een gebruiker aanwezig zal zijn op een evenement. Voor seminaries vormt
+/// dit meteen de basis voor KPI Seminarie (% seminaries met status GOING).
+model EventAttendance {
+  id        String           @id @default(cuid())
+  eventId   String
+  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation("EventAttendances", fields: [userId], references: [id], onDelete: Cascade)
+  status    AttendanceStatus @default(PENDING)
+  updatedAt DateTime         @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([userId])
 }

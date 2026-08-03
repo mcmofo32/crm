@@ -37,6 +37,7 @@ export default async function AppLayout({
     { href: "/funnel/RG", label: "Funnel RG" },
     { href: "/klanten", label: "Klanten" },
     { href: "/incentives", label: "Incentives" },
+    { href: "/evenementen", label: "Evenementen" },
   ];
 
   return (

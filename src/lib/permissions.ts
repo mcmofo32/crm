@@ -51,6 +51,15 @@ export function canManageIncentives(user: SessionUser) {
   );
 }
 
+/** Wie mag evenementen (vergaderingen/seminaries) aanmaken/verwijderen? Iedereen mag ze bekijken en zich aan-/afmelden. */
+export function canManageEvents(user: SessionUser) {
+  return (
+    user.role === Role.BEHEERDER ||
+    user.role === Role.ADMIN ||
+    user.role === Role.COACH
+  );
+}
+
 /** Mag `actor` het account `target` aanmaken/wijzigen/verwijderen? */
 export function canManageUser(actor: SessionUser, target: { role: Role }) {
   if (actor.role === Role.BEHEERDER) return true;
