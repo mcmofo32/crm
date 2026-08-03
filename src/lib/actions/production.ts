@@ -1,22 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canManageUsers } from "@/lib/permissions";
-import { GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
+import { GoalMetric, JobFunction } from "@/generated/prisma/client";
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
-  return viewer;
-}
-
-async function requireGoalManager() {
-  const viewer = await requireViewer();
-  if (!canManageUsers(viewer)) {
-    throw new Error("Je hebt geen rechten om doelen te beheren");
-  }
   return viewer;
 }
 
@@ -81,7 +71,9 @@ export async function getProductionLeaderboard(
       name: true,
       jobFunction: true,
       team: { select: { coach: { select: { name: true } } } },
-      monthlyGoals: { where: { year, month } },
+      goals: {
+        where: { metric: { in: [GoalMetric.CUSTOMERS, GoalMetric.UNITS] } },
+      },
     },
     orderBy: { name: "asc" },
   });
@@ -131,7 +123,7 @@ export async function getProductionLeaderboard(
 
   const rows = users.map((u) => {
     const goalByMetric = new Map(
-      u.monthlyGoals.map((g) => [g.metric, Number(g.target)])
+      u.goals.map((g) => [g.metric, Number(g.target)])
     );
     const won = wonByUser.get(u.id);
     const actualCustomers = won?.customers.size ?? 0;
@@ -229,85 +221,4 @@ export async function getConversationsLeaderboard(period?: {
   });
 
   return rows.sort((a, b) => b.actual - a.actual);
-}
-
-// ---------------------------------------------------------------------------
-// Beheer: maandelijkse Klanten/Eenheden-doelen instellen (enkel Beheerder/Admin)
-// ---------------------------------------------------------------------------
-
-const MONTHLY_GOAL_METRICS = [GoalMetric.CUSTOMERS, GoalMetric.UNITS] as const;
-
-export async function getAllUserMonthlyGoalsForTable(year: number, month: number) {
-  const actor = await requireGoalManager();
-  const users = await prisma.user.findMany({
-    where: { active: true },
-    select: {
-      id: true,
-      name: true,
-      role: true,
-      monthlyGoals: { where: { year, month } },
-    },
-    orderBy: { name: "asc" },
-  });
-  const visible =
-    actor.role === Role.BEHEERDER
-      ? users
-      : users.filter((u) => u.role !== Role.BEHEERDER);
-
-  return visible.map((u) => ({
-    id: u.id,
-    name: u.name,
-    role: u.role,
-    targetByMetric: new Map(u.monthlyGoals.map((g) => [g.metric, Number(g.target)])),
-  }));
-}
-
-export async function setUserMonthlyGoalAction(
-  userId: string,
-  metric: (typeof MONTHLY_GOAL_METRICS)[number],
-  year: number,
-  month: number,
-  formData: FormData
-) {
-  await requireGoalManager();
-
-  const raw = String(formData.get("target") ?? "").trim();
-  const target = raw ? Number(raw) : 0;
-
-  await prisma.userMonthlyGoal.upsert({
-    where: { userId_metric_year_month: { userId, metric, year, month } },
-    create: { userId, metric, year, month, target },
-    update: { target },
-  });
-
-  revalidatePath("/productie");
-  revalidatePath("/beheer/doelen/productie");
-}
-
-export async function saveAllUserMonthlyGoalsAction(
-  userIds: string[],
-  year: number,
-  month: number,
-  formData: FormData
-) {
-  await requireGoalManager();
-
-  const upserts = userIds.flatMap((userId) =>
-    MONTHLY_GOAL_METRICS.map((metric) => {
-      const raw = String(
-        formData.get(`monthlyGoal_${userId}_${metric}`) ?? ""
-      ).trim();
-      const target = raw ? Number(raw) : 0;
-      return prisma.userMonthlyGoal.upsert({
-        where: { userId_metric_year_month: { userId, metric, year, month } },
-        create: { userId, metric, year, month, target },
-        update: { target },
-      });
-    })
-  );
-
-  await prisma.$transaction(upserts);
-
-  revalidatePath("/beheer/doelen/productie");
-  revalidatePath("/productie");
 }

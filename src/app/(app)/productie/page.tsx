@@ -4,9 +4,8 @@ import {
   getProductionLeaderboard,
   getConversationsLeaderboard,
   getCurrentProductionMonth,
-  setUserMonthlyGoalAction,
 } from "@/lib/actions/production";
-import { getCurrentGoalPeriod } from "@/lib/actions/goals";
+import { getCurrentGoalPeriod, setUserGoalAction } from "@/lib/actions/goals";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric } from "@/generated/prisma/client";
@@ -175,12 +174,10 @@ export default async function ProductiePage({
                           step={1}
                           name="target"
                           value={row.targetCustomers ? String(row.targetCustomers) : ""}
-                          action={setUserMonthlyGoalAction.bind(
+                          action={setUserGoalAction.bind(
                             null,
                             row.id,
-                            GoalMetric.CUSTOMERS,
-                            year,
-                            month
+                            GoalMetric.CUSTOMERS
                           )}
                           className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
                         />
@@ -204,12 +201,10 @@ export default async function ProductiePage({
                           step={1}
                           name="target"
                           value={row.targetUnits ? String(row.targetUnits) : ""}
-                          action={setUserMonthlyGoalAction.bind(
+                          action={setUserGoalAction.bind(
                             null,
                             row.id,
-                            GoalMetric.UNITS,
-                            year,
-                            month
+                            GoalMetric.UNITS
                           )}
                           className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
                         />

@@ -122,7 +122,6 @@ model User {
   auditLogEntries   AuditLog[]        @relation("AuditActor")
 
   goals             UserGoal[]            @relation("UserGoals")
-  monthlyGoals      UserMonthlyGoal[]     @relation("UserMonthlyGoals")
   kpiGoals          UserKpiGoal[]         @relation("UserKpiGoals")
   kpiMonthlyEntries UserKpiMonthlyEntry[] @relation("UserKpiMonthlyEntries")
 
@@ -470,23 +469,6 @@ model UserGoal {
   updatedAt DateTime   @updatedAt
 
   @@unique([userId, metric])
-}
-
-/// Maandelijks doel per gebruiker voor Klanten/Eenheden, specifiek voor de
-/// Productie-tab (los van de wekelijkse doelen op het dashboard hierboven).
-model UserMonthlyGoal {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation("UserMonthlyGoals", fields: [userId], references: [id], onDelete: Cascade)
-  metric    GoalMetric
-  year      Int
-  month     Int
-  target    Decimal    @db.Decimal(12, 2)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@unique([userId, metric, year, month])
-  @@index([userId, metric, year])
 }
 
 /// De 4 jaarlijkse KPI's onder "Productie jaarlijks".
