@@ -81,9 +81,7 @@ export class TeamPlanningContext {
 
   /** Gebruikers die als lid aan een team toegevoegd kunnen worden. */
   memberCandidates() {
-    return this.allUsers
-      .filter((u) => u.role === Role.USER || u.role === Role.COACH)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return this.allUsers.slice().sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /** Iedereen die onder dit team valt, ook via geneste sub-structuren. */
@@ -116,7 +114,6 @@ export class TeamPlanningContext {
     const ownTeam = this.teamByCoachId.get(personId);
     const existingMemberIds = new Set((ownTeam?.members ?? []).map((m) => m.id));
     return this.allUsers
-      .filter((c) => c.role === Role.USER || c.role === Role.COACH)
       .filter((c) => c.id !== personId && !existingMemberIds.has(c.id))
       .filter((c) => c.role !== Role.COACH || !this.descendantsOf(c.id).has(personId))
       .sort((a, b) => a.name.localeCompare(b.name));

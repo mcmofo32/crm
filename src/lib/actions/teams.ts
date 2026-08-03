@@ -102,11 +102,7 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
   if (!team) throw new Error("Team niet gevonden");
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || (user.role !== Role.USER && user.role !== Role.COACH)) {
-    throw new Error(
-      "Enkel gebruikers met rol 'User' of 'Coach' kunnen aan een team toegevoegd worden"
-    );
-  }
+  if (!user) throw new Error("Gebruiker niet gevonden");
   if (!canManageUser(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
@@ -157,11 +153,7 @@ export async function addSubordinateAction(personId: string, formData: FormData)
   }
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || (user.role !== Role.USER && user.role !== Role.COACH)) {
-    throw new Error(
-      "Enkel gebruikers met rol 'User' of 'Coach' kunnen toegevoegd worden"
-    );
-  }
+  if (!user) throw new Error("Gebruiker niet gevonden");
   if (!canManageUser(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }

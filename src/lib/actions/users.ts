@@ -103,9 +103,9 @@ export async function createUserAction(formData: FormData) {
       role,
       jobFunction,
       isSubagent,
-      // Een Coach kan zelf ook lid zijn van het team van een andere coach
-      // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
-      teamId: role === Role.USER || role === Role.COACH ? teamId : null,
+      // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
+      // iedereen ergens in de organigram-structuur kan hangen.
+      teamId,
     },
   });
 
@@ -245,9 +245,9 @@ export async function updateUserAction(userId: string, formData: FormData) {
       role,
       jobFunction,
       isSubagent,
-      // Een Coach kan zelf ook lid zijn van het team van een andere coach
-      // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
-      teamId: role === Role.USER || role === Role.COACH ? teamId : null,
+      // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
+      // iedereen ergens in de organigram-structuur kan hangen.
+      teamId,
     },
   });
 
