@@ -46,20 +46,10 @@ function formatValue(value: number) {
     : value.toLocaleString("nl-BE", { maximumFractionDigits: 2 });
 }
 
-function formatCurrency(value: number) {
-  return value.toLocaleString("nl-BE", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  });
-}
-
-const CURRENCY_METRICS = new Set(["ABV_SALES", "ABV_RG"]);
-
 function percentColor(percent: number | null) {
   if (percent === null) return "text-slate-400";
   if (percent >= 100) return "text-green-600";
-  if (percent >= 50) return "text-amber-600";
+  if (percent >= 60) return "text-amber-600";
   return "text-red-600";
 }
 
@@ -129,7 +119,6 @@ export default async function DashboardPage() {
             percent={goal.percent}
             icon={GOAL_ICONS[goal.metric]}
             percentPosition={goal.metric === "ABV_RG" ? "beside" : "below"}
-            isCurrency={CURRENCY_METRICS.has(goal.metric)}
           />
         ))}
       </div>
@@ -224,7 +213,6 @@ function GoalCard({
   percent,
   icon: Icon,
   percentPosition,
-  isCurrency = false,
 }: {
   label: string;
   actual: number;
@@ -232,9 +220,7 @@ function GoalCard({
   percent: number | null;
   icon: LucideIcon;
   percentPosition: "below" | "beside";
-  isCurrency?: boolean;
 }) {
-  const format = isCurrency ? formatCurrency : formatValue;
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
@@ -249,10 +235,10 @@ function GoalCard({
         }
       >
         <p className="text-3xl font-semibold text-slate-900">
-          {format(actual)}
+          {formatValue(actual)}
           <span className="text-lg font-normal text-slate-400">
             {" "}
-            / {format(target)}
+            / {formatValue(target)}
           </span>
         </p>
         <p

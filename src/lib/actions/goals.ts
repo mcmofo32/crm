@@ -4,12 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
-import {
-  GoalMetric,
-  KpiMetric,
-  LeadType,
-  Role,
-} from "@/generated/prisma/client";
+import { GoalMetric, KpiMetric, Role } from "@/generated/prisma/client";
 import { GOAL_METRIC_ORDER, KPI_METRIC_ORDER } from "@/lib/goalLabels";
 
 async function requireGoalManager() {
@@ -255,10 +250,8 @@ export type GoalProgress = {
  * - Gesprekken: aantal FA-activiteiten (CALL/MEETING) die binnen de periode
  *   ingepland staan (status PLANNED, op `scheduledAt`) — dus geplande
  *   financiële analyses, niet per se al afgerond.
- * - ABV verkoop/RG: het gemiddelde bedrag per nieuwe lead binnen de periode
- *   — totale omzet (van leads die binnen de periode klant werden) gedeeld
- *   door het aantal nieuwe leads van dat type dat binnen de periode is
- *   toegevoegd.
+ * - ABV verkoop/RG: absoluut aantal nieuwe FA- resp. RG-leads dat binnen
+ *   de periode is toegevoegd (geen bedrag).
  */
 export async function getWeeklyGoalProgress(
   userId: string,
@@ -285,7 +278,7 @@ export async function getWeeklyGoalProgress(
             select: {
               id: true,
               leadType: true,
-              products: { select: { amount: true, units: true } },
+              products: { select: { units: true } },
             },
           },
         },
@@ -336,30 +329,12 @@ export async function getWeeklyGoalProgress(
   );
   const customers = wonLeads.length;
 
-  const newLeadCountByType: Record<LeadType, number> = {
-    FA: newFaLeads,
-    RG: newRgLeads,
-  };
-
-  const avgValuePerNewLead = (leadType: LeadType) => {
-    const newLeadCount = newLeadCountByType[leadType];
-    if (newLeadCount === 0) return 0;
-    const total = wonLeads
-      .filter((l) => l.leadType === leadType)
-      .reduce(
-        (sum, lead) =>
-          sum + lead.products.reduce((s, p) => s + Number(p.amount), 0),
-        0
-      );
-    return total / newLeadCount;
-  };
-
   const actualByMetric: Record<GoalMetric, number> = {
     UNITS: units,
     CUSTOMERS: customers,
     CONVERSATIONS: conversations,
-    ABV_SALES: avgValuePerNewLead("FA"),
-    ABV_RG: avgValuePerNewLead("RG"),
+    ABV_SALES: newFaLeads,
+    ABV_RG: newRgLeads,
   };
 
   return GOAL_METRIC_ORDER.map((metric) => {
