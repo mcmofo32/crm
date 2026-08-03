@@ -9,9 +9,13 @@ import {
 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
-import { getVisibleUserIds, canDeleteActivities } from "@/lib/permissions";
+import {
+  getDescendantUserIds,
+  canDeleteActivities,
+  canManageUsers,
+} from "@/lib/permissions";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
-import { LeadType } from "@/generated/prisma/client";
+import { LeadType, Role } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { Badge } from "@/components/Badge";
 
@@ -38,15 +42,22 @@ function startOfDay(date: Date) {
 export default async function TakenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; scope?: string }>;
 }) {
-  const { type } = await searchParams;
+  const { type, scope } = await searchParams;
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
 
   const user = (await getEffectiveViewer())!;
-  const visibleUserIds = await getVisibleUserIds(user);
-  const ownerWhere = visibleUserIds ? { ownerId: { in: visibleUserIds } } : {};
+  // Admin/Coach/Beheerder kunnen kiezen om ook de taken van iedereen onder
+  // hen in het organigram te zien; standaard (en voor een gewone User altijd)
+  // zie je enkel je eigen taken.
+  const canFilterScope = canManageUsers(user) || user.role === Role.COACH;
+  const showTeamScope = canFilterScope && scope === "team";
+  const visibleUserIds = showTeamScope
+    ? [user.id, ...(await getDescendantUserIds(user.id))]
+    : [user.id];
+  const ownerWhere = { ownerId: { in: visibleUserIds } };
 
   const tasks = await prisma.activity.findMany({
     where: {
@@ -104,20 +115,53 @@ export default async function TakenPage({
         </p>
       </div>
 
-      <div className="flex gap-2 text-base">
-        {(["ALLE", "FA", "RG"] as const).map((t) => (
-          <Link
-            key={t}
-            href={t === "ALLE" ? "/taken" : `/taken?type=${t}`}
-            className={`rounded-full px-4 py-1.5 ${
-              (t === "ALLE" && !leadType) || t === leadType
-                ? "bg-slate-900 text-white"
-                : "bg-white text-slate-600 border border-slate-200"
-            }`}
-          >
-            {t === "ALLE" ? "Alle" : LEAD_TYPE_LABELS[t]}
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2 text-base">
+          {(["ALLE", "FA", "RG"] as const).map((t) => {
+            const params = new URLSearchParams();
+            if (t !== "ALLE") params.set("type", t);
+            if (showTeamScope) params.set("scope", "team");
+            const qs = params.toString();
+            return (
+              <Link
+                key={t}
+                href={qs ? `/taken?${qs}` : "/taken"}
+                className={`rounded-full px-4 py-1.5 ${
+                  (t === "ALLE" && !leadType) || t === leadType
+                    ? "bg-slate-900 text-white"
+                    : "bg-white text-slate-600 border border-slate-200"
+                }`}
+              >
+                {t === "ALLE" ? "Alle" : LEAD_TYPE_LABELS[t]}
+              </Link>
+            );
+          })}
+        </div>
+
+        {canFilterScope && (
+          <div className="flex gap-2 text-base">
+            {(["own", "team"] as const).map((s) => {
+              const params = new URLSearchParams();
+              if (leadType) params.set("type", leadType);
+              if (s === "team") params.set("scope", "team");
+              const qs = params.toString();
+              const active = s === "team" ? showTeamScope : !showTeamScope;
+              return (
+                <Link
+                  key={s}
+                  href={qs ? `/taken?${qs}` : "/taken"}
+                  className={`rounded-full px-4 py-1.5 ${
+                    active
+                      ? "bg-slate-900 text-white"
+                      : "bg-white text-slate-600 border border-slate-200"
+                  }`}
+                >
+                  {s === "own" ? "Eigen taken" : "Team (organigram)"}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {tasks.length === 0 ? (

@@ -14,7 +14,12 @@ import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { conversionBadgeVariant } from "@/lib/roleLabels";
-import { getTeamOverviewForCoach } from "@/lib/actions/analytics";
+import {
+  getTeamOverviewForCoach,
+  getAllTeamOverviews,
+  type EmployeeStats,
+} from "@/lib/actions/analytics";
+import { isBeheerder } from "@/lib/permissions";
 import {
   getCurrentGoalPeriod,
   getWeeklyGoalProgress,
@@ -64,16 +69,23 @@ export default async function DashboardPage() {
 
   const goalPeriod = await getCurrentGoalPeriod();
 
-  const [overdueTasks, weeklyGoals, yearlyKpis, teamOverview, unverifiedSeminars] =
-    await Promise.all([
-      prisma.activity.count({
-        where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
-      }),
-      getWeeklyGoalProgress(user.id, goalPeriod),
-      getYearlyKpiProgress(user.id, currentYear),
-      user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
-      getUnverifiedPastSeminars(),
-    ]);
+  const [
+    overdueTasks,
+    weeklyGoals,
+    yearlyKpis,
+    teamOverview,
+    allTeamOverviews,
+    unverifiedSeminars,
+  ] = await Promise.all([
+    prisma.activity.count({
+      where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
+    }),
+    getWeeklyGoalProgress(user.id, goalPeriod),
+    getYearlyKpiProgress(user.id, currentYear),
+    user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
+    isBeheerder(user) ? getAllTeamOverviews() : Promise.resolve(null),
+    getUnverifiedPastSeminars(),
+  ]);
 
   const seminarKpi = yearlyKpis.find((k) => k.metric === "SEMINAR");
   const otherKpis = yearlyKpis.filter((k) => k.metric !== "SEMINAR");
@@ -175,52 +187,75 @@ export default async function DashboardPage() {
       </div>
 
       {teamOverview && (
-        <div>
-          <h2 className="mb-4 flex items-center gap-1.5 text-xl font-medium text-slate-900">
-            <Users2 size={19} />
-            Mijn team — {teamOverview.teamName}
-          </h2>
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <table className="w-full text-base">
-              <thead className="bg-slate-50 text-left text-slate-500">
-                <tr>
-                  <th className="px-6 py-3 font-medium">Naam</th>
-                  <th className="px-6 py-3 font-medium">Leads</th>
-                  <th className="px-6 py-3 font-medium">Gewonnen</th>
-                  <th className="px-6 py-3 font-medium">Conversie</th>
-                  <th className="px-6 py-3 font-medium">Afgeronde contacten</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {teamOverview.members.map((member) => (
-                  <tr key={member.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <Avatar name={member.name} />
-                        {member.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-700">
-                      {member.totalLeads}
-                    </td>
-                    <td className="px-6 py-4 text-slate-700">{member.won}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={conversionBadgeVariant(member.conversionRate)}>
-                        {member.conversionRate === null
-                          ? "—"
-                          : `${member.conversionRate}%`}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-slate-700">
-                      {member.activitiesCompleted}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <TeamOverviewTable
+          title={`Mijn team — ${teamOverview.teamName}`}
+          members={teamOverview.members}
+        />
+      )}
+
+      {allTeamOverviews && allTeamOverviews.length > 0 && (
+        <div className="flex flex-col gap-8">
+          {allTeamOverviews.map((team) => (
+            <TeamOverviewTable
+              key={team.teamId}
+              title={`${team.teamName} — coach ${team.coachName}`}
+              members={team.members}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function TeamOverviewTable({
+  title,
+  members,
+}: {
+  title: string;
+  members: EmployeeStats[];
+}) {
+  return (
+    <div>
+      <h2 className="mb-4 flex items-center gap-1.5 text-xl font-medium text-slate-900">
+        <Users2 size={19} />
+        {title}
+      </h2>
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <table className="w-full text-base">
+          <thead className="bg-slate-50 text-left text-slate-500">
+            <tr>
+              <th className="px-6 py-3 font-medium">Naam</th>
+              <th className="px-6 py-3 font-medium">Leads</th>
+              <th className="px-6 py-3 font-medium">Gewonnen</th>
+              <th className="px-6 py-3 font-medium">Conversie</th>
+              <th className="px-6 py-3 font-medium">Afgeronde contacten</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {members.map((member) => (
+              <tr key={member.id} className="hover:bg-slate-50">
+                <td className="px-6 py-4 font-medium text-slate-900">
+                  <div className="flex items-center gap-2">
+                    <Avatar name={member.name} />
+                    {member.name}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-slate-700">{member.totalLeads}</td>
+                <td className="px-6 py-4 text-slate-700">{member.won}</td>
+                <td className="px-6 py-4">
+                  <Badge variant={conversionBadgeVariant(member.conversionRate)}>
+                    {member.conversionRate === null ? "—" : `${member.conversionRate}%`}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 text-slate-700">
+                  {member.activitiesCompleted}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

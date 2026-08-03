@@ -227,3 +227,70 @@ export async function getTeamOverviewForCoach() {
     members: buildEmployeeStats(users, leads, activityGroups),
   };
 }
+
+export type TeamOverview = {
+  teamId: string;
+  teamName: string;
+  coachName: string;
+  members: EmployeeStats[];
+};
+
+/**
+ * Alle teamoverzichten tegelijk, voor de Beheerder: dezelfde soort tabel die
+ * een Coach voor zijn eigen team ziet, maar dan voor elke groep in het
+ * bedrijf (bv. "Structuur A" van Thibault), in één keer op het dashboard.
+ */
+export async function getAllTeamOverviews(): Promise<TeamOverview[]> {
+  await requireBeheerder();
+
+  const teams = await prisma.team.findMany({
+    select: {
+      id: true,
+      name: true,
+      coachId: true,
+      coach: { select: { name: true } },
+      members: { select: { id: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+  if (teams.length === 0) return [];
+
+  const allUserIds = Array.from(
+    new Set(teams.flatMap((t) => [t.coachId, ...t.members.map((m) => m.id)]))
+  );
+
+  const [users, leads, activityGroups] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: allUserIds } },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        team: { select: { id: true, name: true } },
+        coachedTeam: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.lead.findMany({
+      where: { deletedAt: null, ownerId: { in: allUserIds } },
+      select: { ownerId: true, status: true },
+    }),
+    prisma.activity.groupBy({
+      by: ["assigneeId", "status"],
+      where: { assigneeId: { in: allUserIds } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const statsById = new Map(
+    buildEmployeeStats(users, leads, activityGroups).map((s) => [s.id, s])
+  );
+
+  return teams.map((t) => ({
+    teamId: t.id,
+    teamName: t.name,
+    coachName: t.coach.name,
+    members: [t.coachId, ...t.members.map((m) => m.id)]
+      .map((id) => statsById.get(id))
+      .filter((s): s is EmployeeStats => Boolean(s)),
+  }));
+}
