@@ -18,7 +18,7 @@ import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { canManageUsers, isBeheerder } from "@/lib/permissions";
 import { ViewAsControls } from "@/components/ViewAsControls";
 import type { EffectiveViewer } from "@/lib/impersonation";
-import { Role } from "@/generated/prisma/client";
+import { JobFunction, Role } from "@/generated/prisma/client";
 
 function MenuLink({
   href,
@@ -51,9 +51,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function ProfileMenu({
   name,
   viewer,
+  jobFunction,
 }: {
   name: string;
   viewer: EffectiveViewer;
+  jobFunction?: JobFunction | null;
 }) {
   const showUserManagement = canManageUsers(viewer);
   const showBeheerderTools = isBeheerder(viewer);
@@ -64,7 +66,14 @@ export function ProfileMenu({
       <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-1 py-1 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
         <Avatar name={name} size="md" />
         <div className="flex flex-col leading-tight">
-          <span className="text-base font-medium text-slate-800">{name}</span>
+          <span className="flex items-center gap-1.5 text-base font-medium text-slate-800">
+            {name}
+            {jobFunction && (
+              <span className="text-sm font-normal text-slate-400">
+                {jobFunction}
+              </span>
+            )}
+          </span>
           <Badge variant={ROLE_BADGE_VARIANT[viewer.role]} className="w-fit">
             {ROLE_LABELS[viewer.role]}
             {viewer.isImpersonating ? " (bekeken)" : ""}

@@ -38,6 +38,12 @@ enum JobFunction {
   NC
 }
 
+/// Analyst = standaard; Subagent = werkt onder het nummer van een andere agent.
+enum AgentType {
+  ANALYST
+  SUBAGENT
+}
+
 model Team {
   id        String   @id @default(cuid())
   name      String
@@ -104,8 +110,8 @@ model User {
   /// Functie/graad, getoond op het organigram.
   jobFunction JobFunction?
 
-  /// Werkt als subagent (onder het nummer van een andere agent); getoond als icoon op het organigram.
-  isSubagent Boolean @default(false)
+  /// Analyst (standaard) of subagent; subagenten krijgen een icoon op het organigram.
+  agentType AgentType @default(ANALYST)
 
   leadsOwned        Lead[]            @relation("LeadOwner")
   leadsCreated      Lead[]            @relation("LeadCreatedBy")

@@ -4,9 +4,10 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, Maximize2, Link2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
+import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
 import type { OrgNode } from "@/lib/actions/orgChart";
 
-const NODE_WIDTH = 200;
+const NODE_WIDTH = 230;
 const NODE_HEIGHT = 72;
 const H_GAP = 28;
 const V_GAP = 64;
@@ -58,7 +59,7 @@ function flatten(p: PositionedNode, acc: PositionedNode[] = []) {
 function NodeCard({ node }: { node: OrgNode }) {
   return (
     <div className="relative flex w-full flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center shadow-sm">
-      {node.isSubagent && (
+      {node.agentType === "SUBAGENT" && (
         <span
           title="Subagent"
           className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-amber-700"
@@ -71,7 +72,13 @@ function NodeCard({ node }: { node: OrgNode }) {
         {node.name}
       </span>
       {node.jobFunction ? (
-        <Badge variant="blue">{node.jobFunction}</Badge>
+        <Badge
+          variant="blue"
+          className="max-w-full truncate"
+          title={JOB_FUNCTION_LABELS[node.jobFunction]}
+        >
+          {JOB_FUNCTION_LABELS[node.jobFunction]}
+        </Badge>
       ) : (
         <Badge variant="slate">Geen functie</Badge>
       )}

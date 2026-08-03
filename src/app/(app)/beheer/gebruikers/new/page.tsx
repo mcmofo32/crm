@@ -4,10 +4,15 @@ import {
   getTeamsForAssignment,
   getUserBasicInfo,
 } from "@/lib/actions/users";
-import { JobFunction, Role } from "@/generated/prisma/client";
+import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
+import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
 
 const JOB_FUNCTIONS = Object.values(JobFunction);
+const AGENT_TYPE_LABELS: Record<AgentType, string> = {
+  ANALYST: "Analyst",
+  SUBAGENT: "Subagent",
+};
 
 export default async function NewUserPage({
   searchParams,
@@ -89,15 +94,25 @@ export default async function NewUserPage({
             <option value="">Geen</option>
             {JOB_FUNCTIONS.map((jf) => (
               <option key={jf} value={jf}>
-                {jf}
+                {JOB_FUNCTION_LABELS[jf]}
               </option>
             ))}
           </select>
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="isSubagent" className="h-4 w-4 rounded border-slate-300" />
-          Subagent
-        </label>
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">Type</label>
+          <select
+            name="agentType"
+            defaultValue={AgentType.ANALYST}
+            className="rounded-md border border-slate-300 px-3 py-2"
+          >
+            {Object.values(AgentType).map((type) => (
+              <option key={type} value={type}>
+                {AGENT_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </div>
         {underPerson ? (
           <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
             Wordt automatisch geplaatst onder <strong>{underPerson.name}</strong>.

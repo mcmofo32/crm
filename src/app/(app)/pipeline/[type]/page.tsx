@@ -18,7 +18,7 @@ import { StageSelect } from "@/components/StageSelect";
 import { QuickCallLogButton } from "@/components/QuickCallLogButton";
 
 const TYPE_MAP = { verkoop: "FA", recrutering: "RG" } as const;
-const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline recrutering" } as const;
+const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline Rekrutering" } as const;
 
 function formatDate(date: Date | null) {
   if (!date) return "—";

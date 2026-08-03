@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
 import { LogOut, Sparkles, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getVisibleUserIds, canManageUsers } from "@/lib/permissions";
+import { getVisibleUserIds } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { NavLinks } from "@/components/NavLinks";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { ViewAsControls } from "@/components/ViewAsControls";
-import { Role } from "@/generated/prisma/client";
 
 export default async function AppLayout({
   children,
@@ -18,7 +17,13 @@ export default async function AppLayout({
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
 
-  const visibleUserIds = await getVisibleUserIds(viewer);
+  const [visibleUserIds, viewerDetails] = await Promise.all([
+    getVisibleUserIds(viewer),
+    prisma.user.findUnique({
+      where: { id: viewer.id },
+      select: { jobFunction: true },
+    }),
+  ]);
   const overdueTasks = await prisma.activity.count({
     where: {
       status: "PLANNED",
@@ -37,7 +42,7 @@ export default async function AppLayout({
       label: "Pipeline",
       children: [
         { href: "/pipeline/verkoop", label: "Pipeline verkoop" },
-        { href: "/pipeline/recrutering", label: "Pipeline recrutering" },
+        { href: "/pipeline/recrutering", label: "Pipeline Rekrutering" },
       ],
     },
     { href: "/taken", label: "Taken", badge: overdueTasks },
@@ -52,14 +57,7 @@ export default async function AppLayout({
     { href: "/klanten", label: "Klanten" },
     { href: "/incentives", label: "Incentives" },
     { href: "/evenementen", label: "Evenementen" },
-    ...(canManageUsers(viewer) || viewer.role === Role.COACH
-      ? [
-          {
-            href: "/organigram",
-            label: canManageUsers(viewer) ? "Organigram" : "Mijn structuur",
-          },
-        ]
-      : []),
+    { href: "/organigram", label: "Organigram" },
   ];
 
   return (
@@ -76,7 +74,11 @@ export default async function AppLayout({
             <NavLinks items={navItems} />
           </div>
           <div className="flex items-center gap-3">
-            <ProfileMenu name={viewer.name} viewer={viewer} />
+            <ProfileMenu
+              name={viewer.name}
+              viewer={viewer}
+              jobFunction={viewerDetails?.jobFunction ?? null}
+            />
             <form action={logoutAction}>
               <button
                 type="submit"

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { JobFunction, Role } from "@/generated/prisma/client";
+import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import {
   canManageUser,
   canManageUsers,
@@ -39,6 +39,10 @@ function parseJobFunction(raw: FormDataEntryValue | null): JobFunction | null {
   return VALID_JOB_FUNCTIONS.has(value) ? (value as JobFunction) : null;
 }
 
+function parseAgentType(raw: FormDataEntryValue | null): AgentType {
+  return String(raw ?? "") === "SUBAGENT" ? AgentType.SUBAGENT : AgentType.ANALYST;
+}
+
 async function requireUserManager() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
@@ -69,7 +73,7 @@ export async function createUserAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const jobFunction = parseJobFunction(formData.get("jobFunction"));
-  const isSubagent = formData.get("isSubagent") === "on";
+  const agentType = parseAgentType(formData.get("agentType"));
   // Komt deze aanmaak vanuit "Nieuwe gebruiker toevoegen" naast iemands naam
   // op de Teams-pagina, dan wordt de nieuwe gebruiker meteen onder die
   // persoon geplaatst i.p.v. via de gewone team-dropdown hieronder.
@@ -102,7 +106,7 @@ export async function createUserAction(formData: FormData) {
       passwordHash,
       role,
       jobFunction,
-      isSubagent,
+      agentType,
       // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
       // iedereen ergens in de organigram-structuur kan hangen.
       teamId,
@@ -222,7 +226,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const teamId = (formData.get("teamId") as string) || null;
   const jobFunction = parseJobFunction(formData.get("jobFunction"));
-  const isSubagent = formData.get("isSubagent") === "on";
+  const agentType = parseAgentType(formData.get("agentType"));
 
   if (!name || !email) {
     throw new Error("Naam en e-mail zijn verplicht");
@@ -245,7 +249,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
       phone,
       role,
       jobFunction,
-      isSubagent,
+      agentType,
       // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
       // iedereen ergens in de organigram-structuur kan hangen.
       teamId,
