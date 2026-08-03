@@ -1,11 +1,21 @@
 /**
- * Fases die op "ingepland" eindigen (bv. "Financiële analyse ingepland",
- * "Adviesgesprek ingepland", "Kennismakingsgesprek ingepland", "Carrière
- * gesprek ingepland") krijgen naast de verplichte rapportering ook een
- * planning-widget om meteen een afspraak (fysiek of online) in te plannen.
+ * Fases die een afspraak vertegenwoordigen — ofwel via de huidige fase-namen
+ * ("Financiële analyse", "Adviesgesprek", "Kennismakingsgesprek",
+ * "Carrièregesprek"), ofwel via de oudere "... ingepland"-vorm — krijgen
+ * naast de verplichte rapportering ook een planning-widget om meteen een
+ * afspraak (fysiek of online) in te plannen.
  */
+const PLANNING_MEETING_TYPES = new Set([
+  "financiële analyse",
+  "adviesgesprek",
+  "kennismakingsgesprek",
+  "carrièregesprek",
+]);
+
 export function isPlanningStage(stageLabel: string) {
-  return /\bingepland$/i.test(stageLabel.trim());
+  const trimmed = stageLabel.trim();
+  const type = meetingTypeFromStageLabel(trimmed).toLowerCase();
+  return PLANNING_MEETING_TYPES.has(type) || /\bingepland$/i.test(trimmed);
 }
 
 /** Haalt het "type" gesprek uit de fase-naam, bv. "Financiële analyse ingepland" -> "Financiële analyse". */
