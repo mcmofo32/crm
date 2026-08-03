@@ -4,7 +4,7 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { getFullOrgChart, getMyOrgChart } from "@/lib/actions/orgChart";
 import { Role } from "@/generated/prisma/client";
-import { OrgChartNode } from "@/components/OrgChartNode";
+import { OrgChartCanvas } from "@/components/OrgChartCanvas";
 
 export default async function OrganigramPage() {
   const viewer = (await getEffectiveViewer())!;
@@ -22,18 +22,11 @@ export default async function OrganigramPage() {
             De volledige structuur van het bedrijf: wie coacht wie.
           </p>
         </div>
-        <div className="flex flex-col gap-10">
-          {roots.map((root) => (
-            <div key={root.id} className="overflow-x-auto pb-4">
-              <ul className="org-tree inline-flex w-full justify-center">
-                <OrgChartNode node={root} />
-              </ul>
-            </div>
-          ))}
-          {roots.length === 0 && (
-            <p className="text-base text-slate-400">Nog geen teams aangemaakt.</p>
-          )}
-        </div>
+        {roots.length > 0 ? (
+          <OrgChartCanvas roots={roots} />
+        ) : (
+          <p className="text-base text-slate-400">Nog geen teams aangemaakt.</p>
+        )}
       </div>
     );
   }
@@ -53,11 +46,7 @@ export default async function OrganigramPage() {
             </p>
           )}
         </div>
-        <div className="overflow-x-auto pb-4">
-          <ul className="org-tree inline-flex w-full justify-center">
-            <OrgChartNode node={tree} />
-          </ul>
-        </div>
+        <OrgChartCanvas roots={[tree]} />
       </div>
     );
   }

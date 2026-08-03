@@ -25,6 +25,19 @@ enum Role {
   USER
 }
 
+/// Functie/graad van een gebruiker, getoond op het organigram.
+enum JobFunction {
+  FT1
+  FT2
+  FT3
+  FTC
+  FA
+  FC
+  DC
+  RC
+  NC
+}
+
 model Team {
   id        String   @id @default(cuid())
   name      String
@@ -87,6 +100,9 @@ model User {
 
   /// Eigen Zoom-link, gebruikt in online-afspraken die deze gebruiker inplant
   zoomLink String?
+
+  /// Functie/graad, getoond op het organigram.
+  jobFunction JobFunction?
 
   leadsOwned        Lead[]            @relation("LeadOwner")
   leadsCreated      Lead[]            @relation("LeadCreatedBy")

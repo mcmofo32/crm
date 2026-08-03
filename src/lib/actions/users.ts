@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/generated/prisma/client";
+import { JobFunction, Role } from "@/generated/prisma/client";
 import {
   canManageUser,
   canManageUsers,
@@ -16,6 +16,15 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 
 /** Vast tijdelijk wachtwoord voor nieuwe gebruikers; zij wijzigen dit zelf na de eerste login. */
 const DEFAULT_TEMP_PASSWORD = "veranderditwachtwoord123";
+
+const VALID_JOB_FUNCTIONS = new Set(Object.values(JobFunction));
+
+function parseJobFunction(raw: FormDataEntryValue | null): JobFunction | null {
+  const value = String(raw ?? "");
+  return VALID_JOB_FUNCTIONS.has(value as JobFunction)
+    ? (value as JobFunction)
+    : null;
+}
 
 async function requireUserManager() {
   const viewer = await getEffectiveViewer();
@@ -46,6 +55,7 @@ export async function createUserAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
+  const jobFunction = parseJobFunction(formData.get("jobFunction"));
   // Komt deze aanmaak vanuit "Nieuwe gebruiker toevoegen" naast iemands naam
   // op de Teams-pagina, dan wordt de nieuwe gebruiker meteen onder die
   // persoon geplaatst i.p.v. via de gewone team-dropdown hieronder.
@@ -77,6 +87,7 @@ export async function createUserAction(formData: FormData) {
       phone,
       passwordHash,
       role,
+      jobFunction,
       // Een Coach kan zelf ook lid zijn van het team van een andere coach
       // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
       teamId: role === Role.USER || role === Role.COACH ? teamId : null,
@@ -194,6 +205,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const teamId = (formData.get("teamId") as string) || null;
+  const jobFunction = parseJobFunction(formData.get("jobFunction"));
 
   if (!name || !email) {
     throw new Error("Naam en e-mail zijn verplicht");
@@ -215,6 +227,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
       email,
       phone,
       role,
+      jobFunction,
       // Een Coach kan zelf ook lid zijn van het team van een andere coach
       // (bv. zijn "upline"), zo ontstaat een meerlaagse structuur.
       teamId: role === Role.USER || role === Role.COACH ? teamId : null,

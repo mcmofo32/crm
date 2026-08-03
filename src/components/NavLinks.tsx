@@ -11,6 +11,7 @@ import {
   Trophy,
   UserCheck,
   CalendarDays,
+  Network,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/klanten": UserCheck,
   "/incentives": Trophy,
   "/evenementen": CalendarDays,
+  "/organigram": Network,
 };
 
 type NavItem = {

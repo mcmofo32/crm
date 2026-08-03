@@ -9,7 +9,6 @@ import {
   Copy,
   ScrollText,
   Eye,
-  Network,
   Target,
   type LucideIcon,
 } from "lucide-react";
@@ -59,7 +58,6 @@ export function ProfileMenu({
   const showUserManagement = canManageUsers(viewer);
   const showBeheerderTools = isBeheerder(viewer);
   const canImpersonate = viewer.realRole === Role.BEHEERDER;
-  const showOrgChart = showUserManagement || viewer.role === Role.COACH;
 
   return (
     <details className="group relative">
@@ -102,18 +100,10 @@ export function ProfileMenu({
             <MenuLink href="/beheer/teams" icon={Users2}>
               Teams
             </MenuLink>
-            <MenuLink href="/organigram" icon={Network}>
-              Organigram
-            </MenuLink>
             <MenuLink href="/beheer/doelen" icon={Target}>
               Doelen
             </MenuLink>
           </>
-        )}
-        {!showUserManagement && showOrgChart && (
-          <MenuLink href="/organigram" icon={Network}>
-            Mijn structuur
-          </MenuLink>
         )}
         {showBeheerderTools && (
           <>

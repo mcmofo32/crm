@@ -4,8 +4,10 @@ import {
   getTeamsForAssignment,
   getUserBasicInfo,
 } from "@/lib/actions/users";
-import { Role } from "@/generated/prisma/client";
+import { JobFunction, Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
+
+const JOB_FUNCTIONS = Object.values(JobFunction);
 
 export default async function NewUserPage({
   searchParams,
@@ -71,6 +73,23 @@ export default async function NewUserPage({
             {assignableRoles.map((role) => (
               <option key={role} value={role}>
                 {ROLE_LABELS[role]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">
+            Functie <span className="font-normal text-slate-400">(optioneel)</span>
+          </label>
+          <select
+            name="jobFunction"
+            defaultValue=""
+            className="rounded-md border border-slate-300 px-3 py-2"
+          >
+            <option value="">Geen</option>
+            {JOB_FUNCTIONS.map((jf) => (
+              <option key={jf} value={jf}>
+                {jf}
               </option>
             ))}
           </select>

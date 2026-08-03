@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import { LogOut, Sparkles, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getVisibleUserIds } from "@/lib/permissions";
+import { getVisibleUserIds, canManageUsers } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { NavLinks } from "@/components/NavLinks";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { ViewAsControls } from "@/components/ViewAsControls";
+import { Role } from "@/generated/prisma/client";
 
 export default async function AppLayout({
   children,
@@ -45,6 +46,14 @@ export default async function AppLayout({
     { href: "/klanten", label: "Klanten" },
     { href: "/incentives", label: "Incentives" },
     { href: "/evenementen", label: "Evenementen" },
+    ...(canManageUsers(viewer) || viewer.role === Role.COACH
+      ? [
+          {
+            href: "/organigram",
+            label: canManageUsers(viewer) ? "Organigram" : "Mijn structuur",
+          },
+        ]
+      : []),
   ];
 
   return (

@@ -1,16 +1,15 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/generated/prisma/client";
+import { JobFunction, Role } from "@/generated/prisma/client";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 
 export type OrgNode = {
   id: string;
   name: string;
-  email: string | null;
   role: Role;
-  teamName: string | null;
+  jobFunction: JobFunction | null;
   children: OrgNode[];
 };
 
@@ -18,8 +17,13 @@ type TeamWithPeople = {
   id: string;
   name: string;
   coachId: string;
-  coach: { id: string; name: string; email: string | null; role: Role };
-  members: { id: string; name: string; email: string | null; role: Role }[];
+  coach: { id: string; name: string; role: Role; jobFunction: JobFunction | null };
+  members: {
+    id: string;
+    name: string;
+    role: Role;
+    jobFunction: JobFunction | null;
+  }[];
 };
 
 async function requireViewer() {
@@ -31,8 +35,8 @@ async function requireViewer() {
 async function loadAllTeams(): Promise<TeamWithPeople[]> {
   return prisma.team.findMany({
     include: {
-      coach: { select: { id: true, name: true, email: true, role: true } },
-      members: { select: { id: true, name: true, email: true, role: true } },
+      coach: { select: { id: true, name: true, role: true, jobFunction: true } },
+      members: { select: { id: true, name: true, role: true, jobFunction: true } },
     },
   });
 }
@@ -40,16 +44,15 @@ async function loadAllTeams(): Promise<TeamWithPeople[]> {
 /** `seen` voorkomt een oneindige lus bij een (foutieve) cirkel in de structuur. */
 function buildNode(
   teamByCoachId: Map<string, TeamWithPeople>,
-  person: { id: string; name: string; email: string | null; role: Role },
+  person: { id: string; name: string; role: Role; jobFunction: JobFunction | null },
   seen: Set<string>
 ): OrgNode {
   if (seen.has(person.id)) {
     return {
       id: person.id,
       name: person.name,
-      email: person.email,
       role: person.role,
-      teamName: null,
+      jobFunction: person.jobFunction,
       children: [],
     };
   }
@@ -59,9 +62,8 @@ function buildNode(
   return {
     id: person.id,
     name: person.name,
-    email: person.email,
     role: person.role,
-    teamName: team?.name ?? null,
+    jobFunction: person.jobFunction,
     children: team ? team.members.map((m) => buildNode(teamByCoachId, m, seen)) : [],
   };
 }
@@ -100,8 +102,8 @@ export async function getMyOrgChart(): Promise<{
       select: {
         id: true,
         name: true,
-        email: true,
         role: true,
+        jobFunction: true,
         team: { select: { coach: { select: { id: true, name: true } } } },
       },
     }),
