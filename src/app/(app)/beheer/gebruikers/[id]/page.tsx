@@ -55,7 +55,11 @@ export default async function EditUserPage({
         </p>
       </div>
 
-      <EditUserForm action={boundUpdate}>
+      {/* key op updatedAt: dwingt een volledige remount af na een geslaagde
+          opslag, zodat de defaultValue-velden (Rol/Functie/Type/Team) de
+          effectief opgeslagen waarde tonen i.p.v. de oude DOM-waarde te
+          behouden — defaultValue wordt door React enkel bij mount toegepast. */}
+      <EditUserForm key={target.updatedAt.getTime()} action={boundUpdate}>
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">Naam</label>
           <input
