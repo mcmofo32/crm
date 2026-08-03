@@ -9,7 +9,8 @@ import { getCurrentGoalPeriod, setUserGoalAction } from "@/lib/actions/goals";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric } from "@/generated/prisma/client";
-import { InlineTextField } from "@/components/InlineTextField";
+import { Position, percentColor } from "@/components/ProductionShared";
+import { ProductionTable } from "@/components/ProductionTable";
 
 function shiftMonth(year: number, month: number, delta: number) {
   const d = new Date(year, month - 1 + delta, 1);
@@ -18,32 +19,6 @@ function shiftMonth(year: number, month: number, delta: number) {
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
-}
-
-function positionBadgeClass(position: number) {
-  if (position === 1) return "bg-amber-400 text-amber-950";
-  if (position === 2) return "bg-slate-300 text-slate-800";
-  if (position === 3) return "bg-orange-400 text-orange-950";
-  return "bg-slate-100 text-slate-500";
-}
-
-function percentColor(percent: number | null) {
-  if (percent === null) return "text-slate-400";
-  if (percent >= 100) return "text-green-600";
-  if (percent >= 60) return "text-amber-600";
-  return "text-red-600";
-}
-
-function Position({ position }: { position: number }) {
-  return (
-    <span
-      className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${positionBadgeClass(
-        position
-      )}`}
-    >
-      {position}
-    </span>
-  );
 }
 
 export default async function ProductiePage({
@@ -132,109 +107,22 @@ export default async function ProductiePage({
             )}
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
-                <tr>
-                  <th className="px-3 py-3 font-medium">#</th>
-                  <th className="px-3 py-3 font-medium">Naam</th>
-                  <th className="px-3 py-3 font-medium">Functie</th>
-                  <th className="px-3 py-3 font-medium">Directe coach</th>
-                  <th className="px-3 py-3 text-center font-medium">Doel KL</th>
-                  <th className="px-3 py-3 text-center font-medium">Behaald KL</th>
-                  <th className="px-3 py-3 text-center font-medium">% Doel KL</th>
-                  <th className="px-3 py-3 text-center font-medium">Doel EH</th>
-                  <th className="px-3 py-3 text-center font-medium">Behaald EH</th>
-                  <th className="px-3 py-3 text-center font-medium">% Doel EH</th>
-                  <th className="px-3 py-3 text-center font-medium">
-                    Gesprekken/week
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {productionRows.map((row, i) => (
-                  <tr key={row.id} className="hover:bg-slate-50">
-                    <td className="px-3 py-2.5">
-                      <Position position={i + 1} />
-                    </td>
-                    <td className="px-3 py-2.5 font-medium text-slate-900">
-                      {row.name}
-                    </td>
-                    <td className="px-3 py-2.5 text-slate-600">
-                      {row.jobFunction ?? "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-slate-600">
-                      {row.coachName ?? "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-center text-slate-600">
-                      {canEditGoals ? (
-                        <InlineTextField
-                          type="number"
-                          min={0}
-                          step={1}
-                          name="target"
-                          value={row.targetCustomers ? String(row.targetCustomers) : ""}
-                          action={setUserGoalAction.bind(
-                            null,
-                            row.id,
-                            GoalMetric.CUSTOMERS
-                          )}
-                          className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
-                        />
-                      ) : (
-                        row.targetCustomers || "—"
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-center text-slate-900">
-                      {row.actualCustomers}
-                    </td>
-                    <td
-                      className={`px-3 py-2.5 text-center font-medium ${percentColor(row.percentCustomers)}`}
-                    >
-                      {row.percentCustomers === null ? "—" : `${row.percentCustomers}%`}
-                    </td>
-                    <td className="px-3 py-2.5 text-center text-slate-600">
-                      {canEditGoals ? (
-                        <InlineTextField
-                          type="number"
-                          min={0}
-                          step={1}
-                          name="target"
-                          value={row.targetUnits ? String(row.targetUnits) : ""}
-                          action={setUserGoalAction.bind(
-                            null,
-                            row.id,
-                            GoalMetric.UNITS
-                          )}
-                          className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
-                        />
-                      ) : (
-                        row.targetUnits || "—"
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-center text-slate-900">
-                      {row.actualUnits}
-                    </td>
-                    <td
-                      className={`px-3 py-2.5 text-center font-medium ${percentColor(row.percentUnits)}`}
-                    >
-                      {row.percentUnits === null ? "—" : `${row.percentUnits}%`}
-                    </td>
-                    <td className="px-3 py-2.5 text-center text-slate-600">
-                      {row.conversationsPerWeek}
-                    </td>
-                  </tr>
-                ))}
-                {productionRows.length === 0 && (
-                  <tr>
-                    <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
-                      Geen gebruikers gevonden.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ProductionTable
+            rows={productionRows.map((row) => ({
+              ...row,
+              setCustomersGoal: setUserGoalAction.bind(
+                null,
+                row.id,
+                GoalMetric.CUSTOMERS
+              ),
+              setUnitsGoal: setUserGoalAction.bind(
+                null,
+                row.id,
+                GoalMetric.UNITS
+              ),
+            }))}
+            canEditGoals={canEditGoals}
+          />
         </>
       )}
 
