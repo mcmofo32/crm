@@ -72,20 +72,26 @@ export function NavLinks({ items }: { items: NavItem[] }) {
         return (
           <div key={item.href} className="group relative">
             {link}
-            <div className="invisible absolute left-0 top-full z-50 mt-1 w-52 rounded-md border border-slate-200 bg-white p-1.5 opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100">
-              {item.children.map((child) => (
-                <Link
-                  key={child.href}
-                  href={child.href}
-                  className={`block rounded-md px-3 py-2 text-sm ${
-                    pathname.startsWith(child.href)
-                      ? "bg-slate-100 font-medium text-slate-900"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {child.label}
-                </Link>
-              ))}
+            {/* pt-1 i.p.v. mt-1 op de buitenste laag: een margin zou een dode
+                zone tussen link en paneel laten waar de cursor "uit" de hover
+                valt vóór hij het paneel bereikt; padding blijft deel van de
+                hoverbare box, dus de hover blijft onafgebroken behouden. */}
+            <div className="invisible absolute left-0 top-full z-50 w-52 pt-1 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100">
+              <div className="rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+                {item.children.map((child) => (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    className={`block rounded-md px-3 py-2 text-sm ${
+                      pathname.startsWith(child.href)
+                        ? "bg-slate-100 font-medium text-slate-900"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {child.label}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         );

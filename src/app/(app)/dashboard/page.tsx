@@ -59,7 +59,12 @@ function percentColor(percent: number | null) {
   return "text-red-600";
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ team?: string }>;
+}) {
+  const { team: selectedTeamId } = await searchParams;
   const user = (await getEffectiveViewer())!;
   const ids = await getVisibleUserIds(user);
   const ownerWhere = ids ? { ownerId: { in: ids } } : {};
@@ -89,6 +94,10 @@ export default async function DashboardPage() {
 
   const seminarKpi = yearlyKpis.find((k) => k.metric === "SEMINAR");
   const otherKpis = yearlyKpis.filter((k) => k.metric !== "SEMINAR");
+  const activeTeam =
+    allTeamOverviews?.find((t) => t.teamId === selectedTeamId) ??
+    allTeamOverviews?.[0] ??
+    null;
 
   return (
     <div className="flex flex-col gap-10">
@@ -193,15 +202,27 @@ export default async function DashboardPage() {
         />
       )}
 
-      {allTeamOverviews && allTeamOverviews.length > 0 && (
-        <div className="flex flex-col gap-8">
-          {allTeamOverviews.map((team) => (
-            <TeamOverviewTable
-              key={team.teamId}
-              title={`${team.teamName} — coach ${team.coachName}`}
-              members={team.members}
-            />
-          ))}
+      {allTeamOverviews && allTeamOverviews.length > 0 && activeTeam && (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-2 text-base">
+            {allTeamOverviews.map((team) => (
+              <Link
+                key={team.teamId}
+                href={`/dashboard?team=${team.teamId}`}
+                className={`rounded-full px-4 py-1.5 ${
+                  team.teamId === activeTeam.teamId
+                    ? "bg-slate-900 text-white"
+                    : "bg-white text-slate-600 border border-slate-200"
+                }`}
+              >
+                {team.teamName}
+              </Link>
+            ))}
+          </div>
+          <TeamOverviewTable
+            title={`${activeTeam.teamName} — coach ${activeTeam.coachName}`}
+            members={activeTeam.members}
+          />
         </div>
       )}
     </div>

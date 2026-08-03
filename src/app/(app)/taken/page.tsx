@@ -5,19 +5,20 @@ import {
   Mail,
   StickyNote,
   AlertTriangle,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
-import {
-  getDescendantUserIds,
-  canDeleteActivities,
-  canManageUsers,
-} from "@/lib/permissions";
+import { canDeleteActivities, canManageUsers } from "@/lib/permissions";
+import { getAssignableUsers } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { LeadType, Role } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { Badge } from "@/components/Badge";
+
+/** Sentinelwaarde voor "iedereen die ik mag zien" (heel mijn team, of voor Admin/Beheerder alle medewerkers). */
+const GROUP_OPTION = "groep";
 
 const ACTIVITY_TYPE_LABELS = {
   CALL: "Telefoongesprek",
@@ -42,22 +43,28 @@ function startOfDay(date: Date) {
 export default async function TakenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; scope?: string }>;
+  searchParams: Promise<{ type?: string; ownerId?: string }>;
 }) {
-  const { type, scope } = await searchParams;
+  const { type, ownerId } = await searchParams;
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
 
   const user = (await getEffectiveViewer())!;
-  // Admin/Coach/Beheerder kunnen kiezen om ook de taken van iedereen onder
-  // hen in het organigram te zien; standaard (en voor een gewone User altijd)
-  // zie je enkel je eigen taken.
+  // Admin/Coach/Beheerder kunnen kiezen om de taken van een specifieke
+  // medewerker (of iedereen/heel hun team) te zien; standaard — en voor een
+  // gewone User altijd — zie je enkel je eigen taken.
   const canFilterScope = canManageUsers(user) || user.role === Role.COACH;
-  const showTeamScope = canFilterScope && scope === "team";
-  const visibleUserIds = showTeamScope
-    ? [user.id, ...(await getDescendantUserIds(user.id))]
-    : [user.id];
-  const ownerWhere = { ownerId: { in: visibleUserIds } };
+  const assignableUsers = canFilterScope ? await getAssignableUsers() : [];
+  const selectedOwnerId =
+    canFilterScope &&
+    ownerId &&
+    (ownerId === GROUP_OPTION || assignableUsers.some((u) => u.id === ownerId))
+      ? ownerId
+      : user.id;
+  const isGroupView = selectedOwnerId === GROUP_OPTION;
+  const ownerWhere = isGroupView
+    ? { ownerId: { in: assignableUsers.map((u) => u.id) } }
+    : { ownerId: selectedOwnerId };
 
   const tasks = await prisma.activity.findMany({
     where: {
@@ -120,7 +127,7 @@ export default async function TakenPage({
           {(["ALLE", "FA", "RG"] as const).map((t) => {
             const params = new URLSearchParams();
             if (t !== "ALLE") params.set("type", t);
-            if (showTeamScope) params.set("scope", "team");
+            if (selectedOwnerId !== user.id) params.set("ownerId", selectedOwnerId);
             const qs = params.toString();
             return (
               <Link
@@ -139,28 +146,37 @@ export default async function TakenPage({
         </div>
 
         {canFilterScope && (
-          <div className="flex gap-2 text-base">
-            {(["own", "team"] as const).map((s) => {
-              const params = new URLSearchParams();
-              if (leadType) params.set("type", leadType);
-              if (s === "team") params.set("scope", "team");
-              const qs = params.toString();
-              const active = s === "team" ? showTeamScope : !showTeamScope;
-              return (
-                <Link
-                  key={s}
-                  href={qs ? `/taken?${qs}` : "/taken"}
-                  className={`rounded-full px-4 py-1.5 ${
-                    active
-                      ? "bg-slate-900 text-white"
-                      : "bg-white text-slate-600 border border-slate-200"
-                  }`}
-                >
-                  {s === "own" ? "Eigen taken" : "Team (organigram)"}
-                </Link>
-              );
-            })}
-          </div>
+          <form
+            method="GET"
+            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm"
+          >
+            {leadType && <input type="hidden" name="type" value={leadType} />}
+            <Users size={17} className="text-slate-400" />
+            <label className="text-slate-600">Bekijk taken van:</label>
+            <select
+              name="ownerId"
+              defaultValue={selectedOwnerId}
+              className="rounded-md border border-slate-300 px-3 py-2"
+            >
+              <option value={user.id}>Mezelf</option>
+              <option value={GROUP_OPTION}>
+                {canManageUsers(user) ? "Iedereen" : "Heel mijn team"}
+              </option>
+              {assignableUsers
+                .filter((u) => u.id !== user.id)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 px-3 py-2 font-medium text-white hover:bg-slate-800"
+            >
+              Bekijken
+            </button>
+          </form>
         )}
       </div>
 
