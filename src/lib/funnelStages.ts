@@ -10,13 +10,16 @@ type StageSpec = {
 };
 
 type FunnelSpec = {
+  /** De fase waar een nieuwe lead standaard op start, vóór die in de funnel wordt ingepland (via Pipeline). */
+  defaultStage: StageSpec;
   main: StageSpec[];
   secondary: StageSpec[];
-  /** Oude stage-keys die niet meer gebruikt worden; leads erop verhuizen naar de eerste hoofdfase. */
+  /** Oude stage-keys die niet meer gebruikt worden; leads erop verhuizen naar `defaultStage`. */
   legacyKeys: string[];
 };
 
 const FA_SPEC: FunnelSpec = {
+  defaultStage: { key: "nieuw", label: "Nieuwe lead", order: -1 },
   main: [
     { key: "financiele_analyse", label: "Financiële analyse", order: 0 },
     { key: "adviesgesprek", label: "Adviesgesprek", order: 1 },
@@ -27,10 +30,11 @@ const FA_SPEC: FunnelSpec = {
     { key: "verloren", label: "Geen klant", order: 4, isLost: true },
     { key: "voorstel", label: "Opvolging", order: 5 },
   ],
-  legacyKeys: ["nieuw", "contact", "niet_bereikbaar"],
+  legacyKeys: ["contact", "niet_bereikbaar"],
 };
 
 const RG_SPEC: FunnelSpec = {
+  defaultStage: { key: "nieuw", label: "Nieuwe lead", order: -1 },
   main: [
     { key: "behoefte", label: "Kennismakingsgesprek", order: 0 },
     { key: "offerte", label: "Carrièregesprek", order: 1 },
@@ -41,7 +45,7 @@ const RG_SPEC: FunnelSpec = {
     { key: "verloren", label: "Geen medewerker", order: 4, isLost: true },
     { key: "opvolging", label: "Opvolging", order: 5 },
   ],
-  legacyKeys: ["nieuw", "contact", "niet_bereikbaar"],
+  legacyKeys: ["contact", "niet_bereikbaar"],
 };
 
 function specFor(leadType: LeadType): FunnelSpec {
@@ -53,48 +57,63 @@ export function funnelStageKeys(leadType: LeadType): string[] {
   return [...spec.main, ...spec.secondary].map((s) => s.key);
 }
 
+async function upsertStage(leadType: LeadType, s: StageSpec) {
+  return prisma.funnelStage.upsert({
+    where: { leadType_key: { leadType, key: s.key } },
+    update: {
+      label: s.label,
+      order: s.order,
+      isWon: s.isWon ?? false,
+      isLost: s.isLost ?? false,
+    },
+    create: {
+      leadType,
+      key: s.key,
+      label: s.label,
+      order: s.order,
+      isWon: s.isWon ?? false,
+      isLost: s.isLost ?? false,
+    },
+  });
+}
+
+/**
+ * Zorgt dat de "Nieuwe lead"-fase bestaat en geeft haar id terug. Elke
+ * nieuw aangemaakte lead start hier — buiten het funnelbord — tot die via
+ * Pipeline (de "+"-knop) effectief ingepland wordt in de funnel.
+ */
+export async function ensureDefaultPipelineStage(
+  leadType: LeadType
+): Promise<string> {
+  const spec = specFor(leadType);
+  const stage = await upsertStage(leadType, spec.defaultStage);
+  return stage.id;
+}
+
 /**
  * Zorgt dat de 6 canonieke fases (3 actief + 3 eindresultaat) voor dit
  * leadtype bestaan met de juiste naam/volgorde (upsert, dus veilig om
  * telkens opnieuw te draaien), en verhuist leads die nog op een
- * vervallen, oude fase staan naar de eerste actieve fase — zodat niemand
- * van het bord verdwijnt.
+ * vervallen, oude fase staan naar "Nieuwe lead" — zodat niemand van het
+ * bord verdwijnt, maar ook niemand ongevraagd in de funnel belandt.
  */
 export async function ensureFunnelStages(leadType: LeadType) {
   const spec = specFor(leadType);
   const allSpecs = [...spec.main, ...spec.secondary];
 
-  const stageIdByKey = new Map<string, string>();
   for (const s of allSpecs) {
-    const stage = await prisma.funnelStage.upsert({
-      where: { leadType_key: { leadType, key: s.key } },
-      update: {
-        label: s.label,
-        order: s.order,
-        isWon: s.isWon ?? false,
-        isLost: s.isLost ?? false,
-      },
-      create: {
-        leadType,
-        key: s.key,
-        label: s.label,
-        order: s.order,
-        isWon: s.isWon ?? false,
-        isLost: s.isLost ?? false,
-      },
-    });
-    stageIdByKey.set(s.key, stage.id);
+    await upsertStage(leadType, s);
   }
+  const defaultStageId = await ensureDefaultPipelineStage(leadType);
 
   const legacyStages = await prisma.funnelStage.findMany({
     where: { leadType, key: { in: spec.legacyKeys } },
     select: { id: true },
   });
   if (legacyStages.length > 0) {
-    const firstMainStageId = stageIdByKey.get(spec.main[0].key)!;
     await prisma.lead.updateMany({
       where: { leadType, stageId: { in: legacyStages.map((s) => s.id) } },
-      data: { stageId: firstMainStageId },
+      data: { stageId: defaultStageId },
     });
   }
 }

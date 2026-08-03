@@ -16,6 +16,7 @@ import {
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { ensureDefaultPipelineStage } from "@/lib/funnelStages";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -32,13 +33,7 @@ export async function createLeadAction(formData: FormData) {
     ? requestedOwnerId
     : user.id;
 
-  const firstStage = await prisma.funnelStage.findFirst({
-    where: { leadType },
-    orderBy: { order: "asc" },
-  });
-  if (!firstStage) {
-    throw new Error(`Geen funnel-stages geconfigureerd voor ${leadType}`);
-  }
+  const defaultStageId = await ensureDefaultPipelineStage(leadType);
 
   const lead = await prisma.lead.create({
     data: {
@@ -46,13 +41,12 @@ export async function createLeadAction(formData: FormData) {
       lastName: String(formData.get("lastName") ?? ""),
       email: (formData.get("email") as string) || null,
       phone: (formData.get("phone") as string) || null,
-      company: (formData.get("company") as string) || null,
       source: (formData.get("source") as string) || null,
       notes: (formData.get("notes") as string) || null,
       leadType,
       ownerId,
       createdById: user.id,
-      stageId: firstStage.id,
+      stageId: defaultStageId,
     },
   });
 
@@ -87,7 +81,6 @@ export async function createLeadsBulkAction(formData: FormData) {
   const lastNames = formData.getAll("lastName");
   const emails = formData.getAll("email");
   const phones = formData.getAll("phone");
-  const companies = formData.getAll("company");
   const sources = formData.getAll("source");
 
   const rows = firstNames
@@ -96,7 +89,6 @@ export async function createLeadsBulkAction(formData: FormData) {
       lastName: String(lastNames[i] ?? "").trim(),
       email: String(emails[i] ?? "").trim() || null,
       phone: String(phones[i] ?? "").trim() || null,
-      company: String(companies[i] ?? "").trim() || null,
       source: String(sources[i] ?? "").trim() || null,
     }))
     .filter((row) => row.firstName || row.lastName);
@@ -110,13 +102,7 @@ export async function createLeadsBulkAction(formData: FormData) {
     );
   }
 
-  const firstStage = await prisma.funnelStage.findFirst({
-    where: { leadType },
-    orderBy: { order: "asc" },
-  });
-  if (!firstStage) {
-    throw new Error(`Geen funnel-stages geconfigureerd voor ${leadType}`);
-  }
+  const defaultStageId = await ensureDefaultPipelineStage(leadType);
 
   const created = await prisma.$transaction(
     rows.map((row) =>
@@ -126,7 +112,7 @@ export async function createLeadsBulkAction(formData: FormData) {
           leadType,
           ownerId,
           createdById: user.id,
-          stageId: firstStage.id,
+          stageId: defaultStageId,
         },
       })
     )
