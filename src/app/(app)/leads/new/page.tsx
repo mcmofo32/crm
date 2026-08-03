@@ -30,8 +30,6 @@ export default async function NewLeadPage() {
           <Field label="E-mail" name="email" type="email" />
           <Field label="Telefoon" name="phone" type="tel" />
         </div>
-        <Field label="Bedrijf" name="company" />
-
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-slate-700">
             Funnel

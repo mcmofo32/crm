@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Mail, Phone, Building2, Pencil } from "lucide-react";
+import { Mail, Phone, Pencil } from "lucide-react";
 import { updateLeadDetailsAction } from "@/lib/actions/leads";
 
 export function LeadDetailsCard({
@@ -10,7 +10,6 @@ export function LeadDetailsCard({
   lastName,
   email,
   phone,
-  company,
   source,
   notes,
 }: {
@@ -19,7 +18,6 @@ export function LeadDetailsCard({
   lastName: string;
   email: string | null;
   phone: string | null;
-  company: string | null;
   source: string | null;
   notes: string | null;
 }) {
@@ -47,7 +45,6 @@ export function LeadDetailsCard({
             <Field label="E-mail" name="email" type="email" defaultValue={email ?? ""} />
             <Field label="Telefoon" name="phone" type="tel" defaultValue={phone ?? ""} />
           </div>
-          <Field label="Bedrijf" name="company" defaultValue={company ?? ""} />
           <Field label="Bron" name="source" defaultValue={source ?? ""} />
           <div className="flex flex-col gap-1">
             <label className="text-slate-600">Notities</label>
@@ -99,7 +96,6 @@ export function LeadDetailsCard({
         <Row label="Achternaam" value={lastName} />
         <Row icon={Mail} label="E-mail" value={email} />
         <Row icon={Phone} label="Telefoon" value={phone} />
-        <Row icon={Building2} label="Bedrijf" value={company} />
         <Row label="Bron" value={source} />
       </dl>
       <div className="mt-3 border-t border-slate-100 pt-3">

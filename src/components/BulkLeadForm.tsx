@@ -6,16 +6,15 @@ import { createLeadsBulkAction } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import type { LeadType } from "@/generated/prisma/client";
 
-type TextField = "firstName" | "lastName" | "email" | "phone" | "company" | "source";
+type TextField = "firstName" | "lastName" | "email" | "phone" | "source";
 type Row = Record<TextField, string> & { key: string };
 
-const COLUMNS: TextField[] = ["firstName", "lastName", "email", "phone", "company", "source"];
+const COLUMNS: TextField[] = ["firstName", "lastName", "email", "phone", "source"];
 const COLUMN_LABELS: Record<TextField, string> = {
   firstName: "Voornaam",
   lastName: "Achternaam",
   email: "E-mail",
   phone: "Telefoon",
-  company: "Bedrijf",
   source: "Bron",
 };
 const REQUIRED_COLUMNS = new Set<TextField>(["firstName", "lastName"]);
@@ -29,7 +28,6 @@ function emptyRow(): Row {
     lastName: "",
     email: "",
     phone: "",
-    company: "",
     source: "",
   };
 }

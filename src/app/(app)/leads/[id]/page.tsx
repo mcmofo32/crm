@@ -158,7 +158,6 @@ export default async function LeadDetailPage({
             lastName={lead.lastName}
             email={lead.email}
             phone={lead.phone}
-            company={lead.company}
             source={lead.source}
             notes={lead.notes}
           />
