@@ -204,10 +204,18 @@ export type CustomerStats = {
   totalCustomers: number;
   newThisMonth: number;
   newThisYear: number;
-  monthlyPremiumTotal: number;
 };
 
-/** De 4 kaarten bovenaan de Klanten-pagina. */
+/**
+ * De 3 telkaarten bovenaan de Klanten-pagina (totaal klanten, nieuwe klanten
+ * deze maand/dit jaar). Dit zijn vaste totalen over alles wat de gebruiker
+ * mag zien, ongeacht de filters/zoekopdracht op de tabel eronder.
+ *
+ * "Totaal maandelijks incasso" hoort hier bewust niet bij: die kaart wordt
+ * in de pagina zelf berekend als som van de al-opgehaalde klantenlijst
+ * (`customer.totalAmount`), zodat hij altijd exact overeenkomt met de
+ * "Totale premies"-kolom in de tabel eronder, wat filters er ook actief zijn.
+ */
 export async function getCustomerStats(
   monthPeriod: { startDate: Date; endDate: Date },
   yearPeriod: { startDate: Date; endDate: Date }
@@ -219,39 +227,27 @@ export async function getCustomerStats(
   const monthEnd = new Date(monthPeriod.endDate.getTime() + 1);
   const yearEnd = new Date(yearPeriod.endDate.getTime() + 1);
 
-  const [totalCustomers, newThisMonth, newThisYear, products] =
-    await Promise.all([
-      prisma.lead.count({
-        where: { deletedAt: null, status: "WON", ...ownerWhere },
-      }),
-      prisma.leadStageChange.count({
-        where: {
-          toStage: { isWon: true },
-          changedAt: { gte: monthPeriod.startDate, lt: monthEnd },
-          lead: { deletedAt: null, ...ownerWhere },
-        },
-      }),
-      prisma.leadStageChange.count({
-        where: {
-          toStage: { isWon: true },
-          changedAt: { gte: yearPeriod.startDate, lt: yearEnd },
-          lead: { deletedAt: null, ...ownerWhere },
-        },
-      }),
-      prisma.leadProduct.findMany({
-        where: {
-          lead: { deletedAt: null, status: "WON", ...ownerWhere },
-        },
-        select: { amount: true },
-      }),
-    ]);
+  const [totalCustomers, newThisMonth, newThisYear] = await Promise.all([
+    prisma.lead.count({
+      where: { deletedAt: null, status: "WON", ...ownerWhere },
+    }),
+    prisma.leadStageChange.count({
+      where: {
+        toStage: { isWon: true },
+        changedAt: { gte: monthPeriod.startDate, lt: monthEnd },
+        lead: { deletedAt: null, ...ownerWhere },
+      },
+    }),
+    prisma.leadStageChange.count({
+      where: {
+        toStage: { isWon: true },
+        changedAt: { gte: yearPeriod.startDate, lt: yearEnd },
+        lead: { deletedAt: null, ...ownerWhere },
+      },
+    }),
+  ]);
 
-  const monthlyPremiumTotal = products.reduce(
-    (sum, p) => sum + Number(p.amount),
-    0
-  );
-
-  return { totalCustomers, newThisMonth, newThisYear, monthlyPremiumTotal };
+  return { totalCustomers, newThisMonth, newThisYear };
 }
 
 function toDateInputValue(date: Date) {

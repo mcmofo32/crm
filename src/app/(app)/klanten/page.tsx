@@ -157,6 +157,11 @@ export default async function KlantenPage({
     }),
   ]);
 
+  const monthlyPremiumTotal = customers.reduce(
+    (sum, c) => sum + c.totalAmount,
+    0
+  );
+
   const filtersActive = Boolean(product || from || to || sortBy);
   const currentYear = new Date().getFullYear();
   const taxStatusOptions = [
@@ -204,7 +209,7 @@ export default async function KlantenPage({
         />
         <StatCard
           label="Totaal maandelijks incasso"
-          value={formatAmount(stats.monthlyPremiumTotal)}
+          value={formatAmount(monthlyPremiumTotal)}
           icon={Coins}
           color="bg-amber-100 text-amber-700"
         />
