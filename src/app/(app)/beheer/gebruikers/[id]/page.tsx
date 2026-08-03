@@ -118,7 +118,7 @@ export default async function EditUserPage({
             defaultChecked={target.isSubagent}
             className="h-4 w-4 rounded border-slate-300"
           />
-          Subagent (werkt onder het nummer van een andere agent)
+          Subagent
         </label>
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">

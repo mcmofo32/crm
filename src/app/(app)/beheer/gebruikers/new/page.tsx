@@ -96,7 +96,7 @@ export default async function NewUserPage({
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" name="isSubagent" className="h-4 w-4 rounded border-slate-300" />
-          Subagent (werkt onder het nummer van een andere agent)
+          Subagent
         </label>
         {underPerson ? (
           <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">

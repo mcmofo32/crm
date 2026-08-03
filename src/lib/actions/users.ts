@@ -17,13 +17,26 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 /** Vast tijdelijk wachtwoord voor nieuwe gebruikers; zij wijzigen dit zelf na de eerste login. */
 const DEFAULT_TEMP_PASSWORD = "veranderditwachtwoord123";
 
-const VALID_JOB_FUNCTIONS = new Set(Object.values(JobFunction));
+/**
+ * Vaste lijst i.p.v. Object.values(JobFunction): zo hangt validatie niet af
+ * van hoe het gegenereerde Prisma-enum object in deze server-actionbundel
+ * terechtkomt.
+ */
+const VALID_JOB_FUNCTIONS = new Set<string>([
+  "FT1",
+  "FT2",
+  "FT3",
+  "FTC",
+  "FA",
+  "FC",
+  "DC",
+  "RC",
+  "NC",
+]);
 
 function parseJobFunction(raw: FormDataEntryValue | null): JobFunction | null {
   const value = String(raw ?? "");
-  return VALID_JOB_FUNCTIONS.has(value as JobFunction)
-    ? (value as JobFunction)
-    : null;
+  return VALID_JOB_FUNCTIONS.has(value) ? (value as JobFunction) : null;
 }
 
 async function requireUserManager() {
@@ -262,6 +275,7 @@ export async function updateUserAction(userId: string, formData: FormData) {
 
   revalidatePath("/beheer/gebruikers");
   revalidatePath(`/beheer/gebruikers/${userId}`);
+  revalidatePath("/organigram");
 }
 
 export async function resetUserPasswordAction(
