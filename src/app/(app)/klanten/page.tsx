@@ -25,7 +25,7 @@ import { getCurrentGoalPeriod } from "@/lib/actions/goals";
 import { canManageUsers } from "@/lib/permissions";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
-import { LeadType, ProductType, Role } from "@/generated/prisma/client";
+import { LeadType, ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 
 function formatDate(date: Date | null | undefined) {
@@ -40,8 +40,6 @@ function formatAmount(amount: number) {
     minimumFractionDigits: 2,
   });
 }
-
-const TEAM_OPTION = "team";
 
 export default async function KlantenPage({
   searchParams,
@@ -73,16 +71,16 @@ export default async function KlantenPage({
       getCurrentGoalPeriod(),
       getCurrentCustomerYearPeriodForInput(),
     ]);
-  const isCoach = viewer.role === Role.COACH;
   const canManageYearPeriod = canManageUsers(viewer);
-  const requiresSelection = assignableUsers.length > 1 || isCoach;
+  // Enkel Beheerder/Admin mogen klanten van andere mensen bekijken; een
+  // Coach ziet hier — anders dan bij leads/pipeline/funnel — altijd enkel
+  // zijn eigen klanten, nooit die van zijn medewerkers.
+  const canViewOthersCustomers = canManageUsers(viewer);
+  const requiresSelection = canViewOthersCustomers && assignableUsers.length > 1;
   const selectedOwnerId =
-    ownerId && (ownerId === TEAM_OPTION ? isCoach : assignableUsers.some((u) => u.id === ownerId))
+    canViewOthersCustomers && ownerId && assignableUsers.some((u) => u.id === ownerId)
       ? ownerId
-      : isCoach
-      ? TEAM_OPTION
       : viewer.id;
-  const isTeamView = selectedOwnerId === TEAM_OPTION;
 
   function tabHref(t: "ALLE" | "FA" | "RG") {
     const params = new URLSearchParams();
@@ -124,7 +122,6 @@ export default async function KlantenPage({
         defaultValue={selectedOwnerId}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
-        {isCoach && <option value={TEAM_OPTION}>Heel mijn team</option>}
         {assignableUsers.map((u) => (
           <option key={u.id} value={u.id}>
             {u.id === viewer.id ? `${u.name} (jezelf)` : u.name}
@@ -143,8 +140,7 @@ export default async function KlantenPage({
   const [customers, stats] = await Promise.all([
     getCustomersForCurrentUser({
       leadType,
-      ownerId: isTeamView ? undefined : selectedOwnerId,
-      ownerIds: isTeamView ? assignableUsers.map((u) => u.id) : undefined,
+      ownerId: selectedOwnerId,
       search: q,
       productType,
       becameCustomerFrom: from ? new Date(`${from}T00:00:00`) : undefined,

@@ -6,8 +6,9 @@ import {
   ProductType,
   LeadType,
   TaxDeclarationStatus,
+  Role,
 } from "@/generated/prisma/client";
-import { canAccessOwner, getVisibleUserIds, canManageUsers } from "@/lib/permissions";
+import { canAccessOwner, canManageUsers } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 
@@ -15,6 +16,16 @@ async function requireUser() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
   return viewer;
+}
+
+/**
+ * Klanten-eigenaarscope: enkel Beheerder/Admin mogen klanten van andere
+ * mensen bekijken (via "Bekijk klanten van"). Een Coach ziet hier — anders
+ * dan bij leads/pipeline/funnel — enkel zijn eigen klanten, niet die van
+ * zijn medewerkers.
+ */
+function customerOwnerScope(user: { id: string; role: Role }): string[] | null {
+  return canManageUsers(user) ? null : [user.id];
 }
 
 /** Slaat de volledige productenlijst van een lead op (vervangt de bestaande rijen). */
@@ -60,7 +71,6 @@ export type CustomerSortOption = "recent" | "oldest" | "amount" | "units";
 export async function getCustomersForCurrentUser(options?: {
   leadType?: LeadType;
   ownerId?: string;
-  ownerIds?: string[];
   search?: string;
   productType?: ProductType;
   becameCustomerFrom?: Date;
@@ -68,20 +78,24 @@ export async function getCustomersForCurrentUser(options?: {
   sortBy?: CustomerSortOption;
 }) {
   const user = await requireUser();
-  const ids = await getVisibleUserIds(user);
+  const scope = customerOwnerScope(user);
   const trimmedSearch = options?.search?.trim();
+
+  // Enkel binnen de toegestane scope mag verder verfijnd worden op een
+  // specifieke eigenaar; een Coach (scope = [zichzelf]) kan dus nooit via
+  // ownerId naar klanten van medewerkers kijken.
+  const ownerWhere = scope
+    ? { ownerId: { in: scope } }
+    : options?.ownerId
+    ? { ownerId: options.ownerId }
+    : {};
 
   const customers = await prisma.lead.findMany({
     where: {
       deletedAt: null,
       status: "WON",
-      ...(ids ? { ownerId: { in: ids } } : {}),
+      ...ownerWhere,
       ...(options?.leadType ? { leadType: options.leadType } : {}),
-      ...(options?.ownerIds
-        ? { ownerId: { in: options.ownerIds } }
-        : options?.ownerId
-        ? { ownerId: options.ownerId }
-        : {}),
       ...(options?.productType
         ? { products: { some: { type: options.productType } } }
         : {}),
@@ -221,8 +235,8 @@ export async function getCustomerStats(
   yearPeriod: { startDate: Date; endDate: Date }
 ): Promise<CustomerStats> {
   const user = await requireUser();
-  const ids = await getVisibleUserIds(user);
-  const ownerWhere = ids ? { ownerId: { in: ids } } : {};
+  const scope = customerOwnerScope(user);
+  const ownerWhere = scope ? { ownerId: { in: scope } } : {};
 
   const monthEnd = new Date(monthPeriod.endDate.getTime() + 1);
   const yearEnd = new Date(yearPeriod.endDate.getTime() + 1);
