@@ -28,6 +28,21 @@ function customerOwnerScope(user: { id: string; role: Role }): string[] | null {
   return canManageUsers(user) ? null : [user.id];
 }
 
+/**
+ * Bouwt de eigenaar-filter voor klantenqueries: binnen de toegestane scope
+ * (self voor een Coach, alles voor Beheerder/Admin) mag verder verfijnd
+ * worden op een specifieke medewerker of groep (bv. "Structuur A").
+ */
+function resolveCustomerOwnerWhere(
+  scope: string[] | null,
+  options?: { ownerId?: string; ownerIds?: string[] }
+) {
+  if (scope) return { ownerId: { in: scope } };
+  if (options?.ownerIds) return { ownerId: { in: options.ownerIds } };
+  if (options?.ownerId) return { ownerId: options.ownerId };
+  return {};
+}
+
 /** Slaat de volledige productenlijst van een lead op (vervangt de bestaande rijen). */
 export async function saveLeadProductsAction(leadId: string, formData: FormData) {
   const user = await requireUser();
@@ -71,6 +86,7 @@ export type CustomerSortOption = "recent" | "oldest" | "amount" | "units";
 export async function getCustomersForCurrentUser(options?: {
   leadType?: LeadType;
   ownerId?: string;
+  ownerIds?: string[];
   search?: string;
   productType?: ProductType;
   becameCustomerFrom?: Date;
@@ -82,13 +98,9 @@ export async function getCustomersForCurrentUser(options?: {
   const trimmedSearch = options?.search?.trim();
 
   // Enkel binnen de toegestane scope mag verder verfijnd worden op een
-  // specifieke eigenaar; een Coach (scope = [zichzelf]) kan dus nooit via
-  // ownerId naar klanten van medewerkers kijken.
-  const ownerWhere = scope
-    ? { ownerId: { in: scope } }
-    : options?.ownerId
-    ? { ownerId: options.ownerId }
-    : {};
+  // specifieke eigenaar/groep; een Coach (scope = [zichzelf]) kan dus nooit
+  // via ownerId/ownerIds naar klanten van medewerkers kijken.
+  const ownerWhere = resolveCustomerOwnerWhere(scope, options);
 
   const customers = await prisma.lead.findMany({
     where: {
@@ -222,8 +234,9 @@ export type CustomerStats = {
 
 /**
  * De 3 telkaarten bovenaan de Klanten-pagina (totaal klanten, nieuwe klanten
- * deze maand/dit jaar). Dit zijn vaste totalen over alles wat de gebruiker
- * mag zien, ongeacht de filters/zoekopdracht op de tabel eronder.
+ * deze maand/dit jaar). Neemt dezelfde eigenaar-scoping (ownerId/ownerIds)
+ * als de tabel eronder, zodat de kaarten altijd exact overeenkomen met wat
+ * de "Bekijk klanten van"-selectie op dat moment toont.
  *
  * "Totaal maandelijks incasso" hoort hier bewust niet bij: die kaart wordt
  * in de pagina zelf berekend als som van de al-opgehaalde klantenlijst
@@ -232,11 +245,12 @@ export type CustomerStats = {
  */
 export async function getCustomerStats(
   monthPeriod: { startDate: Date; endDate: Date },
-  yearPeriod: { startDate: Date; endDate: Date }
+  yearPeriod: { startDate: Date; endDate: Date },
+  options?: { ownerId?: string; ownerIds?: string[] }
 ): Promise<CustomerStats> {
   const user = await requireUser();
   const scope = customerOwnerScope(user);
-  const ownerWhere = scope ? { ownerId: { in: scope } } : {};
+  const ownerWhere = resolveCustomerOwnerWhere(scope, options);
 
   const monthEnd = new Date(monthPeriod.endDate.getTime() + 1);
   const yearEnd = new Date(yearPeriod.endDate.getTime() + 1);
@@ -245,6 +259,9 @@ export async function getCustomerStats(
   // in de periode in een "gewonnen"-fase terecht (bv. per ongeluk terug- en
   // opnieuw omgezet), dan telde dat eerder dubbel. distinct op leadId telt
   // elke lead nog maar één keer, ongeacht hoeveel keer die overgang gebeurde.
+  // status: "WON" zorgt dat een lead die nadien weer uit de gewonnen fase is
+  // gehaald (bv. teruggezet of verloren) niet blijft meetellen als "nieuwe
+  // klant" — enkel wie nu nog effectief klant is telt mee.
   const [totalCustomers, newThisMonthLeads, newThisYearLeads] = await Promise.all([
     prisma.lead.count({
       where: { deletedAt: null, status: "WON", ...ownerWhere },
@@ -253,7 +270,7 @@ export async function getCustomerStats(
       where: {
         toStage: { isWon: true },
         changedAt: { gte: monthPeriod.startDate, lt: monthEnd },
-        lead: { deletedAt: null, ...ownerWhere },
+        lead: { deletedAt: null, status: "WON", ...ownerWhere },
       },
       distinct: ["leadId"],
       select: { leadId: true },
@@ -262,7 +279,7 @@ export async function getCustomerStats(
       where: {
         toStage: { isWon: true },
         changedAt: { gte: yearPeriod.startDate, lt: yearEnd },
-        lead: { deletedAt: null, ...ownerWhere },
+        lead: { deletedAt: null, status: "WON", ...ownerWhere },
       },
       distinct: ["leadId"],
       select: { leadId: true },
@@ -274,6 +291,21 @@ export async function getCustomerStats(
     newThisMonth: newThisMonthLeads.length,
     newThisYear: newThisYearLeads.length,
   };
+}
+
+/** Teams/structuren, voor Beheerder/Admin om via "Bekijk klanten van" een hele structuur in één keer te kiezen. */
+export async function getTeamsForCustomerFilter() {
+  const user = await requireUser();
+  if (!canManageUsers(user)) return [];
+  return prisma.team.findMany({
+    select: {
+      id: true,
+      name: true,
+      coachId: true,
+      members: { select: { id: true } },
+    },
+    orderBy: { name: "asc" },
+  });
 }
 
 function toDateInputValue(date: Date) {

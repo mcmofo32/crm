@@ -19,6 +19,7 @@ import {
   setCustomerYearPeriodAction,
   setCaseManagerAction,
   setTaxDeclarationStatusAction,
+  getTeamsForCustomerFilter,
   type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
 import { getCurrentGoalPeriod } from "@/lib/actions/goals";
@@ -40,6 +41,9 @@ function formatAmount(amount: number) {
     minimumFractionDigits: 2,
   });
 }
+
+/** Voorvoegsel om een team/structuur-optie te onderscheiden van een individuele gebruiker in "Bekijk klanten van". */
+const TEAM_PREFIX = "team:";
 
 export default async function KlantenPage({
   searchParams,
@@ -64,9 +68,10 @@ export default async function KlantenPage({
     sort === "oldest" || sort === "amount" || sort === "units" ? sort : undefined;
 
   const viewer = (await getEffectiveViewer())!;
-  const [assignableUsers, subagents, monthPeriod, yearPeriodInput] =
+  const [assignableUsers, teams, subagents, monthPeriod, yearPeriodInput] =
     await Promise.all([
       getAssignableUsers(),
+      getTeamsForCustomerFilter(),
       getSubagents(),
       getCurrentGoalPeriod(),
       getCurrentCustomerYearPeriodForInput(),
@@ -76,11 +81,19 @@ export default async function KlantenPage({
   // Coach ziet hier — anders dan bij leads/pipeline/funnel — altijd enkel
   // zijn eigen klanten, nooit die van zijn medewerkers.
   const canViewOthersCustomers = canManageUsers(viewer);
-  const requiresSelection = canViewOthersCustomers && assignableUsers.length > 1;
-  const selectedOwnerId =
-    canViewOthersCustomers && ownerId && assignableUsers.some((u) => u.id === ownerId)
-      ? ownerId
-      : viewer.id;
+  const requiresSelection =
+    canViewOthersCustomers && (assignableUsers.length > 1 || teams.length > 0);
+  const selectedTeam = canViewOthersCustomers
+    ? teams.find((t) => `${TEAM_PREFIX}${t.id}` === ownerId)
+    : undefined;
+  const selectedOwnerId = selectedTeam
+    ? `${TEAM_PREFIX}${selectedTeam.id}`
+    : canViewOthersCustomers && ownerId && assignableUsers.some((u) => u.id === ownerId)
+    ? ownerId
+    : viewer.id;
+  const selectedOwnerIds = selectedTeam
+    ? [selectedTeam.coachId, ...selectedTeam.members.map((m) => m.id)]
+    : undefined;
 
   function tabHref(t: "ALLE" | "FA" | "RG") {
     const params = new URLSearchParams();
@@ -127,6 +140,11 @@ export default async function KlantenPage({
             {u.id === viewer.id ? `${u.name} (jezelf)` : u.name}
           </option>
         ))}
+        {teams.map((t) => (
+          <option key={t.id} value={`${TEAM_PREFIX}${t.id}`}>
+            Structuur: {t.name}
+          </option>
+        ))}
       </select>
       <button
         type="submit"
@@ -140,17 +158,25 @@ export default async function KlantenPage({
   const [customers, stats] = await Promise.all([
     getCustomersForCurrentUser({
       leadType,
-      ownerId: selectedOwnerId,
+      ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
+      ownerIds: selectedOwnerIds,
       search: q,
       productType,
       becameCustomerFrom: from ? new Date(`${from}T00:00:00`) : undefined,
       becameCustomerTo: to ? new Date(`${to}T23:59:59.999`) : undefined,
       sortBy,
     }),
-    getCustomerStats(monthPeriod, {
-      startDate: new Date(`${yearPeriodInput.startDate}T00:00:00`),
-      endDate: new Date(`${yearPeriodInput.endDate}T23:59:59.999`),
-    }),
+    getCustomerStats(
+      monthPeriod,
+      {
+        startDate: new Date(`${yearPeriodInput.startDate}T00:00:00`),
+        endDate: new Date(`${yearPeriodInput.endDate}T23:59:59.999`),
+      },
+      {
+        ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
+        ownerIds: selectedOwnerIds,
+      }
+    ),
   ]);
 
   const monthlyPremiumTotal = customers.reduce(
