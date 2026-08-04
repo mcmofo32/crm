@@ -106,6 +106,23 @@ export async function syncSubagentForUser(userId: string) {
   });
 }
 
+/**
+ * Haalt eenmalig alle bestaande gebruikers in (bv. wiens Type al vóór het
+ * bestaan van deze automatische koppeling op Subagent stond) — nadien
+ * houdt syncSubagentForUser dit vanzelf bij op elke aanmaak/wijziging.
+ */
+export async function syncAllSubagentsAction() {
+  await requireUserManager();
+
+  const users = await prisma.user.findMany({ select: { id: true } });
+  for (const user of users) {
+    await syncSubagentForUser(user.id);
+  }
+
+  revalidatePath("/beheer/teams");
+  revalidatePath("/beheer/gebruikers");
+}
+
 export async function createSubagentAction(teamId: string, formData: FormData) {
   const actor = await requireUserManager();
 

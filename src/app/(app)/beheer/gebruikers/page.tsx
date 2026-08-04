@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Plus, MoreVertical, Eye, EyeOff, TriangleAlert } from "lucide-react";
+import { Plus, MoreVertical, Eye, EyeOff, TriangleAlert, RefreshCw } from "lucide-react";
 import { getManageableUsers } from "@/lib/actions/users";
+import { syncAllSubagentsAction } from "@/lib/actions/subagents";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
@@ -67,6 +68,17 @@ export default async function UsersPage({
           {" "}Vink "Toon inactieve gebruikers" aan om ze allemaal te zien.
         </div>
       )}
+
+      <form action={syncAllSubagentsAction} className="w-fit">
+        <button
+          type="submit"
+          title='Voor iedereen met Type "Subagent" opnieuw controleren of ze kiesbaar zijn bij het inplannen van een adviesgesprek'
+          className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <RefreshCw size={15} />
+          Subagenten synchroniseren
+        </button>
+      </form>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-base">
