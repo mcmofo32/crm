@@ -515,7 +515,7 @@ export async function planFollowUpCallAction(leadId: string, formData: FormData)
       type: ActivityType.CALL,
       subject,
       scheduledAt,
-      durationMinutes: 15,
+      durationMinutes: 30,
       status: ActivityStatus.PLANNED,
     },
   });
