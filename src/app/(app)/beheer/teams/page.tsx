@@ -9,11 +9,7 @@ import {
   addSubordinateAction,
   removeTeamMemberAction,
 } from "@/lib/actions/teams";
-import {
-  getSubagents,
-  createSubagentAction,
-  deleteSubagentAction,
-} from "@/lib/actions/subagents";
+import { getSubagents, deleteSubagentAction } from "@/lib/actions/subagents";
 import { TeamPlanningContext } from "@/lib/teamPlanning";
 import { Avatar } from "@/components/Avatar";
 import { DeleteTeamButton } from "@/components/DeleteTeamButton";
@@ -46,7 +42,6 @@ function TeamCard({
     .memberCandidates()
     .filter((m) => m.teamId !== team.id && m.id !== team.coachId);
   const teamSubagents = subagents.filter((s) => s.teamId === team.id);
-  const boundAddSubagent = createSubagentAction.bind(null, team.id);
 
   // Sub-structuren: teamleden die zelf ook een team leiden (ongeacht hun
   // rol — ook een Admin/Beheerder kan een eigen team hebben), met hun eigen
@@ -295,31 +290,53 @@ function TeamCard({
         <h4 className="mb-2 text-sm font-medium text-slate-900">Subagenten</h4>
         <p className="mb-2 text-xs text-slate-400">
           Kunnen bij een adviesgesprek mee uitgenodigd worden om te closen.
+          Zet iemands Type op "Subagent" op zijn gebruikersprofiel om hem
+          hier te laten verschijnen.
         </p>
         <div className="flex flex-col gap-2">
           {teamSubagents.map((subagent) => {
             const boundDelete = deleteSubagentAction.bind(null, subagent.id);
+            const isLinked = Boolean(subagent.userId);
             return (
               <div
                 key={subagent.id}
                 className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
               >
                 <div className="text-sm text-slate-700">
-                  <div className="font-medium">{subagent.name}</div>
+                  <div className="flex items-center gap-1.5 font-medium">
+                    {subagent.name}
+                    {isLinked && (
+                      <span
+                        title='Automatisch gekoppeld via Type "Subagent" op dit gebruikersaccount — wijzig of verwijder via het profiel, niet hier.'
+                        className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+                      >
+                        Gekoppeld aan account
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-slate-400">
                     {subagent.email}
                     {subagent.phone ? ` · ${subagent.phone}` : ""}
                   </div>
                 </div>
-                <form action={boundDelete}>
-                  <button
-                    type="submit"
-                    title="Subagent verwijderen"
-                    className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                {isLinked ? (
+                  <span
+                    title='Wijzig het Type op het gebruikersprofiel om dit hier te verwijderen.'
+                    className="p-1 text-slate-300"
                   >
                     <X size={16} />
-                  </button>
-                </form>
+                  </span>
+                ) : (
+                  <form action={boundDelete}>
+                    <button
+                      type="submit"
+                      title="Subagent verwijderen"
+                      className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  </form>
+                )}
               </div>
             );
           })}
@@ -327,33 +344,6 @@ function TeamCard({
             <p className="text-sm text-slate-400">Nog geen subagenten.</p>
           )}
         </div>
-        <form action={boundAddSubagent} className="mt-2 grid grid-cols-2 gap-2">
-          <input
-            name="name"
-            placeholder="Naam"
-            required
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            name="email"
-            type="email"
-            placeholder="E-mail"
-            required
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            name="phone"
-            placeholder="Telefoon (optioneel)"
-            className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <button
-            type="submit"
-            className="col-span-2 flex items-center justify-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            <UserPlus size={16} />
-            Subagent toevoegen
-          </button>
-        </form>
       </div>
 
       {subTeams.length > 0 && (

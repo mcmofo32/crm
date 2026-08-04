@@ -123,34 +123,6 @@ export async function syncAllSubagentsAction() {
   revalidatePath("/beheer/gebruikers");
 }
 
-export async function createSubagentAction(teamId: string, formData: FormData) {
-  const actor = await requireUserManager();
-
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim() || null;
-  if (!name || !email) {
-    throw new Error("Naam en e-mail zijn verplicht");
-  }
-
-  const team = await prisma.team.findUnique({ where: { id: teamId } });
-  if (!team) throw new Error("Team niet gevonden");
-
-  const subagent = await prisma.subagent.create({
-    data: { name, email, phone, teamId },
-  });
-
-  await logAudit({
-    actorId: actor.id,
-    action: "subagent.created",
-    entityType: "Subagent",
-    entityId: subagent.id,
-    description: `Subagent "${name}" toegevoegd aan team "${team.name}"`,
-  });
-
-  revalidatePath("/beheer/teams");
-}
-
 export async function deleteSubagentAction(subagentId: string) {
   const actor = await requireUserManager();
 
