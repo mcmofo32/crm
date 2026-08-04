@@ -124,6 +124,7 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
 
   revalidatePath("/beheer/teams");
   revalidatePath("/beheer/gebruikers");
+  revalidatePath("/organigram");
 }
 
 /**
@@ -315,4 +316,5 @@ export async function removeTeamMemberAction(teamId: string, userId: string) {
 
   revalidatePath("/beheer/teams");
   revalidatePath("/beheer/gebruikers");
+  revalidatePath("/organigram");
 }
