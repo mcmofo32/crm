@@ -18,6 +18,11 @@ export function isPlanningStage(stageLabel: string) {
   return PLANNING_MEETING_TYPES.has(type) || /\bingepland$/i.test(trimmed);
 }
 
+/** De "Opvolging"-fase (FA: voorstel, RG: opvolging) toont een terugbelmoment-widget. */
+export function isFollowUpStage(stageLabel: string) {
+  return stageLabel.trim().toLowerCase() === "opvolging";
+}
+
 /** Haalt het "type" gesprek uit de fase-naam, bv. "Financiële analyse ingepland" -> "Financiële analyse". */
 export function meetingTypeFromStageLabel(stageLabel: string) {
   return stageLabel.trim().replace(/\s+ingepland$/i, "");
@@ -87,5 +92,19 @@ export function buildMeetingFormData(value: MeetingPlannerValue): FormData | nul
     formData.set("useGoogleMeet", "on");
   }
   if (value.subagentId) formData.set("subagentId", value.subagentId);
+  return formData;
+}
+
+export type FollowUpCallValue = { scheduledAt: string };
+
+export const EMPTY_FOLLOW_UP_CALL_VALUE: FollowUpCallValue = { scheduledAt: "" };
+
+/** Zet de terugbelmoment-waarde om in FormData voor `planFollowUpCallAction`, of null als er geen tijdstip gekozen is. */
+export function buildFollowUpCallFormData(
+  value: FollowUpCallValue
+): FormData | null {
+  if (!value.scheduledAt) return null;
+  const formData = new FormData();
+  formData.set("scheduledAt", value.scheduledAt);
   return formData;
 }

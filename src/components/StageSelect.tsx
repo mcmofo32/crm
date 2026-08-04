@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
-import { planStageMeetingAction } from "@/lib/actions/activities";
+import { planStageMeetingAction, planFollowUpCallAction } from "@/lib/actions/activities";
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import { FollowUpCallField } from "@/components/FollowUpCallField";
 import {
   ProductFields,
   emptyProductsState,
@@ -17,9 +18,13 @@ import {
 import {
   isPlanningStage,
   isFinancieleAnalyseType,
+  isFollowUpStage,
   buildMeetingFormData,
   EMPTY_MEETING_PLANNER_VALUE,
+  buildFollowUpCallFormData,
+  EMPTY_FOLLOW_UP_CALL_VALUE,
   type MeetingPlannerValue,
+  type FollowUpCallValue,
 } from "@/lib/meetingPlanning";
 
 type SubagentRecord = { id: string; name: string; team: { name: string } };
@@ -47,6 +52,9 @@ export function StageSelect({
   const [notes, setNotes] = useState("");
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(
     EMPTY_MEETING_PLANNER_VALUE
+  );
+  const [followUpCall, setFollowUpCall] = useState<FollowUpCallValue>(
+    EMPTY_FOLLOW_UP_CALL_VALUE
   );
   const [emailInput, setEmailInput] = useState("");
   const [products, setProducts] = useState<ProductsState>(emptyProductsState());
@@ -108,6 +116,9 @@ export function StageSelect({
             }))}
           />
         )}
+        {targetStage && isFollowUpStage(targetStage.label) && (
+          <FollowUpCallField value={followUpCall} onChange={setFollowUpCall} />
+        )}
         {targetStage?.isWon && (
           <ProductFields value={products} onChange={setProducts} />
         )}
@@ -118,6 +129,7 @@ export function StageSelect({
             onClick={() =>
               startTransition(async () => {
                 const meetingFormData = buildMeetingFormData(meeting);
+                const followUpFormData = buildFollowUpCallFormData(followUpCall);
                 const trimmedEmail = emailInput.trim();
                 await updateLeadStageAction(leadId, targetStageId, notes);
                 if (trimmedEmail) {
@@ -126,6 +138,9 @@ export function StageSelect({
                 if (meetingFormData) {
                   await planStageMeetingAction(leadId, meetingFormData);
                 }
+                if (followUpFormData) {
+                  await planFollowUpCallAction(leadId, followUpFormData);
+                }
                 if (targetStage?.isWon && hasAnyProduct(products)) {
                   await saveLeadProductsAction(leadId, buildProductsFormData(products));
                 }
@@ -133,6 +148,7 @@ export function StageSelect({
                 setTargetStageId("");
                 setNotes("");
                 setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+                setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
                 setEmailInput("");
                 setProducts(emptyProductsState());
                 router.refresh();
@@ -148,6 +164,7 @@ export function StageSelect({
             onClick={() => {
               setOpen(false);
               setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+              setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
               setTargetStageId("");
               setNotes("");
               setEmailInput("");

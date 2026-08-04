@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Clock, CalendarClock, Inbox, ChevronDown, Filter, Phone, Tag, Plus, Search, X } from "lucide-react";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
-import { planStageMeetingAction } from "@/lib/actions/activities";
+import { planStageMeetingAction, planFollowUpCallAction } from "@/lib/actions/activities";
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
 import { Avatar } from "@/components/Avatar";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import { FollowUpCallField } from "@/components/FollowUpCallField";
 import {
   ProductFields,
   emptyProductsState,
@@ -20,9 +21,13 @@ import {
 import {
   isPlanningStage,
   isFinancieleAnalyseType,
+  isFollowUpStage,
   buildMeetingFormData,
   EMPTY_MEETING_PLANNER_VALUE,
+  buildFollowUpCallFormData,
+  EMPTY_FOLLOW_UP_CALL_VALUE,
   type MeetingPlannerValue,
+  type FollowUpCallValue,
 } from "@/lib/meetingPlanning";
 import type { LeadType } from "@/generated/prisma/client";
 
@@ -258,6 +263,9 @@ export function FunnelBoard({
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(
     EMPTY_MEETING_PLANNER_VALUE
   );
+  const [followUpCall, setFollowUpCall] = useState<FollowUpCallValue>(
+    EMPTY_FOLLOW_UP_CALL_VALUE
+  );
   const [products, setProducts] = useState<ProductsState>(emptyProductsState());
 
   const mainStages = stages
@@ -282,6 +290,7 @@ export function FunnelBoard({
     const fromStage = stages.find((s) => s.id === lead.stageId);
     setNotes("");
     setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+    setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
     setEmailInput("");
     setProducts(emptyProductsState());
     setPendingMove({
@@ -324,6 +333,7 @@ export function FunnelBoard({
     setPickerQuery("");
     setNotes("");
     setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+    setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
     setEmailInput("");
     setProducts(emptyProductsState());
     setPendingMove({
@@ -343,6 +353,7 @@ export function FunnelBoard({
     const trimmedNotes = notes;
     const trimmedEmail = emailInput.trim();
     const meetingFormData = buildMeetingFormData(meeting);
+    const followUpFormData = buildFollowUpCallFormData(followUpCall);
     startTransition(async () => {
       await updateLeadStageAction(leadId, toStageId, trimmedNotes);
       if (trimmedEmail) {
@@ -351,12 +362,16 @@ export function FunnelBoard({
       if (meetingFormData) {
         await planStageMeetingAction(leadId, meetingFormData);
       }
+      if (followUpFormData) {
+        await planFollowUpCallAction(leadId, followUpFormData);
+      }
       if (toStageIsWon && hasAnyProduct(products)) {
         await saveLeadProductsAction(leadId, buildProductsFormData(products));
       }
       setPendingMove(null);
       setNotes("");
       setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+      setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
       setEmailInput("");
       setProducts(emptyProductsState());
       router.refresh();
@@ -699,6 +714,11 @@ export function FunnelBoard({
                 />
               </div>
             )}
+            {isFollowUpStage(pendingMove.toStageLabel) && (
+              <div className="mb-4">
+                <FollowUpCallField value={followUpCall} onChange={setFollowUpCall} />
+              </div>
+            )}
             {pendingMove.toStageIsWon && (
               <div className="mb-4">
                 <ProductFields value={products} onChange={setProducts} />
@@ -712,6 +732,7 @@ export function FunnelBoard({
                   setPendingMove(null);
                   setNotes("");
                   setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+                  setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
                   setEmailInput("");
                   setProducts(emptyProductsState());
                 }}

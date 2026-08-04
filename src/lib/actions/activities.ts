@@ -14,6 +14,7 @@ import { updateLeadStageAction } from "@/lib/actions/leads";
 import {
   isPlanningStage,
   isRichMeetingType,
+  isFollowUpStage,
   buildMeetingSubject,
 } from "@/lib/meetingPlanning";
 
@@ -466,6 +467,71 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
+}
+
+/**
+ * Plant meteen een uitgaand telefoongesprek in bij het verplaatsen van een
+ * lead naar de "Opvolging"-fase — een lichtere variant van
+ * `planStageMeetingAction` (enkel datum/uur, geen fysiek/online/subagent),
+ * die net als een afspraak automatisch in de Google Agenda van de eigenaar
+ * komt te staan.
+ */
+export async function planFollowUpCallAction(leadId: string, formData: FormData) {
+  const { user, lead } = await requireLeadAccess(leadId);
+
+  const freshLead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: { stage: true },
+  });
+  if (!freshLead) throw new Error("Lead niet gevonden");
+  if (!isFollowUpStage(freshLead.stage.label)) {
+    throw new Error(
+      "Een terugbelmoment inplannen kan enkel in de fase 'Opvolging'"
+    );
+  }
+
+  const assignee = await prisma.user.findUnique({
+    where: { id: freshLead.ownerId },
+  });
+  if (!assignee) throw new Error("Eigenaar van deze lead niet gevonden");
+
+  const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
+  if (!scheduledAtRaw) throw new Error("Kies een datum en uur voor het terugbelmoment");
+  const scheduledAt = new Date(scheduledAtRaw);
+
+  const subject = buildMeetingSubject(
+    scheduledAt,
+    "Opvolging",
+    freshLead.firstName,
+    freshLead.lastName
+  );
+
+  const activity = await prisma.activity.create({
+    data: {
+      leadId,
+      assigneeId: freshLead.ownerId,
+      type: ActivityType.CALL,
+      subject,
+      scheduledAt,
+      durationMinutes: 15,
+      status: ActivityStatus.PLANNED,
+    },
+  });
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { lastContactedAt: new Date() },
+  });
+
+  const scheduledBy = { name: user.name, email: user.email || null };
+  await syncActivityToGoogleCalendar(assignee, activity, freshLead, null, scheduledBy);
+
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath(`/funnel/${lead.leadType}`);
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
   revalidatePath("/taken");
   revalidatePath("/dashboard");
 }
