@@ -135,7 +135,11 @@ export default async function EventDetailPage({
               </>
             )}
           </p>
-          <form action={boundVerifyAttendance} className="flex flex-col gap-3">
+          <form
+            key={event.verifiedAt ? event.verifiedAt.getTime() : "unverified"}
+            action={boundVerifyAttendance}
+            className="flex flex-col gap-3"
+          >
             <ul className="flex flex-col gap-2">
               {verificationRows.map((row) => (
                 <li
