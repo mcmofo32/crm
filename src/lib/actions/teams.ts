@@ -165,11 +165,20 @@ export async function addSubordinateAction(personId: string, formData: FormData)
 
   let team = person.coachedTeam;
   if (!team) {
-    const [newTeam] = await prisma.$transaction([
-      prisma.team.create({ data: { name: `Team ${person.name}`, coachId: personId } }),
-      prisma.user.update({ where: { id: personId }, data: { role: Role.COACH } }),
-    ]);
-    team = newTeam;
+    // Enkel een gewone USER wordt hier automatisch Coach; een Admin/Beheerder
+    // die nog geen eigen team had, behoudt zijn rol (kan ook een team hebben,
+    // zie ook canManageUser) i.p.v. gedegradeerd te worden naar Coach.
+    if (person.role === Role.USER) {
+      const [newTeam] = await prisma.$transaction([
+        prisma.team.create({ data: { name: `Team ${person.name}`, coachId: personId } }),
+        prisma.user.update({ where: { id: personId }, data: { role: Role.COACH } }),
+      ]);
+      team = newTeam;
+    } else {
+      team = await prisma.team.create({
+        data: { name: `Team ${person.name}`, coachId: personId },
+      });
+    }
   }
 
   await prisma.user.update({ where: { id: userId }, data: { teamId: team.id } });
