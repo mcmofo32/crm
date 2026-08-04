@@ -48,10 +48,11 @@ function TeamCard({
   const teamSubagents = subagents.filter((s) => s.teamId === team.id);
   const boundAddSubagent = createSubagentAction.bind(null, team.id);
 
-  // Sub-structuren: teamleden die zelf ook coach zijn, met hun eigen team —
-  // die tonen we genest in deze kaart i.p.v. als apart, los vak op de pagina.
+  // Sub-structuren: teamleden die zelf ook een team leiden (ongeacht hun
+  // rol — ook een Admin/Beheerder kan een eigen team hebben), met hun eigen
+  // team. Die tonen we genest in deze kaart i.p.v. als apart, los vak op de
+  // pagina.
   const subTeams = team.members
-    .filter((m) => m.role === "COACH")
     .map((m) => teamByCoachId.get(m.id))
     .filter((t): t is TeamWithMembers => Boolean(t));
 
@@ -181,9 +182,9 @@ function TeamCard({
               <div className="flex items-center gap-2">
                 <Avatar name={member.name} />
                 <span className="text-sm text-slate-700">{member.name}</span>
-                {member.role === "COACH" && (
+                {teamByCoachId.has(member.id) && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                    Coach — heeft zelf ook een team
+                    Heeft zelf ook een team
                   </span>
                 )}
               </div>
@@ -372,8 +373,8 @@ function TeamCard({
               >
                 <Avatar name={m.name} size="sm" />
                 {m.name}
-                {m.role === "COACH" && (
-                  <span className="text-amber-600">· Coach</span>
+                {teamByCoachId.has(m.id) && (
+                  <span className="text-amber-600">· heeft eigen team</span>
                 )}
               </span>
             ))}
