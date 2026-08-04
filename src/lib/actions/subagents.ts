@@ -27,6 +27,7 @@ export async function getSubagents() {
 
   if (viewer.role === Role.BEHEERDER || viewer.role === Role.ADMIN) {
     return prisma.subagent.findMany({
+      where: { active: true },
       include: { team: { select: { name: true } } },
       orderBy: { name: "asc" },
     });
@@ -40,9 +41,68 @@ export async function getSubagents() {
   if (!ownTeamId) return [];
 
   return prisma.subagent.findMany({
-    where: { teamId: ownTeamId },
+    where: { teamId: ownTeamId, active: true },
     include: { team: { select: { name: true } } },
     orderBy: { name: "asc" },
+  });
+}
+
+/**
+ * Houdt het Subagent-record van deze gebruiker in sync met zijn "Type"
+ * (agentType): is hij Subagent, actief, heeft hij een e-mailadres en een
+ * team, dan is/wordt hij automatisch kiesbaar bij het uitnodigen van een
+ * subagent op een adviesgesprek — zonder dat een aparte, manuele
+ * subagent-vermelding voor hem aangemaakt moet worden.
+ *
+ * Voldoet hij niet (meer), dan wordt het gekoppelde record enkel op
+ * inactief gezet, nooit verwijderd — zo blijft de koppeling op reeds
+ * ingeplande activiteiten/dossiers intact.
+ */
+export async function syncSubagentForUser(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      agentType: true,
+      active: true,
+      teamId: true,
+      coachedTeam: { select: { id: true } },
+    },
+  });
+  if (!user) return;
+
+  const teamId = user.teamId ?? user.coachedTeam?.id ?? null;
+  const qualifies =
+    user.agentType === "SUBAGENT" && user.active && !!user.email && !!teamId;
+
+  if (!qualifies) {
+    await prisma.subagent.updateMany({
+      where: { userId: user.id, active: true },
+      data: { active: false },
+    });
+    return;
+  }
+
+  await prisma.subagent.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      name: user.name,
+      email: user.email!,
+      phone: user.phone,
+      teamId: teamId!,
+      active: true,
+    },
+    update: {
+      name: user.name,
+      email: user.email!,
+      phone: user.phone,
+      teamId: teamId!,
+      active: true,
+    },
   });
 }
 

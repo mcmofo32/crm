@@ -13,6 +13,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { syncSubagentForUser } from "@/lib/actions/subagents";
 
 /** Vast tijdelijk wachtwoord voor nieuwe gebruikers; zij wijzigen dit zelf na de eerste login. */
 const DEFAULT_TEMP_PASSWORD = "veranderditwachtwoord123";
@@ -151,6 +152,8 @@ export async function createUserAction(formData: FormData) {
     await prisma.user.update({ where: { id: user.id }, data: { teamId: team.id } });
   }
 
+  await syncSubagentForUser(user.id);
+
   await logAudit({
     actorId: actor.id,
     action: "user.created",
@@ -176,6 +179,7 @@ export async function setUserActiveAction(userId: string, active: boolean) {
   }
 
   await prisma.user.update({ where: { id: userId }, data: { active } });
+  await syncSubagentForUser(userId);
 
   await logAudit({
     actorId: actor.id,
@@ -187,6 +191,7 @@ export async function setUserActiveAction(userId: string, active: boolean) {
 
   revalidatePath("/beheer/gebruikers");
   revalidatePath("/organigram");
+  revalidatePath("/beheer/teams");
 }
 
 export async function getManageableUsers() {
@@ -294,6 +299,8 @@ export async function updateUserAction(
       });
     }
 
+    await syncSubagentForUser(userId);
+
     const changes: string[] = [];
     if (target.name !== name) changes.push(`naam: "${target.name}" → "${name}"`);
     if (target.email !== email) changes.push(`e-mail: "${target.email}" → "${email}"`);
@@ -313,6 +320,7 @@ export async function updateUserAction(
     revalidatePath("/beheer/gebruikers");
     revalidatePath(`/beheer/gebruikers/${userId}`);
     revalidatePath("/organigram");
+    revalidatePath("/beheer/teams");
     return null;
   } catch (err) {
     return {

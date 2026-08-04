@@ -66,11 +66,25 @@ model Subagent {
   name      String
   email     String
   phone     String?
+  /// Manueel toegevoegde subagenten staan hier altijd op true. Een
+  /// automatisch gesynchroniseerde (zie userId) staat op false zodra de
+  /// gekoppelde gebruiker niet langer kwalificeert (bv. Type niet meer
+  /// Subagent, geen e-mail meer, inactief) — het record blijft dan bestaan
+  /// voor de historiek van al gekoppelde activiteiten/leads, maar valt weg
+  /// uit de kiesbare lijst.
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   teamId String
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  /// Gekoppelde gebruiker als deze vermelding automatisch gesynchroniseerd
+  /// wordt vanuit iemands "Type: Subagent"-instelling (een echte
+  /// medewerker met inlogaccount) i.p.v. manueel als los extern contact
+  /// toegevoegd.
+  userId String? @unique
+  user   User?   @relation("SubagentForUser", fields: [userId], references: [id], onDelete: Cascade)
 
   activities Activity[] @relation("ActivitySubagent")
   caseManagedLeads Lead[] @relation("LeadCaseManagerSubagent")
@@ -100,6 +114,11 @@ model User {
 
   /// Team dat deze gebruiker als coach leidt (enkel relevant voor rol COACH)
   coachedTeam Team? @relation("TeamCoach")
+
+  /// Automatisch gesynchroniseerd Subagent-record als agentType SUBAGENT is
+  /// (zie Subagent.userId) — laat deze gebruiker mee kiesbaar zijn bij het
+  /// uitnodigen van een subagent op een adviesgesprek.
+  subagentRecord Subagent? @relation("SubagentForUser")
 
   // Google Calendar koppeling (per gebruiker) voor het automatisch inplannen
   // van gesprekken. De refresh token laat de app toe om zonder herhaalde

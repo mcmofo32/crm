@@ -177,18 +177,18 @@ function TeamCard({
           return (
             <div
               key={member.id}
-              className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Avatar name={member.name} />
                 <span className="text-sm text-slate-700">{member.name}</span>
                 {teamByCoachId.has(member.id) && (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                  <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                     Heeft zelf ook een team
                   </span>
                 )}
               </div>
-              <details className="group/menu relative">
+              <details className="group/menu relative flex-shrink-0">
                 <summary
                   title="Opties"
                   className="flex cursor-pointer list-none rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 [&::-webkit-details-marker]:hidden"
