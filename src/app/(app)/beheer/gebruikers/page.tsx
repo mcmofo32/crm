@@ -1,12 +1,21 @@
 import Link from "next/link";
-import { Plus, MoreVertical } from "lucide-react";
+import { Plus, MoreVertical, Eye, EyeOff } from "lucide-react";
 import { getManageableUsers } from "@/lib/actions/users";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
-export default async function UsersPage() {
-  const users = await getManageableUsers();
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ inactief?: string }>;
+}) {
+  const { inactief } = await searchParams;
+  const showInactive = inactief === "1";
+
+  const allUsers = await getManageableUsers();
+  const inactiveCount = allUsers.filter((u) => !u.active).length;
+  const users = showInactive ? allUsers : allUsers.filter((u) => u.active);
 
   return (
     <div className="flex flex-col gap-6">
@@ -20,6 +29,18 @@ export default async function UsersPage() {
           Nieuwe gebruiker
         </Link>
       </div>
+
+      {inactiveCount > 0 && (
+        <Link
+          href={showInactive ? "/beheer/gebruikers" : "/beheer/gebruikers?inactief=1"}
+          className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          {showInactive ? <EyeOff size={15} /> : <Eye size={15} />}
+          {showInactive
+            ? "Verberg inactieve gebruikers"
+            : `Toon ${inactiveCount} inactieve gebruiker${inactiveCount === 1 ? "" : "s"}`}
+        </Link>
+      )}
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-base">

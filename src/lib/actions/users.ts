@@ -129,16 +129,24 @@ export async function createUserAction(formData: FormData) {
   if (underPerson) {
     let team = underPerson.coachedTeam;
     if (!team) {
-      const [newTeam] = await prisma.$transaction([
-        prisma.team.create({
+      // Enkel een gewone USER wordt hier automatisch Coach; een Admin/
+      // Beheerder die nog geen eigen team had, behoudt zijn rol.
+      if (underPerson.role === Role.USER) {
+        const [newTeam] = await prisma.$transaction([
+          prisma.team.create({
+            data: { name: `Team ${underPerson.name}`, coachId: underPerson.id },
+          }),
+          prisma.user.update({
+            where: { id: underPerson.id },
+            data: { role: Role.COACH },
+          }),
+        ]);
+        team = newTeam;
+      } else {
+        team = await prisma.team.create({
           data: { name: `Team ${underPerson.name}`, coachId: underPerson.id },
-        }),
-        prisma.user.update({
-          where: { id: underPerson.id },
-          data: { role: Role.COACH },
-        }),
-      ]);
-      team = newTeam;
+        });
+      }
     }
     await prisma.user.update({ where: { id: user.id }, data: { teamId: team.id } });
   }
