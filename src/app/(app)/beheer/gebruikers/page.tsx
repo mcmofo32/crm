@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { Plus, MoreVertical, Eye, EyeOff } from "lucide-react";
+import { Plus, MoreVertical, Eye, EyeOff, TriangleAlert } from "lucide-react";
 import { getManageableUsers } from "@/lib/actions/users";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+
+function normalizedName(name: string) {
+  return name.trim().toLowerCase();
+}
 
 export default async function UsersPage({
   searchParams,
@@ -16,6 +20,18 @@ export default async function UsersPage({
   const allUsers = await getManageableUsers();
   const inactiveCount = allUsers.filter((u) => !u.active).length;
   const users = showInactive ? allUsers : allUsers.filter((u) => u.active);
+
+  // Meerdere accounts met exact dezelfde naam duiden meestal op een
+  // (per ongeluk) dubbel aangemaakte gebruiker — bv. via "Nieuwe gebruiker
+  // toevoegen" die meermaals gebruikt werd. Dat kan verwarrend/onzichtbaar
+  // blijven (elders in de app, zoals het organigram, wordt maar één account
+  // getoond), dus flaggen we dit hier expliciet.
+  const nameCounts = new Map<string, number>();
+  for (const u of allUsers) {
+    const key = normalizedName(u.name);
+    nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+  }
+  const duplicateNameCount = [...nameCounts.values()].filter((c) => c > 1).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,6 +58,16 @@ export default async function UsersPage({
         </Link>
       )}
 
+      {duplicateNameCount > 0 && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <TriangleAlert size={16} className="flex-shrink-0" />
+          {duplicateNameCount === 1
+            ? "Er zijn 2 of meer accounts met exact dezelfde naam (zie ⚠ hieronder) — vermoedelijk per ongeluk dubbel aangemaakt."
+            : `Er zijn ${duplicateNameCount} namen die bij meerdere accounts voorkomen (zie ⚠ hieronder) — vermoedelijk per ongeluk dubbel aangemaakt.`}
+          {" "}Vink "Toon inactieve gebruikers" aan om ze allemaal te zien.
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
@@ -55,7 +81,9 @@ export default async function UsersPage({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {users.map((u) => (
+            {users.map((u) => {
+              const isDuplicateName = (nameCounts.get(normalizedName(u.name)) ?? 0) > 1;
+              return (
               <tr key={u.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-slate-900">
                   <Link
@@ -64,6 +92,15 @@ export default async function UsersPage({
                   >
                     <Avatar name={u.name} />
                     {u.name}
+                    {isDuplicateName && (
+                      <span
+                        title="Nog een account met exact dezelfde naam"
+                        className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
+                      >
+                        <TriangleAlert size={12} />
+                        Dubbel?
+                      </span>
+                    )}
                   </Link>
                 </td>
                 <td className="px-6 py-4 text-slate-500">{u.email || "—"}</td>
@@ -90,7 +127,8 @@ export default async function UsersPage({
                   </Link>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
