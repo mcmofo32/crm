@@ -19,15 +19,6 @@ type Person = {
   role: Role;
   jobFunction: JobFunction | null;
   agentType: AgentType;
-  active: boolean;
-};
-
-type TeamWithPeople = {
-  id: string;
-  name: string;
-  coachId: string;
-  coach: Person;
-  members: Person[];
 };
 
 async function requireViewer() {
@@ -36,99 +27,81 @@ async function requireViewer() {
   return viewer;
 }
 
-async function loadAllTeams(): Promise<TeamWithPeople[]> {
-  const personSelect = {
-    id: true,
-    name: true,
-    role: true,
-    jobFunction: true,
-    agentType: true,
-    active: true,
-  } as const;
-  return prisma.team.findMany({
-    include: {
-      coach: { select: personSelect },
-      members: { select: personSelect },
-    },
-  });
-}
+/**
+ * Volledige bedrijfsstructuur, zichtbaar voor iedereen.
+ *
+ * Elke actieve gebruiker krijgt precies één plek in de boom, rechtstreeks
+ * bepaald door zijn eigen teamlidmaatschap: is hij lid van een team, dan
+ * komt hij onder de coach van dàt team te staan; heeft hij geen team, dan
+ * staat hij zelf aan de top als eigen rootnode (bv. de Beheerder, of een
+ * coach zonder eigen leidinggevende).
+ *
+ * Bewust géén indirecte opbouw via "doorloop alle teams, zoek voor elke
+ * coach zijn team op, hou een gedeelde bezoekgeschiedenis bij" — dat bleek
+ * in de praktijk gevoelig voor rand-gevallen (bv. iemand die zelf boven
+ * aan de structuur staat). Elke persoon zoekt hier zelf, in één stap,
+ * rechtstreeks zijn eigen ouder op.
+ */
+export async function getFullOrgChart(): Promise<OrgNode[]> {
+  await requireViewer();
 
-/** `seen` voorkomt een oneindige lus bij een (foutieve) cirkel in de structuur. */
-function buildNode(
-  teamByCoachId: Map<string, TeamWithPeople>,
-  person: Person,
-  seen: Set<string>
-): OrgNode {
-  if (seen.has(person.id)) {
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      jobFunction: true,
+      agentType: true,
+      team: { select: { coachId: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  const peopleById = new Map<string, Person>(users.map((u) => [u.id, u]));
+  const childIdsByParentId = new Map<string, string[]>();
+  const rootIds: string[] = [];
+
+  for (const user of users) {
+    const parentId = user.team?.coachId ?? null;
+    // Geen geldige ouder (niet ingevuld, verwijderd/inactief, of — in
+    // theorie onmogelijk maar niet vertrouwen op één FK-veld — zichzelf)?
+    // Dan staat deze persoon zelf aan de top i.p.v. te verdwijnen.
+    if (parentId && parentId !== user.id && peopleById.has(parentId)) {
+      const siblings = childIdsByParentId.get(parentId) ?? [];
+      siblings.push(user.id);
+      childIdsByParentId.set(parentId, siblings);
+    } else {
+      rootIds.push(user.id);
+    }
+  }
+
+  /** `seen` voorkomt een oneindige lus bij een (foutieve) cirkel in de structuur. */
+  function buildNode(id: string, seen: Set<string>): OrgNode {
+    const person = peopleById.get(id)!;
+    if (seen.has(id)) {
+      return {
+        id: person.id,
+        name: person.name,
+        role: person.role,
+        jobFunction: person.jobFunction,
+        agentType: person.agentType,
+        children: [],
+      };
+    }
+    seen.add(id);
+
+    const childIds = childIdsByParentId.get(id) ?? [];
     return {
       id: person.id,
       name: person.name,
       role: person.role,
       jobFunction: person.jobFunction,
       agentType: person.agentType,
-      children: [],
+      children: childIds.map((childId) => buildNode(childId, seen)),
     };
   }
-  seen.add(person.id);
 
-  return {
-    id: person.id,
-    name: person.name,
-    role: person.role,
-    jobFunction: person.jobFunction,
-    agentType: person.agentType,
-    children: buildActiveChildren(teamByCoachId, person, seen),
-  };
-}
-
-/**
- * Bouwt de kinderen van `person`, met inactieve gebruikers overgeslagen.
- * Is een teamlid zelf inactief maar coacht die nog een eigen (deels actief)
- * team, dan komen diens actieve mensen rechtstreeks als kind van `person`
- * te staan i.p.v. helemaal te verdwijnen.
- */
-function buildActiveChildren(
-  teamByCoachId: Map<string, TeamWithPeople>,
-  person: Person,
-  seen: Set<string>
-): OrgNode[] {
-  const team = teamByCoachId.get(person.id);
-  if (!team) return [];
-
-  const children: OrgNode[] = [];
-  for (const member of team.members) {
-    if (seen.has(member.id)) continue;
-    if (member.active) {
-      children.push(buildNode(teamByCoachId, member, seen));
-    } else {
-      seen.add(member.id);
-      children.push(...buildActiveChildren(teamByCoachId, member, seen));
-    }
-  }
-  return children;
-}
-
-/** Volledige bedrijfsstructuur, zichtbaar voor iedereen: elke top-coach als apart rootnode. */
-export async function getFullOrgChart(): Promise<OrgNode[]> {
-  await requireViewer();
-
-  const teams = await loadAllTeams();
-  const teamByCoachId = new Map(teams.map((t) => [t.coachId, t]));
-  const memberIds = new Set(teams.flatMap((t) => t.members.map((m) => m.id)));
-
-  // Root = een coach die zelf nergens teamlid van is (staat aan de top van zijn keten).
-  const roots = teams.filter((t) => !memberIds.has(t.coachId));
   const seen = new Set<string>();
-  const result: OrgNode[] = [];
-  for (const t of roots) {
-    if (t.coach.active) {
-      result.push(buildNode(teamByCoachId, t.coach, seen));
-    } else {
-      // Inactieve top-coach: zelf niet tonen, maar actieve mensen in zijn
-      // structuur alsnog als eigen rootnodes tonen i.p.v. laten verdwijnen.
-      seen.add(t.coach.id);
-      result.push(...buildActiveChildren(teamByCoachId, t.coach, seen));
-    }
-  }
-  return result;
+  return rootIds.map((id) => buildNode(id, seen));
 }
