@@ -11,6 +11,7 @@ import {
 } from "@/generated/prisma/client";
 import {
   canAccessOwner,
+  canAccessLead,
   canDeleteLeads,
   canViewBeheerderTools,
   getVisibleUserIds,
@@ -141,7 +142,7 @@ export async function updateLeadStageAction(
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
-  if (!(await canAccessOwner(user, lead.ownerId))) {
+  if (!(await canAccessLead(user, lead))) {
     throw new Error("Geen toegang tot deze lead");
   }
 

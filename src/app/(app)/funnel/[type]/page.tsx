@@ -83,7 +83,13 @@ export default async function FunnelPage({
       leads: {
         where: {
           deletedAt: null,
-          ownerId: selectedOwnerId,
+          OR: [
+            { ownerId: selectedOwnerId },
+            // Ook leads tonen waar deze persoon als subagent uitgenodigd is
+            // op een activiteit (bv. een adviesgesprek dat hij mee sluit),
+            // ook al is hij niet de eigenaar.
+            { activities: { some: { subagent: { userId: selectedOwnerId } } } },
+          ],
         },
         select: {
           id: true,

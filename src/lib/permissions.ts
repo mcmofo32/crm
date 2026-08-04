@@ -175,3 +175,31 @@ export async function canAccessOwner(user: SessionUser, ownerId: string) {
   if (ids === null) return true;
   return ids.includes(ownerId);
 }
+
+/**
+ * Is `user` op deze lead uitgenodigd als subagent (via zijn gekoppeld
+ * Subagent-record, zie Subagent.userId) op een van de activiteiten, bv. een
+ * adviesgesprek dat hij mee sluit? Los van wie de lead effectief bezit.
+ */
+export async function isInvitedSubagentOnLead(user: SessionUser, leadId: string) {
+  const activity = await prisma.activity.findFirst({
+    where: { leadId, subagent: { userId: user.id } },
+    select: { id: true },
+  });
+  return Boolean(activity);
+}
+
+/**
+ * Mag `user` deze lead beheren — ofwel via de gewone eigenaar/coach-scope,
+ * ofwel omdat hij als subagent uitgenodigd is op een activiteit ervan (bv.
+ * om het adviesgesprek te sluiten: fase naar Klant zetten, producten
+ * invullen), ook al is hij niet de eigenaar en zit hij niet in diens
+ * coach-keten.
+ */
+export async function canAccessLead(
+  user: SessionUser,
+  lead: { id: string; ownerId: string }
+) {
+  if (await canAccessOwner(user, lead.ownerId)) return true;
+  return isInvitedSubagentOnLead(user, lead.id);
+}

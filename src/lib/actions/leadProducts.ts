@@ -8,7 +8,7 @@ import {
   TaxDeclarationStatus,
   Role,
 } from "@/generated/prisma/client";
-import { canAccessOwner, canManageUsers } from "@/lib/permissions";
+import { canAccessOwner, canAccessLead, canManageUsers } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 
@@ -49,7 +49,7 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
-  if (!(await canAccessOwner(user, lead.ownerId))) {
+  if (!(await canAccessLead(user, lead))) {
     throw new Error("Geen toegang tot deze lead");
   }
 
