@@ -88,8 +88,12 @@ function NodeCard({ node }: { node: OrgNode }) {
 
 export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Standaard 100% i.p.v. automatisch verkleind tot het geheel past — bij
+  // een organisatie met wat meer mensen werd de tekst daardoor onleesbaar
+  // klein. Wie een overzicht wil, gebruikt de "Passend maken"-knop; anders
+  // scroll je gewoon (de container is scrollbaar) op volledige grootte.
   const [scale, setScale] = useState(1);
-  const [autoFitted, setAutoFitted] = useState(false);
+  const [centered, setCentered] = useState(false);
 
   const { positioned, width, height } = useMemo(() => layout(roots), [roots]);
   const allNodes = useMemo(
@@ -97,14 +101,15 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
     [positioned]
   );
 
+  // Centreert de horizontale scrollpositie op de boom bij het laden, zodat
+  // de bovenste persoon niet toevallig links tegen de rand aan lijkt te
+  // staan wanneer de boom breder is dan het zichtbare venster.
   useLayoutEffect(() => {
-    if (autoFitted || !containerRef.current) return;
-    const available = containerRef.current.clientWidth - PADDING;
-    if (available > 0 && width > available) {
-      setScale(Math.max(0.35, available / width));
-    }
-    setAutoFitted(true);
-  }, [autoFitted, width]);
+    if (centered || !containerRef.current) return;
+    const el = containerRef.current;
+    el.scrollLeft = Math.max(0, (width * scale - el.clientWidth) / 2);
+    setCentered(true);
+  }, [centered, width, scale]);
 
   function fitToScreen() {
     if (!containerRef.current) return;
