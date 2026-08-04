@@ -12,6 +12,7 @@ import {
 import {
   canAccessOwner,
   canDeleteLeads,
+  canViewBeheerderTools,
   getVisibleUserIds,
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
@@ -310,7 +311,7 @@ export async function deleteLeadAction(leadId: string) {
 /** Haalt een lead terug uit de prullenbak. */
 export async function restoreLeadAction(leadId: string) {
   const user = await requireUser();
-  if (!canDeleteLeads(user)) {
+  if (!canViewBeheerderTools(user)) {
     throw new Error("Je mag geen leads herstellen");
   }
 
@@ -335,10 +336,10 @@ export async function restoreLeadAction(leadId: string) {
   revalidatePath("/beheer/prullenbak");
 }
 
-/** Lijst van verwijderde leads voor de prullenbak-pagina (enkel Beheerder). */
+/** Lijst van verwijderde leads voor de prullenbak-pagina. */
 export async function getDeletedLeads() {
   const user = await requireUser();
-  if (!canDeleteLeads(user)) {
+  if (!canViewBeheerderTools(user)) {
     throw new Error("Je hebt geen toegang tot de prullenbak");
   }
 

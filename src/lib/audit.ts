@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { isBeheerder } from "@/lib/permissions";
+import { canViewBeheerderTools } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 
 export async function getAuditLog(entityType?: string) {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
-  if (!isBeheerder(viewer)) {
-    throw new Error("Enkel de Beheerder heeft toegang tot het logboek");
+  if (!canViewBeheerderTools(viewer)) {
+    throw new Error("Je hebt geen toegang tot het logboek");
   }
 
   return prisma.auditLog.findMany({

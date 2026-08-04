@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { isBeheerder } from "@/lib/permissions";
+import { canViewBeheerderTools } from "@/lib/permissions";
 import { getDeletedLeads } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
@@ -11,7 +11,7 @@ import { RestoreLeadButton } from "@/components/RestoreLeadButton";
 export default async function PrullenbakPage() {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
-  if (!isBeheerder(viewer)) redirect("/dashboard");
+  if (!canViewBeheerderTools(viewer)) redirect("/dashboard");
 
   const leads = await getDeletedLeads();
 
@@ -23,7 +23,7 @@ export default async function PrullenbakPage() {
           Prullenbak
         </h1>
         <p className="mt-1 text-base text-slate-500">
-          Verwijderde leads. Enkel zichtbaar voor de Beheerder.
+          Verwijderde leads.
         </p>
       </div>
 

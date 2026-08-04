@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Copy } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { isBeheerder } from "@/lib/permissions";
+import { canViewBeheerderTools } from "@/lib/permissions";
 import { getDuplicateLeads } from "@/lib/actions/duplicates";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
@@ -11,7 +11,7 @@ import { Avatar } from "@/components/Avatar";
 export default async function DuplicatenPage() {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
-  if (!isBeheerder(viewer)) redirect("/dashboard");
+  if (!canViewBeheerderTools(viewer)) redirect("/dashboard");
 
   const groups = await getDuplicateLeads();
 
@@ -24,8 +24,7 @@ export default async function DuplicatenPage() {
         </h1>
         <p className="mt-1 text-base text-slate-500">
           Leads met hetzelfde e-mailadres of telefoonnummer, zodat niet
-          meerdere mensen dezelfde persoon contacteren. Enkel zichtbaar voor
-          de Beheerder.
+          meerdere mensen dezelfde persoon contacteren.
         </p>
       </div>
 

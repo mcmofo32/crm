@@ -7,9 +7,11 @@ import { prisma } from "@/lib/prisma";
  *
  *  - BEHEERDER: alle rechten. Volledig systeembeheer (gebruikers, teams,
  *    funnels/instellingen, en alle leads/activiteiten van iedereen).
- *  - ADMIN: veel rechten. Ziet en beheert alle leads/activiteiten en kan
- *    gebruikers/teams beheren, maar mag geen Beheerder-accounts aanmaken,
- *    wijzigen of verwijderen, en heeft geen toegang tot systeeminstellingen.
+ *  - ADMIN: veel rechten. Ziet en beheert alle leads/activiteiten, kan
+ *    gebruikers/teams beheren en heeft toegang tot de Beheerderstools
+ *    (Analyse, Auditlog, Duplicaten, Prullenbak), maar mag geen
+ *    Beheerder- of Admin-accounts aanmaken/wijzigen, en mag zelf geen
+ *    leads verwijderen.
  *  - COACH: toegang tot zichzelf + zijn team (de teamleden die aan hem/haar
  *    rapporteren).
  *  - USER: toegang enkel tot zichzelf.
@@ -32,7 +34,17 @@ export function canManageUsers(user: SessionUser) {
   return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
 }
 
-/** Enkel de Beheerder mag leads definitief verwijderen. */
+/**
+ * Wie ziet en gebruikt de "Beheerderstools"-sectie in het profielmenu:
+ * Analyse, Auditlog, Duplicaten en Prullenbak (inclusief leads herstellen
+ * uit de prullenbak). Los van `canDeleteLeads`, wat enkel over het
+ * verwijderen van een lead (naar de prullenbak) gaat.
+ */
+export function canViewBeheerderTools(user: SessionUser) {
+  return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
+}
+
+/** Enkel de Beheerder mag een lead verwijderen (naar de prullenbak). */
 export function canDeleteLeads(user: SessionUser) {
   return user.role === Role.BEHEERDER;
 }

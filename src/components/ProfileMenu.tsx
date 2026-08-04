@@ -15,7 +15,7 @@ import {
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
-import { canManageUsers, isBeheerder } from "@/lib/permissions";
+import { canManageUsers, canViewBeheerderTools } from "@/lib/permissions";
 import { ViewAsControls } from "@/components/ViewAsControls";
 import type { EffectiveViewer } from "@/lib/impersonation";
 import { JobFunction, Role } from "@/generated/prisma/client";
@@ -58,7 +58,7 @@ export function ProfileMenu({
   jobFunction?: JobFunction | null;
 }) {
   const showUserManagement = canManageUsers(viewer);
-  const showBeheerderTools = isBeheerder(viewer);
+  const showBeheerderTools = canViewBeheerderTools(viewer);
   const canImpersonate = viewer.realRole === Role.BEHEERDER;
 
   return (

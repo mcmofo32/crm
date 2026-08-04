@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ScrollText } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { isBeheerder } from "@/lib/permissions";
+import { canViewBeheerderTools } from "@/lib/permissions";
 import { getAuditLog } from "@/lib/audit";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
@@ -38,7 +38,7 @@ export default async function AuditLogPage({
 }) {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
-  if (!isBeheerder(viewer)) redirect("/dashboard");
+  if (!canViewBeheerderTools(viewer)) redirect("/dashboard");
 
   const { type } = await searchParams;
   const entries = await getAuditLog(type);
