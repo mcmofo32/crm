@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Phone, Voicemail, PhoneCall, Megaphone } from "lucide-react";
+import { Phone, Voicemail, PhoneCall, Megaphone, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
   getPipelineStats,
@@ -32,11 +32,14 @@ const SCORE_OPTIONS = Array.from({ length: 11 }, (_, i) => ({
 
 export default async function PipelinePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { type } = await params;
   if (type !== "verkoop" && type !== "recrutering") notFound();
+  const { q } = await searchParams;
 
   const leadType = TYPE_MAP[type];
   const isRecrutering = type === "recrutering";
@@ -44,7 +47,7 @@ export default async function PipelinePage({
   await ensureFunnelStages(leadType);
   const [stats, leads, stages, subagents] = await Promise.all([
     getPipelineStats(leadType),
-    getPipelineLeads(leadType),
+    getPipelineLeads(leadType, q),
     prisma.funnelStage.findMany({
       where: { leadType, key: { in: funnelStageKeys(leadType) } },
       orderBy: { order: "asc" },
@@ -95,6 +98,22 @@ export default async function PipelinePage({
           color="bg-blue-100 text-blue-700"
         />
       </div>
+
+      <form method="GET" className="flex items-center gap-2">
+        <div className="relative">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            type="search"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
+            className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+          />
+        </div>
+      </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
@@ -188,7 +207,7 @@ export default async function PipelinePage({
                   colSpan={isRecrutering ? 6 : 10}
                   className="px-4 py-8 text-center text-slate-400"
                 >
-                  Nog geen leads.
+                  {q ? "Geen leads gevonden voor deze zoekopdracht." : "Nog geen leads."}
                 </td>
               </tr>
             )}

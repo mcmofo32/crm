@@ -92,14 +92,31 @@ export type PipelineLeadRow = {
 };
 
 export async function getPipelineLeads(
-  leadType: LeadType
+  leadType: LeadType,
+  search?: string
 ): Promise<PipelineLeadRow[]> {
   const user = await requireUser();
   const ids = await getVisibleUserIds(user);
   const ownerWhere = ids ? { ownerId: { in: ids } } : {};
+  const trimmedSearch = search?.trim();
 
   const leads = await prisma.lead.findMany({
-    where: { deletedAt: null, leadType, ...ownerWhere },
+    where: {
+      deletedAt: null,
+      leadType,
+      ...ownerWhere,
+      ...(trimmedSearch
+        ? {
+            OR: [
+              { firstName: { contains: trimmedSearch, mode: "insensitive" } },
+              { lastName: { contains: trimmedSearch, mode: "insensitive" } },
+              { email: { contains: trimmedSearch, mode: "insensitive" } },
+              { phone: { contains: trimmedSearch, mode: "insensitive" } },
+              { company: { contains: trimmedSearch, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     select: {
       id: true,
       createdAt: true,
