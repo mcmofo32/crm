@@ -17,7 +17,7 @@ import {
 } from "@/components/ProductFields";
 import {
   isPlanningStage,
-  isFinancieleAnalyseType,
+  wantsEmailPrompt,
   isFollowUpStage,
   buildMeetingFormData,
   EMPTY_MEETING_PLANNER_VALUE,
@@ -90,7 +90,7 @@ export function StageSelect({
           placeholder="Wat is er besproken/gebeurd? (bv. financiële analyse afgerond, klant tekent volgende week)"
           className="rounded-md border border-slate-300 px-2 py-1 text-sm"
         />
-        {targetStage && isFinancieleAnalyseType(targetStage.label) && !leadEmail && (
+        {targetStage && wantsEmailPrompt(targetStage.label) && !leadEmail && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
             <label className="mb-1 block text-xs text-amber-800">
               Nog geen e-mailadres. Voeg er één toe (optioneel):

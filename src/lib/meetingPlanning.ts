@@ -44,6 +44,15 @@ export function isFinancieleAnalyseType(meetingType: string) {
   );
 }
 
+/**
+ * Fases waar we (optioneel, nooit verplicht — je wacht soms nog op het
+ * e-mailadres) vragen om een e-mailadres toe te voegen als dat nog
+ * ontbreekt: Financiële analyse en Adviesgesprek.
+ */
+export function wantsEmailPrompt(meetingType: string) {
+  return isFinancieleAnalyseType(meetingType) || isAdviesgesprekType(meetingType);
+}
+
 /** Onderwerpen die de rijke planning-widget (Van/Tot i.p.v. duurtijd) tonen. */
 export function isRichMeetingType(meetingType: string) {
   return isAdviesgesprekType(meetingType) || isFinancieleAnalyseType(meetingType);
