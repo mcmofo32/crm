@@ -4,9 +4,9 @@ import {
   getProductionLeaderboard,
   getConversationsLeaderboard,
   getCurrentProductionMonth,
+  getCurrentConversationsContext,
   setUserMonthlyGoalAction,
 } from "@/lib/actions/production";
-import { getCurrentGoalPeriod } from "@/lib/actions/goals";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric } from "@/generated/prisma/client";
@@ -37,10 +37,10 @@ export default async function ProductiePage({
   const next = shiftMonth(year, month, 1);
   const prev = shiftMonth(year, month, -1);
 
-  const [productionRows, goalPeriod] =
+  const [productionRows, conversationsContext] =
     activeTab === "productie"
       ? await Promise.all([getProductionLeaderboard(year, month), null])
-      : [null, await getCurrentGoalPeriod()];
+      : [null, await getCurrentConversationsContext()];
   const conversationsRows =
     activeTab === "gesprekken" ? await getConversationsLeaderboard() : null;
 
@@ -139,11 +139,13 @@ export default async function ProductiePage({
         </>
       )}
 
-      {activeTab === "gesprekken" && conversationsRows && goalPeriod && (
+      {activeTab === "gesprekken" && conversationsRows && conversationsContext && (
         <>
           <p className="text-sm text-slate-400">
-            Periode: {formatDate(goalPeriod.startDate)} –{" "}
-            {formatDate(goalPeriod.endDate)}
+            Deze week: {formatDate(conversationsContext.weekStart)} –{" "}
+            {formatDate(conversationsContext.weekEnd)} · doel afgeleid van het
+            maandelijkse gesprekken-doel voor productiemaand{" "}
+            {String(conversationsContext.month).padStart(2, "0")}
           </p>
 
           <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

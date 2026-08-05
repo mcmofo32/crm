@@ -7,12 +7,9 @@ import {
   getProductionMonthsForYear,
   saveProductionMonthDatesAction,
 } from "@/lib/actions/production";
-import { GoalMetric } from "@/generated/prisma/client";
-import { GOAL_METRIC_LABELS } from "@/lib/goalLabels";
+import { GOAL_METRIC_LABELS, MONTHLY_GOAL_METRICS } from "@/lib/goalLabels";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { Avatar } from "@/components/Avatar";
-
-const MONTHLY_METRICS = [GoalMetric.CUSTOMERS, GoalMetric.UNITS] as const;
 
 function shiftMonth(year: number, month: number, delta: number) {
   const d = new Date(year, month - 1 + delta, 1);
@@ -54,8 +51,8 @@ export default async function ProductieDoelenPage({
         </h1>
         <p className="mt-1 text-base text-slate-500">
           Stel voor elk van de 12 productiemaanden de begin- en einddatum in
-          (hoeft niet gelijk te lopen met de kalendermaand), en de
-          Klanten/Eenheden-doelen per medewerker voor die maand.
+          (hoeft niet gelijk te lopen met de kalendermaand), en de doelen
+          Eenheden/Klanten/Gesprekken per medewerker voor die maand.
         </p>
       </div>
 
@@ -160,7 +157,7 @@ export default async function ProductieDoelenPage({
                   <th className="whitespace-nowrap px-4 py-3 font-medium">
                     Naam
                   </th>
-                  {MONTHLY_METRICS.map((metric) => (
+                  {MONTHLY_GOAL_METRICS.map((metric) => (
                     <th
                       key={metric}
                       className="whitespace-nowrap px-3 py-3 text-center font-medium"
@@ -184,7 +181,7 @@ export default async function ProductieDoelenPage({
                         </div>
                       </div>
                     </td>
-                    {MONTHLY_METRICS.map((metric) => (
+                    {MONTHLY_GOAL_METRICS.map((metric) => (
                       <td key={metric} className="px-2 py-2">
                         <input
                           type="number"
@@ -201,7 +198,7 @@ export default async function ProductieDoelenPage({
                 {users.length === 0 && (
                   <tr>
                     <td
-                      colSpan={MONTHLY_METRICS.length + 1}
+                      colSpan={MONTHLY_GOAL_METRICS.length + 1}
                       className="px-4 py-8 text-center text-slate-400"
                     >
                       Geen gebruikers gevonden.
@@ -223,6 +220,13 @@ export default async function ProductieDoelenPage({
             </div>
           )}
         </form>
+
+        <p className="text-sm text-slate-400">
+          Het doel Gesprekken hierboven is een totaal voor de hele
+          productiemaand — op de Productie-tab wordt dit automatisch verdeeld
+          over het aantal weken in die maand, zodat je ziet hoeveel je die
+          week moet inplannen.
+        </p>
       </section>
     </div>
   );

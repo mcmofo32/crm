@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
+import { MONTHLY_GOAL_METRICS } from "@/lib/goalLabels";
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -205,15 +206,42 @@ export type ConversationsRow = {
   toBePlanned: number;
 };
 
-export async function getConversationsLeaderboard(period?: {
-  startDate: Date;
-  endDate: Date;
-}): Promise<ConversationsRow[]> {
+/** Aantal (afgeronde) weken dat een periode beslaat, minstens 1. */
+function weeksInRange(start: Date, end: Date) {
+  const days = (end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000);
+  return Math.max(1, Math.round(days / 7));
+}
+
+/**
+ * Week (ma-zo) + productiemaand waarvan het maandelijkse gesprekken-doel
+ * wordt afgeleid — voor weergave boven de Gesprekken-ranglijst.
+ */
+export async function getCurrentConversationsContext() {
+  const week = currentWeekRange();
+  const { year, month } = await getCurrentProductionMonth();
+  return {
+    weekStart: week.start,
+    weekEnd: new Date(week.end.getTime() - 1),
+    year,
+    month,
+  };
+}
+
+/**
+ * Het wekelijkse gesprekken-doel is afgeleid van het maandelijkse
+ * Gesprekken-doel voor de huidige productiemaand (`UserMonthlyGoal`),
+ * verdeeld over het aantal weken dat die productiemaand beslaat — zo weet
+ * je hoeveel je die week effectief moet inplannen.
+ */
+export async function getConversationsLeaderboard(): Promise<ConversationsRow[]> {
   await requireViewer();
-  const start = period?.startDate ?? currentWeekRange().start;
-  const end = period
-    ? new Date(period.endDate.getTime() + 1)
-    : currentWeekRange().end;
+  const week = currentWeekRange();
+  const { year, month } = await getCurrentProductionMonth();
+  const { start: monthStart, end: monthEnd } = await getProductionMonthRange(
+    year,
+    month
+  );
+  const weeks = weeksInRange(monthStart, monthEnd);
 
   const users = await prisma.user.findMany({
     where: { active: true },
@@ -221,7 +249,9 @@ export async function getConversationsLeaderboard(period?: {
       id: true,
       name: true,
       jobFunction: true,
-      goals: { where: { metric: GoalMetric.CONVERSATIONS } },
+      monthlyGoals: {
+        where: { year, month, metric: GoalMetric.CONVERSATIONS },
+      },
     },
     orderBy: { name: "asc" },
   });
@@ -233,7 +263,7 @@ export async function getConversationsLeaderboard(period?: {
       assigneeId: { in: userIds },
       status: "PLANNED",
       type: { in: ["CALL", "MEETING"] },
-      scheduledAt: { gte: start, lt: end },
+      scheduledAt: { gte: week.start, lt: week.end },
       lead: { leadType: "FA" },
     },
     _count: { _all: true },
@@ -243,7 +273,8 @@ export async function getConversationsLeaderboard(period?: {
   );
 
   const rows = users.map((u) => {
-    const target = Number(u.goals[0]?.target ?? 0);
+    const monthlyTarget = Number(u.monthlyGoals[0]?.target ?? 0);
+    const target = monthlyTarget > 0 ? Math.round(monthlyTarget / weeks) : 0;
     const actual = actualByUser.get(u.id) ?? 0;
     return {
       id: u.id,
@@ -328,8 +359,6 @@ export async function saveProductionMonthDatesAction(
 // ---------------------------------------------------------------------------
 // Beheer: maandelijkse Klanten/Eenheden-doelen instellen (enkel Beheerder/Admin)
 // ---------------------------------------------------------------------------
-
-const MONTHLY_GOAL_METRICS = [GoalMetric.CUSTOMERS, GoalMetric.UNITS] as const;
 
 export async function getAllUserMonthlyGoalsForTable(year: number, month: number) {
   const actor = await requireGoalManager();

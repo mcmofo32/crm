@@ -17,6 +17,13 @@ export const GOAL_METRIC_ORDER: GoalMetric[] = [
   "ABV_RG",
 ];
 
+/** De 3 doelen die per productiemaand ingesteld worden (Productie-tab + Doelen > Productiemaanden). */
+export const MONTHLY_GOAL_METRICS = [
+  "UNITS",
+  "CUSTOMERS",
+  "CONVERSATIONS",
+] as const satisfies readonly GoalMetric[];
+
 export const KPI_METRIC_LABELS: Record<KpiMetric, string> = {
   CONVERSATIONS: "KPI Gesprekken",
   PRODUCTION: "KPI Productie",
