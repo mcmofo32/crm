@@ -4,8 +4,9 @@ import {
   getProductionLeaderboard,
   getConversationsLeaderboard,
   getCurrentProductionMonth,
+  setUserMonthlyGoalAction,
 } from "@/lib/actions/production";
-import { getCurrentGoalPeriod, setUserGoalAction } from "@/lib/actions/goals";
+import { getCurrentGoalPeriod } from "@/lib/actions/goals";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric } from "@/generated/prisma/client";
@@ -110,19 +111,31 @@ export default async function ProductiePage({
           <ProductionTable
             rows={productionRows.map((row) => ({
               ...row,
-              setCustomersGoal: setUserGoalAction.bind(
+              setCustomersGoal: setUserMonthlyGoalAction.bind(
                 null,
                 row.id,
-                GoalMetric.CUSTOMERS
+                GoalMetric.CUSTOMERS,
+                year,
+                month
               ),
-              setUnitsGoal: setUserGoalAction.bind(
+              setUnitsGoal: setUserMonthlyGoalAction.bind(
                 null,
                 row.id,
-                GoalMetric.UNITS
+                GoalMetric.UNITS,
+                year,
+                month
               ),
             }))}
             canEditGoals={canEditGoals}
           />
+          {canEditGoals && (
+            <Link
+              href="/beheer/doelen/productie"
+              className="inline-flex w-fit items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 hover:underline"
+            >
+              Begin-/einddatums van de productiemaanden instellen →
+            </Link>
+          )}
         </>
       )}
 

@@ -154,6 +154,14 @@ export default async function DoelenPage() {
         De jaarlijkse KPI&apos;s (Productie jaarlijks) stel je per gebruiker in
         via het tandwiel-icoon — daar geef je ook de maandelijkse stand in.
       </p>
+
+      <Link
+        href="/beheer/doelen/productie"
+        className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      >
+        <Settings2 size={16} />
+        Productiemaanden: datums en doelen per maand instellen
+      </Link>
     </div>
   );
 }

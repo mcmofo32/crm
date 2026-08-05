@@ -146,6 +146,7 @@ model User {
   auditLogEntries   AuditLog[]        @relation("AuditActor")
 
   goals             UserGoal[]            @relation("UserGoals")
+  monthlyGoals      UserMonthlyGoal[]     @relation("UserMonthlyGoals")
   kpiGoals          UserKpiGoal[]         @relation("UserKpiGoals")
   kpiMonthlyEntries UserKpiMonthlyEntry[] @relation("UserKpiMonthlyEntries")
 
@@ -493,6 +494,39 @@ model UserGoal {
   updatedAt DateTime   @updatedAt
 
   @@unique([userId, metric])
+}
+
+/// Eén rij per (jaar, productiemaand 1-12) met de effectieve begin-/
+/// einddatum van die productiemaand — hoeft niet gelijk te lopen met de
+/// kalendermaand. `endDate` is inclusief (einde van de dag), net als
+/// GoalPeriod. Nog niet ingesteld voor een maand = valt terug op de
+/// kalendermaand.
+model ProductionMonth {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int
+  startDate DateTime
+  endDate   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+/// Doel per gebruiker, per metric (Klanten/Eenheden), per productiemaand —
+/// los van het wekelijkse UserGoal hierboven.
+model UserMonthlyGoal {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation("UserMonthlyGoals", fields: [userId], references: [id], onDelete: Cascade)
+  metric    GoalMetric
+  year      Int
+  month     Int
+  target    Decimal    @db.Decimal(12, 2)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, metric, year, month])
+  @@index([userId, metric, year])
 }
 
 /// De 4 jaarlijkse KPI's onder "Productie jaarlijks".

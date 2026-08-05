@@ -1,8 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { GoalMetric, JobFunction } from "@/generated/prisma/client";
+import { canManageUsers } from "@/lib/permissions";
+import { GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -10,10 +12,40 @@ async function requireViewer() {
   return viewer;
 }
 
+async function requireGoalManager() {
+  const viewer = await requireViewer();
+  if (!canManageUsers(viewer)) {
+    throw new Error("Je hebt geen rechten om doelen te beheren");
+  }
+  return viewer;
+}
+
 function monthRange(year: number, month: number) {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 1);
   return { start, end };
+}
+
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Effectieve begin/eind (exclusieve bovengrens) van een productiemaand: de
+ * ingestelde datums via `ProductionMonth` als die er zijn, anders valt terug
+ * op de kalendermaand.
+ */
+async function getProductionMonthRange(year: number, month: number) {
+  const configured = await prisma.productionMonth.findUnique({
+    where: { year_month: { year, month } },
+  });
+  if (configured) {
+    return {
+      start: configured.startDate,
+      end: new Date(configured.endDate.getTime() + 1),
+    };
+  }
+  return monthRange(year, month);
 }
 
 /** Maandag 00:00 t.e.m. volgende maandag 00:00 (lokale tijd) van de huidige week. */
@@ -29,8 +61,15 @@ function currentWeekRange() {
   return { start, end };
 }
 
+/** Welke productiemaand "nu" valt: de ingestelde maand waar `now` binnen valt, anders de kalendermaand. */
 export async function getCurrentProductionMonth() {
   const now = new Date();
+  const configured = await prisma.productionMonth.findFirst({
+    where: { startDate: { lte: now }, endDate: { gte: now } },
+  });
+  if (configured) {
+    return { year: configured.year, month: configured.month };
+  }
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
@@ -58,7 +97,7 @@ export async function getProductionLeaderboard(
   month: number
 ): Promise<ProductionRow[]> {
   await requireViewer();
-  const { start, end } = monthRange(year, month);
+  const { start, end } = await getProductionMonthRange(year, month);
   // "Gesprekken/week" toont het effectieve aantal van de lopende week
   // (maandag t.e.m. zondag) — niet een gemiddelde over de maand, want een
   // gesprek is een geheel getal (je hebt er wel of geen).
@@ -71,9 +110,7 @@ export async function getProductionLeaderboard(
       name: true,
       jobFunction: true,
       team: { select: { coach: { select: { name: true } } } },
-      goals: {
-        where: { metric: { in: [GoalMetric.CUSTOMERS, GoalMetric.UNITS] } },
-      },
+      monthlyGoals: { where: { year, month } },
     },
     orderBy: { name: "asc" },
   });
@@ -123,7 +160,7 @@ export async function getProductionLeaderboard(
 
   const rows = users.map((u) => {
     const goalByMetric = new Map(
-      u.goals.map((g) => [g.metric, Number(g.target)])
+      u.monthlyGoals.map((g) => [g.metric, Number(g.target)])
     );
     const won = wonByUser.get(u.id);
     const actualCustomers = won?.customers.size ?? 0;
@@ -221,4 +258,150 @@ export async function getConversationsLeaderboard(period?: {
   });
 
   return rows.sort((a, b) => b.actual - a.actual);
+}
+
+// ---------------------------------------------------------------------------
+// Beheer: de 12 productiemaanden (begin/einddatum) instellen (enkel Beheerder/Admin)
+// ---------------------------------------------------------------------------
+
+export type ProductionMonthConfig = {
+  month: number;
+  startDate: string;
+  endDate: string;
+};
+
+/** De 12 productiemaanden van `year`, met ingestelde datums of anders de kalendermaand als voorstel. */
+export async function getProductionMonthsForYear(
+  year: number
+): Promise<ProductionMonthConfig[]> {
+  await requireGoalManager();
+  const configured = await prisma.productionMonth.findMany({ where: { year } });
+  const byMonth = new Map(configured.map((c) => [c.month, c]));
+
+  return Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
+    const existing = byMonth.get(month);
+    if (existing) {
+      return {
+        month,
+        startDate: toDateInputValue(existing.startDate),
+        endDate: toDateInputValue(existing.endDate),
+      };
+    }
+    const { start, end } = monthRange(year, month);
+    return {
+      month,
+      startDate: toDateInputValue(start),
+      endDate: toDateInputValue(new Date(end.getTime() - 1)),
+    };
+  });
+}
+
+/** Slaat de begin/einddatum van alle 12 productiemaanden van `year` in één keer op. */
+export async function saveProductionMonthDatesAction(
+  year: number,
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const upserts = Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
+    const startRaw = String(formData.get(`start_${month}`) ?? "");
+    const endRaw = String(formData.get(`end_${month}`) ?? "");
+    const startDate = new Date(`${startRaw}T00:00:00`);
+    const endDate = new Date(`${endRaw}T23:59:59.999`);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new Error(`Ongeldige datum voor productiemaand ${month}`);
+    }
+    return prisma.productionMonth.upsert({
+      where: { year_month: { year, month } },
+      create: { year, month, startDate, endDate },
+      update: { startDate, endDate },
+    });
+  });
+
+  await prisma.$transaction(upserts);
+
+  revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/productie");
+  revalidatePath("/dashboard");
+}
+
+// ---------------------------------------------------------------------------
+// Beheer: maandelijkse Klanten/Eenheden-doelen instellen (enkel Beheerder/Admin)
+// ---------------------------------------------------------------------------
+
+const MONTHLY_GOAL_METRICS = [GoalMetric.CUSTOMERS, GoalMetric.UNITS] as const;
+
+export async function getAllUserMonthlyGoalsForTable(year: number, month: number) {
+  const actor = await requireGoalManager();
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      monthlyGoals: { where: { year, month } },
+    },
+    orderBy: { name: "asc" },
+  });
+  const visible =
+    actor.role === Role.BEHEERDER
+      ? users
+      : users.filter((u) => u.role !== Role.BEHEERDER);
+
+  return visible.map((u) => ({
+    id: u.id,
+    name: u.name,
+    role: u.role,
+    targetByMetric: new Map(u.monthlyGoals.map((g) => [g.metric, Number(g.target)])),
+  }));
+}
+
+export async function setUserMonthlyGoalAction(
+  userId: string,
+  metric: (typeof MONTHLY_GOAL_METRICS)[number],
+  year: number,
+  month: number,
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const raw = String(formData.get("target") ?? "").trim();
+  const target = raw ? Number(raw) : 0;
+
+  await prisma.userMonthlyGoal.upsert({
+    where: { userId_metric_year_month: { userId, metric, year, month } },
+    create: { userId, metric, year, month, target },
+    update: { target },
+  });
+
+  revalidatePath("/productie");
+  revalidatePath("/beheer/doelen/productie");
+}
+
+export async function saveAllUserMonthlyGoalsAction(
+  userIds: string[],
+  year: number,
+  month: number,
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const upserts = userIds.flatMap((userId) =>
+    MONTHLY_GOAL_METRICS.map((metric) => {
+      const raw = String(
+        formData.get(`monthlyGoal_${userId}_${metric}`) ?? ""
+      ).trim();
+      const target = raw ? Number(raw) : 0;
+      return prisma.userMonthlyGoal.upsert({
+        where: { userId_metric_year_month: { userId, metric, year, month } },
+        create: { userId, metric, year, month, target },
+        update: { target },
+      });
+    })
+  );
+
+  await prisma.$transaction(upserts);
+
+  revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/productie");
 }

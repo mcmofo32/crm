@@ -130,28 +130,6 @@ export async function getAllUserGoalsForTable() {
   }));
 }
 
-/** Slaat één enkel doel (bv. vanuit de Productie-tab) van één gebruiker op. */
-export async function setUserGoalAction(
-  userId: string,
-  metric: GoalMetric,
-  formData: FormData
-) {
-  await requireGoalManager();
-
-  const raw = String(formData.get("target") ?? "").trim();
-  const target = raw ? Number(raw) : 0;
-
-  await prisma.userGoal.upsert({
-    where: { userId_metric: { userId, metric } },
-    create: { userId, metric, target },
-    update: { target },
-  });
-
-  revalidatePath("/beheer/doelen");
-  revalidatePath("/productie");
-  revalidatePath("/dashboard");
-}
-
 /** Slaat de 5 wekelijkse doelen van alle gebruikers in de tabel in één keer op. */
 export async function saveAllUserGoalsAction(
   userIds: string[],
