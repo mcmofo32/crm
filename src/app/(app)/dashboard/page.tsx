@@ -20,11 +20,8 @@ import {
   type EmployeeStats,
 } from "@/lib/actions/analytics";
 import { isBeheerder } from "@/lib/permissions";
-import {
-  getCurrentGoalPeriod,
-  getWeeklyGoalProgress,
-  getYearlyKpiProgress,
-} from "@/lib/actions/goals";
+import { getYearlyKpiProgress } from "@/lib/actions/goals";
+import { getProductionMonthGoalProgress } from "@/lib/actions/production";
 import { getUnverifiedPastSeminars } from "@/lib/actions/events";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
@@ -59,6 +56,10 @@ function percentColor(percent: number | null) {
   return "text-red-600";
 }
 
+function formatDate(date: Date) {
+  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -72,11 +73,9 @@ export default async function DashboardPage({
   const now = new Date();
   const currentYear = now.getFullYear();
 
-  const goalPeriod = await getCurrentGoalPeriod();
-
   const [
     overdueTasks,
-    weeklyGoals,
+    productionGoals,
     yearlyKpis,
     teamOverview,
     allTeamOverviews,
@@ -85,7 +84,7 @@ export default async function DashboardPage({
     prisma.activity.count({
       where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
     }),
-    getWeeklyGoalProgress(user.id, goalPeriod),
+    getProductionMonthGoalProgress(user.id),
     getYearlyKpiProgress(user.id, currentYear),
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
     isBeheerder(user) ? getAllTeamOverviews() : Promise.resolve(null),
@@ -142,15 +141,22 @@ export default async function DashboardPage({
         </Link>
       )}
 
-      <p className="-mb-2 text-sm text-slate-400">
-        Periode:{" "}
-        {goalPeriod.startDate.toLocaleDateString("nl-BE", { dateStyle: "medium" })}
-        {" – "}
-        {goalPeriod.endDate.toLocaleDateString("nl-BE", { dateStyle: "medium" })}
-      </p>
+      <div className="-mb-2 flex flex-col gap-0.5 text-sm text-slate-400">
+        <p>
+          Productiemaand {String(productionGoals.month).padStart(2, "0")} —{" "}
+          {formatDate(productionGoals.periodStart)}
+          {" – "}
+          {formatDate(productionGoals.periodEnd)}
+        </p>
+        <p>
+          Gesprekken: deze week ({formatDate(productionGoals.weekStart)}
+          {" – "}
+          {formatDate(productionGoals.weekEnd)})
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
-        {weeklyGoals.map((goal) => (
+        {productionGoals.rows.map((goal) => (
           <GoalCard
             key={goal.metric}
             label={GOAL_METRIC_LABELS[goal.metric]}

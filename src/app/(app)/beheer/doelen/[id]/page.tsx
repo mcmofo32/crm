@@ -8,6 +8,7 @@ import {
   saveUserKpiGoalsAction,
   saveUserKpiMonthlyEntriesAction,
 } from "@/lib/actions/goals";
+import { getMonthlyGoalAchievements } from "@/lib/actions/production";
 import {
   KPI_METRIC_LABELS,
   MANUAL_KPI_METRIC_ORDER,
@@ -31,10 +32,12 @@ export default async function UserDoelenPage({
   const user = await getUserForGoals(id);
   if (!user) notFound();
 
-  const [kpiGoalByMetricYear, monthlyByMetricMonth] = await Promise.all([
-    getUserKpiGoals(id),
-    getUserKpiMonthlyEntries(id, year),
-  ]);
+  const [kpiGoalByMetricYear, monthlyByMetricMonth, monthlyAchievements] =
+    await Promise.all([
+      getUserKpiGoals(id),
+      getUserKpiMonthlyEntries(id, year),
+      getMonthlyGoalAchievements(id, year),
+    ]);
 
   const boundSaveKpiGoals = saveUserKpiGoalsAction.bind(null, id, year);
   const boundSaveMonthly = saveUserKpiMonthlyEntriesAction.bind(null, id, year);
@@ -66,7 +69,9 @@ export default async function UserDoelenPage({
         <Link href="/evenementen" className="underline hover:text-slate-600">
           Evenementen
         </Link>
-        .
+        . KPI Productie en KPI Gesprekken staan er ook niet bij: die worden
+        automatisch berekend op basis van het behalen van het Eenheden- resp.
+        Gesprekken-doel per productiemaand (zie het overzicht hieronder).
       </p>
 
       <form
@@ -121,7 +126,10 @@ export default async function UserDoelenPage({
             Maandelijkse stand — {year}
           </h2>
           <p className="text-sm text-slate-500">
-            De som van de 12 maanden vormt het jaarcijfer op het dashboard.
+            KPI Productie/Gesprekken hierboven zijn automatisch (✓ = doel
+            gehaald, ✗ = niet gehaald, — = maand nog niet afgelopen of geen
+            doel ingesteld). Voor KPI Belsessie vormt de som van de 12
+            maanden hieronder het jaarcijfer op het dashboard.
           </p>
         </div>
 
@@ -138,6 +146,42 @@ export default async function UserDoelenPage({
               </tr>
             </thead>
             <tbody>
+              <tr className="border-t border-slate-100 bg-slate-50/50">
+                <td className="py-2 pr-3 font-medium text-slate-900 whitespace-nowrap">
+                  {KPI_METRIC_LABELS.PRODUCTION}
+                  <span className="block text-xs font-normal text-slate-400">
+                    automatisch
+                  </span>
+                </td>
+                {monthlyAchievements.map((m) => (
+                  <td
+                    key={m.month}
+                    className="px-1 py-1 text-center text-sm text-slate-500"
+                  >
+                    {m.unitsAchieved === null ? "—" : m.unitsAchieved ? "✓" : "✗"}
+                  </td>
+                ))}
+              </tr>
+              <tr className="border-t border-slate-100 bg-slate-50/50">
+                <td className="py-2 pr-3 font-medium text-slate-900 whitespace-nowrap">
+                  {KPI_METRIC_LABELS.CONVERSATIONS}
+                  <span className="block text-xs font-normal text-slate-400">
+                    automatisch
+                  </span>
+                </td>
+                {monthlyAchievements.map((m) => (
+                  <td
+                    key={m.month}
+                    className="px-1 py-1 text-center text-sm text-slate-500"
+                  >
+                    {m.conversationsAchieved === null
+                      ? "—"
+                      : m.conversationsAchieved
+                      ? "✓"
+                      : "✗"}
+                  </td>
+                ))}
+              </tr>
               {MANUAL_KPI_METRIC_ORDER.map((metric) => (
                 <tr key={metric} className="border-t border-slate-100">
                   <td className="py-2 pr-3 font-medium text-slate-900 whitespace-nowrap">

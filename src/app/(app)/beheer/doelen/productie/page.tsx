@@ -52,7 +52,8 @@ export default async function ProductieDoelenPage({
         <p className="mt-1 text-base text-slate-500">
           Stel voor elk van de 12 productiemaanden de begin- en einddatum in
           (hoeft niet gelijk te lopen met de kalendermaand), en de doelen
-          Eenheden/Klanten/Gesprekken per medewerker voor die maand.
+          Eenheden/Klanten/Gesprekken/ABV verkoop/ABV RG per medewerker voor
+          die maand.
         </p>
       </div>
 
@@ -223,9 +224,11 @@ export default async function ProductieDoelenPage({
 
         <p className="text-sm text-slate-400">
           Het doel Gesprekken hierboven is een totaal voor de hele
-          productiemaand — op de Productie-tab wordt dit automatisch verdeeld
-          over het aantal weken in die maand, zodat je ziet hoeveel je die
-          week moet inplannen.
+          productiemaand — op de Productie-tab en het dashboard wordt dit
+          automatisch verdeeld over het aantal weken in die maand, zodat je
+          ziet hoeveel je die week moet inplannen. Eenheden, Klanten, ABV
+          verkoop en ABV RG worden op het dashboard vergeleken tegen het volle
+          maanddoel.
         </p>
       </section>
     </div>

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
-import { MONTHLY_GOAL_METRICS } from "@/lib/goalLabels";
+import { GOAL_METRIC_ORDER, MONTHLY_GOAL_METRICS } from "@/lib/goalLabels";
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -289,6 +289,221 @@ export async function getConversationsLeaderboard(): Promise<ConversationsRow[]>
   });
 
   return rows.sort((a, b) => b.actual - a.actual);
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard: doel vs. stand van zaken per productiemaand, voor de ingelogde
+// gebruiker.
+// ---------------------------------------------------------------------------
+
+export type GoalProgress = {
+  metric: GoalMetric;
+  actual: number;
+  target: number;
+  percent: number | null;
+};
+
+/**
+ * Doelen op het dashboard: Eenheden/Klanten/ABV verkoop/ABV RG worden
+ * beoordeeld over de volledige lopende productiemaand (doel = het
+ * maanddoel). Gesprekken wordt — net als op de Productie-tab — per week
+ * beoordeeld: het maanddoel gedeeld door het aantal weken in de
+ * productiemaand.
+ */
+export async function getProductionMonthGoalProgress(userId: string): Promise<{
+  year: number;
+  month: number;
+  periodStart: Date;
+  periodEnd: Date;
+  weekStart: Date;
+  weekEnd: Date;
+  rows: GoalProgress[];
+}> {
+  await requireViewer();
+  const { year, month } = await getCurrentProductionMonth();
+  const { start, end } = await getProductionMonthRange(year, month);
+  const week = currentWeekRange();
+  const weeks = weeksInRange(start, end);
+
+  const [targets, wonThisMonth, conversationsThisWeek, newFaLeads, newRgLeads] =
+    await Promise.all([
+      prisma.userMonthlyGoal.findMany({ where: { userId, year, month } }),
+      prisma.leadStageChange.findMany({
+        where: {
+          changedById: userId,
+          toStage: { isWon: true },
+          changedAt: { gte: start, lt: end },
+        },
+        select: {
+          lead: {
+            select: { id: true, products: { select: { units: true } } },
+          },
+        },
+      }),
+      prisma.activity.count({
+        where: {
+          assigneeId: userId,
+          status: "PLANNED",
+          type: { in: ["CALL", "MEETING"] },
+          scheduledAt: { gte: week.start, lt: week.end },
+          lead: { leadType: "FA" },
+        },
+      }),
+      prisma.lead.count({
+        where: {
+          ownerId: userId,
+          deletedAt: null,
+          leadType: "FA",
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+      prisma.lead.count({
+        where: {
+          ownerId: userId,
+          deletedAt: null,
+          leadType: "RG",
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+    ]);
+
+  const targetByMetric = new Map(
+    targets.map((t) => [t.metric, Number(t.target)])
+  );
+
+  const seenLeadIds = new Set<string>();
+  const units = wonThisMonth
+    .map((c) => c.lead)
+    .filter((lead) => {
+      if (seenLeadIds.has(lead.id)) return false;
+      seenLeadIds.add(lead.id);
+      return true;
+    })
+    .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
+  const customers = seenLeadIds.size;
+
+  const monthlyConversationsTarget = targetByMetric.get(GoalMetric.CONVERSATIONS) ?? 0;
+  const weeklyConversationsTarget =
+    monthlyConversationsTarget > 0 ? Math.round(monthlyConversationsTarget / weeks) : 0;
+
+  const actualByMetric: Record<GoalMetric, number> = {
+    UNITS: units,
+    CUSTOMERS: customers,
+    CONVERSATIONS: conversationsThisWeek,
+    ABV_SALES: newFaLeads,
+    ABV_RG: newRgLeads,
+  };
+  const effectiveTargetByMetric: Record<GoalMetric, number> = {
+    UNITS: targetByMetric.get(GoalMetric.UNITS) ?? 0,
+    CUSTOMERS: targetByMetric.get(GoalMetric.CUSTOMERS) ?? 0,
+    CONVERSATIONS: weeklyConversationsTarget,
+    ABV_SALES: targetByMetric.get(GoalMetric.ABV_SALES) ?? 0,
+    ABV_RG: targetByMetric.get(GoalMetric.ABV_RG) ?? 0,
+  };
+
+  const rows = GOAL_METRIC_ORDER.map((metric) => {
+    const target = effectiveTargetByMetric[metric];
+    const actual = actualByMetric[metric];
+    return {
+      metric,
+      actual,
+      target,
+      percent: target > 0 ? Math.round((actual / target) * 100) : null,
+    };
+  });
+
+  return {
+    year,
+    month,
+    periodStart: start,
+    periodEnd: new Date(end.getTime() - 1),
+    weekStart: week.start,
+    weekEnd: new Date(week.end.getTime() - 1),
+    rows,
+  };
+}
+
+export type MonthlyGoalAchievement = {
+  month: number;
+  unitsAchieved: boolean | null;
+  conversationsAchieved: boolean | null;
+};
+
+/**
+ * Per productiemaand van `year`: is het Eenheden- resp. Gesprekken-doel
+ * (over de volledige productiemaand) gehaald? `null` zolang de
+ * productiemaand nog niet afgelopen is, of als er geen doel is ingesteld —
+ * telt dan niet mee voor KPI Productie/Gesprekken op de jaarlijkse
+ * KPI-kaart.
+ */
+export async function getMonthlyGoalAchievements(
+  userId: string,
+  year: number
+): Promise<MonthlyGoalAchievement[]> {
+  await requireViewer();
+  const now = new Date();
+
+  return Promise.all(
+    Array.from({ length: 12 }, (_, i) => i + 1).map(async (month) => {
+      const { start, end } = await getProductionMonthRange(year, month);
+      if (now < end) {
+        return { month, unitsAchieved: null, conversationsAchieved: null };
+      }
+
+      const [targets, wonThisMonth, conversations] = await Promise.all([
+        prisma.userMonthlyGoal.findMany({
+          where: {
+            userId,
+            year,
+            month,
+            metric: { in: [GoalMetric.UNITS, GoalMetric.CONVERSATIONS] },
+          },
+        }),
+        prisma.leadStageChange.findMany({
+          where: {
+            changedById: userId,
+            toStage: { isWon: true },
+            changedAt: { gte: start, lt: end },
+          },
+          select: {
+            lead: { select: { id: true, products: { select: { units: true } } } },
+          },
+        }),
+        prisma.activity.count({
+          where: {
+            assigneeId: userId,
+            status: "PLANNED",
+            type: { in: ["CALL", "MEETING"] },
+            scheduledAt: { gte: start, lt: end },
+            lead: { leadType: "FA" },
+          },
+        }),
+      ]);
+
+      const targetByMetric = new Map(
+        targets.map((t) => [t.metric, Number(t.target)])
+      );
+      const unitsTarget = targetByMetric.get(GoalMetric.UNITS) ?? 0;
+      const conversationsTarget = targetByMetric.get(GoalMetric.CONVERSATIONS) ?? 0;
+
+      const seenLeadIds = new Set<string>();
+      const units = wonThisMonth
+        .map((c) => c.lead)
+        .filter((lead) => {
+          if (seenLeadIds.has(lead.id)) return false;
+          seenLeadIds.add(lead.id);
+          return true;
+        })
+        .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
+
+      return {
+        month,
+        unitsAchieved: unitsTarget > 0 ? units >= unitsTarget : null,
+        conversationsAchieved:
+          conversationsTarget > 0 ? conversations >= conversationsTarget : null,
+      };
+    })
+  );
 }
 
 // ---------------------------------------------------------------------------

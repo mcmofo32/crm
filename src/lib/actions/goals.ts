@@ -11,6 +11,7 @@ import {
   MANUAL_KPI_METRIC_ORDER,
 } from "@/lib/goalLabels";
 import { getSeminarAttendancePercent } from "@/lib/actions/events";
+import { getMonthlyGoalAchievements } from "@/lib/actions/production";
 
 async function requireGoalManager() {
   const viewer = await getEffectiveViewer();
@@ -361,27 +362,50 @@ export type KpiProgress = {
   percent: number | null;
 };
 
-/** Jaarlijkse KPI-voortgang (som van de manueel ingevoerde maandwaarden) voor `year`. */
+/**
+ * Jaarlijkse KPI-voortgang voor `year`.
+ *
+ * - KPI Productie/Gesprekken: automatisch berekend als "aantal afgelopen
+ *   productiemaanden waarin het Eenheden- resp. Gesprekken-doel gehaald is"
+ *   t.o.v. "aantal afgelopen productiemaanden met een ingesteld doel" — net
+ *   als KPI Seminarie is dit geen manueel doel meer.
+ * - KPI Belsessie: som van de manueel ingevoerde maandwaarden t.o.v. het
+ *   manueel ingestelde jaardoel.
+ */
 export async function getYearlyKpiProgress(
   userId: string,
   year: number
 ): Promise<KpiProgress[]> {
-  const [targets, entries, seminarAttendance] = await Promise.all([
-    prisma.userKpiGoal.findMany({ where: { userId, year } }),
-    prisma.userKpiMonthlyEntry.findMany({ where: { userId, year } }),
-    getSeminarAttendancePercent(userId, year),
-  ]);
+  const [targets, callingSessionEntries, seminarAttendance, monthlyAchievements] =
+    await Promise.all([
+      prisma.userKpiGoal.findMany({ where: { userId, year } }),
+      prisma.userKpiMonthlyEntry.findMany({
+        where: { userId, year, metric: KpiMetric.CALLING_SESSION },
+      }),
+      getSeminarAttendancePercent(userId, year),
+      getMonthlyGoalAchievements(userId, year),
+    ]);
 
   const targetByMetric = new Map(
     targets.map((t) => [t.metric, Number(t.target)])
   );
-  const actualByMetric = new Map<KpiMetric, number>();
-  for (const entry of entries) {
-    actualByMetric.set(
-      entry.metric,
-      (actualByMetric.get(entry.metric) ?? 0) + Number(entry.value)
-    );
-  }
+  const callingSessionActual = callingSessionEntries.reduce(
+    (sum, entry) => sum + Number(entry.value),
+    0
+  );
+
+  const evaluatedProductionMonths = monthlyAchievements.filter(
+    (m) => m.unitsAchieved !== null
+  );
+  const achievedProductionMonths = evaluatedProductionMonths.filter(
+    (m) => m.unitsAchieved
+  ).length;
+  const evaluatedConversationsMonths = monthlyAchievements.filter(
+    (m) => m.conversationsAchieved !== null
+  );
+  const achievedConversationsMonths = evaluatedConversationsMonths.filter(
+    (m) => m.conversationsAchieved
+  ).length;
 
   return KPI_METRIC_ORDER.map((metric) => {
     if (metric === "SEMINAR") {
@@ -392,8 +416,27 @@ export async function getYearlyKpiProgress(
         percent: seminarAttendance.percent,
       };
     }
+    if (metric === "PRODUCTION") {
+      const target = evaluatedProductionMonths.length;
+      return {
+        metric,
+        actual: achievedProductionMonths,
+        target,
+        percent: target > 0 ? Math.round((achievedProductionMonths / target) * 100) : null,
+      };
+    }
+    if (metric === "CONVERSATIONS") {
+      const target = evaluatedConversationsMonths.length;
+      return {
+        metric,
+        actual: achievedConversationsMonths,
+        target,
+        percent:
+          target > 0 ? Math.round((achievedConversationsMonths / target) * 100) : null,
+      };
+    }
     const target = targetByMetric.get(metric) ?? 0;
-    const actual = actualByMetric.get(metric) ?? 0;
+    const actual = callingSessionActual;
     return {
       metric,
       actual,

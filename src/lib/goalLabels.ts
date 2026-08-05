@@ -8,7 +8,7 @@ export const GOAL_METRIC_LABELS: Record<GoalMetric, string> = {
   ABV_RG: "ABV RG",
 };
 
-/** Volgorde waarin de wekelijkse doelen op het dashboard getoond worden. */
+/** Volgorde waarin de doelen op het dashboard getoond worden (per productiemaand). */
 export const GOAL_METRIC_ORDER: GoalMetric[] = [
   "UNITS",
   "CUSTOMERS",
@@ -17,11 +17,13 @@ export const GOAL_METRIC_ORDER: GoalMetric[] = [
   "ABV_RG",
 ];
 
-/** De 3 doelen die per productiemaand ingesteld worden (Productie-tab + Doelen > Productiemaanden). */
+/** De 5 doelen die per productiemaand ingesteld worden (Doelen > Productiemaanden). */
 export const MONTHLY_GOAL_METRICS = [
   "UNITS",
   "CUSTOMERS",
   "CONVERSATIONS",
+  "ABV_SALES",
+  "ABV_RG",
 ] as const satisfies readonly GoalMetric[];
 
 export const KPI_METRIC_LABELS: Record<KpiMetric, string> = {
@@ -42,13 +44,11 @@ export const KPI_METRIC_ORDER: KpiMetric[] = [
 /**
  * KPI's die manueel ingesteld/ingevoerd worden op de doelenpagina.
  * KPI Seminarie zit hier niet bij: die wordt automatisch berekend uit de
- * aanwezigheidsregistratie op Evenementen.
+ * aanwezigheidsregistratie op Evenementen. KPI Productie/Gesprekken zitten
+ * er ook niet meer bij: die worden automatisch berekend op basis van het
+ * behalen van het Eenheden- resp. Gesprekken-doel per productiemaand.
  */
-export const MANUAL_KPI_METRIC_ORDER: KpiMetric[] = [
-  "CONVERSATIONS",
-  "PRODUCTION",
-  "CALLING_SESSION",
-];
+export const MANUAL_KPI_METRIC_ORDER: KpiMetric[] = ["CALLING_SESSION"];
 
 export const MONTH_LABELS = [
   "Januari",
