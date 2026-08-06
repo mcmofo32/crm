@@ -181,7 +181,6 @@ export default async function DashboardPage({
               percent={kpi.percent}
               icon={KPI_ICONS[kpi.metric]}
               percentPosition="below"
-              percentSize="text-2xl"
             />
           ))}
         </div>
@@ -280,7 +279,7 @@ function GoalCard({
   percent,
   icon: Icon,
   percentPosition,
-  percentSize = "text-sm",
+  percentSize = "text-2xl",
 }: {
   label: string;
   actual: number;
