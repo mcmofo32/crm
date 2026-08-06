@@ -66,6 +66,13 @@ export function BulkLeadForm({
     Array.from({ length: 8 }, () => emptyRow())
   );
 
+  // Niemand anders om aan toe te wijzen? Dan heeft een Eigenaar-kolom geen
+  // nut — elke rij wordt sowieso automatisch aan jezelf toegewezen.
+  const canAssignOthers = assignableUsers.length > 1;
+  const visibleColumns = canAssignOthers
+    ? COLUMNS
+    : COLUMNS.filter((col) => col !== "owner");
+
   function updateCell(rowIndex: number, field: TextField, value: string) {
     setRows((current) => {
       const next = [...current];
@@ -105,7 +112,7 @@ export function BulkLeadForm({
         const targetIndex = rowIndex + lineIndex;
         while (next.length <= targetIndex) next.push(emptyRow());
         line.forEach((value, cellOffset) => {
-          const targetCol = COLUMNS[colIndex + cellOffset];
+          const targetCol = visibleColumns[colIndex + cellOffset];
           if (targetCol) {
             next[targetIndex] = { ...next[targetIndex], [targetCol]: value.trim() };
           }
@@ -157,10 +164,22 @@ export function BulkLeadForm({
           </div>
         )}
         <p className="max-w-md text-xs text-slate-400">
-          Tip: plak gerust een selectie uit Excel/Sheets direct in de tabel.
-          De kolommen Type en Eigenaar zijn optioneel per rij — leeg = de
-          standaardwaarden hierboven, ingevuld (FA/RG, exacte naam) overschrijft
-          enkel die rij. Zo importeer je in één keer leads van meerdere mensen.
+          {canAssignOthers ? (
+            <>
+              Tip: plak gerust een selectie uit Excel/Sheets direct in de
+              tabel. De kolommen Type en Eigenaar zijn optioneel per rij —
+              leeg = de standaardwaarden hierboven, ingevuld (FA/RG, exacte
+              naam) overschrijft enkel die rij. Zo importeer je in één keer
+              leads van meerdere mensen.
+            </>
+          ) : (
+            <>
+              Tip: plak gerust een selectie uit Excel/Sheets direct in de
+              tabel. Elke rij wordt automatisch aan jezelf toegewezen. De
+              kolom Type is optioneel per rij — leeg = de standaardwaarde
+              hierboven.
+            </>
+          )}
         </p>
       </div>
 
@@ -168,7 +187,7 @@ export function BulkLeadForm({
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              {COLUMNS.map((col) => (
+              {visibleColumns.map((col) => (
                 <th key={col} className="px-3 py-2 font-medium">
                   {COLUMN_LABELS[col]}
                   {REQUIRED_COLUMNS.has(col) && (
@@ -185,7 +204,7 @@ export function BulkLeadForm({
           <tbody className="divide-y divide-slate-100">
             {rows.map((row, rowIndex) => (
               <tr key={row.key}>
-                {COLUMNS.map((col, colIndex) => (
+                {visibleColumns.map((col, colIndex) => (
                   <td key={col} className="p-1">
                     <input
                       name={col}
