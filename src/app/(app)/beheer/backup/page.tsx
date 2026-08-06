@@ -17,7 +17,11 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 function formatDateTime(date: Date | null) {
   if (!date) return "Nog nooit";
-  return date.toLocaleString("nl-BE", { dateStyle: "medium", timeStyle: "short" });
+  return date.toLocaleString("nl-BE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 export default async function BackupPage({
