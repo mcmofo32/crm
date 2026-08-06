@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CRM",
+  title: "Structuur A",
   description: "Leadopvolging en funnel management",
 };
 

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LogOut, Sparkles, Eye } from "lucide-react";
+import { LogOut, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -8,6 +8,7 @@ import { ROLE_LABELS } from "@/lib/roleLabels";
 import { NavLinks } from "@/components/NavLinks";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { ViewAsControls } from "@/components/ViewAsControls";
+import { Logo } from "@/components/Logo";
 
 export default async function AppLayout({
   children,
@@ -67,10 +68,8 @@ export default async function AppLayout({
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-2.5 lg:px-10">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white">
-                <Sparkles size={16} />
-              </span>
-              CRM
+              <Logo size={32} />
+              Structuur A
             </span>
             <NavLinks items={navItems} />
           </div>
