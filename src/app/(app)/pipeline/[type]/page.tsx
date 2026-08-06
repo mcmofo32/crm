@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Phone, Voicemail, PhoneCall, Megaphone, Search } from "lucide-react";
+import { Phone, Voicemail, PhoneCall, Megaphone, Search, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
   getPipelineStats,
@@ -58,16 +58,25 @@ export default async function PipelinePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-            <Phone size={20} />
-          </span>
-          {TITLES[type]}
-        </h1>
-        <p className="mt-1 text-base text-slate-500">
-          Eerste contactopvolging vóór een afspraak wordt ingepland.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+              <Phone size={20} />
+            </span>
+            {TITLES[type]}
+          </h1>
+          <p className="mt-1 text-base text-slate-500">
+            Eerste contactopvolging vóór een afspraak wordt ingepland.
+          </p>
+        </div>
+        <Link
+          href="/leads/new"
+          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+        >
+          <Plus size={17} />
+          Nieuwe lead
+        </Link>
       </div>
 
       <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-base text-blue-800">
