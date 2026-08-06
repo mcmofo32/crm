@@ -91,8 +91,6 @@ export default async function DashboardPage({
     getUnverifiedPastSeminars(),
   ]);
 
-  const seminarKpi = yearlyKpis.find((k) => k.metric === "SEMINAR");
-  const otherKpis = yearlyKpis.filter((k) => k.metric !== "SEMINAR");
   const activeTeam =
     allTeamOverviews?.find((t) => t.teamId === selectedTeamId) ??
     allTeamOverviews?.[0] ??
@@ -174,7 +172,7 @@ export default async function DashboardPage({
           Productie jaarlijks
         </h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
-          {otherKpis.map((kpi) => (
+          {yearlyKpis.map((kpi) => (
             <GoalCard
               key={kpi.metric}
               label={KPI_METRIC_LABELS[kpi.metric]}
@@ -185,19 +183,6 @@ export default async function DashboardPage({
               percentPosition="below"
             />
           ))}
-          {seminarKpi && (
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-                <Presentation size={20} />
-              </span>
-              <p className="text-base text-slate-500">
-                {KPI_METRIC_LABELS.SEMINAR}
-              </p>
-              <p className={`mt-1 text-4xl font-semibold ${percentColor(seminarKpi.percent)}`}>
-                {seminarKpi.percent === null ? "—" : `${seminarKpi.percent}%`}
-              </p>
-            </div>
-          )}
         </div>
       </div>
 
