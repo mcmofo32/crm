@@ -142,92 +142,15 @@ async function ensureSpreadsheet(
   return spreadsheetId;
 }
 
-/** Formatteert en vult één tabblad volledig opnieuw (headerrij, opmaak, banding). */
-async function writeTab(
-  sheets: sheets_v4.Sheets,
-  spreadsheetId: string,
-  sheetId: number,
-  existingBandedRangeIds: number[],
-  tab: { name: string; headers: string[]; fetchRows: () => Promise<(string | number | null)[][]> }
-) {
-  const rows = await tab.fetchRows();
-  const values = [tab.headers, ...rows];
-  const columnCount = Math.max(tab.headers.length, 1);
-  const rowCount = values.length;
-
-  // Wis eerst alle bestaande waarden zodat verwijderde/verschoven rijen niet
-  // blijven hangen van een vorige sync.
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId,
-    range: `'${tab.name}'!A:ZZ`,
-  });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: `'${tab.name}'!A1`,
-    valueInputOption: "RAW",
-    requestBody: { values },
-  });
-
-  const requests: sheets_v4.Schema$Request[] = [
-    {
-      repeatCell: {
-        range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
-        cell: {
-          userEnteredFormat: {
-            backgroundColor: HEADER_BACKGROUND,
-            textFormat: { bold: true, foregroundColor: HEADER_TEXT },
-            verticalAlignment: "MIDDLE",
-          },
-        },
-        fields: "userEnteredFormat(backgroundColor,textFormat,verticalAlignment)",
-      },
-    },
-    {
-      updateSheetProperties: {
-        properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
-        fields: "gridProperties.frozenRowCount",
-      },
-    },
-    {
-      autoResizeDimensions: {
-        dimensions: { sheetId, dimension: "COLUMNS", startIndex: 0, endIndex: columnCount },
-      },
-    },
-    // Oude banding eerst weg, anders stapelt die op bij elke sync.
-    ...existingBandedRangeIds.map((bandedRangeId) => ({ deleteBanding: { bandedRangeId } })),
-  ];
-
-  if (rowCount > 1) {
-    requests.push({
-      addBanding: {
-        bandedRange: {
-          range: {
-            sheetId,
-            startRowIndex: 0,
-            endRowIndex: rowCount,
-            startColumnIndex: 0,
-            endColumnIndex: columnCount,
-          },
-          rowProperties: {
-            headerColor: HEADER_BACKGROUND,
-            firstBandColor: { red: 1, green: 1, blue: 1 },
-            secondBandColor: BAND_COLOR,
-          },
-        },
-      },
-    });
-  }
-
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: { requests },
-  });
-}
-
 /**
  * Synchroniseert alle CRM-data naar het gekoppelde Google Sheets-bestand: één
  * tabblad per model, volledig herschreven met een verzorgde opmaak. Wordt
  * zowel handmatig ("Nu synchroniseren") als door de nachtelijke cron gebruikt.
+ *
+ * Alles wordt zoveel mogelijk in een handvol batch-requests gedaan (i.p.v.
+ * een paar requests per tabblad) — de Sheets API laat maar een beperkt
+ * aantal schrijfrequests per minuut per gebruiker toe, en met ~19 tabbladen
+ * zat een per-tabblad-aanpak daar meteen tegenaan.
  */
 export async function syncGoogleSheetsBackupNow(): Promise<
   { ok: true } | { ok: false; error: string }
@@ -261,11 +184,12 @@ export async function syncGoogleSheetsBackupNow(): Promise<
       }
     }
 
-    // Zorg dat elk tabblad bestaat. Geen `index` meegeven: nieuwe tabbladen
-    // worden dan gewoon achteraan toegevoegd, in de volgorde van de
-    // requests — bij de allereerste sync komt dat overeen met de volgorde
-    // van SHEETS_BACKUP_TABS.
-    const addRequests: sheets_v4.Schema$Request[] = SHEETS_BACKUP_TABS.filter(
+    // 1) Structuur: ontbrekende tabbladen aanmaken + de placeholder
+    // opruimen, in één gecombineerde batchUpdate. Geen `index` meegeven:
+    // nieuwe tabbladen worden dan gewoon achteraan toegevoegd, in de
+    // volgorde van de requests — bij de allereerste sync komt dat overeen
+    // met de volgorde van SHEETS_BACKUP_TABS.
+    const structuralRequests: sheets_v4.Schema$Request[] = SHEETS_BACKUP_TABS.filter(
       (tab) => !existingSheets.has(tab.name)
     ).map((tab) => ({
       addSheet: {
@@ -273,10 +197,10 @@ export async function syncGoogleSheetsBackupNow(): Promise<
       },
     }));
 
-    if (addRequests.length > 0) {
+    if (structuralRequests.length > 0) {
       const { data: addResult } = await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
-        requestBody: { requests: addRequests },
+        requestBody: { requests: structuralRequests },
       });
       for (const reply of addResult.replies ?? []) {
         const props = reply.addSheet?.properties;
@@ -286,7 +210,6 @@ export async function syncGoogleSheetsBackupNow(): Promise<
       }
     }
 
-    // De placeholder-sheet (enkel nodig bij het aanmaken) is nu overbodig.
     const placeholderId = existingSheets.get(PLACEHOLDER_SHEET_TITLE);
     if (placeholderId !== undefined && existingSheets.size > 1) {
       await sheets.spreadsheets.batchUpdate({
@@ -296,10 +219,95 @@ export async function syncGoogleSheetsBackupNow(): Promise<
       existingSheets.delete(PLACEHOLDER_SHEET_TITLE);
     }
 
-    for (const tab of SHEETS_BACKUP_TABS) {
-      const sheetId = existingSheets.get(tab.name);
-      if (sheetId === undefined) continue;
-      await writeTab(sheets, spreadsheetId, sheetId, existingBanding.get(sheetId) ?? [], tab);
+    // 2) Data per tabblad ophalen, gekoppeld aan het bijhorende sheetId.
+    const tabData = await Promise.all(
+      SHEETS_BACKUP_TABS.map(async (tab) => ({
+        tab,
+        sheetId: existingSheets.get(tab.name),
+        values: [tab.headers, ...(await tab.fetchRows())],
+      }))
+    );
+    const usableTabData = tabData.filter(
+      (t): t is typeof t & { sheetId: number } => t.sheetId !== undefined
+    );
+
+    // 3) Alle tabbladen in twee requests wissen + volschrijven.
+    await sheets.spreadsheets.values.batchClear({
+      spreadsheetId,
+      requestBody: { ranges: usableTabData.map((t) => `'${t.tab.name}'!A:ZZ`) },
+    });
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: "RAW",
+        data: usableTabData.map((t) => ({ range: `'${t.tab.name}'!A1`, values: t.values })),
+      },
+    });
+
+    // 4) Opmaak van alle tabbladen in één gecombineerde batchUpdate.
+    const formattingRequests: sheets_v4.Schema$Request[] = [];
+    for (const { tab, sheetId, values } of usableTabData) {
+      const columnCount = Math.max(tab.headers.length, 1);
+      const rowCount = values.length;
+
+      formattingRequests.push(
+        {
+          repeatCell: {
+            range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
+            cell: {
+              userEnteredFormat: {
+                backgroundColor: HEADER_BACKGROUND,
+                textFormat: { bold: true, foregroundColor: HEADER_TEXT },
+                verticalAlignment: "MIDDLE",
+              },
+            },
+            fields: "userEnteredFormat(backgroundColor,textFormat,verticalAlignment)",
+          },
+        },
+        {
+          updateSheetProperties: {
+            properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+            fields: "gridProperties.frozenRowCount",
+          },
+        },
+        {
+          autoResizeDimensions: {
+            dimensions: { sheetId, dimension: "COLUMNS", startIndex: 0, endIndex: columnCount },
+          },
+        },
+        // Oude banding eerst weg, anders stapelt die op bij elke sync.
+        ...(existingBanding.get(sheetId) ?? []).map((bandedRangeId) => ({
+          deleteBanding: { bandedRangeId },
+        }))
+      );
+
+      if (rowCount > 1) {
+        formattingRequests.push({
+          addBanding: {
+            bandedRange: {
+              range: {
+                sheetId,
+                startRowIndex: 0,
+                endRowIndex: rowCount,
+                startColumnIndex: 0,
+                endColumnIndex: columnCount,
+              },
+              rowProperties: {
+                headerColor: HEADER_BACKGROUND,
+                firstBandColor: { red: 1, green: 1, blue: 1 },
+                secondBandColor: BAND_COLOR,
+              },
+            },
+          },
+        });
+      }
+    }
+
+    if (formattingRequests.length > 0) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests: formattingRequests },
+      });
     }
 
     await prisma.googleSheetsBackup.update({
