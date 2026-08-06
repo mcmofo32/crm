@@ -70,51 +70,119 @@ export async function createLeadAction(formData: FormData) {
  * elke ingevulde rij (met minstens voornaam + achternaam) wordt één lead,
  * allemaal met dezelfde funnel en eigenaar.
  */
+/**
+ * Bulk-aanmaak van leads. `type`/`owner` per rij zijn optioneel: leeg =
+ * de standaard Funnel/Eigenaar bovenaan het formulier, ingevuld = FA/RG
+ * resp. de exacte naam van een gebruiker (zoals in "Eigenaar (voor alle
+ * rijen)") — zo kan één geplakte tabel meteen leads voor meerdere mensen en
+ * beide funnels tegelijk aanmaken (bv. bij het importeren van oude leads).
+ */
 export async function createLeadsBulkAction(formData: FormData) {
   const user = await requireUser();
 
-  const leadType = formData.get("leadType") as LeadType;
-  const requestedOwnerId = String(formData.get("ownerId") ?? user.id);
-  const ownerId = (await canAccessOwner(user, requestedOwnerId))
-    ? requestedOwnerId
+  const defaultLeadType = formData.get("leadType") as LeadType;
+  const requestedDefaultOwnerId = String(formData.get("ownerId") ?? user.id);
+  const defaultOwnerId = (await canAccessOwner(user, requestedDefaultOwnerId))
+    ? requestedDefaultOwnerId
     : user.id;
+
+  const assignableUsers = await getAssignableUsers();
+  const ownerIdByName = new Map(
+    assignableUsers.map((u) => [u.name.trim().toLowerCase(), u.id])
+  );
 
   const firstNames = formData.getAll("firstName");
   const lastNames = formData.getAll("lastName");
   const emails = formData.getAll("email");
   const phones = formData.getAll("phone");
   const sources = formData.getAll("source");
+  const types = formData.getAll("type");
+  const owners = formData.getAll("owner");
 
-  const rows = firstNames
-    .map((_, i) => ({
-      firstName: String(firstNames[i] ?? "").trim(),
-      lastName: String(lastNames[i] ?? "").trim(),
-      email: String(emails[i] ?? "").trim() || null,
-      phone: String(phones[i] ?? "").trim() || null,
-      source: String(sources[i] ?? "").trim() || null,
-    }))
-    .filter((row) => row.firstName || row.lastName);
+  const rawRows = firstNames.map((_, i) => ({
+    firstName: String(firstNames[i] ?? "").trim(),
+    lastName: String(lastNames[i] ?? "").trim(),
+    email: String(emails[i] ?? "").trim() || null,
+    phone: String(phones[i] ?? "").trim() || null,
+    source: String(sources[i] ?? "").trim() || null,
+    typeRaw: String(types[i] ?? "").trim(),
+    ownerRaw: String(owners[i] ?? "").trim(),
+  }));
 
-  if (rows.length === 0) {
+  const filledRows = rawRows.filter((row) => row.firstName || row.lastName);
+
+  if (filledRows.length === 0) {
     throw new Error("Vul minstens één rij in met voornaam en achternaam");
   }
-  if (rows.some((row) => !row.firstName || !row.lastName)) {
+  if (filledRows.some((row) => !row.firstName || !row.lastName)) {
     throw new Error(
       "Elke ingevulde rij moet zowel een voornaam als achternaam hebben"
     );
   }
 
-  const defaultStageId = await ensureDefaultPipelineStage(leadType);
+  const errors: string[] = [];
+  const resolvedRows = filledRows.map((row, index) => {
+    const rowNumber = index + 1;
+
+    let leadType = defaultLeadType;
+    if (row.typeRaw) {
+      const normalized = row.typeRaw.toUpperCase();
+      if (normalized !== "FA" && normalized !== "RG") {
+        errors.push(
+          `Rij ${rowNumber}: ongeldig type "${row.typeRaw}" (moet FA of RG zijn)`
+        );
+      } else {
+        leadType = normalized as LeadType;
+      }
+    }
+
+    let ownerId = defaultOwnerId;
+    if (row.ownerRaw) {
+      const matchedId = ownerIdByName.get(row.ownerRaw.toLowerCase());
+      if (!matchedId) {
+        errors.push(`Rij ${rowNumber}: onbekende eigenaar "${row.ownerRaw}"`);
+      } else {
+        ownerId = matchedId;
+      }
+    }
+
+    return {
+      firstName: row.firstName,
+      lastName: row.lastName,
+      email: row.email,
+      phone: row.phone,
+      source: row.source,
+      leadType,
+      ownerId,
+    };
+  });
+
+  if (errors.length > 0) {
+    throw new Error(errors.join(" — "));
+  }
+
+  const usedLeadTypes = Array.from(new Set(resolvedRows.map((r) => r.leadType)));
+  const stageIdByType = new Map(
+    await Promise.all(
+      usedLeadTypes.map(
+        async (type) => [type, await ensureDefaultPipelineStage(type)] as const
+      )
+    )
+  );
 
   const created = await prisma.$transaction(
-    rows.map((row) =>
+    resolvedRows.map((row) =>
       prisma.lead.create({
         data: {
-          ...row,
-          leadType,
-          ownerId,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          email: row.email,
+          phone: row.phone,
+          source: row.source,
+          leadType: row.leadType,
+          ownerId: row.ownerId,
           createdById: user.id,
-          stageId: defaultStageId,
+          stageId: stageIdByType.get(row.leadType)!,
         },
       })
     )
@@ -125,11 +193,11 @@ export async function createLeadsBulkAction(formData: FormData) {
     action: "lead.bulk_created",
     entityType: "Lead",
     entityId: created[0].id,
-    description: `${created.length} leads in bulk aangemaakt (${leadType})`,
+    description: `${created.length} leads in bulk aangemaakt`,
   });
 
   revalidatePath("/leads");
-  revalidatePath(`/funnel/${leadType}`);
+  for (const type of usedLeadTypes) revalidatePath(`/funnel/${type}`);
   redirect("/leads");
 }
 

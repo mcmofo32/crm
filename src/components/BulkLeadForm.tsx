@@ -6,18 +6,37 @@ import { createLeadsBulkAction } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import type { LeadType } from "@/generated/prisma/client";
 
-type TextField = "firstName" | "lastName" | "email" | "phone" | "source";
+type TextField =
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phone"
+  | "source"
+  | "type"
+  | "owner";
 type Row = Record<TextField, string> & { key: string };
 
-const COLUMNS: TextField[] = ["firstName", "lastName", "email", "phone", "source"];
+const COLUMNS: TextField[] = [
+  "firstName",
+  "lastName",
+  "email",
+  "phone",
+  "source",
+  "type",
+  "owner",
+];
 const COLUMN_LABELS: Record<TextField, string> = {
   firstName: "Voornaam",
   lastName: "Achternaam",
   email: "E-mail",
   phone: "Telefoon",
   source: "Bron",
+  type: "Type (FA/RG)",
+  owner: "Eigenaar",
 };
 const REQUIRED_COLUMNS = new Set<TextField>(["firstName", "lastName"]);
+/** Optioneel: leeg = de standaard Funnel/Eigenaar bovenaan het formulier. */
+const OPTIONAL_OVERRIDE_COLUMNS = new Set<TextField>(["type", "owner"]);
 
 let rowCounter = 0;
 function emptyRow(): Row {
@@ -29,6 +48,8 @@ function emptyRow(): Row {
     email: "",
     phone: "",
     source: "",
+    type: "",
+    owner: "",
   };
 }
 
@@ -105,7 +126,9 @@ export function BulkLeadForm({
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-slate-700">Funnel</label>
+          <label className="text-sm font-medium text-slate-700">
+            Funnel (standaard)
+          </label>
           <select
             value={leadType}
             onChange={(e) => setLeadType(e.target.value as LeadType)}
@@ -118,7 +141,7 @@ export function BulkLeadForm({
         {assignableUsers.length > 1 && (
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-slate-700">
-              Eigenaar (voor alle rijen)
+              Eigenaar (standaard)
             </label>
             <select
               value={ownerId}
@@ -133,8 +156,11 @@ export function BulkLeadForm({
             </select>
           </div>
         )}
-        <p className="text-xs text-slate-400">
-          Tip: plak gerust een selectie uit Excel direct in de tabel.
+        <p className="max-w-md text-xs text-slate-400">
+          Tip: plak gerust een selectie uit Excel/Sheets direct in de tabel.
+          De kolommen Type en Eigenaar zijn optioneel per rij — leeg = de
+          standaardwaarden hierboven, ingevuld (FA/RG, exacte naam) overschrijft
+          enkel die rij. Zo importeer je in één keer leads van meerdere mensen.
         </p>
       </div>
 
@@ -147,6 +173,9 @@ export function BulkLeadForm({
                   {COLUMN_LABELS[col]}
                   {REQUIRED_COLUMNS.has(col) && (
                     <span className="text-red-500"> *</span>
+                  )}
+                  {OPTIONAL_OVERRIDE_COLUMNS.has(col) && (
+                    <span className="font-normal text-slate-400"> (optioneel)</span>
                   )}
                 </th>
               ))}
