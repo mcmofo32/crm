@@ -57,10 +57,12 @@ export function ProfileMenu({
   name,
   viewer,
   jobFunction,
+  photoUrl,
 }: {
   name: string;
   viewer: EffectiveViewer;
   jobFunction?: JobFunction | null;
+  photoUrl?: string | null;
 }) {
   const showUserManagement = canManageUsers(viewer);
   const showBeheerderTools = canViewBeheerderTools(viewer);
@@ -70,7 +72,7 @@ export function ProfileMenu({
   return (
     <details className="group relative">
       <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-1 py-1 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
-        <Avatar name={name} size="md" />
+        <Avatar name={name} size="md" photoUrl={photoUrl} />
         <div className="flex flex-col leading-tight">
           <span className="flex items-center gap-1.5 text-base font-medium text-slate-800">
             {name}

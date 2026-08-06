@@ -86,8 +86,8 @@ model Subagent {
   userId String? @unique
   user   User?   @relation("SubagentForUser", fields: [userId], references: [id], onDelete: Cascade)
 
-  activities Activity[] @relation("ActivitySubagent")
-  caseManagedLeads Lead[] @relation("LeadCaseManagerSubagent")
+  activities       Activity[] @relation("ActivitySubagent")
+  caseManagedLeads Lead[]     @relation("LeadCaseManagerSubagent")
 
   @@index([teamId])
 }
@@ -133,6 +133,12 @@ model User {
 
   /// Functie/graad, getoond op het organigram.
   jobFunction JobFunction?
+
+  // Profielfoto, als binaire data in de database bewaard (zelfde aanpak als
+  // de Incentive-poster), zodat er geen aparte bestandsopslag nodig is.
+  avatarData      Bytes?
+  avatarMimeType  String?
+  avatarUpdatedAt DateTime?
 
   /// Analyst (standaard) of subagent; subagenten krijgen een icoon op het organigram.
   agentType AgentType @default(ANALYST)
@@ -264,9 +270,9 @@ model Lead {
   taxDeclarationStatus TaxDeclarationStatus?
 
   /// Pipeline: handmatig cijfer op 10 voor de inschatting van deze lead.
-  qualityScore Int?
+  qualityScore    Int?
   /// Pipeline: handmatig aan te vinken of de lead al op de hoogte is (bv. van de aanbeveling).
-  isInformed Boolean @default(false)
+  isInformed      Boolean @default(false)
   /// Pipeline recrutering: vrij in te vullen kenmerken van de kandidaat.
   characteristics String?
 
@@ -596,7 +602,7 @@ model Event {
   updatedAt   DateTime  @updatedAt
 
   createdById String
-  createdBy   User      @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdBy   User   @relation("EventCreatedBy", fields: [createdById], references: [id])
 
   /// Voor seminaries: pas na bevestiging door een Beheerder/Admin telt de
   /// aanwezigheid mee voor KPI Seminarie van de werknemers.
@@ -649,7 +655,7 @@ model CustomerYearPeriod {
 /// sync (cron) en de "Nu synchroniseren"-knop gebruiken daarna deze ene
 /// refresh token, ongeacht wie er op dat moment ingelogd is.
 model GoogleSheetsBackup {
-  id     String @id @default(cuid())
+  id     String  @id @default(cuid())
   active Boolean @default(true)
 
   connectedByUserId String
@@ -661,7 +667,7 @@ model GoogleSheetsBackup {
   /// (aangemaakt bij de eerste synchronisatie). `null` tot de eerste sync.
   spreadsheetId String?
 
-  lastSyncedAt DateTime?
+  lastSyncedAt  DateTime?
   lastSyncError String?
 
   createdAt DateTime @default(now())

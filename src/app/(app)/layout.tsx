@@ -22,9 +22,12 @@ export default async function AppLayout({
     getVisibleUserIds(viewer),
     prisma.user.findUnique({
       where: { id: viewer.id },
-      select: { jobFunction: true },
+      select: { jobFunction: true, avatarUpdatedAt: true },
     }),
   ]);
+  const photoUrl = viewerDetails?.avatarUpdatedAt
+    ? `/api/users/${viewer.id}/avatar?v=${viewerDetails.avatarUpdatedAt.getTime()}`
+    : null;
   const overdueTasks = await prisma.activity.count({
     where: {
       status: "PLANNED",
@@ -78,6 +81,7 @@ export default async function AppLayout({
               name={viewer.name}
               viewer={viewer}
               jobFunction={viewerDetails?.jobFunction ?? null}
+              photoUrl={photoUrl}
             />
             <form action={logoutAction}>
               <button

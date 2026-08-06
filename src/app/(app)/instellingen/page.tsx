@@ -1,6 +1,11 @@
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
-import { updateMyZoomLinkAction } from "@/lib/actions/profile";
+import {
+  updateMyZoomLinkAction,
+  updateMyAvatarAction,
+  removeMyAvatarAction,
+} from "@/lib/actions/profile";
+import { Avatar } from "@/components/Avatar";
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   not_configured:
@@ -38,6 +43,53 @@ export default async function SettingsPage({
       )}
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+        <h2 className="mb-2 font-medium text-slate-900">Mijn profielfoto</h2>
+        <p className="mb-3 text-slate-500">
+          Deze foto wordt getoond naast je naam, o.a. rechtsboven en op
+          plekken waar je als eigenaar of teamlid vermeld staat.
+        </p>
+        <div className="flex items-center gap-4">
+          <Avatar
+            name={viewer.name}
+            size="md"
+            photoUrl={
+              user?.avatarUpdatedAt
+                ? `/api/users/${viewer.id}/avatar?v=${user.avatarUpdatedAt.getTime()}`
+                : null
+            }
+          />
+          <form
+            action={updateMyAvatarAction}
+            className="flex flex-1 flex-wrap items-center gap-2"
+          >
+            <input
+              type="file"
+              name="photo"
+              accept="image/jpeg,image/png,image/webp"
+              required
+              className="flex-1 text-slate-700"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+            >
+              Uploaden
+            </button>
+          </form>
+          {user?.avatarMimeType && (
+            <form action={removeMyAvatarAction}>
+              <button
+                type="submit"
+                className="rounded-md border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50"
+              >
+                Verwijderen
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
         <h2 className="mb-2 font-medium text-slate-900">Google Agenda</h2>
         <p className="mb-3 text-slate-500">
           Koppel je Google Agenda zodat ingeplande telefoongesprekken en

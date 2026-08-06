@@ -33,11 +33,27 @@ function initials(name: string) {
 export function Avatar({
   name,
   size = "sm",
+  photoUrl,
 }: {
   name: string;
   size?: "sm" | "md";
+  /** URL naar de geüploade profielfoto van deze gebruiker, indien aanwezig. */
+  photoUrl?: string | null;
 }) {
   const sizeClasses = size === "md" ? "h-9 w-9 text-sm" : "h-7 w-7 text-xs";
+
+  if (photoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoUrl}
+        alt={name}
+        title={name}
+        className={`inline-block flex-shrink-0 rounded-full object-cover ${sizeClasses}`}
+      />
+    );
+  }
+
   return (
     <span
       title={name}
