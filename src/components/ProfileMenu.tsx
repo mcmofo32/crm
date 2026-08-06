@@ -10,12 +10,17 @@ import {
   ScrollText,
   Eye,
   Target,
+  CloudUpload,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
-import { canManageUsers, canViewBeheerderTools } from "@/lib/permissions";
+import {
+  canManageSettings,
+  canManageUsers,
+  canViewBeheerderTools,
+} from "@/lib/permissions";
 import { ViewAsControls } from "@/components/ViewAsControls";
 import type { EffectiveViewer } from "@/lib/impersonation";
 import { JobFunction, Role } from "@/generated/prisma/client";
@@ -59,6 +64,7 @@ export function ProfileMenu({
 }) {
   const showUserManagement = canManageUsers(viewer);
   const showBeheerderTools = canViewBeheerderTools(viewer);
+  const showSettingsManagement = canManageSettings(viewer);
   const canImpersonate = viewer.realRole === Role.BEHEERDER;
 
   return (
@@ -112,6 +118,11 @@ export function ProfileMenu({
             <MenuLink href="/beheer/doelen" icon={Target}>
               Doelen
             </MenuLink>
+            {showSettingsManagement && (
+              <MenuLink href="/beheer/backup" icon={CloudUpload}>
+                Google Sheets back-up
+              </MenuLink>
+            )}
           </>
         )}
         {showBeheerderTools && (

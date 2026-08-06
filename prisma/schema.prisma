@@ -155,6 +155,8 @@ model User {
   eventAttendances EventAttendance[] @relation("EventAttendances")
   caseManagedLeads Lead[]            @relation("LeadCaseManagerUser")
 
+  googleSheetsBackupConnections GoogleSheetsBackup[] @relation("GoogleSheetsBackupConnectedBy")
+
   @@index([teamId])
 }
 
@@ -634,5 +636,34 @@ model CustomerYearPeriod {
   id        String   @id @default(cuid())
   startDate DateTime
   endDate   DateTime
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Automatische back-up naar Google Sheets
+// ---------------------------------------------------------------------------
+
+/// Eén globale koppeling (niet per gebruiker) waarmee een volledige back-up
+/// van alle CRM-data automatisch naar één Google Sheets-bestand geschreven
+/// wordt. Een Beheerder koppelt eenmalig zijn Google-account; de scheduled
+/// sync (cron) en de "Nu synchroniseren"-knop gebruiken daarna deze ene
+/// refresh token, ongeacht wie er op dat moment ingelogd is.
+model GoogleSheetsBackup {
+  id     String @id @default(cuid())
+  active Boolean @default(true)
+
+  connectedByUserId String
+  connectedByUser   User   @relation("GoogleSheetsBackupConnectedBy", fields: [connectedByUserId], references: [id])
+  connectedEmail    String
+  refreshToken      String
+
+  /// Het ene Google Sheets-bestand dat hergebruikt wordt bij elke sync
+  /// (aangemaakt bij de eerste synchronisatie). `null` tot de eerste sync.
+  spreadsheetId String?
+
+  lastSyncedAt DateTime?
+  lastSyncError String?
+
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
