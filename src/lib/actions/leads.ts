@@ -71,25 +71,16 @@ export async function createLeadAction(formData: FormData) {
  * allemaal met dezelfde funnel en eigenaar.
  */
 /**
- * Bulk-aanmaak van leads. `type`/`owner` per rij zijn optioneel: leeg =
- * de standaard Funnel/Eigenaar bovenaan het formulier, ingevuld = FA/RG
- * resp. de exacte naam van een gebruiker (zoals in "Eigenaar (voor alle
- * rijen)") — zo kan één geplakte tabel meteen leads voor meerdere mensen en
- * beide funnels tegelijk aanmaken (bv. bij het importeren van oude leads).
+ * Bulk-aanmaak van leads — altijd voor jezelf: wie de import doet, wordt
+ * eigenaar van elke aangemaakte lead. `type` per rij is optioneel: leeg =
+ * de standaard Funnel bovenaan het formulier, ingevuld (FA/RG) overschrijft
+ * enkel die rij — zo kan één geplakte tabel meteen leads voor beide funnels
+ * tegelijk aanmaken (bv. bij het importeren van je eigen oude leads).
  */
 export async function createLeadsBulkAction(formData: FormData) {
   const user = await requireUser();
 
   const defaultLeadType = formData.get("leadType") as LeadType;
-  const requestedDefaultOwnerId = String(formData.get("ownerId") ?? user.id);
-  const defaultOwnerId = (await canAccessOwner(user, requestedDefaultOwnerId))
-    ? requestedDefaultOwnerId
-    : user.id;
-
-  const assignableUsers = await getAssignableUsers();
-  const ownerIdByName = new Map(
-    assignableUsers.map((u) => [u.name.trim().toLowerCase(), u.id])
-  );
 
   const firstNames = formData.getAll("firstName");
   const lastNames = formData.getAll("lastName");
@@ -97,7 +88,6 @@ export async function createLeadsBulkAction(formData: FormData) {
   const phones = formData.getAll("phone");
   const sources = formData.getAll("source");
   const types = formData.getAll("type");
-  const owners = formData.getAll("owner");
 
   const rawRows = firstNames.map((_, i) => ({
     firstName: String(firstNames[i] ?? "").trim(),
@@ -106,7 +96,6 @@ export async function createLeadsBulkAction(formData: FormData) {
     phone: String(phones[i] ?? "").trim() || null,
     source: String(sources[i] ?? "").trim() || null,
     typeRaw: String(types[i] ?? "").trim(),
-    ownerRaw: String(owners[i] ?? "").trim(),
   }));
 
   const filledRows = rawRows.filter((row) => row.firstName || row.lastName);
@@ -136,16 +125,6 @@ export async function createLeadsBulkAction(formData: FormData) {
       }
     }
 
-    let ownerId = defaultOwnerId;
-    if (row.ownerRaw) {
-      const matchedId = ownerIdByName.get(row.ownerRaw.toLowerCase());
-      if (!matchedId) {
-        errors.push(`Rij ${rowNumber}: onbekende eigenaar "${row.ownerRaw}"`);
-      } else {
-        ownerId = matchedId;
-      }
-    }
-
     return {
       firstName: row.firstName,
       lastName: row.lastName,
@@ -153,7 +132,6 @@ export async function createLeadsBulkAction(formData: FormData) {
       phone: row.phone,
       source: row.source,
       leadType,
-      ownerId,
     };
   });
 
@@ -180,7 +158,7 @@ export async function createLeadsBulkAction(formData: FormData) {
           phone: row.phone,
           source: row.source,
           leadType: row.leadType,
-          ownerId: row.ownerId,
+          ownerId: user.id,
           createdById: user.id,
           stageId: stageIdByType.get(row.leadType)!,
         },

@@ -6,14 +6,7 @@ import { createLeadsBulkAction } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import type { LeadType } from "@/generated/prisma/client";
 
-type TextField =
-  | "firstName"
-  | "lastName"
-  | "email"
-  | "phone"
-  | "source"
-  | "type"
-  | "owner";
+type TextField = "firstName" | "lastName" | "email" | "phone" | "source" | "type";
 type Row = Record<TextField, string> & { key: string };
 
 const COLUMNS: TextField[] = [
@@ -23,7 +16,6 @@ const COLUMNS: TextField[] = [
   "phone",
   "source",
   "type",
-  "owner",
 ];
 const COLUMN_LABELS: Record<TextField, string> = {
   firstName: "Voornaam",
@@ -32,11 +24,10 @@ const COLUMN_LABELS: Record<TextField, string> = {
   phone: "Telefoon",
   source: "Bron",
   type: "Type (FA/RG)",
-  owner: "Eigenaar",
 };
 const REQUIRED_COLUMNS = new Set<TextField>(["firstName", "lastName"]);
-/** Optioneel: leeg = de standaard Funnel/Eigenaar bovenaan het formulier. */
-const OPTIONAL_OVERRIDE_COLUMNS = new Set<TextField>(["type", "owner"]);
+/** Optioneel: leeg = de standaard Funnel bovenaan het formulier. */
+const OPTIONAL_OVERRIDE_COLUMNS = new Set<TextField>(["type"]);
 
 let rowCounter = 0;
 function emptyRow(): Row {
@@ -49,29 +40,14 @@ function emptyRow(): Row {
     phone: "",
     source: "",
     type: "",
-    owner: "",
   };
 }
 
-export function BulkLeadForm({
-  assignableUsers,
-  currentUserId,
-}: {
-  assignableUsers: { id: string; name: string }[];
-  currentUserId: string;
-}) {
+export function BulkLeadForm() {
   const [leadType, setLeadType] = useState<LeadType>("FA" as LeadType);
-  const [ownerId, setOwnerId] = useState(currentUserId);
   const [rows, setRows] = useState<Row[]>(() =>
     Array.from({ length: 8 }, () => emptyRow())
   );
-
-  // Niemand anders om aan toe te wijzen? Dan heeft een Eigenaar-kolom geen
-  // nut — elke rij wordt sowieso automatisch aan jezelf toegewezen.
-  const canAssignOthers = assignableUsers.length > 1;
-  const visibleColumns = canAssignOthers
-    ? COLUMNS
-    : COLUMNS.filter((col) => col !== "owner");
 
   function updateCell(rowIndex: number, field: TextField, value: string) {
     setRows((current) => {
@@ -112,7 +88,7 @@ export function BulkLeadForm({
         const targetIndex = rowIndex + lineIndex;
         while (next.length <= targetIndex) next.push(emptyRow());
         line.forEach((value, cellOffset) => {
-          const targetCol = visibleColumns[colIndex + cellOffset];
+          const targetCol = COLUMNS[colIndex + cellOffset];
           if (targetCol) {
             next[targetIndex] = { ...next[targetIndex], [targetCol]: value.trim() };
           }
@@ -129,7 +105,6 @@ export function BulkLeadForm({
   return (
     <form action={createLeadsBulkAction} className="flex flex-col gap-4">
       <input type="hidden" name="leadType" value={leadType} />
-      <input type="hidden" name="ownerId" value={ownerId} />
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
@@ -145,41 +120,10 @@ export function BulkLeadForm({
             <option value="RG">{LEAD_TYPE_LABELS.RG}</option>
           </select>
         </div>
-        {assignableUsers.length > 1 && (
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-700">
-              Eigenaar (standaard)
-            </label>
-            <select
-              value={ownerId}
-              onChange={(e) => setOwnerId(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
-              {assignableUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <p className="max-w-md text-xs text-slate-400">
-          {canAssignOthers ? (
-            <>
-              Tip: plak gerust een selectie uit Excel/Sheets direct in de
-              tabel. De kolommen Type en Eigenaar zijn optioneel per rij —
-              leeg = de standaardwaarden hierboven, ingevuld (FA/RG, exacte
-              naam) overschrijft enkel die rij. Zo importeer je in één keer
-              leads van meerdere mensen.
-            </>
-          ) : (
-            <>
-              Tip: plak gerust een selectie uit Excel/Sheets direct in de
-              tabel. Elke rij wordt automatisch aan jezelf toegewezen. De
-              kolom Type is optioneel per rij — leeg = de standaardwaarde
-              hierboven.
-            </>
-          )}
+          Tip: plak gerust een selectie uit Excel/Sheets direct in de tabel.
+          Elke rij wordt automatisch aan jezelf toegewezen. De kolom Type is
+          optioneel per rij — leeg = de standaardwaarde hierboven.
         </p>
       </div>
 
@@ -187,7 +131,7 @@ export function BulkLeadForm({
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              {visibleColumns.map((col) => (
+              {COLUMNS.map((col) => (
                 <th key={col} className="px-3 py-2 font-medium">
                   {COLUMN_LABELS[col]}
                   {REQUIRED_COLUMNS.has(col) && (
@@ -204,7 +148,7 @@ export function BulkLeadForm({
           <tbody className="divide-y divide-slate-100">
             {rows.map((row, rowIndex) => (
               <tr key={row.key}>
-                {visibleColumns.map((col, colIndex) => (
+                {COLUMNS.map((col, colIndex) => (
                   <td key={col} className="p-1">
                     <input
                       name={col}
