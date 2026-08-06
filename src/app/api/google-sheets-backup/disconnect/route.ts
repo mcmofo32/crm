@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageSettings } from "@/lib/permissions";
 import { disconnectGoogleSheetsBackup } from "@/lib/googleSheetsBackup";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || !canManageSettings(session.user)) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer || !canManageSettings({ id: viewer.id, role: viewer.realRole })) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 

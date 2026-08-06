@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/client";
 
 const VIEW_AS_COOKIE = "view-as-role";
@@ -23,6 +24,27 @@ function isViewableRole(value: string | undefined): value is Role {
 }
 
 /**
+ * Haalt de rol/naam/actief-status altijd vers uit de database i.p.v. te
+ * vertrouwen op het JWT-sessietoken. Dat token wordt enkel bij het inloggen
+ * gevuld, dus zonder deze verse check zou een rolwijziging of deactivatie
+ * pas na uit-/opnieuw inloggen doorwerken — een gedeactiveerde gebruiker zou
+ * dan met een lopende sessie gewoon toegang houden. `null` = niet (meer)
+ * ingelogd, ook als het account intussen gedeactiveerd is.
+ */
+async function getFreshSessionUser() {
+  const session = await auth();
+  if (!session?.user) return null;
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true, email: true, role: true, active: true },
+  });
+  if (!dbUser || !dbUser.active) return null;
+
+  return dbUser;
+}
+
+/**
  * Geeft de "effectieve" gebruiker voor read-only weergave: als de echt
  * ingelogde gebruiker Beheerder is EN er een "bekijk als"-cookie staat,
  * wordt de rol daarvoor vervangen. Voor elke andere rol wordt de cookie
@@ -30,10 +52,10 @@ function isViewableRole(value: string | undefined): value is Role {
  * nooit omgekeerd.
  */
 export async function getEffectiveViewer(): Promise<EffectiveViewer | null> {
-  const session = await auth();
-  if (!session?.user) return null;
+  const dbUser = await getFreshSessionUser();
+  if (!dbUser) return null;
 
-  const realRole = session.user.role;
+  const realRole = dbUser.role;
   const cookieStore = await cookies();
   const viewAs = cookieStore.get(VIEW_AS_COOKIE)?.value;
 
@@ -41,9 +63,9 @@ export async function getEffectiveViewer(): Promise<EffectiveViewer | null> {
     realRole === Role.BEHEERDER && isViewableRole(viewAs) ? viewAs : realRole;
 
   return {
-    id: session.user.id,
-    name: session.user.name ?? "?",
-    email: session.user.email ?? "",
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email ?? "",
     role,
     realRole,
     isImpersonating: role !== realRole,
@@ -51,8 +73,8 @@ export async function getEffectiveViewer(): Promise<EffectiveViewer | null> {
 }
 
 export async function setViewAsRoleAction(role: Role) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.BEHEERDER) {
+  const dbUser = await getFreshSessionUser();
+  if (!dbUser || dbUser.role !== Role.BEHEERDER) {
     throw new Error("Enkel de Beheerder kan zich voordoen als een andere rol");
   }
   if (!isViewableRole(role)) {

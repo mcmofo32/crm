@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageSettings } from "@/lib/permissions";
 import { connectGoogleSheetsBackup } from "@/lib/googleSheetsBackup";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || !canManageSettings(session.user)) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer || !canManageSettings({ id: viewer.id, role: viewer.realRole })) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await connectGoogleSheetsBackup(session.user.id, code);
+    await connectGoogleSheetsBackup(viewer.id, code);
   } catch (error) {
     console.error("Google Sheets back-up koppelen mislukt:", error);
     return NextResponse.redirect(new URL("/beheer/backup?error=1", req.url));
