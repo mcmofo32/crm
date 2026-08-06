@@ -181,6 +181,7 @@ export default async function DashboardPage({
               percent={kpi.percent}
               icon={KPI_ICONS[kpi.metric]}
               percentPosition="below"
+              percentSize="text-2xl"
             />
           ))}
         </div>
@@ -279,6 +280,7 @@ function GoalCard({
   percent,
   icon: Icon,
   percentPosition,
+  percentSize = "text-sm",
 }: {
   label: string;
   actual: number;
@@ -286,6 +288,7 @@ function GoalCard({
   percent: number | null;
   icon: LucideIcon;
   percentPosition: "below" | "beside";
+  percentSize?: string;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -308,7 +311,7 @@ function GoalCard({
           </span>
         </p>
         <p
-          className={`text-sm font-medium ${percentColor(percent)} ${
+          className={`${percentSize} font-semibold ${percentColor(percent)} ${
             percentPosition === "below" ? "mt-1" : ""
           }`}
         >
