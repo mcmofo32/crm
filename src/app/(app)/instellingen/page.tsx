@@ -67,7 +67,7 @@ export default async function SettingsPage({
               name="photo"
               accept="image/jpeg,image/png,image/webp"
               required
-              className="flex-1 text-slate-700"
+              className="flex-1 cursor-pointer text-sm text-slate-500 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-slate-800"
             />
             <button
               type="submit"
