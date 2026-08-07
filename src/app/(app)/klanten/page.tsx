@@ -369,7 +369,7 @@ export default async function KlantenPage({
             <tr>
               <th className="px-6 py-3 font-medium">Klant sinds</th>
               <th className="px-6 py-3 font-medium">Naam</th>
-              <th className="px-6 py-3 font-medium">Dossierbeheerder</th>
+              <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
               <th className="px-6 py-3 font-medium">Telefoonnummer</th>
               <th className="px-6 py-3 font-medium">E-mailadres</th>
               <th className="px-6 py-3 font-medium">Belastingsaangifte</th>
@@ -405,7 +405,7 @@ export default async function KlantenPage({
                       <span className="ml-2 text-slate-400">{customer.company}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <InlineSelect
                       action={boundSetCaseManager}
                       name="subagentId"
@@ -417,6 +417,7 @@ export default async function KlantenPage({
                           label: `${s.name} (${s.team.name})`,
                         })),
                       ]}
+                      className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
                     />
                   </td>
                   <td className="px-6 py-4 text-slate-600">
