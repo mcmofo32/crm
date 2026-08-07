@@ -12,7 +12,7 @@ const NODE_HEIGHT = 72;
 const H_GAP = 28;
 const V_GAP = 64;
 const PADDING = 32;
-/** Stukje lijn boven elke root, zodat die er ook zo uitziet als iedereen (met een lijntje erboven). */
+/** Lege ruimte boven elke root, exact even groot als de afstand tussen twee niveaus — geen lijn, gewoon ademruimte. */
 const ROOT_STUB = V_GAP;
 
 type PositionedNode = {
@@ -193,18 +193,6 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
               className="absolute left-0 top-0"
               style={{ pointerEvents: "none" }}
             >
-              {positioned.map((r) => {
-                const x = r.x + NODE_WIDTH / 2 + PADDING;
-                return (
-                  <path
-                    key={`root-stub-${r.node.id}`}
-                    d={`M ${x} ${PADDING} V ${PADDING + ROOT_STUB}`}
-                    fill="none"
-                    stroke="#cbd5e1"
-                    strokeWidth={2}
-                  />
-                );
-              })}
               {allNodes.map((p) =>
                 p.children.map((child) => {
                   const startX = p.x + NODE_WIDTH / 2 + PADDING;
