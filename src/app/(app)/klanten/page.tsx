@@ -24,9 +24,8 @@ import {
 } from "@/lib/actions/leadProducts";
 import { getCurrentGoalPeriod } from "@/lib/actions/goals";
 import { canManageUsers } from "@/lib/permissions";
-import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
-import { LeadType, ProductType } from "@/generated/prisma/client";
+import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 
 function formatDate(date: Date | null | undefined) {
@@ -49,7 +48,6 @@ export default async function KlantenPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    type?: string;
     ownerId?: string;
     q?: string;
     product?: string;
@@ -58,8 +56,7 @@ export default async function KlantenPage({
     sort?: string;
   }>;
 }) {
-  const { type, ownerId, q, product, from, to, sort } = await searchParams;
-  const leadType = type === "FA" || type === "RG" ? (type as LeadType) : undefined;
+  const { ownerId, q, product, from, to, sort } = await searchParams;
   const productType =
     product && (Object.values(ProductType) as string[]).includes(product)
       ? (product as ProductType)
@@ -95,22 +92,8 @@ export default async function KlantenPage({
     ? [selectedTeam.coachId, ...selectedTeam.members.map((m) => m.id)]
     : undefined;
 
-  function tabHref(t: "ALLE" | "FA" | "RG") {
-    const params = new URLSearchParams();
-    if (t !== "ALLE") params.set("type", t);
-    if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
-    if (q) params.set("q", q);
-    if (product) params.set("product", product);
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
-    if (sort) params.set("sort", sort);
-    const qs = params.toString();
-    return qs ? `/klanten?${qs}` : "/klanten";
-  }
-
   function clearFiltersHref() {
     const params = new URLSearchParams();
-    if (leadType) params.set("type", leadType);
     if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
     if (q) params.set("q", q);
     const qs = params.toString();
@@ -122,7 +105,6 @@ export default async function KlantenPage({
       method="GET"
       className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
     >
-      {leadType && <input type="hidden" name="type" value={leadType} />}
       {q && <input type="hidden" name="q" value={q} />}
       {product && <input type="hidden" name="product" value={product} />}
       {from && <input type="hidden" name="from" value={from} />}
@@ -157,7 +139,6 @@ export default async function KlantenPage({
 
   const [customers, stats] = await Promise.all([
     getCustomersForCurrentUser({
-      leadType,
       ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
       ownerIds: selectedOwnerIds,
       search: q,
@@ -277,25 +258,8 @@ export default async function KlantenPage({
 
       {ownerSwitcher}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 text-base">
-          {(["ALLE", "FA", "RG"] as const).map((t) => (
-            <Link
-              key={t}
-              href={tabHref(t)}
-              className={`rounded-full px-4 py-1.5 ${
-                (t === "ALLE" && !leadType) || t === leadType
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-600 border border-slate-200"
-              }`}
-            >
-              {t === "ALLE" ? "Alle" : LEAD_TYPE_LABELS[t]}
-            </Link>
-          ))}
-        </div>
-
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <form method="GET" className="flex flex-wrap items-center gap-2">
-          {leadType && <input type="hidden" name="type" value={leadType} />}
           {selectedOwnerId && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
