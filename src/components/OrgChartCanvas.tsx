@@ -67,7 +67,14 @@ function NodeCard({ node }: { node: OrgNode }) {
           <Link2 size={11} strokeWidth={2.5} />
         </span>
       )}
-      <Avatar name={node.name} />
+      <Avatar
+        name={node.name}
+        photoUrl={
+          node.avatarUpdatedAt
+            ? `/api/users/${node.id}/avatar?v=${node.avatarUpdatedAt.getTime()}`
+            : null
+        }
+      />
       <span className="line-clamp-1 text-sm font-medium text-slate-900">
         {node.name}
       </span>

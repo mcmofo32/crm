@@ -10,6 +10,7 @@ export type OrgNode = {
   role: Role;
   jobFunction: JobFunction | null;
   agentType: AgentType;
+  avatarUpdatedAt: Date | null;
   children: OrgNode[];
 };
 
@@ -19,6 +20,7 @@ type Person = {
   role: Role;
   jobFunction: JobFunction | null;
   agentType: AgentType;
+  avatarUpdatedAt: Date | null;
 };
 
 async function requireViewer() {
@@ -55,6 +57,7 @@ export async function getFullOrgChart(): Promise<OrgNode[]> {
       role: true,
       jobFunction: true,
       agentType: true,
+      avatarUpdatedAt: true,
       team: { select: { coachId: true } },
     },
     orderBy: { name: "asc" },
@@ -88,6 +91,7 @@ export async function getFullOrgChart(): Promise<OrgNode[]> {
         role: person.role,
         jobFunction: person.jobFunction,
         agentType: person.agentType,
+        avatarUpdatedAt: person.avatarUpdatedAt,
         children: [],
       };
     }
@@ -100,6 +104,7 @@ export async function getFullOrgChart(): Promise<OrgNode[]> {
       role: person.role,
       jobFunction: person.jobFunction,
       agentType: person.agentType,
+      avatarUpdatedAt: person.avatarUpdatedAt,
       children: childIds.map((childId) => buildNode(childId, seen)),
     };
   }
