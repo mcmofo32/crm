@@ -12,6 +12,8 @@ const NODE_HEIGHT = 72;
 const H_GAP = 28;
 const V_GAP = 64;
 const PADDING = 32;
+/** Stukje lijn boven elke root, zodat die er ook zo uitziet als iedereen (met een lijntje erboven). */
+const ROOT_STUB = V_GAP;
 
 type PositionedNode = {
   node: OrgNode;
@@ -173,13 +175,13 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
         <div
           style={{
             width: width * scale,
-            height: height * scale,
+            height: (height + ROOT_STUB) * scale,
           }}
         >
           <div
             style={{
               width,
-              height,
+              height: height + ROOT_STUB,
               transform: `scale(${scale})`,
               transformOrigin: "top left",
               position: "relative",
@@ -187,16 +189,28 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
           >
             <svg
               width={width}
-              height={height}
+              height={height + ROOT_STUB}
               className="absolute left-0 top-0"
               style={{ pointerEvents: "none" }}
             >
+              {positioned.map((r) => {
+                const x = r.x + NODE_WIDTH / 2 + PADDING;
+                return (
+                  <path
+                    key={`root-stub-${r.node.id}`}
+                    d={`M ${x} ${PADDING} V ${PADDING + ROOT_STUB}`}
+                    fill="none"
+                    stroke="#cbd5e1"
+                    strokeWidth={2}
+                  />
+                );
+              })}
               {allNodes.map((p) =>
                 p.children.map((child) => {
                   const startX = p.x + NODE_WIDTH / 2 + PADDING;
-                  const startY = p.y + NODE_HEIGHT + PADDING;
+                  const startY = p.y + NODE_HEIGHT + PADDING + ROOT_STUB;
                   const endX = child.x + NODE_WIDTH / 2 + PADDING;
-                  const endY = child.y + PADDING;
+                  const endY = child.y + PADDING + ROOT_STUB;
                   const midY = startY + (endY - startY) / 2;
                   return (
                     <path
@@ -216,7 +230,7 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
                 style={{
                   position: "absolute",
                   left: p.x + PADDING,
-                  top: p.y + PADDING,
+                  top: p.y + PADDING + ROOT_STUB,
                   width: NODE_WIDTH,
                 }}
               >
