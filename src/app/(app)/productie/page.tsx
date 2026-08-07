@@ -48,6 +48,20 @@ export default async function ProductiePage({
   const viewer = await getEffectiveViewer();
   const canEditGoals = viewer ? canManageUsers(viewer) : false;
 
+  const conversationsTotals = conversationsRows
+    ? (() => {
+        const target = conversationsRows.reduce((s, r) => s + r.target, 0);
+        const actual = conversationsRows.reduce((s, r) => s + r.actual, 0);
+        return {
+          target,
+          actual,
+          percent: target > 0 ? Math.round((actual / target) * 100) : null,
+          growth: conversationsRows.reduce((s, r) => s + r.growth, 0),
+          toBePlanned: conversationsRows.reduce((s, r) => s + r.toBePlanned, 0),
+        };
+      })()
+    : null;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -225,6 +239,34 @@ export default async function ProductiePage({
                   </tr>
                 )}
               </tbody>
+              {conversationsRows.length > 0 && conversationsTotals && (
+                <tfoot>
+                  <tr className="border-t-2 border-slate-900 bg-slate-900 font-semibold text-white">
+                    <td className="px-3 py-2.5" colSpan={3}>
+                      Totaal
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {conversationsTotals.actual}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {conversationsTotals.target || "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {conversationsTotals.percent === null
+                        ? "—"
+                        : `${conversationsTotals.percent}%`}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {conversationsTotals.growth > 0
+                        ? `+${conversationsTotals.growth}`
+                        : conversationsTotals.growth}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {conversationsTotals.toBePlanned}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </>

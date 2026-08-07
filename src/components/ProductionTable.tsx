@@ -23,6 +23,18 @@ export function ProductionTable({
   const [editing, setEditing] = useState(false);
   const showInputs = canEditGoals && editing;
 
+  const totalTargetCustomers = rows.reduce((s, r) => s + r.targetCustomers, 0);
+  const totalActualCustomers = rows.reduce((s, r) => s + r.actualCustomers, 0);
+  const totalPercentCustomers =
+    totalTargetCustomers > 0
+      ? Math.round((totalActualCustomers / totalTargetCustomers) * 100)
+      : null;
+  const totalTargetUnits = rows.reduce((s, r) => s + r.targetUnits, 0);
+  const totalActualUnits = rows.reduce((s, r) => s + r.actualUnits, 0);
+  const totalPercentUnits =
+    totalTargetUnits > 0 ? Math.round((totalActualUnits / totalTargetUnits) * 100) : null;
+  const totalConversationsPerWeek = rows.reduce((s, r) => s + r.conversationsPerWeek, 0);
+
   return (
     <div className="flex flex-col gap-3">
       {canEditGoals && (
@@ -166,6 +178,26 @@ export function ProductionTable({
               </tr>
             )}
           </tbody>
+          {rows.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-slate-900 bg-slate-900 font-semibold text-white">
+                <td className="px-3 py-2.5" colSpan={4}>
+                  Totaal
+                </td>
+                <td className="px-3 py-2.5 text-center">{totalTargetCustomers}</td>
+                <td className="px-3 py-2.5 text-center">{totalActualCustomers}</td>
+                <td className="px-3 py-2.5 text-center">
+                  {totalPercentCustomers === null ? "—" : `${totalPercentCustomers}%`}
+                </td>
+                <td className="px-3 py-2.5 text-center">{totalTargetUnits}</td>
+                <td className="px-3 py-2.5 text-center">{totalActualUnits}</td>
+                <td className="px-3 py-2.5 text-center">
+                  {totalPercentUnits === null ? "—" : `${totalPercentUnits}%`}
+                </td>
+                <td className="px-3 py-2.5 text-center">{totalConversationsPerWeek}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
