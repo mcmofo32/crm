@@ -583,6 +583,9 @@ model UserKpiMonthlyEntry {
 enum EventType {
   MEETING
   SEMINAR
+  BELSESSIE
+  MANAGEMENTMEETING
+  STRUCTUURMEETING
 }
 
 enum AttendanceStatus {

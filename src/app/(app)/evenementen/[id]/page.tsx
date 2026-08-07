@@ -7,11 +7,25 @@ import {
   setMyAttendanceAction,
   verifyEventAttendanceAction,
 } from "@/lib/actions/events";
-import { Badge } from "@/components/Badge";
+import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
 
-const TYPE_LABELS = { MEETING: "Vergadering", SEMINAR: "Seminarie" } as const;
+const TYPE_LABELS = {
+  MEETING: "Vergadering",
+  SEMINAR: "Seminarie",
+  BELSESSIE: "Belsessie",
+  MANAGEMENTMEETING: "Managementmeeting",
+  STRUCTUURMEETING: "Structuur meeting",
+} as const;
+
+const TYPE_BADGE_VARIANTS: Record<keyof typeof TYPE_LABELS, BadgeVariant> = {
+  MEETING: "blue",
+  SEMINAR: "purple",
+  BELSESSIE: "green",
+  MANAGEMENTMEETING: "amber",
+  STRUCTUURMEETING: "slate",
+};
 const STATUS_LABELS = {
   PENDING: "Nog niet gereageerd",
   GOING: "Aanwezig",
@@ -47,7 +61,7 @@ export default async function EventDetailPage({
           <h1 className="text-3xl font-semibold text-slate-900">
             {event.title}
           </h1>
-          <Badge variant={event.type === "SEMINAR" ? "purple" : "blue"}>
+          <Badge variant={TYPE_BADGE_VARIANTS[event.type]}>
             {TYPE_LABELS[event.type]}
           </Badge>
         </div>

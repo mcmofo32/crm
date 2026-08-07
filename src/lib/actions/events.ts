@@ -21,8 +21,16 @@ async function requireEventManager() {
   return user;
 }
 
+const EVENT_TYPES: EventType[] = [
+  "MEETING",
+  "SEMINAR",
+  "BELSESSIE",
+  "MANAGEMENTMEETING",
+  "STRUCTUURMEETING",
+];
+
 function parseEventType(raw: FormDataEntryValue | null | undefined): EventType {
-  return raw === "SEMINAR" ? "SEMINAR" : "MEETING";
+  return EVENT_TYPES.includes(raw as EventType) ? (raw as EventType) : "MEETING";
 }
 
 export async function createEventAction(formData: FormData) {

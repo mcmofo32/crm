@@ -35,6 +35,9 @@ export default async function NewEventPage() {
           >
             <option value="MEETING">Vergadering</option>
             <option value="SEMINAR">Seminarie</option>
+            <option value="BELSESSIE">Belsessie</option>
+            <option value="MANAGEMENTMEETING">Managementmeeting</option>
+            <option value="STRUCTUURMEETING">Structuur meeting</option>
           </select>
         </label>
 

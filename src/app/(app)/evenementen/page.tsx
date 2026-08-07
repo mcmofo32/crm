@@ -4,9 +4,23 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { getEventsForCurrentUser } from "@/lib/actions/events";
 import { setMyAttendanceAction } from "@/lib/actions/events";
 import { canManageEvents } from "@/lib/permissions";
-import { Badge } from "@/components/Badge";
+import { Badge, type BadgeVariant } from "@/components/Badge";
 
-const TYPE_LABELS = { MEETING: "Vergadering", SEMINAR: "Seminarie" } as const;
+const TYPE_LABELS = {
+  MEETING: "Vergadering",
+  SEMINAR: "Seminarie",
+  BELSESSIE: "Belsessie",
+  MANAGEMENTMEETING: "Managementmeeting",
+  STRUCTUURMEETING: "Structuur meeting",
+} as const;
+
+const TYPE_BADGE_VARIANTS: Record<keyof typeof TYPE_LABELS, BadgeVariant> = {
+  MEETING: "blue",
+  SEMINAR: "purple",
+  BELSESSIE: "green",
+  MANAGEMENTMEETING: "amber",
+  STRUCTUURMEETING: "slate",
+};
 
 export default async function EvenementenPage() {
   const user = (await getEffectiveViewer())!;
@@ -74,7 +88,7 @@ function EventSection({
                 <h3 className="text-lg font-medium text-slate-900 hover:underline">
                   {event.title}
                 </h3>
-                <Badge variant={event.type === "SEMINAR" ? "purple" : "blue"}>
+                <Badge variant={TYPE_BADGE_VARIANTS[event.type]}>
                   {TYPE_LABELS[event.type]}
                 </Badge>
               </div>
