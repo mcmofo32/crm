@@ -3,11 +3,11 @@ import { canViewBeheerderTools } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import type { LeadType } from "@/generated/prisma/client";
 
-function normalizeEmail(email: string | null) {
+export function normalizeEmail(email: string | null) {
   return email ? email.trim().toLowerCase() : null;
 }
 
-function normalizePhone(phone: string | null) {
+export function normalizePhone(phone: string | null) {
   if (!phone) return null;
   const digits = phone.replace(/[^\d+]/g, "");
   return digits.length >= 6 ? digits : null;
@@ -52,6 +52,7 @@ export type DuplicateLead = {
   phone: string | null;
   leadType: LeadType;
   stageLabel: string;
+  ownerId: string;
   ownerName: string;
   createdByName: string;
   createdAt: Date;
@@ -64,13 +65,7 @@ export type DuplicateGroup = {
   leads: DuplicateLead[];
 };
 
-export async function getDuplicateLeads(): Promise<DuplicateGroup[]> {
-  const viewer = await getEffectiveViewer();
-  if (!viewer) throw new Error("Niet ingelogd");
-  if (!canViewBeheerderTools(viewer)) {
-    throw new Error("Je hebt geen toegang tot dit overzicht");
-  }
-
+async function computeDuplicateGroups(): Promise<DuplicateGroup[]> {
   const leads = await prisma.lead.findMany({
     where: { deletedAt: null },
     select: {
@@ -82,6 +77,7 @@ export async function getDuplicateLeads(): Promise<DuplicateGroup[]> {
       leadType: true,
       createdAt: true,
       stage: { select: { label: true } },
+      ownerId: true,
       owner: { select: { name: true } },
       createdBy: { select: { name: true } },
     },
@@ -157,6 +153,7 @@ export async function getDuplicateLeads(): Promise<DuplicateGroup[]> {
         phone: l.phone,
         leadType: l.leadType,
         stageLabel: l.stage.label,
+        ownerId: l.ownerId,
         ownerName: l.owner.name,
         createdByName: l.createdBy.name,
         createdAt: l.createdAt,
@@ -165,4 +162,29 @@ export async function getDuplicateLeads(): Promise<DuplicateGroup[]> {
   }
 
   return result.sort((a, b) => b.leads.length - a.leads.length);
+}
+
+export async function getDuplicateLeads(): Promise<DuplicateGroup[]> {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (!canViewBeheerderTools(viewer)) {
+    throw new Error("Je hebt geen toegang tot dit overzicht");
+  }
+  return computeDuplicateGroups();
+}
+
+/**
+ * Enkel de duplicaatgroepen waarbij de leads bij verschillende medewerkers
+ * horen — voor de melding op het dashboard aan Beheerder/Admin. Geeft stil
+ * een lege lijst terug voor wie geen toegang heeft, zodat dit veilig
+ * onvoorwaardelijk opgevraagd kan worden (net als getUnverifiedPastSeminars).
+ */
+export async function getCrossOwnerDuplicateGroups(): Promise<DuplicateGroup[]> {
+  const viewer = await getEffectiveViewer();
+  if (!viewer || !canViewBeheerderTools(viewer)) return [];
+
+  const groups = await computeDuplicateGroups();
+  return groups.filter(
+    (g) => new Set(g.leads.map((l) => l.ownerId)).size > 1
+  );
 }

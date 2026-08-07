@@ -23,6 +23,7 @@ import { isBeheerder } from "@/lib/permissions";
 import { getYearlyKpiProgress } from "@/lib/actions/goals";
 import { getProductionMonthGoalProgress } from "@/lib/actions/production";
 import { getUnverifiedPastSeminars } from "@/lib/actions/events";
+import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
@@ -80,6 +81,7 @@ export default async function DashboardPage({
     teamOverview,
     allTeamOverviews,
     unverifiedSeminars,
+    crossOwnerDuplicates,
   ] = await Promise.all([
     prisma.activity.count({
       where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
@@ -89,6 +91,7 @@ export default async function DashboardPage({
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
     isBeheerder(user) ? getAllTeamOverviews() : Promise.resolve(null),
     getUnverifiedPastSeminars(),
+    getCrossOwnerDuplicateGroups(),
   ]);
 
   const activeTeam =
@@ -135,6 +138,31 @@ export default async function DashboardPage({
               ? "seminarie wacht op bevestiging van de aanwezigheid."
               : "seminaries wachten op bevestiging van de aanwezigheid."}{" "}
             Bevestig nu →
+          </span>
+        </Link>
+      )}
+
+      {crossOwnerDuplicates.length > 0 && (
+        <Link
+          href="/beheer/duplicaten"
+          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100"
+        >
+          <AlertTriangle size={20} className="flex-shrink-0" />
+          <span>
+            <strong>{crossOwnerDuplicates.length}</strong>{" "}
+            {crossOwnerDuplicates.length === 1
+              ? "dubbele lead gevonden bij verschillende medewerkers"
+              : "dubbele leads gevonden bij verschillende medewerkers"}
+            {" ("}
+            {crossOwnerDuplicates
+              .slice(0, 3)
+              .map((g) =>
+                Array.from(new Set(g.leads.map((l) => l.ownerName))).join(" & ")
+              )
+              .join(", ")}
+            {crossOwnerDuplicates.length > 3 ? ", ..." : ""}
+            {"). "}
+            Bekijk duplicaten →
           </span>
         </Link>
       )}

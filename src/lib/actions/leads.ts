@@ -20,11 +20,24 @@ import {
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { ensureDefaultPipelineStage } from "@/lib/funnelStages";
+import { normalizePhone } from "@/lib/actions/duplicates";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
   return viewer;
+}
+
+/** Bestaat er al een (niet-verwijderde) lead van deze eigenaar met hetzelfde telefoonnummer? */
+async function findOwnLeadWithSamePhone(ownerId: string, phone: string | null) {
+  const target = normalizePhone(phone);
+  if (!target) return null;
+
+  const ownLeads = await prisma.lead.findMany({
+    where: { ownerId, deletedAt: null, phone: { not: null } },
+    select: { firstName: true, lastName: true, phone: true },
+  });
+  return ownLeads.find((l) => normalizePhone(l.phone) === target) ?? null;
 }
 
 export async function createLeadAction(formData: FormData) {
@@ -36,6 +49,14 @@ export async function createLeadAction(formData: FormData) {
     ? requestedOwnerId
     : user.id;
 
+  const phone = (formData.get("phone") as string) || null;
+  const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);
+  if (existingOwnLead) {
+    throw new Error(
+      `Bestaat al: ${existingOwnLead.firstName} ${existingOwnLead.lastName} heeft dit telefoonnummer al bij jouw leads.`
+    );
+  }
+
   const defaultStageId = await ensureDefaultPipelineStage(leadType);
 
   const lead = await prisma.lead.create({
@@ -43,7 +64,7 @@ export async function createLeadAction(formData: FormData) {
       firstName: String(formData.get("firstName") ?? ""),
       lastName: String(formData.get("lastName") ?? ""),
       email: (formData.get("email") as string) || null,
-      phone: (formData.get("phone") as string) || null,
+      phone,
       source: (formData.get("source") as string) || null,
       notes: (formData.get("notes") as string) || null,
       leadType,
