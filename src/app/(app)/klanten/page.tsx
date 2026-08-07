@@ -28,6 +28,7 @@ import { canManageCustomerData, canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
+import { KlantenTabs } from "@/components/KlantenTabs";
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
@@ -188,6 +189,8 @@ export default async function KlantenPage({
           </p>
         </div>
       </div>
+
+      <KlantenTabs active="klanten" />
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

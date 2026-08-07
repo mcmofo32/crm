@@ -162,6 +162,8 @@ model User {
   eventAttendances EventAttendance[] @relation("EventAttendances")
   caseManagedLeads Lead[]            @relation("LeadCaseManagerUser")
 
+  policiesAsEmployee Policy[] @relation("PolicyEmployee")
+
   googleSheetsBackupConnections GoogleSheetsBackup[] @relation("GoogleSheetsBackupConnectedBy")
 
   @@index([teamId])
@@ -280,6 +282,7 @@ model Lead {
   activities   Activity[]
   stageChanges LeadStageChange[]
   products     LeadProduct[]
+  policies     Policy[]
 
   @@index([ownerId])
   @@index([leadType, stageId])
@@ -310,7 +313,75 @@ model LeadProduct {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
+  /// Elk apart product/contract krijgt automatisch zijn eigen polis-lijn
+  /// (zie Policy) zodra het toegevoegd wordt.
+  policy Policy?
+
+  @@unique([leadId, type])
   @@index([leadId])
+}
+
+// ---------------------------------------------------------------------------
+// Polissen: het opvolg-tabblad bij Klanten, één lijn per product/contract
+// ---------------------------------------------------------------------------
+
+enum InsuranceCompany {
+  VIVIUM
+  AXA
+  DELA
+  CREDIMO
+}
+
+enum PolicyStatus {
+  OPGELADEN_WACHT_ACTIEF
+  ACTIEF
+  UITBETAALD
+  GEANNULEERD
+  BACKOFFICE
+  POLIS_NOG_TEKENEN
+  PROBLEEM_DOCUMENTEN
+  POLIS_NOG_OPMAKEN
+  AFWACHTEND_EERSTE_PREMIE
+}
+
+/// Eén lijn per apart product/contract (LeadProduct) van een klant — wordt
+/// automatisch aangemaakt zodra dat product toegevoegd wordt (zie
+/// saveLeadProductsAction). Datum/klant/product/eenheden komen rechtstreeks
+/// van de lead/het product; de rest (medewerker, maatschappij, status,
+/// documentenchecklist, ingangs-/betaaldatum) wordt hier zelf ingevuld en
+/// bijgehouden, los van de rest van de leaddata.
+model Policy {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  leadProductId String      @unique
+  leadProduct   LeadProduct @relation(fields: [leadProductId], references: [id], onDelete: Cascade)
+
+  /// De medewerker die de klant heeft aangebracht; standaard de eigenaar van
+  /// de lead op het moment dat de polis-lijn ontstaat, maar hier te wijzigen.
+  employeeId String
+  employee   User   @relation("PolicyEmployee", fields: [employeeId], references: [id])
+
+  company InsuranceCompany?
+  status  PolicyStatus      @default(OPGELADEN_WACHT_ACTIEF)
+
+  /// Documentenchecklist, telkens gewoon aan-/uitvinken.
+  easy   Boolean @default(false)
+  tool   Boolean @default(false)
+  rl     Boolean @default(false)
+  saFile Boolean @default(false)
+  ccFile Boolean @default(false)
+
+  ingangsdatum DateTime?
+  betaaldOp    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId])
+  @@index([employeeId])
+  @@index([status])
 }
 
 model LeadStageChange {

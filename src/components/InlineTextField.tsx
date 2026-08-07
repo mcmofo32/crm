@@ -18,7 +18,7 @@ export function InlineTextField({
   value: string;
   placeholder?: string;
   className?: string;
-  type?: "text" | "number";
+  type?: "text" | "number" | "date";
   min?: string | number;
   step?: string | number;
 }) {

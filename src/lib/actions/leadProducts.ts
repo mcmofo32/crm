@@ -48,7 +48,13 @@ function resolveCustomerOwnerWhere(
   return {};
 }
 
-/** Slaat de volledige productenlijst van een lead op (vervangt de bestaande rijen). */
+/**
+ * Slaat de volledige productenlijst van een lead op. Bestaande producttypes
+ * worden bijgewerkt (niet verwijderd + herschapen) zodat hun gekoppelde
+ * polis-lijn (zie Policy) intact blijft; een producttype dat wegvalt,
+ * verwijdert zijn polis-lijn mee; een nieuw producttype krijgt automatisch
+ * een nieuwe polis-lijn, met deze lead-eigenaar als standaard-medewerker.
+ */
 export async function saveLeadProductsAction(leadId: string, formData: FormData) {
   const user = await requireUser();
 
@@ -61,7 +67,7 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
     throw new Error("Enkel subagenten mogen klantendata aanpassen");
   }
 
-  const products: { type: ProductType; amount: number; units: number }[] = [];
+  const desired: { type: ProductType; amount: number; units: number }[] = [];
   for (const type of PRODUCT_TYPE_ORDER) {
     const amountRaw = String(formData.get(`amount-${type}`) ?? "").trim();
     const unitsRaw = String(formData.get(`units-${type}`) ?? "").trim();
@@ -69,22 +75,47 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
     const units = unitsRaw ? Math.round(Number(unitsRaw)) : 0;
     // Een product telt enkel mee als er een bedrag groter dan 0 werd ingevuld.
     if (Number.isFinite(amount) && amount > 0) {
-      products.push({ type, amount, units: Number.isFinite(units) ? units : 0 });
+      desired.push({ type, amount, units: Number.isFinite(units) ? units : 0 });
     }
   }
 
+  const existing = await prisma.leadProduct.findMany({ where: { leadId } });
+  const existingByType = new Map(existing.map((p) => [p.type, p]));
+  const desiredTypes = new Set(desired.map((d) => d.type));
+  const toDelete = existing.filter((p) => !desiredTypes.has(p.type));
+
   await prisma.$transaction([
-    prisma.leadProduct.deleteMany({ where: { leadId } }),
-    ...products.map((p) =>
-      prisma.leadProduct.create({
-        data: { leadId, type: p.type, amount: p.amount, units: p.units },
-      })
-    ),
+    ...(toDelete.length > 0
+      ? [
+          prisma.leadProduct.deleteMany({
+            where: { id: { in: toDelete.map((p) => p.id) } },
+          }),
+        ]
+      : []),
+    ...desired.map((d) => {
+      const match = existingByType.get(d.type);
+      if (match) {
+        return prisma.leadProduct.update({
+          where: { id: match.id },
+          data: { amount: d.amount, units: d.units },
+        });
+      }
+      return prisma.leadProduct.create({
+        data: {
+          leadId,
+          type: d.type,
+          amount: d.amount,
+          units: d.units,
+          policy: { create: { leadId, employeeId: lead.ownerId } },
+        },
+      });
+    }),
   ]);
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/leads");
   revalidatePath("/klanten");
+  revalidatePath("/klanten/polissen");
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 

@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS, LEAD_TYPE_LABELS, leadStatusLabel } from "@/lib/roleLabels";
 import { PRODUCT_TYPE_LABELS } from "@/lib/productTypes";
+import {
+  INSURANCE_COMPANY_LABELS,
+  POLICY_STATUS_LABELS,
+} from "@/lib/policyLabels";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MONTH_LABELS } from "@/lib/goalLabels";
 
 export type SheetsBackupTab = {
@@ -176,6 +180,52 @@ const productsTab: SheetsBackupTab = {
       fmtAmount(p.amount),
       p.units,
       fmtDate(p.createdAt),
+    ]);
+  },
+};
+
+const policiesTab: SheetsBackupTab = {
+  name: "Polissen",
+  headers: [
+    "Datum",
+    "Medewerker",
+    "Klant",
+    "Eenheden",
+    "Product",
+    "Maatschappij",
+    "Status",
+    "Easy",
+    "Tool",
+    "RL",
+    "SA File",
+    "CC File",
+    "Ingangsdatum",
+    "Betaald",
+  ],
+  fetchRows: async () => {
+    const policies = await prisma.policy.findMany({
+      include: {
+        lead: { select: { firstName: true, lastName: true } },
+        leadProduct: { select: { type: true, units: true } },
+        employee: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return policies.map((p) => [
+      fmtDate(p.createdAt),
+      p.employee.name,
+      `${p.lead.firstName} ${p.lead.lastName}`,
+      p.leadProduct.units,
+      PRODUCT_TYPE_LABELS[p.leadProduct.type],
+      p.company ? INSURANCE_COMPANY_LABELS[p.company] : "",
+      POLICY_STATUS_LABELS[p.status],
+      fmtBool(p.easy),
+      fmtBool(p.tool),
+      fmtBool(p.rl),
+      fmtBool(p.saFile),
+      fmtBool(p.ccFile),
+      fmtDate(p.ingangsdatum),
+      fmtDate(p.betaaldOp),
     ]);
   },
 };
@@ -458,6 +508,7 @@ const auditLogTab: SheetsBackupTab = {
 export const SHEETS_BACKUP_TABS: SheetsBackupTab[] = [
   leadsTab,
   productsTab,
+  policiesTab,
   activitiesTab,
   stageChangesTab,
   usersTab,
