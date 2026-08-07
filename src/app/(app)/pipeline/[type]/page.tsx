@@ -124,8 +124,6 @@ export default async function PipelinePage({
         </Link>
       </div>
 
-      {ownerSwitcher}
-
       <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-base text-blue-800">
         <Megaphone size={20} className="flex-shrink-0" />
         <span>
@@ -155,24 +153,28 @@ export default async function PipelinePage({
         />
       </div>
 
-      <form method="GET" className="flex items-center gap-2">
-        {requiresSelection && (
-          <input type="hidden" name="ownerId" value={selectedOwnerId} />
-        )}
-        <div className="relative">
-          <Search
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            type="search"
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
-            className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
-          />
-        </div>
-      </form>
+      <div className="flex flex-wrap items-center gap-3">
+        {ownerSwitcher}
+
+        <form method="GET" className="flex items-center gap-2">
+          {requiresSelection && (
+            <input type="hidden" name="ownerId" value={selectedOwnerId} />
+          )}
+          <div className="relative">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              type="search"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
+              className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+            />
+          </div>
+        </form>
+      </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
