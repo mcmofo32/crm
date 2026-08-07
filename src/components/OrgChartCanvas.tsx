@@ -93,7 +93,14 @@ function NodeCard({ node }: { node: OrgNode }) {
   );
 }
 
-export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
+export function OrgChartCanvas({
+  roots,
+  featured = [],
+}: {
+  roots: OrgNode[];
+  /** Puur visueel bovenaan getoond, los van de boom (User.featuredInOrgChart). */
+  featured?: OrgNode[];
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Standaard 100% i.p.v. automatisch verkleind tot het geheel past — bij
   // een organisatie met wat meer mensen werd de tekst daardoor onleesbaar
@@ -126,6 +133,18 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
 
   return (
     <div className="flex flex-col gap-2">
+      {featured.length > 0 && (
+        <div className="flex flex-col items-center gap-3 pb-2">
+          <div className="flex flex-wrap justify-center gap-4">
+            {featured.map((node) => (
+              <div key={node.id} style={{ width: NODE_WIDTH }}>
+                <NodeCard node={node} />
+              </div>
+            ))}
+          </div>
+          <div className="h-px w-full max-w-2xl bg-slate-300" />
+        </div>
+      )}
       <div className="flex items-center justify-end gap-1.5">
         <button
           type="button"

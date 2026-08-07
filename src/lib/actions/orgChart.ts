@@ -21,6 +21,7 @@ type Person = {
   jobFunction: JobFunction | null;
   agentType: AgentType;
   avatarUpdatedAt: Date | null;
+  featuredInOrgChart: boolean;
 };
 
 async function requireViewer() {
@@ -45,8 +46,16 @@ async function requireViewer() {
  * in de praktijk gevoelig voor rand-gevallen (bv. iemand die zelf boven
  * aan de structuur staat). Elke persoon zoekt hier zelf, in één stap,
  * rechtstreeks zijn eigen ouder op.
+ *
+ * `featured` is volledig los van deze boom: puur visuele markering
+ * (User.featuredInOrgChart) om iemand bovenaan het organigram te tonen,
+ * zonder de echte structuur of rechten aan te raken. Wie featured is,
+ * blijft ook gewoon op zijn eigen plek in `roots` staan.
  */
-export async function getFullOrgChart(): Promise<OrgNode[]> {
+export async function getFullOrgChart(): Promise<{
+  roots: OrgNode[];
+  featured: OrgNode[];
+}> {
   await requireViewer();
 
   const users = await prisma.user.findMany({
@@ -58,6 +67,7 @@ export async function getFullOrgChart(): Promise<OrgNode[]> {
       jobFunction: true,
       agentType: true,
       avatarUpdatedAt: true,
+      featuredInOrgChart: true,
       team: { select: { coachId: true } },
     },
     orderBy: { name: "asc" },
@@ -110,7 +120,7 @@ export async function getFullOrgChart(): Promise<OrgNode[]> {
   }
 
   const seen = new Set<string>();
-  return rootIds
+  const roots = rootIds
     .map((id) => buildNode(id, seen))
     .filter((node) => {
       // Een rootnode zonder eigen team én zonder team eronder (dus zonder
@@ -120,4 +130,18 @@ export async function getFullOrgChart(): Promise<OrgNode[]> {
       // blijft dus gewoon zichtbaar.
       return node.children.length > 0;
     });
+
+  const featured = users
+    .filter((u) => u.featuredInOrgChart)
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      role: u.role,
+      jobFunction: u.jobFunction,
+      agentType: u.agentType,
+      avatarUpdatedAt: u.avatarUpdatedAt,
+      children: [],
+    }));
+
+  return { roots, featured };
 }

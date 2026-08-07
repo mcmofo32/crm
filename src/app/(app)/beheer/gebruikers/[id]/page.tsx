@@ -137,6 +137,25 @@ export default async function EditUserPage({
           </select>
         </div>
         <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <input
+              id="featuredInOrgChart"
+              name="featuredInOrgChart"
+              type="checkbox"
+              defaultChecked={target.featuredInOrgChart}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            <label htmlFor="featuredInOrgChart" className="font-medium text-slate-700">
+              Bovenaan tonen in organigram
+            </label>
+          </div>
+          <p className="text-xs text-slate-400">
+            Puur visueel: toont deze persoon los boven de rest van het
+            organigram, gecentreerd. Wijzigt niets aan rollen, rechten of de
+            echte team-structuur.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">
             Team (voor rol &quot;User&quot; of &quot;Coach&quot;)
           </label>

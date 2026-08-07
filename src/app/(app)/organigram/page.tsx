@@ -3,7 +3,7 @@ import { getFullOrgChart } from "@/lib/actions/orgChart";
 import { OrgChartCanvas } from "@/components/OrgChartCanvas";
 
 export default async function OrganigramPage() {
-  const roots = await getFullOrgChart();
+  const { roots, featured } = await getFullOrgChart();
 
   return (
     <div className="flex flex-col gap-6">
@@ -17,7 +17,7 @@ export default async function OrganigramPage() {
         </p>
       </div>
       {roots.length > 0 ? (
-        <OrgChartCanvas roots={roots} />
+        <OrgChartCanvas roots={roots} featured={featured} />
       ) : (
         <p className="text-base text-slate-400">Nog geen teams aangemaakt.</p>
       )}
