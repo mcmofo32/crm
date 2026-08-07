@@ -9,6 +9,8 @@ import type { ProductionRow } from "@/lib/actions/production";
 export type ProductionTableRow = ProductionRow & {
   setCustomersGoal: (formData: FormData) => void | Promise<void>;
   setUnitsGoal: (formData: FormData) => void | Promise<void>;
+  setCustomersActual: (formData: FormData) => void | Promise<void>;
+  setUnitsActual: (formData: FormData) => void | Promise<void>;
 };
 
 export function ProductionTable({
@@ -24,19 +26,26 @@ export function ProductionTable({
   return (
     <div className="flex flex-col gap-3">
       {canEditGoals && (
-        <div>
+        <div className="flex flex-col gap-1.5">
           <button
             type="button"
             onClick={() => setEditing((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium ${
+            className={`inline-flex w-fit items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium ${
               editing
                 ? "bg-slate-900 text-white hover:bg-slate-800"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
             <Pencil size={14} />
-            {editing ? "Klaar met wijzigen" : "Doelen wijzigen"}
+            {editing ? "Klaar met wijzigen" : "Doelen/behaald wijzigen"}
           </button>
+          {editing && (
+            <p className="text-xs text-slate-400">
+              Behaald KL/EH aanpassen overschrijft de automatische berekening
+              — handig om data van vóór dit CRM in te voeren. Veld leegmaken
+              herstelt de automatische berekening.
+            </p>
+          )}
         </div>
       )}
 
@@ -90,7 +99,19 @@ export function ProductionTable({
                   )}
                 </td>
                 <td className="px-3 py-2.5 text-center text-slate-900">
-                  {row.actualCustomers}
+                  {showInputs ? (
+                    <InlineTextField
+                      type="number"
+                      min={0}
+                      step={1}
+                      name="actual"
+                      value={row.actualCustomers ? String(row.actualCustomers) : ""}
+                      action={row.setCustomersActual}
+                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                    />
+                  ) : (
+                    row.actualCustomers
+                  )}
                 </td>
                 <td
                   className={`px-3 py-2.5 text-center font-medium ${percentColor(row.percentCustomers)}`}
@@ -113,7 +134,19 @@ export function ProductionTable({
                   )}
                 </td>
                 <td className="px-3 py-2.5 text-center text-slate-900">
-                  {row.actualUnits}
+                  {showInputs ? (
+                    <InlineTextField
+                      type="number"
+                      min={0}
+                      step={1}
+                      name="actual"
+                      value={row.actualUnits ? String(row.actualUnits) : ""}
+                      action={row.setUnitsActual}
+                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                    />
+                  ) : (
+                    row.actualUnits
+                  )}
                 </td>
                 <td
                   className={`px-3 py-2.5 text-center font-medium ${percentColor(row.percentUnits)}`}

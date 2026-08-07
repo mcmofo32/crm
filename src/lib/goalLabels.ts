@@ -26,6 +26,12 @@ export const MONTHLY_GOAL_METRICS = [
   "ABV_RG",
 ] as const satisfies readonly GoalMetric[];
 
+/** De metrics waarvoor "Behaald" handmatig gecorrigeerd kan worden op de Productie-tab (bv. om data van vóór dit CRM in te voeren). */
+export const MONTHLY_ACTUAL_METRICS = [
+  "CUSTOMERS",
+  "UNITS",
+] as const satisfies readonly GoalMetric[];
+
 export const KPI_METRIC_LABELS: Record<KpiMetric, string> = {
   CONVERSATIONS: "KPI Gesprekken",
   PRODUCTION: "KPI Productie",

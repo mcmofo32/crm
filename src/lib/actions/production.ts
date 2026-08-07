@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
 import { GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
-import { GOAL_METRIC_ORDER, MONTHLY_GOAL_METRICS } from "@/lib/goalLabels";
+import {
+  GOAL_METRIC_ORDER,
+  MONTHLY_GOAL_METRICS,
+  MONTHLY_ACTUAL_METRICS,
+} from "@/lib/goalLabels";
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -112,6 +116,13 @@ export async function getProductionLeaderboard(
       jobFunction: true,
       team: { select: { coach: { select: { name: true } } } },
       monthlyGoals: { where: { year, month } },
+      monthlyActuals: {
+        where: {
+          year,
+          month,
+          metric: { in: [GoalMetric.CUSTOMERS, GoalMetric.UNITS] },
+        },
+      },
     },
     orderBy: { name: "asc" },
   });
@@ -163,9 +174,14 @@ export async function getProductionLeaderboard(
     const goalByMetric = new Map(
       u.monthlyGoals.map((g) => [g.metric, Number(g.target)])
     );
+    const actualOverrideByMetric = new Map(
+      u.monthlyActuals.map((a) => [a.metric, Number(a.value)])
+    );
     const won = wonByUser.get(u.id);
-    const actualCustomers = won?.customers.size ?? 0;
-    const actualUnits = won?.units ?? 0;
+    const actualCustomers =
+      actualOverrideByMetric.get(GoalMetric.CUSTOMERS) ?? won?.customers.size ?? 0;
+    const actualUnits =
+      actualOverrideByMetric.get(GoalMetric.UNITS) ?? won?.units ?? 0;
     const targetCustomers = goalByMetric.get(GoalMetric.CUSTOMERS) ?? 0;
     const targetUnits = goalByMetric.get(GoalMetric.UNITS) ?? 0;
 
@@ -450,13 +466,23 @@ export async function getMonthlyGoalAchievements(
         return { month, unitsAchieved: null, conversationsAchieved: null };
       }
 
-      const [targets, wonThisMonth, conversations] = await Promise.all([
+      const [targets, unitsOverride, wonThisMonth, conversations] = await Promise.all([
         prisma.userMonthlyGoal.findMany({
           where: {
             userId,
             year,
             month,
             metric: { in: [GoalMetric.UNITS, GoalMetric.CONVERSATIONS] },
+          },
+        }),
+        prisma.userMonthlyActual.findUnique({
+          where: {
+            userId_metric_year_month: {
+              userId,
+              metric: GoalMetric.UNITS,
+              year,
+              month,
+            },
           },
         }),
         prisma.leadStageChange.findMany({
@@ -487,7 +513,7 @@ export async function getMonthlyGoalAchievements(
       const conversationsTarget = targetByMetric.get(GoalMetric.CONVERSATIONS) ?? 0;
 
       const seenLeadIds = new Set<string>();
-      const units = wonThisMonth
+      const computedUnits = wonThisMonth
         .map((c) => c.lead)
         .filter((lead) => {
           if (seenLeadIds.has(lead.id)) return false;
@@ -495,6 +521,7 @@ export async function getMonthlyGoalAchievements(
           return true;
         })
         .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
+      const units = unitsOverride ? Number(unitsOverride.value) : computedUnits;
 
       return {
         month,
@@ -620,6 +647,42 @@ export async function setUserMonthlyGoalAction(
 
   revalidatePath("/productie");
   revalidatePath("/beheer/doelen/productie");
+}
+
+/**
+ * Handmatige correctie op "Behaald" (Klanten/Eenheden) voor een gebruiker in
+ * een productiemaand — overschrijft het automatisch berekende cijfer.
+ * Vooral bedoeld om historische data (van vóór dit CRM) alsnog in te voeren.
+ * Leeg maken verwijdert de correctie, zodat het weer het automatisch
+ * berekende cijfer toont.
+ */
+export async function setUserMonthlyActualAction(
+  userId: string,
+  metric: (typeof MONTHLY_ACTUAL_METRICS)[number],
+  year: number,
+  month: number,
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const raw = String(formData.get("actual") ?? "").trim();
+
+  if (!raw) {
+    await prisma.userMonthlyActual.deleteMany({
+      where: { userId, metric, year, month },
+    });
+  } else {
+    const value = Number(raw);
+    await prisma.userMonthlyActual.upsert({
+      where: { userId_metric_year_month: { userId, metric, year, month } },
+      create: { userId, metric, year, month, value },
+      update: { value },
+    });
+  }
+
+  revalidatePath("/productie");
+  revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/dashboard");
 }
 
 export async function saveAllUserMonthlyGoalsAction(

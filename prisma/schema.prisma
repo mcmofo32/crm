@@ -153,6 +153,7 @@ model User {
 
   goals             UserGoal[]            @relation("UserGoals")
   monthlyGoals      UserMonthlyGoal[]     @relation("UserMonthlyGoals")
+  monthlyActuals    UserMonthlyActual[]   @relation("UserMonthlyActuals")
   kpiGoals          UserKpiGoal[]         @relation("UserKpiGoals")
   kpiMonthlyEntries UserKpiMonthlyEntry[] @relation("UserKpiMonthlyEntries")
 
@@ -530,6 +531,26 @@ model UserMonthlyGoal {
   year      Int
   month     Int
   target    Decimal    @db.Decimal(12, 2)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, metric, year, month])
+  @@index([userId, metric, year])
+}
+
+/// Handmatige correctie op het automatisch berekende "Behaald" (Klanten/
+/// Eenheden) per gebruiker, per productiemaand — enkel bedoeld om data van
+/// vóór het gebruik van dit CRM alsnog in te voeren. Als hier een rij bestaat
+/// voor een (gebruiker, metric, jaar, maand), overschrijft die waarde het
+/// automatisch berekende cijfer op de Productie-tab/het dashboard.
+model UserMonthlyActual {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation("UserMonthlyActuals", fields: [userId], references: [id], onDelete: Cascade)
+  metric    GoalMetric
+  year      Int
+  month     Int
+  value     Decimal    @db.Decimal(12, 2)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

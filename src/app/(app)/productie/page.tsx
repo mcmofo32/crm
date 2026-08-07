@@ -6,6 +6,7 @@ import {
   getCurrentProductionMonth,
   getCurrentConversationsContext,
   setUserMonthlyGoalAction,
+  setUserMonthlyActualAction,
 } from "@/lib/actions/production";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
@@ -93,19 +94,18 @@ export default async function ProductiePage({
             </Link>
             <span className="min-w-40 text-center text-base font-medium text-slate-900">
               Productiemaand {String(month).padStart(2, "0")}
+              {isCurrentMonth && (
+                <span className="ml-1.5 text-xs font-normal text-slate-400">
+                  (huidige)
+                </span>
+              )}
             </span>
-            {!isCurrentMonth ? (
-              <Link
-                href={`/productie?tab=productie&year=${next.year}&month=${next.month}`}
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
-              >
-                <ChevronRight size={16} />
-              </Link>
-            ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-100 text-slate-300">
-                <ChevronRight size={16} />
-              </span>
-            )}
+            <Link
+              href={`/productie?tab=productie&year=${next.year}&month=${next.month}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronRight size={16} />
+            </Link>
           </div>
 
           <ProductionTable
@@ -119,6 +119,20 @@ export default async function ProductiePage({
                 month
               ),
               setUnitsGoal: setUserMonthlyGoalAction.bind(
+                null,
+                row.id,
+                GoalMetric.UNITS,
+                year,
+                month
+              ),
+              setCustomersActual: setUserMonthlyActualAction.bind(
+                null,
+                row.id,
+                GoalMetric.CUSTOMERS,
+                year,
+                month
+              ),
+              setUnitsActual: setUserMonthlyActualAction.bind(
                 null,
                 row.id,
                 GoalMetric.UNITS,
