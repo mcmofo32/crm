@@ -4,12 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
-import { GoalMetric, KpiMetric, Role } from "@/generated/prisma/client";
-import {
-  GOAL_METRIC_ORDER,
-  KPI_METRIC_ORDER,
-  MANUAL_KPI_METRIC_ORDER,
-} from "@/lib/goalLabels";
+import { KpiMetric, Role } from "@/generated/prisma/client";
+import { KPI_METRIC_ORDER, MANUAL_KPI_METRIC_ORDER } from "@/lib/goalLabels";
 import { getSeminarAttendancePercent } from "@/lib/actions/events";
 import { getMonthlyGoalAchievements } from "@/lib/actions/production";
 
@@ -105,59 +101,6 @@ export async function getGoalManagementUsers() {
     : users.filter((u) => u.role !== Role.BEHEERDER);
 }
 
-/** Alle beheerbare gebruikers met hun 5 huidige wekelijkse doelen, voor de doelentabel. */
-export async function getAllUserGoalsForTable() {
-  const actor = await requireGoalManager();
-  const users = await prisma.user.findMany({
-    where: { active: true },
-    select: {
-      id: true,
-      name: true,
-      role: true,
-      goals: { select: { metric: true, target: true } },
-    },
-    orderBy: { name: "asc" },
-  });
-  const visible =
-    actor.role === Role.BEHEERDER
-      ? users
-      : users.filter((u) => u.role !== Role.BEHEERDER);
-
-  return visible.map((u) => ({
-    id: u.id,
-    name: u.name,
-    role: u.role,
-    targetByMetric: new Map(u.goals.map((g) => [g.metric, Number(g.target)])),
-  }));
-}
-
-/** Slaat de 5 wekelijkse doelen van alle gebruikers in de tabel in één keer op. */
-export async function saveAllUserGoalsAction(
-  userIds: string[],
-  formData: FormData
-) {
-  await requireGoalManager();
-
-  const upserts = userIds.flatMap((userId) =>
-    GOAL_METRIC_ORDER.map((metric) => {
-      const raw = String(
-        formData.get(`goal_${userId}_${metric}`) ?? ""
-      ).trim();
-      const target = raw ? Number(raw) : 0;
-      return prisma.userGoal.upsert({
-        where: { userId_metric: { userId, metric } },
-        create: { userId, metric, target },
-        update: { target },
-      });
-    })
-  );
-
-  await prisma.$transaction(upserts);
-
-  revalidatePath("/beheer/doelen");
-  revalidatePath("/dashboard");
-}
-
 export async function getUserForGoals(userId: string) {
   await requireGoalManager();
   return prisma.user.findUnique({
@@ -235,124 +178,6 @@ export async function saveUserKpiMonthlyEntriesAction(
 
   revalidatePath(`/beheer/doelen/${userId}`);
   revalidatePath("/dashboard");
-}
-
-// ---------------------------------------------------------------------------
-// Dashboard: doel vs. stand van zaken voor de ingelogde gebruiker
-// ---------------------------------------------------------------------------
-
-export type GoalProgress = {
-  metric: GoalMetric;
-  actual: number;
-  target: number;
-  percent: number | null;
-};
-
-/**
- * Wekelijkse/periodieke "stand van zaken" per doel, voor de ingelogde gebruiker.
- *
- * - Eenheden/Klanten: geteld op het moment dat een lead binnen de periode
- *   klant wordt (stage-overgang naar een "gewonnen"-fase).
- * - Gesprekken: aantal FA-activiteiten (CALL/MEETING) die binnen de periode
- *   ingepland staan (status PLANNED, op `scheduledAt`) — dus geplande
- *   financiële analyses, niet per se al afgerond.
- * - ABV verkoop/RG: absoluut aantal nieuwe FA- resp. RG-leads dat binnen
- *   de periode is toegevoegd (geen bedrag).
- */
-export async function getWeeklyGoalProgress(
-  userId: string,
-  period?: { startDate: Date; endDate: Date }
-): Promise<GoalProgress[]> {
-  const start = period?.startDate ?? currentWeekRange().start;
-  // `endDate` is inclusief (einde van de dag); de query hieronder werkt met
-  // een exclusieve bovengrens.
-  const end = period
-    ? new Date(period.endDate.getTime() + 1)
-    : currentWeekRange().end;
-
-  const [targets, wonThisPeriod, conversations, newFaLeads, newRgLeads] =
-    await Promise.all([
-      prisma.userGoal.findMany({ where: { userId } }),
-      prisma.leadStageChange.findMany({
-        where: {
-          changedById: userId,
-          toStage: { isWon: true },
-          changedAt: { gte: start, lt: end },
-        },
-        select: {
-          lead: {
-            select: {
-              id: true,
-              leadType: true,
-              products: { select: { units: true } },
-            },
-          },
-        },
-      }),
-      prisma.activity.count({
-        where: {
-          assigneeId: userId,
-          status: "PLANNED",
-          type: { in: ["CALL", "MEETING"] },
-          scheduledAt: { gte: start, lt: end },
-          lead: { leadType: "FA" },
-        },
-      }),
-      prisma.lead.count({
-        where: {
-          ownerId: userId,
-          deletedAt: null,
-          leadType: "FA",
-          createdAt: { gte: start, lt: end },
-        },
-      }),
-      prisma.lead.count({
-        where: {
-          ownerId: userId,
-          deletedAt: null,
-          leadType: "RG",
-          createdAt: { gte: start, lt: end },
-        },
-      }),
-    ]);
-
-  const targetByMetric = new Map(
-    targets.map((t) => [t.metric, Number(t.target)])
-  );
-
-  const seenLeadIds = new Set<string>();
-  const wonLeads = wonThisPeriod
-    .map((c) => c.lead)
-    .filter((lead) => {
-      if (seenLeadIds.has(lead.id)) return false;
-      seenLeadIds.add(lead.id);
-      return true;
-    });
-
-  const units = wonLeads.reduce(
-    (sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0),
-    0
-  );
-  const customers = wonLeads.length;
-
-  const actualByMetric: Record<GoalMetric, number> = {
-    UNITS: units,
-    CUSTOMERS: customers,
-    CONVERSATIONS: conversations,
-    ABV_SALES: newFaLeads,
-    ABV_RG: newRgLeads,
-  };
-
-  return GOAL_METRIC_ORDER.map((metric) => {
-    const target = targetByMetric.get(metric) ?? 0;
-    const actual = actualByMetric[metric];
-    return {
-      metric,
-      actual,
-      target,
-      percent: target > 0 ? Math.round((actual / target) * 100) : null,
-    };
-  });
 }
 
 export type KpiProgress = {

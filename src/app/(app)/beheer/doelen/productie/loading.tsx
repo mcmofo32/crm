@@ -5,7 +5,6 @@ export default function ProductieDoelenLoading() {
     <SkeletonPage>
       <SkeletonHeader />
       <SkeletonTable rows={12} />
-      <SkeletonTable rows={8} />
     </SkeletonPage>
   );
 }

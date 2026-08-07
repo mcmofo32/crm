@@ -610,6 +610,7 @@ export async function saveProductionMonthDatesAction(
   await prisma.$transaction(upserts);
 
   revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/beheer/doelen");
   revalidatePath("/productie");
   revalidatePath("/dashboard");
 }
@@ -663,6 +664,7 @@ export async function setUserMonthlyGoalAction(
 
   revalidatePath("/productie");
   revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/beheer/doelen");
 }
 
 /**
@@ -726,5 +728,6 @@ export async function saveAllUserMonthlyGoalsAction(
   await prisma.$transaction(upserts);
 
   revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/beheer/doelen");
   revalidatePath("/productie");
 }
