@@ -64,19 +64,34 @@ const FEATURED_ROW_HEIGHT = NODE_HEIGHT + V_GAP;
 
 /**
  * Voegt `featured` toe als een extra rij bovenaan, gecentreerd boven de
- * bestaande roots en verbonden met dezelfde lijnstijl — in hetzelfde
+ * top van de structuur en verbonden met dezelfde lijnstijl — in hetzelfde
  * coördinatenstelsel als de rest van de boom, zodat het altijd exact
  * uitlijnt en mee scrollt/zoomt. Verandert niets aan de echte boom zelf.
+ *
+ * Centreert bewust boven de Beheerder-root specifiek (het echte hoofd van
+ * de structuur, altijd uniek) i.p.v. boven alle roots samen — staan er
+ * nog andere, losse structuren naast die van de Beheerder, dan zou het
+ * gemiddelde van alle roots niet meer overeenkomen met "boven de baas"
+ * zoals bedoeld. Geen Beheerder-root gevonden? Dan valt dit terug op het
+ * midden van alle roots samen.
  */
 function layoutWithFeatured(roots: OrgNode[], featured: OrgNode[]) {
   const base = layout(roots);
   if (featured.length === 0) {
-    return { positioned: base.positioned, width: base.width, height: base.height, featuredPositioned: [] as { node: OrgNode; x: number; y: number }[] };
+    return {
+      positioned: base.positioned,
+      width: base.width,
+      height: base.height,
+      featuredPositioned: [] as { node: OrgNode; x: number; y: number }[],
+      featuredLinkTargets: [] as PositionedNode[],
+    };
   }
 
   const positioned = base.positioned.map((p) => shiftY(p, FEATURED_ROW_HEIGHT));
-  const minX = Math.min(...positioned.map((p) => p.x));
-  const maxX = Math.max(...positioned.map((p) => p.x + NODE_WIDTH));
+  const anchor = positioned.find((p) => p.node.role === "BEHEERDER");
+  const linkTargets = anchor ? [anchor] : positioned;
+  const minX = Math.min(...linkTargets.map((p) => p.x));
+  const maxX = Math.max(...linkTargets.map((p) => p.x + NODE_WIDTH));
   const centerX = (minX + maxX) / 2;
   const rowWidth = featured.length * NODE_WIDTH + (featured.length - 1) * H_GAP;
   const startX = centerX - rowWidth / 2;
@@ -91,6 +106,7 @@ function layoutWithFeatured(roots: OrgNode[], featured: OrgNode[]) {
     width: Math.max(base.width, rowWidth + PADDING * 2),
     height: base.height + FEATURED_ROW_HEIGHT,
     featuredPositioned,
+    featuredLinkTargets: linkTargets,
   };
 }
 
@@ -147,7 +163,7 @@ export function OrgChartCanvas({
   const [scale, setScale] = useState(1);
   const [centered, setCentered] = useState(false);
 
-  const { positioned, width, height, featuredPositioned } = useMemo(
+  const { positioned, width, height, featuredPositioned, featuredLinkTargets } = useMemo(
     () => layoutWithFeatured(roots, featured),
     [roots, featured]
   );
@@ -249,7 +265,7 @@ export function OrgChartCanvas({
                 })
               )}
               {featuredPositioned.flatMap((f) =>
-                positioned.map((rootP) => {
+                featuredLinkTargets.map((rootP) => {
                   const startX = f.x + NODE_WIDTH / 2 + PADDING;
                   const startY = f.y + NODE_HEIGHT + PADDING;
                   const endX = rootP.x + NODE_WIDTH / 2 + PADDING;
