@@ -435,21 +435,6 @@ const eventAttendancesTab: SheetsBackupTab = {
   },
 };
 
-const settingsTab: SheetsBackupTab = {
-  name: "Instellingen",
-  headers: ["Instelling", "Begin", "Eind"],
-  fetchRows: async () => {
-    const goalPeriod = await prisma.goalPeriod.findFirst({
-      orderBy: { updatedAt: "desc" },
-    });
-    const rows: (string | number | null)[][] = [];
-    if (goalPeriod) {
-      rows.push(["Wekelijkse doelperiode", fmtDate(goalPeriod.startDate), fmtDate(goalPeriod.endDate)]);
-    }
-    return rows;
-  },
-};
-
 const auditLogTab: SheetsBackupTab = {
   name: "Auditlog",
   headers: ["Actie", "Entiteit", "Beschrijving", "Door", "Wanneer"],
@@ -488,6 +473,5 @@ export const SHEETS_BACKUP_TABS: SheetsBackupTab[] = [
   eventsTab,
   eventAttendancesTab,
   funnelStagesTab,
-  settingsTab,
   auditLogTab,
 ];

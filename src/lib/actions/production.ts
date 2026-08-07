@@ -94,6 +94,20 @@ export async function getCurrentProductionYearRange(): Promise<{
   return { startDate: first.start, endDate: new Date(last.end.getTime() - 1) };
 }
 
+/**
+ * "Deze maand" voor de Klanten-statistieken: begin/einddatum van de huidige
+ * productiemaand — een klant wordt dus geteld in de productiemaand waarin
+ * hij effectief klant geworden is, zonder aparte instelling.
+ */
+export async function getCurrentProductionMonthRange(): Promise<{
+  startDate: Date;
+  endDate: Date;
+}> {
+  const { year, month } = await getCurrentProductionMonth();
+  const range = await getProductionMonthRange(year, month);
+  return { startDate: range.start, endDate: new Date(range.end.getTime() - 1) };
+}
+
 // ---------------------------------------------------------------------------
 // Productie: ranglijst per maand (Klanten/Eenheden), vergelijkbaar met de
 // "PRODUCTIE"-tab van de Excel.

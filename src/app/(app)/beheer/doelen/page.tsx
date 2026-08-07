@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Target, Settings2 } from "lucide-react";
-import { getCurrentGoalPeriodForInput, setGoalPeriodAction } from "@/lib/actions/goals";
 import {
   getAllUserMonthlyGoalsForTable,
   saveAllUserMonthlyGoalsAction,
@@ -28,10 +27,7 @@ export default async function DoelenPage({
   const prev = shiftMonth(year, month, -1);
   const next = shiftMonth(year, month, 1);
 
-  const [users, period] = await Promise.all([
-    getAllUserMonthlyGoalsForTable(year, month),
-    getCurrentGoalPeriodForInput(),
-  ]);
+  const users = await getAllUserMonthlyGoalsForTable(year, month);
 
   const userIds = users.map((u) => u.id);
   const boundSaveGoals = saveAllUserMonthlyGoalsAction.bind(
@@ -177,52 +173,6 @@ export default async function DoelenPage({
         <Settings2 size={16} />
         Productiemaanden: begin-/einddatums per maand instellen
       </Link>
-
-      <form
-        action={setGoalPeriodAction}
-        className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4"
-      >
-        <div className="flex w-full flex-col gap-1">
-          <span className="text-sm font-medium text-slate-700">
-            &quot;Deze maand&quot;-periode voor de Klanten-pagina
-          </span>
-          <p className="text-xs text-slate-400">
-            Bepaalt enkel de periode achter &quot;Nieuwe klanten (deze
-            maand)&quot; op de Klanten-pagina — los van de
-            productiemaand-doelen hierboven.
-          </p>
-        </div>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-slate-700">
-            Periode begint op
-          </span>
-          <input
-            type="date"
-            name="periodStart"
-            defaultValue={period.startDate}
-            required
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-slate-700">
-            Periode eindigt op
-          </span>
-          <input
-            type="date"
-            name="periodEnd"
-            defaultValue={period.endDate}
-            required
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </label>
-        <button
-          type="submit"
-          className="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Periode toepassen
-        </button>
-      </form>
     </div>
   );
 }

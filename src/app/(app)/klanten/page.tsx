@@ -20,8 +20,10 @@ import {
   getTeamsForCustomerFilter,
   type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
-import { getCurrentGoalPeriod } from "@/lib/actions/goals";
-import { getCurrentProductionYearRange } from "@/lib/actions/production";
+import {
+  getCurrentProductionMonthRange,
+  getCurrentProductionYearRange,
+} from "@/lib/actions/production";
 import { canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { ProductType } from "@/generated/prisma/client";
@@ -69,7 +71,7 @@ export default async function KlantenPage({
       getAssignableUsers(),
       getTeamsForCustomerFilter(),
       getSubagents(),
-      getCurrentGoalPeriod(),
+      getCurrentProductionMonthRange(),
       getCurrentProductionYearRange(),
     ]);
   // Enkel Beheerder/Admin mogen klanten van andere mensen bekijken; een
