@@ -20,7 +20,14 @@ type PositionedNode = {
   children: PositionedNode[];
 };
 
-/** Wijst elke node een x/y toe: bladeren op volgorde, ouders gecentreerd boven hun kinderen. */
+/**
+ * Wijst elke node een x/y toe: bladeren op volgorde, ouders gecentreerd
+ * boven hun kinderen — behalve als één van de kinderen de Beheerder is
+ * (het hoofd van de structuur): dan komt de ouder exact boven díe persoon
+ * te staan i.p.v. boven het midden van alle kinderen, want de Beheerder
+ * is degene waar de rest van de organisatie zich op oriënteert. Puur
+ * visueel, de volgorde/data van de kinderen zelf verandert niet.
+ */
 function layout(roots: OrgNode[]) {
   let leafIndex = 0;
 
@@ -31,8 +38,10 @@ function layout(roots: OrgNode[]) {
       return { node, x, y: depth * (NODE_HEIGHT + V_GAP), children: [] };
     }
     const children = node.children.map((c) => place(c, depth + 1));
-    const x =
-      (children[0].x + children[children.length - 1].x) / 2;
+    const beheerderChild = children.find((c) => c.node.role === "BEHEERDER");
+    const x = beheerderChild
+      ? beheerderChild.x
+      : (children[0].x + children[children.length - 1].x) / 2;
     return { node, x, y: depth * (NODE_HEIGHT + V_GAP), children };
   }
 
@@ -54,60 +63,6 @@ function flatten(p: PositionedNode, acc: PositionedNode[] = []) {
   acc.push(p);
   p.children.forEach((c) => flatten(c, acc));
   return acc;
-}
-
-function shiftY(p: PositionedNode, dy: number): PositionedNode {
-  return { node: p.node, x: p.x, y: p.y + dy, children: p.children.map((c) => shiftY(c, dy)) };
-}
-
-const FEATURED_ROW_HEIGHT = NODE_HEIGHT + V_GAP;
-
-/**
- * Voegt `featured` toe als een extra rij bovenaan, gecentreerd boven de
- * top van de structuur en verbonden met dezelfde lijnstijl — in hetzelfde
- * coördinatenstelsel als de rest van de boom, zodat het altijd exact
- * uitlijnt en mee scrollt/zoomt. Verandert niets aan de echte boom zelf.
- *
- * Centreert bewust boven de Beheerder-root specifiek (het echte hoofd van
- * de structuur, altijd uniek) i.p.v. boven alle roots samen — staan er
- * nog andere, losse structuren naast die van de Beheerder, dan zou het
- * gemiddelde van alle roots niet meer overeenkomen met "boven de baas"
- * zoals bedoeld. Geen Beheerder-root gevonden? Dan valt dit terug op het
- * midden van alle roots samen.
- */
-function layoutWithFeatured(roots: OrgNode[], featured: OrgNode[]) {
-  const base = layout(roots);
-  if (featured.length === 0) {
-    return {
-      positioned: base.positioned,
-      width: base.width,
-      height: base.height,
-      featuredPositioned: [] as { node: OrgNode; x: number; y: number }[],
-      featuredLinkTargets: [] as PositionedNode[],
-    };
-  }
-
-  const positioned = base.positioned.map((p) => shiftY(p, FEATURED_ROW_HEIGHT));
-  const anchor = positioned.find((p) => p.node.role === "BEHEERDER");
-  const linkTargets = anchor ? [anchor] : positioned;
-  const minX = Math.min(...linkTargets.map((p) => p.x));
-  const maxX = Math.max(...linkTargets.map((p) => p.x + NODE_WIDTH));
-  const centerX = (minX + maxX) / 2;
-  const rowWidth = featured.length * NODE_WIDTH + (featured.length - 1) * H_GAP;
-  const startX = centerX - rowWidth / 2;
-  const featuredPositioned = featured.map((node, i) => ({
-    node,
-    x: startX + i * (NODE_WIDTH + H_GAP),
-    y: 0,
-  }));
-
-  return {
-    positioned,
-    width: Math.max(base.width, rowWidth + PADDING * 2),
-    height: base.height + FEATURED_ROW_HEIGHT,
-    featuredPositioned,
-    featuredLinkTargets: linkTargets,
-  };
 }
 
 function NodeCard({ node }: { node: OrgNode }) {
@@ -147,14 +102,7 @@ function NodeCard({ node }: { node: OrgNode }) {
   );
 }
 
-export function OrgChartCanvas({
-  roots,
-  featured = [],
-}: {
-  roots: OrgNode[];
-  /** Puur visueel bovenaan getoond, los van de boom (User.featuredInOrgChart). */
-  featured?: OrgNode[];
-}) {
+export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Standaard 100% i.p.v. automatisch verkleind tot het geheel past — bij
   // een organisatie met wat meer mensen werd de tekst daardoor onleesbaar
@@ -163,10 +111,7 @@ export function OrgChartCanvas({
   const [scale, setScale] = useState(1);
   const [centered, setCentered] = useState(false);
 
-  const { positioned, width, height, featuredPositioned, featuredLinkTargets } = useMemo(
-    () => layoutWithFeatured(roots, featured),
-    [roots, featured]
-  );
+  const { positioned, width, height } = useMemo(() => layout(roots), [roots]);
   const allNodes = useMemo(
     () => positioned.flatMap((p) => flatten(p)),
     [positioned]
@@ -264,38 +209,7 @@ export function OrgChartCanvas({
                   );
                 })
               )}
-              {featuredPositioned.flatMap((f) =>
-                featuredLinkTargets.map((rootP) => {
-                  const startX = f.x + NODE_WIDTH / 2 + PADDING;
-                  const startY = f.y + NODE_HEIGHT + PADDING;
-                  const endX = rootP.x + NODE_WIDTH / 2 + PADDING;
-                  const endY = rootP.y + PADDING;
-                  const midY = startY + (endY - startY) / 2;
-                  return (
-                    <path
-                      key={`featured-${f.node.id}-${rootP.node.id}`}
-                      d={`M ${startX} ${startY} V ${midY} H ${endX} V ${endY}`}
-                      fill="none"
-                      stroke="#cbd5e1"
-                      strokeWidth={2}
-                    />
-                  );
-                })
-              )}
             </svg>
-            {featuredPositioned.map((f) => (
-              <div
-                key={f.node.id}
-                style={{
-                  position: "absolute",
-                  left: f.x + PADDING,
-                  top: f.y + PADDING,
-                  width: NODE_WIDTH,
-                }}
-              >
-                <NodeCard node={f.node} />
-              </div>
-            ))}
             {allNodes.map((p) => (
               <div
                 key={p.node.id}

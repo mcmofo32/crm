@@ -21,15 +21,7 @@ type Person = {
   jobFunction: JobFunction | null;
   agentType: AgentType;
   avatarUpdatedAt: Date | null;
-  email: string | null;
 };
-
-/**
- * Wie hier staat wordt altijd bovenaan het organigram getoond, los van en
- * boven de echte team-structuur — puur visueel, geen vinkje/instelling
- * nodig. Bewust vast in code i.p.v. een admin-toggle, op expliciet verzoek.
- */
-const ALWAYS_FEATURED_EMAILS = ["thibault@ackeconsulting.com"];
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -53,16 +45,8 @@ async function requireViewer() {
  * in de praktijk gevoelig voor rand-gevallen (bv. iemand die zelf boven
  * aan de structuur staat). Elke persoon zoekt hier zelf, in één stap,
  * rechtstreeks zijn eigen ouder op.
- *
- * `featured` is volledig los van deze boom: puur visuele markering
- * (ALWAYS_FEATURED_EMAILS) om iemand bovenaan het organigram te tonen,
- * zonder de echte structuur of rechten aan te raken. Wie featured is,
- * blijft ook gewoon op zijn eigen plek in `roots` staan.
  */
-export async function getFullOrgChart(): Promise<{
-  roots: OrgNode[];
-  featured: OrgNode[];
-}> {
+export async function getFullOrgChart(): Promise<OrgNode[]> {
   await requireViewer();
 
   const users = await prisma.user.findMany({
@@ -74,7 +58,6 @@ export async function getFullOrgChart(): Promise<{
       jobFunction: true,
       agentType: true,
       avatarUpdatedAt: true,
-      email: true,
       team: { select: { coachId: true } },
     },
     orderBy: { name: "asc" },
@@ -127,7 +110,7 @@ export async function getFullOrgChart(): Promise<{
   }
 
   const seen = new Set<string>();
-  const roots = rootIds
+  return rootIds
     .map((id) => buildNode(id, seen))
     .filter((node) => {
       // Een rootnode zonder eigen team én zonder team eronder (dus zonder
@@ -137,18 +120,4 @@ export async function getFullOrgChart(): Promise<{
       // blijft dus gewoon zichtbaar.
       return node.children.length > 0;
     });
-
-  const featured = users
-    .filter((u) => u.email && ALWAYS_FEATURED_EMAILS.includes(u.email))
-    .map((u) => ({
-      id: u.id,
-      name: u.name,
-      role: u.role,
-      jobFunction: u.jobFunction,
-      agentType: u.agentType,
-      avatarUpdatedAt: u.avatarUpdatedAt,
-      children: [],
-    }));
-
-  return { roots, featured };
 }
