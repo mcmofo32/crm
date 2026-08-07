@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { LeadType } from "@/generated/prisma/client";
-import { canAccessOwner, getVisibleUserIds } from "@/lib/permissions";
+import { canAccessOwner } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 
 async function requireUser() {
@@ -40,14 +40,16 @@ export type PipelineStats = {
 };
 
 export async function getPipelineStats(
-  leadType: LeadType
+  leadType: LeadType,
+  ownerId: string
 ): Promise<PipelineStats> {
   const user = await requireUser();
-  const ids = await getVisibleUserIds(user);
-  const ownerWhere = ids ? { ownerId: { in: ids } } : {};
+  if (!(await canAccessOwner(user, ownerId))) {
+    throw new Error("Geen toegang tot deze medewerker");
+  }
 
   const leads = await prisma.lead.findMany({
-    where: { deletedAt: null, leadType, ...ownerWhere },
+    where: { deletedAt: null, leadType, ownerId },
     select: {
       source: true,
       activities: {
@@ -93,18 +95,20 @@ export type PipelineLeadRow = {
 
 export async function getPipelineLeads(
   leadType: LeadType,
+  ownerId: string,
   search?: string
 ): Promise<PipelineLeadRow[]> {
   const user = await requireUser();
-  const ids = await getVisibleUserIds(user);
-  const ownerWhere = ids ? { ownerId: { in: ids } } : {};
+  if (!(await canAccessOwner(user, ownerId))) {
+    throw new Error("Geen toegang tot deze medewerker");
+  }
   const trimmedSearch = search?.trim();
 
   const leads = await prisma.lead.findMany({
     where: {
       deletedAt: null,
       leadType,
-      ...ownerWhere,
+      ownerId,
       ...(trimmedSearch
         ? {
             OR: [
