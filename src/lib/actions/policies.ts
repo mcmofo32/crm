@@ -21,6 +21,29 @@ async function requireUser() {
   return viewer;
 }
 
+/**
+ * Zelfherstellend: producten die al bestonden vóór de Polissen-tab er was
+ * (of die om een andere reden geen polis-lijn hebben) krijgen er hier alsnog
+ * één, met de lead-eigenaar als standaard-medewerker — net zoals een nieuw
+ * product er automatisch één krijgt via saveLeadProductsAction. Bijna altijd
+ * een no-op (lege lijst), dus goedkoop om bij elke paginalading te draaien.
+ */
+async function backfillMissingPolicies() {
+  const missing = await prisma.leadProduct.findMany({
+    where: { policy: null },
+    select: { id: true, leadId: true, lead: { select: { ownerId: true } } },
+  });
+  if (missing.length === 0) return;
+
+  await prisma.$transaction(
+    missing.map((lp) =>
+      prisma.policy.create({
+        data: { leadId: lp.leadId, leadProductId: lp.id, employeeId: lp.lead.ownerId },
+      })
+    )
+  );
+}
+
 /** Zelfde scope als de Klanten-pagina: Coach ziet enkel zichzelf, Beheerder/Admin iedereen. */
 function customerOwnerScope(user: { id: string; role: Role }): string[] | null {
   return canManageUsers(user) ? null : [user.id];
@@ -64,6 +87,7 @@ export async function getPoliciesForCurrentUser(options?: {
   search?: string;
 }): Promise<PolicyRow[]> {
   const user = await requireUser();
+  await backfillMissingPolicies();
   const scope = customerOwnerScope(user);
   const ownerWhere = resolveCustomerOwnerWhere(scope, options);
   const trimmedSearch = options?.search?.trim();
