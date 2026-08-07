@@ -154,8 +154,6 @@ export default async function PipelinePage({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        {ownerSwitcher}
-
         <form method="GET" className="flex items-center gap-2">
           {requiresSelection && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
@@ -174,6 +172,8 @@ export default async function PipelinePage({
             />
           </div>
         </form>
+
+        {ownerSwitcher}
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
