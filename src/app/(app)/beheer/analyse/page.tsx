@@ -1,31 +1,178 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools } from "@/lib/permissions";
-import { getAnalytics } from "@/lib/actions/analytics";
+import {
+  getAnalytics,
+  getFunnelDropoff,
+  getStageDurations,
+  getLeadTrend,
+  getSeasonalPattern,
+  getCustomerValueStats,
+  getRevenueByProductionMonth,
+  getActivityQualityStats,
+  getCustomerGrowthCurve,
+  getTaxStatusBreakdown,
+  getIncentiveOverview,
+  getKpiHeatmap,
+  getEventAttendanceStats,
+} from "@/lib/actions/analytics";
 import {
   LEAD_TYPE_LABELS,
   ROLE_LABELS,
   ROLE_BADGE_VARIANT,
   conversionBadgeVariant,
 } from "@/lib/roleLabels";
+import { KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { LineChart } from "@/components/analytics/LineChart";
+import { BarList, type BarListItem } from "@/components/analytics/BarList";
+import { Heatmap } from "@/components/analytics/Heatmap";
 
 const STAGE_COLORS = ["#2563eb", "#4f46e5", "#7c3aed", "#a21caf", "#c026d3"];
+// Categorische kleuren gevalideerd met de dataviz-skill (validate_palette.js):
+// CVD-scheiding en normaal-zicht-contrast getest per combinatie die samen in
+// één grafiek voorkomt — zie sessie-notities voor de exacte ΔE-waarden.
+const LEAD_TYPE_COLOR = { FA: "#2563eb", RG: "#d97706" } as const;
+const COLOR_NEW = "#2563eb";
+const COLOR_WON = "#059669";
+const COLOR_LOST = "#dc2626";
+const COLOR_AMBER = "#d97706";
+const COLOR_TAX_TODO = "#e11d48";
+
+function formatAmount(amount: number) {
+  return amount.toLocaleString("nl-BE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
+function Section({
+  title,
+  hint,
+  action,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-medium text-slate-900">{title}</h2>
+          {hint && <p className="mt-0.5 text-sm text-slate-500">{hint}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="text-2xl font-semibold text-slate-900">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-slate-400">{hint}</p>}
+    </div>
+  );
+}
+
+function momDelta(current: number, previous: number) {
+  if (previous === 0) return null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function DeltaBadge({ delta }: { delta: number | null }) {
+  if (delta === null) return null;
+  const positive = delta > 0;
+  const flat = delta === 0;
+  return (
+    <span
+      className={`ml-2 text-xs font-medium ${
+        flat ? "text-slate-400" : positive ? "text-green-600" : "text-red-600"
+      }`}
+    >
+      {flat ? "±0%" : `${positive ? "+" : ""}${delta}% t.o.v. vorige maand`}
+    </span>
+  );
+}
 
 export default async function AnalysePage({
   searchParams,
 }: {
-  searchParams: Promise<{ team?: string; person?: string }>;
+  searchParams: Promise<{
+    team?: string;
+    person?: string;
+    trendType?: string;
+    trendMonths?: string;
+    year?: string;
+  }>;
 }) {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
   if (!canViewBeheerderTools(viewer)) redirect("/dashboard");
 
-  const { team: teamFilter, person: personFilter } = await searchParams;
-  const { byType, stageDistribution, perEmployee, teams } = await getAnalytics();
+  const {
+    team: teamFilter,
+    person: personFilter,
+    trendType: trendTypeRaw,
+    trendMonths: trendMonthsRaw,
+    year: yearRaw,
+  } = await searchParams;
+
+  const trendType = trendTypeRaw === "FA" || trendTypeRaw === "RG" ? trendTypeRaw : null;
+  const trendMonths = [6, 12, 24].includes(Number(trendMonthsRaw))
+    ? Number(trendMonthsRaw)
+    : 12;
+  const year = yearRaw && /^\d{4}$/.test(yearRaw) ? Number(yearRaw) : new Date().getFullYear();
+
+  const [
+    { byType, stageDistribution, perEmployee, teams },
+    funnelDropoff,
+    stageDurations,
+    leadTrend,
+    seasonalPattern,
+    customerValueStats,
+    revenueByMonth,
+    activityQuality,
+    customerGrowth,
+    taxStatusBreakdown,
+    incentiveOverview,
+    kpiHeatmap,
+    eventAttendance,
+  ] = await Promise.all([
+    getAnalytics(),
+    getFunnelDropoff(),
+    getStageDurations(),
+    getLeadTrend(trendType, trendMonths),
+    getSeasonalPattern(trendType),
+    getCustomerValueStats(),
+    getRevenueByProductionMonth(year),
+    getActivityQualityStats(),
+    getCustomerGrowthCurve(trendMonths),
+    getTaxStatusBreakdown(),
+    getIncentiveOverview(),
+    getKpiHeatmap(year),
+    getEventAttendanceStats(),
+  ]);
+
   const maxStageCount = Math.max(1, ...stageDistribution.map((s) => s.count));
 
   const filteredEmployees = personFilter
@@ -35,6 +182,20 @@ export default async function AnalysePage({
     : teamFilter === "geen"
     ? perEmployee.filter((e) => !e.teamId)
     : perEmployee.filter((e) => e.teamId === teamFilter);
+
+  function trendHref(overrides: { trendType?: string; trendMonths?: string }) {
+    const params = new URLSearchParams();
+    const nextType = overrides.trendType ?? trendType ?? "";
+    const nextMonths = overrides.trendMonths ?? String(trendMonths);
+    if (nextType) params.set("trendType", nextType);
+    if (nextMonths) params.set("trendMonths", nextMonths);
+    const qs = params.toString();
+    return qs ? `/beheer/analyse?${qs}#trends` : "/beheer/analyse#trends";
+  }
+
+  const seasonMax = Math.max(1, ...seasonalPattern.map((s) => s.newLeads));
+
+  const heatmapMetrics = ["PRODUCTION", "CONVERSATIONS", "CALLING_SESSION", "SEMINAR"] as const;
 
   return (
     <div className="flex flex-col gap-8">
@@ -60,10 +221,10 @@ export default async function AnalysePage({
                 {LEAD_TYPE_LABELS[type]}
               </h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Stat label="Totaal" value={stats.total} />
-                <Stat label="Open" value={stats.open} />
-                <Stat label="Gewonnen" value={stats.won} />
-                <Stat label="Verloren" value={stats.lost} />
+                <StatTile label="Totaal" value={String(stats.total)} />
+                <StatTile label="Open" value={String(stats.open)} />
+                <StatTile label="Gewonnen" value={String(stats.won)} />
+                <StatTile label="Verloren" value={String(stats.lost)} />
               </div>
               <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
                 <span className="text-sm text-slate-500">Conversieratio</span>
@@ -81,13 +242,7 @@ export default async function AnalysePage({
         })}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="mb-1 text-lg font-medium text-slate-900">
-          Open leads per fase
-        </h2>
-        <p className="mb-4 text-sm text-slate-500">
-          Waar leads momenteel blijven hangen, per funnel.
-        </p>
+      <Section title="Open leads per fase" hint="Waar leads momenteel blijven hangen, per funnel.">
         <div className="flex flex-col gap-3">
           {stageDistribution.map((bucket, i) => (
             <div
@@ -118,6 +273,393 @@ export default async function AnalysePage({
             <p className="text-sm text-slate-400">Geen open leads.</p>
           )}
         </div>
+      </Section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Section
+          title="Drop-off per fase"
+          hint="Hoeveel leads elke fase van de funnel ooit bereikt hebben, en het percentage dat afvalt t.o.v. de vorige fase."
+        >
+          {(["FA", "RG"] as const).map((type) => {
+            const items: BarListItem[] = funnelDropoff
+              .filter((s) => s.leadType === type)
+              .map((s) => ({
+                key: s.key,
+                label: s.label,
+                value: s.reached,
+                displayValue:
+                  s.dropoffPercent === null ? String(s.reached) : `${s.reached} (-${s.dropoffPercent}%)`,
+                color: LEAD_TYPE_COLOR[type],
+              }));
+            return (
+              <div key={type} className="mb-4 last:mb-0">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {LEAD_TYPE_LABELS[type]}
+                </p>
+                <BarList items={items} />
+              </div>
+            );
+          })}
+        </Section>
+
+        <Section
+          title="Gemiddelde doorlooptijd per fase"
+          hint="Gemiddeld aantal dagen tussen twee fase-wissels, per fase van de hoofd-funnel."
+        >
+          {(["FA", "RG"] as const).map((type) => {
+            const items: BarListItem[] = stageDurations
+              .filter((s) => s.leadType === type)
+              .map((s) => ({
+                key: s.key,
+                label: s.label,
+                value: s.avgDays ?? 0,
+                displayValue:
+                  s.avgDays === null ? "—" : `${s.avgDays}d`,
+                sublabel: s.sampleSize > 0 ? `(${s.sampleSize})` : undefined,
+                color: LEAD_TYPE_COLOR[type],
+              }));
+            return (
+              <div key={type} className="mb-4 last:mb-0">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {LEAD_TYPE_LABELS[type]}
+                </p>
+                <BarList items={items} />
+              </div>
+            );
+          })}
+        </Section>
+      </div>
+
+      <div id="trends" className="scroll-mt-6 rounded-xl border border-slate-200 bg-white p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-medium text-slate-900">Trend over tijd</h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Nieuwe, gewonnen en verloren leads per maand.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <div className="flex gap-1">
+              {(["alle", "FA", "RG"] as const).map((t) => (
+                <Link
+                  key={t}
+                  href={trendHref({ trendType: t === "alle" ? "" : t })}
+                  className={`rounded-full px-3 py-1.5 ${
+                    (t === "alle" && !trendType) || trendType === t
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white text-slate-600"
+                  }`}
+                >
+                  {t === "alle" ? "Alle" : LEAD_TYPE_LABELS[t]}
+                </Link>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              {[6, 12, 24].map((m) => (
+                <Link
+                  key={m}
+                  href={trendHref({ trendMonths: String(m) })}
+                  className={`rounded-full px-3 py-1.5 ${
+                    trendMonths === m
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white text-slate-600"
+                  }`}
+                >
+                  {m}m
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <LineChart
+          labels={leadTrend.map((p) => p.label)}
+          series={[
+            { key: "new", label: "Nieuw", color: COLOR_NEW, values: leadTrend.map((p) => p.newLeads) },
+            { key: "won", label: "Gewonnen", color: COLOR_WON, values: leadTrend.map((p) => p.won) },
+            { key: "lost", label: "Verloren", color: COLOR_LOST, values: leadTrend.map((p) => p.lost) },
+          ]}
+        />
+
+        {leadTrend.length >= 2 && (
+          <p className="mt-3 text-sm text-slate-500">
+            Nieuwe leads deze maand: {leadTrend[leadTrend.length - 1].newLeads}
+            <DeltaBadge
+              delta={momDelta(
+                leadTrend[leadTrend.length - 1].newLeads,
+                leadTrend[leadTrend.length - 2].newLeads
+              )}
+            />
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Section
+          title="Klantengroei"
+          hint={`Cumulatief aantal klanten over de laatste ${trendMonths} maanden.`}
+        >
+          <LineChart
+            labels={customerGrowth.map((p) => p.label)}
+            series={[
+              {
+                key: "cumulative",
+                label: "Klanten",
+                color: COLOR_WON,
+                values: customerGrowth.map((p) => p.cumulative),
+              },
+            ]}
+          />
+        </Section>
+
+        <Section
+          title="Seizoenspatroon"
+          hint="Nieuwe leads per kalendermaand, opgeteld over alle jaren — toont piekmaanden."
+        >
+          <BarList
+            items={seasonalPattern.map((s) => ({
+              key: String(s.month),
+              label: s.label,
+              value: s.newLeads,
+              displayValue: String(s.newLeads),
+              color: STAGE_COLORS[(s.month - 1) % STAGE_COLORS.length],
+            }))}
+          />
+          {seasonMax <= 1 && (
+            <p className="mt-2 text-xs text-slate-400">Nog te weinig data voor een duidelijk patroon.</p>
+          )}
+        </Section>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Section title="Cross-sell & klantwaarde">
+          <div className="grid grid-cols-1 gap-4">
+            <StatTile
+              label="Cross-sell"
+              value={
+                customerValueStats.crossSellPercent === null
+                  ? "—"
+                  : `${customerValueStats.crossSellPercent}%`
+              }
+              hint="Klanten met meer dan 1 producttype"
+            />
+            <StatTile
+              label="Gem. bedrag per klant"
+              value={formatAmount(customerValueStats.avgAmountPerCustomer)}
+            />
+            <StatTile
+              label="Gem. eenheden per klant"
+              value={String(customerValueStats.avgUnitsPerCustomer)}
+            />
+          </div>
+        </Section>
+
+        <Section title="Opvolgkwaliteit">
+          <div className="grid grid-cols-1 gap-4">
+            <StatTile
+              label="No-show-ratio"
+              value={
+                activityQuality.noShowRatio === null ? "—" : `${activityQuality.noShowRatio}%`
+              }
+              hint="Niet opgedaagd / (afgerond + niet opgedaagd)"
+            />
+            <StatTile
+              label="Voicemail-ratio"
+              value={
+                activityQuality.voicemailRatio === null
+                  ? "—"
+                  : `${activityQuality.voicemailRatio}%`
+              }
+              hint="Van alle afgeronde telefoongesprekken"
+            />
+            <StatTile
+              label="Contactpogingen vóór klant"
+              value={
+                activityQuality.avgContactAttemptsBeforeWon === null
+                  ? "—"
+                  : String(activityQuality.avgContactAttemptsBeforeWon)
+              }
+              hint="Gemiddeld aantal afgeronde contacten"
+            />
+          </div>
+        </Section>
+
+        <Section title="Belastingsaangifte">
+          <BarList
+            items={taxStatusBreakdown.map((t) => ({
+              key: t.status,
+              label: t.label,
+              value: t.count,
+              displayValue: `${t.count} (${t.percent}%)`,
+              color:
+                t.status === "DONE" ? COLOR_WON : t.status === "SCHEDULED" ? COLOR_AMBER : COLOR_TAX_TODO,
+            }))}
+          />
+        </Section>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-medium text-slate-900">Omzet per productiemaand</h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Omzet van nieuwe klanten per productiemaand van {year}.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Link
+              href={`/beheer/analyse?year=${year - 1}#omzet`}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronLeft size={15} />
+            </Link>
+            <span className="font-medium text-slate-900">{year}</span>
+            <Link
+              href={`/beheer/analyse?year=${year + 1}#omzet`}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronRight size={15} />
+            </Link>
+          </div>
+        </div>
+        <LineChart
+          labels={revenueByMonth.map((m) => m.label)}
+          series={[
+            {
+              key: "revenue",
+              label: "Omzet",
+              color: COLOR_WON,
+              values: revenueByMonth.map((m) => Math.round(m.revenue)),
+            },
+          ]}
+        />
+        <p className="mt-2 text-xs text-slate-400">
+          Totaal {year}: {formatAmount(revenueByMonth.reduce((s, m) => s + m.revenue, 0))} ·{" "}
+          {revenueByMonth.reduce((s, m) => s + m.units, 0)} eenheden
+        </p>
+      </div>
+
+      <Section
+        title="Incentives — voortgang"
+        hint="Lopende en recent afgelopen incentives, met top 3 en aantal dat de vereisten haalt."
+      >
+        {incentiveOverview.length === 0 ? (
+          <p className="text-sm text-slate-400">Geen (recente) incentives.</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {incentiveOverview.map((incentive) => (
+              <div
+                key={incentive.incentiveId}
+                className="rounded-lg border border-slate-100 p-4"
+              >
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/incentives/${incentive.incentiveId}`}
+                      className="font-medium text-slate-900 hover:underline"
+                    >
+                      {incentive.title}
+                    </Link>
+                    <Badge variant={incentive.isActive ? "green" : "slate"}>
+                      {incentive.isActive ? "Lopend" : "Afgelopen"}
+                    </Badge>
+                  </div>
+                  <span className="text-sm text-slate-500">
+                    {incentive.achievedCount}/{incentive.totalParticipants} halen de vereisten
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {incentive.topEntries.map((entry, i) => (
+                    <div
+                      key={entry.userId}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span className="flex items-center gap-2 text-slate-700">
+                        <span className="w-4 text-xs text-slate-400">#{i + 1}</span>
+                        {entry.name}
+                      </span>
+                      <span className="text-slate-500">{entry.progressPercent}%</span>
+                    </div>
+                  ))}
+                  {incentive.topEntries.length === 0 && (
+                    <p className="text-sm text-slate-400">Nog geen deelnemers met score.</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section
+        title="KPI-heatmap per medewerker"
+        hint={`Groen = gehaald, rood = niet gehaald, leeg = nog geen data — per maand van ${year}.`}
+        action={
+          <div className="flex items-center gap-2 text-sm">
+            <Link
+              href={`/beheer/analyse?year=${year - 1}#kpi`}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronLeft size={15} />
+            </Link>
+            <span className="font-medium text-slate-900">{year}</span>
+            <Link
+              href={`/beheer/analyse?year=${year + 1}#kpi`}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronRight size={15} />
+            </Link>
+          </div>
+        }
+      >
+        <div id="kpi" className="scroll-mt-6 flex flex-col gap-6">
+          {heatmapMetrics.map((metric) => (
+            <div key={metric}>
+              <p className="mb-2 text-sm font-medium text-slate-700">
+                {KPI_METRIC_LABELS[metric]}
+              </p>
+              <Heatmap
+                rows={kpiHeatmap.map((row) => ({
+                  key: row.userId,
+                  label: row.name,
+                  cells: row.cells
+                    .filter((c) => c.metric === metric)
+                    .sort((a, b) => a.month - b.month)
+                    .map((c) => c.achieved),
+                }))}
+              />
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Section title="Aanwezigheidsratio per evenement-type">
+          <BarList
+            items={eventAttendance.byEventType.map((e) => ({
+              key: e.type,
+              label: e.label,
+              value: e.ratio ?? 0,
+              displayValue: e.ratio === null ? "—" : `${e.ratio}%`,
+              sublabel: `(${e.totalGoing}/${e.totalVerified})`,
+              color: COLOR_WON,
+            }))}
+          />
+        </Section>
+
+        <Section title="Aanwezigheidsratio per medewerker">
+          <BarList
+            items={eventAttendance.byEmployee.slice(0, 10).map((e) => ({
+              key: e.userId,
+              label: e.name,
+              value: e.ratio ?? 0,
+              displayValue: e.ratio === null ? "—" : `${e.ratio}%`,
+              sublabel: `(${e.totalGoing}/${e.totalVerified})`,
+              color: COLOR_WON,
+            }))}
+            emptyLabel="Nog geen bevestigde aanwezigheden."
+          />
+        </Section>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -243,15 +785,6 @@ export default async function AnalysePage({
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900">{value}</p>
     </div>
   );
 }

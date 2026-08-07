@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { canViewBeheerderTools } from "@/lib/permissions";
-import { LeadStatus, LeadType, Role } from "@/generated/prisma/client";
+import {
+  EventType,
+  KpiMetric,
+  LeadStatus,
+  LeadType,
+  Role,
+} from "@/generated/prisma/client";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { getMonthlyGoalAchievements } from "@/lib/actions/production";
+import { getIncentiveLeaderboard, type LeaderboardEntry } from "@/lib/actions/incentives";
+import { MONTH_LABELS } from "@/lib/goalLabels";
 
 async function requireBeheerder() {
   const viewer = await getEffectiveViewer();
@@ -293,4 +302,769 @@ export async function getAllTeamOverviews(): Promise<TeamOverview[]> {
       .map((id) => statsById.get(id))
       .filter((s): s is EmployeeStats => Boolean(s)),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Uitgebreide Analyse-pagina: funnel-diepgang, trends, productie, kwaliteit,
+// klanten, incentives/KPI's/events. Alles hieronder is enkel voor de
+// Beheerder (via requireBeheerder), net als getAnalytics() hierboven.
+// ---------------------------------------------------------------------------
+
+function monthBucketLabel(date: Date) {
+  return date.toLocaleDateString("nl-BE", { month: "short", year: "2-digit" });
+}
+
+/** Laatste `months` kalendermaanden, oplopend, eindigend met de huidige maand. */
+function buildMonthBuckets(months: number, now = new Date()) {
+  return Array.from({ length: months }, (_, i) => {
+    const bucketStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - (months - 1 - i),
+      1
+    );
+    return { bucketStart, label: monthBucketLabel(bucketStart) };
+  });
+}
+
+function monthBucketIndex(buckets: { bucketStart: Date }[], date: Date) {
+  const idx =
+    (date.getFullYear() - buckets[0].bucketStart.getFullYear()) * 12 +
+    (date.getMonth() - buckets[0].bucketStart.getMonth());
+  return idx >= 0 && idx < buckets.length ? idx : null;
+}
+
+/** De "hoofd-funnel" van een leadtype: actieve fases + de gewonnen-fase, op volgorde — dus zonder Verloren/Opvolging/de "Nieuwe lead"-instapfase. */
+async function getFunnelSequence(leadType: LeadType) {
+  const stages = await prisma.funnelStage.findMany({
+    where: { leadType, isLost: false, order: { gte: 0 } },
+    orderBy: { order: "asc" },
+  });
+  const wonOrder = stages.find((s) => s.isWon)?.order ?? Infinity;
+  return stages.filter((s) => s.order <= wonOrder);
+}
+
+// ---------------------------------------------------------------------------
+// 1. Drop-off per fase-overgang
+// ---------------------------------------------------------------------------
+
+export type FunnelDropoffStage = {
+  leadType: LeadType;
+  key: string;
+  label: string;
+  reached: number;
+  dropoffPercent: number | null;
+};
+
+/** Voor elke fase van de hoofd-funnel: hoeveel (niet-verwijderde) leads hebben die fase ooit bereikt, en welk percentage viel af t.o.v. de vorige fase. */
+export async function getFunnelDropoff(): Promise<FunnelDropoffStage[]> {
+  await requireBeheerder();
+  const results: FunnelDropoffStage[] = [];
+
+  for (const leadType of [LeadType.FA, LeadType.RG]) {
+    const stages = await getFunnelSequence(leadType);
+    if (stages.length === 0) continue;
+
+    const reachedByStage = await Promise.all(
+      stages.map((stage) =>
+        prisma.leadStageChange.findMany({
+          where: { toStageId: stage.id, lead: { deletedAt: null } },
+          distinct: ["leadId"],
+          select: { leadId: true },
+        })
+      )
+    );
+
+    stages.forEach((stage, i) => {
+      const reached = reachedByStage[i].length;
+      const previous = i > 0 ? reachedByStage[i - 1].length : null;
+      results.push({
+        leadType,
+        key: stage.key,
+        label: stage.label,
+        reached,
+        dropoffPercent:
+          previous && previous > 0
+            ? Math.round(((previous - reached) / previous) * 100)
+            : null,
+      });
+    });
+  }
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// 2. Gemiddelde doorlooptijd per fase
+// ---------------------------------------------------------------------------
+
+export type StageDuration = {
+  leadType: LeadType;
+  key: string;
+  label: string;
+  avgDays: number | null;
+  sampleSize: number;
+};
+
+/** Gemiddeld aantal dagen dat een lead in elke fase van de hoofd-funnel doorbrengt, gemeten tussen opeenvolgende fase-wissels (ongeacht waar de lead nadien naartoe ging). */
+export async function getStageDurations(): Promise<StageDuration[]> {
+  await requireBeheerder();
+  const results: StageDuration[] = [];
+
+  for (const leadType of [LeadType.FA, LeadType.RG]) {
+    const stages = await getFunnelSequence(leadType);
+    const stageById = new Map(stages.map((s) => [s.id, s]));
+
+    const changes = await prisma.leadStageChange.findMany({
+      where: { lead: { deletedAt: null, leadType } },
+      orderBy: [{ leadId: "asc" }, { changedAt: "asc" }],
+      select: { leadId: true, toStageId: true, changedAt: true },
+    });
+
+    const durationsByStageKey = new Map<string, number[]>();
+    let currentLeadId: string | null = null;
+    let previous: { toStageId: string; changedAt: Date } | null = null;
+
+    for (const change of changes) {
+      if (change.leadId !== currentLeadId) {
+        currentLeadId = change.leadId;
+        previous = null;
+      }
+      if (previous) {
+        const stage = stageById.get(previous.toStageId);
+        if (stage) {
+          const days =
+            (change.changedAt.getTime() - previous.changedAt.getTime()) /
+            (24 * 60 * 60 * 1000);
+          const list = durationsByStageKey.get(stage.key) ?? [];
+          list.push(days);
+          durationsByStageKey.set(stage.key, list);
+        }
+      }
+      previous = { toStageId: change.toStageId, changedAt: change.changedAt };
+    }
+
+    for (const stage of stages) {
+      const list = durationsByStageKey.get(stage.key) ?? [];
+      results.push({
+        leadType,
+        key: stage.key,
+        label: stage.label,
+        avgDays:
+          list.length > 0
+            ? Math.round((list.reduce((s, d) => s + d, 0) / list.length) * 10) / 10
+            : null,
+        sampleSize: list.length,
+      });
+    }
+  }
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Trend over tijd (nieuwe/gewonnen/verloren per maand) + seizoenspatroon
+// ---------------------------------------------------------------------------
+
+export type TrendPoint = {
+  label: string;
+  newLeads: number;
+  won: number;
+  lost: number;
+};
+
+/** Nieuwe leads, gewonnen en verloren per kalendermaand, over de laatste `months` maanden — optioneel gefilterd op leadtype. Eerste/laatste bucket laten ook meteen maand-op-maand-groei berekenen in de UI. */
+export async function getLeadTrend(
+  leadType: LeadType | null,
+  months = 12
+): Promise<TrendPoint[]> {
+  await requireBeheerder();
+  const buckets = buildMonthBuckets(months);
+  const rangeStart = buckets[0].bucketStart;
+
+  const [leads, wins, losses] = await Promise.all([
+    prisma.lead.findMany({
+      where: {
+        deletedAt: null,
+        createdAt: { gte: rangeStart },
+        ...(leadType ? { leadType } : {}),
+      },
+      select: { createdAt: true },
+    }),
+    prisma.leadStageChange.findMany({
+      where: {
+        changedAt: { gte: rangeStart },
+        toStage: { isWon: true },
+        lead: { deletedAt: null, ...(leadType ? { leadType } : {}) },
+      },
+      orderBy: { changedAt: "asc" },
+      distinct: ["leadId"],
+      select: { changedAt: true },
+    }),
+    prisma.leadStageChange.findMany({
+      where: {
+        changedAt: { gte: rangeStart },
+        toStage: { isLost: true },
+        lead: { deletedAt: null, ...(leadType ? { leadType } : {}) },
+      },
+      orderBy: { changedAt: "asc" },
+      distinct: ["leadId"],
+      select: { changedAt: true },
+    }),
+  ]);
+
+  const points = buckets.map((b) => ({
+    label: b.label,
+    newLeads: 0,
+    won: 0,
+    lost: 0,
+  }));
+
+  for (const l of leads) {
+    const idx = monthBucketIndex(buckets, l.createdAt);
+    if (idx !== null) points[idx].newLeads++;
+  }
+  for (const w of wins) {
+    const idx = monthBucketIndex(buckets, w.changedAt);
+    if (idx !== null) points[idx].won++;
+  }
+  for (const l of losses) {
+    const idx = monthBucketIndex(buckets, l.changedAt);
+    if (idx !== null) points[idx].lost++;
+  }
+
+  return points;
+}
+
+export type SeasonalBucket = {
+  month: number;
+  label: string;
+  newLeads: number;
+  won: number;
+};
+
+/** Nieuwe leads en gewonnen leads per kalendermaand, opgeteld over alle jaren — toont seizoenspatronen (bv. piekmaanden), optioneel gefilterd op leadtype. */
+export async function getSeasonalPattern(
+  leadType: LeadType | null
+): Promise<SeasonalBucket[]> {
+  await requireBeheerder();
+
+  const [leads, wins] = await Promise.all([
+    prisma.lead.findMany({
+      where: { deletedAt: null, ...(leadType ? { leadType } : {}) },
+      select: { createdAt: true },
+    }),
+    prisma.leadStageChange.findMany({
+      where: {
+        toStage: { isWon: true },
+        lead: { deletedAt: null, ...(leadType ? { leadType } : {}) },
+      },
+      orderBy: { changedAt: "asc" },
+      distinct: ["leadId"],
+      select: { changedAt: true },
+    }),
+  ]);
+
+  const buckets: SeasonalBucket[] = MONTH_LABELS.map((label, i) => ({
+    month: i + 1,
+    label,
+    newLeads: 0,
+    won: 0,
+  }));
+
+  for (const l of leads) buckets[l.createdAt.getMonth()].newLeads++;
+  for (const w of wins) buckets[w.changedAt.getMonth()].won++;
+
+  return buckets;
+}
+
+// ---------------------------------------------------------------------------
+// 4. Cross-sell, klantwaarde, omzet per productiemaand
+// ---------------------------------------------------------------------------
+
+export type CustomerValueStats = {
+  totalCustomers: number;
+  customersWithProducts: number;
+  multiProductCustomers: number;
+  crossSellPercent: number | null;
+  avgAmountPerCustomer: number;
+  avgUnitsPerCustomer: number;
+};
+
+/** Cross-sell (% klanten met >1 producttype) en gemiddeld bedrag/eenheden per klant. */
+export async function getCustomerValueStats(): Promise<CustomerValueStats> {
+  await requireBeheerder();
+
+  const customers = await prisma.lead.findMany({
+    where: { deletedAt: null, status: "WON" },
+    select: { products: { select: { type: true, amount: true, units: true } } },
+  });
+
+  let customersWithProducts = 0;
+  let multiProductCustomers = 0;
+  let totalAmount = 0;
+  let totalUnits = 0;
+
+  for (const c of customers) {
+    if (c.products.length === 0) continue;
+    customersWithProducts++;
+    const distinctTypes = new Set(c.products.map((p) => p.type));
+    if (distinctTypes.size > 1) multiProductCustomers++;
+    totalAmount += c.products.reduce((s, p) => s + Number(p.amount), 0);
+    totalUnits += c.products.reduce((s, p) => s + p.units, 0);
+  }
+
+  return {
+    totalCustomers: customers.length,
+    customersWithProducts,
+    multiProductCustomers,
+    crossSellPercent:
+      customersWithProducts > 0
+        ? Math.round((multiProductCustomers / customersWithProducts) * 100)
+        : null,
+    avgAmountPerCustomer:
+      customersWithProducts > 0 ? Math.round(totalAmount / customersWithProducts) : 0,
+    avgUnitsPerCustomer:
+      customersWithProducts > 0
+        ? Math.round((totalUnits / customersWithProducts) * 10) / 10
+        : 0,
+  };
+}
+
+export type ProductionMonthRevenue = {
+  month: number;
+  label: string;
+  revenue: number;
+  units: number;
+};
+
+/** Effectieve begin/eind van elk van de 12 productiemaanden van `year` — ingesteld via ProductionMonth, anders de kalendermaand. */
+async function resolveProductionMonthRanges(year: number) {
+  const configured = await prisma.productionMonth.findMany({ where: { year } });
+  const byMonth = new Map(configured.map((c) => [c.month, c]));
+  return Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    const existing = byMonth.get(month);
+    if (existing) {
+      return {
+        month,
+        start: existing.startDate,
+        end: new Date(existing.endDate.getTime() + 1),
+      };
+    }
+    return { month, start: new Date(year, month - 1, 1), end: new Date(year, month, 1) };
+  });
+}
+
+/** Omzet en eenheden van nieuwe klanten per productiemaand van `year`. */
+export async function getRevenueByProductionMonth(
+  year: number
+): Promise<ProductionMonthRevenue[]> {
+  await requireBeheerder();
+  const ranges = await resolveProductionMonthRanges(year);
+
+  return Promise.all(
+    ranges.map(async ({ month, start, end }) => {
+      const wins = await prisma.leadStageChange.findMany({
+        where: {
+          toStage: { isWon: true },
+          changedAt: { gte: start, lt: end },
+          lead: { deletedAt: null },
+        },
+        orderBy: { changedAt: "asc" },
+        distinct: ["leadId"],
+        select: {
+          lead: { select: { products: { select: { amount: true, units: true } } } },
+        },
+      });
+      const revenue = wins.reduce(
+        (sum, w) => sum + w.lead.products.reduce((s, p) => s + Number(p.amount), 0),
+        0
+      );
+      const units = wins.reduce(
+        (sum, w) => sum + w.lead.products.reduce((s, p) => s + p.units, 0),
+        0
+      );
+      return { month, label: MONTH_LABELS[month - 1], revenue, units };
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 5. Opvolgkwaliteit: no-show, voicemail, contactpogingen vóór conversie
+// ---------------------------------------------------------------------------
+
+export type ActivityQualityStats = {
+  noShowRatio: number | null;
+  voicemailRatio: number | null;
+  avgContactAttemptsBeforeWon: number | null;
+};
+
+/** No-show-ratio (afspraken), voicemail-ratio (telefoons) en gemiddeld aantal afgeronde contactmomenten vóór een lead klant wordt. */
+export async function getActivityQualityStats(): Promise<ActivityQualityStats> {
+  await requireBeheerder();
+
+  const [scheduledOutcomes, completedCalls, wonLeads] = await Promise.all([
+    prisma.activity.groupBy({
+      by: ["status"],
+      where: {
+        type: { in: ["CALL", "MEETING"] },
+        status: { in: ["COMPLETED", "NO_SHOW"] },
+      },
+      _count: { _all: true },
+    }),
+    prisma.activity.groupBy({
+      by: ["wasVoicemail"],
+      where: { type: "CALL", status: "COMPLETED" },
+      _count: { _all: true },
+    }),
+    prisma.leadStageChange.findMany({
+      where: { toStage: { isWon: true }, lead: { deletedAt: null } },
+      orderBy: { changedAt: "asc" },
+      distinct: ["leadId"],
+      select: { leadId: true, changedAt: true },
+    }),
+  ]);
+
+  const completed =
+    scheduledOutcomes.find((s) => s.status === "COMPLETED")?._count._all ?? 0;
+  const noShow =
+    scheduledOutcomes.find((s) => s.status === "NO_SHOW")?._count._all ?? 0;
+  const noShowTotal = completed + noShow;
+
+  const voicemail =
+    completedCalls.find((c) => c.wasVoicemail)?._count._all ?? 0;
+  const reached =
+    completedCalls.find((c) => !c.wasVoicemail)?._count._all ?? 0;
+  const callTotal = voicemail + reached;
+
+  let avgContactAttemptsBeforeWon: number | null = null;
+  if (wonLeads.length > 0) {
+    const wonAtByLead = new Map(wonLeads.map((w) => [w.leadId, w.changedAt]));
+    const activities = await prisma.activity.findMany({
+      where: {
+        leadId: { in: wonLeads.map((w) => w.leadId) },
+        type: { in: ["CALL", "MEETING"] },
+        status: "COMPLETED",
+      },
+      select: { leadId: true, completedAt: true },
+    });
+    const countByLead = new Map<string, number>();
+    for (const a of activities) {
+      const wonAt = wonAtByLead.get(a.leadId);
+      if (wonAt && a.completedAt && a.completedAt <= wonAt) {
+        countByLead.set(a.leadId, (countByLead.get(a.leadId) ?? 0) + 1);
+      }
+    }
+    const sum = wonLeads.reduce((s, w) => s + (countByLead.get(w.leadId) ?? 0), 0);
+    avgContactAttemptsBeforeWon = Math.round((sum / wonLeads.length) * 10) / 10;
+  }
+
+  return {
+    noShowRatio: noShowTotal > 0 ? Math.round((noShow / noShowTotal) * 100) : null,
+    voicemailRatio: callTotal > 0 ? Math.round((voicemail / callTotal) * 100) : null,
+    avgContactAttemptsBeforeWon,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 6. Klantengroei-curve + belastingsaangifte-status geaggregeerd
+// ---------------------------------------------------------------------------
+
+export type CustomerGrowthPoint = {
+  label: string;
+  cumulative: number;
+};
+
+/** Cumulatief aantal klanten (gewonnen leads) over de laatste `months` maanden. */
+export async function getCustomerGrowthCurve(
+  months = 12
+): Promise<CustomerGrowthPoint[]> {
+  await requireBeheerder();
+  const buckets = buildMonthBuckets(months);
+  const rangeStart = buckets[0].bucketStart;
+
+  const [priorWins, winsInRange] = await Promise.all([
+    prisma.leadStageChange.findMany({
+      where: {
+        toStage: { isWon: true },
+        changedAt: { lt: rangeStart },
+        lead: { deletedAt: null },
+      },
+      distinct: ["leadId"],
+      select: { leadId: true },
+    }),
+    prisma.leadStageChange.findMany({
+      where: {
+        toStage: { isWon: true },
+        changedAt: { gte: rangeStart },
+        lead: { deletedAt: null },
+      },
+      orderBy: { changedAt: "asc" },
+      distinct: ["leadId"],
+      select: { changedAt: true },
+    }),
+  ]);
+
+  const newPerBucket = new Array(months).fill(0);
+  for (const w of winsInRange) {
+    const idx = monthBucketIndex(buckets, w.changedAt);
+    if (idx !== null) newPerBucket[idx]++;
+  }
+
+  let running = priorWins.length;
+  return buckets.map((b, i) => {
+    running += newPerBucket[i];
+    return { label: b.label, cumulative: running };
+  });
+}
+
+export type TaxStatusBreakdown = {
+  status: "TODO" | "SCHEDULED" | "DONE";
+  label: string;
+  count: number;
+  percent: number;
+};
+
+const TAX_STATUS_LABELS: Record<TaxStatusBreakdown["status"], string> = {
+  TODO: "Nog te doen",
+  SCHEDULED: "Ingepland",
+  DONE: "Gedaan",
+};
+
+/** Verdeling van de belastingsaangifte-status over alle klanten (niet ingesteld telt als "Nog te doen", zoals ook op de Klanten-pagina). */
+export async function getTaxStatusBreakdown(): Promise<TaxStatusBreakdown[]> {
+  await requireBeheerder();
+
+  const customers = await prisma.lead.findMany({
+    where: { deletedAt: null, status: "WON" },
+    select: { taxDeclarationStatus: true },
+  });
+
+  const counts: Record<TaxStatusBreakdown["status"], number> = {
+    TODO: 0,
+    SCHEDULED: 0,
+    DONE: 0,
+  };
+  for (const c of customers) {
+    const status = c.taxDeclarationStatus ?? "TODO";
+    counts[status]++;
+  }
+
+  const total = customers.length;
+  return (Object.keys(counts) as TaxStatusBreakdown["status"][]).map((status) => ({
+    status,
+    label: TAX_STATUS_LABELS[status],
+    count: counts[status],
+    percent: total > 0 ? Math.round((counts[status] / total) * 100) : 0,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// 7. Incentives, KPI's, events
+// ---------------------------------------------------------------------------
+
+export type IncentiveOverviewEntry = {
+  incentiveId: string;
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  topEntries: LeaderboardEntry[];
+  achievedCount: number;
+  totalParticipants: number;
+};
+
+/** Alle incentives van de laatste 90 dagen (nog lopend of net afgelopen) met hun top-3 en aantal dat de vereisten haalt, in één overzicht i.p.v. per incentive apart. */
+export async function getIncentiveOverview(): Promise<IncentiveOverviewEntry[]> {
+  await requireBeheerder();
+  const now = new Date();
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+  const incentives = await prisma.incentive.findMany({
+    where: { endDate: { gte: ninetyDaysAgo } },
+    orderBy: { startDate: "desc" },
+    select: { id: true, title: true, startDate: true, endDate: true },
+  });
+
+  return Promise.all(
+    incentives.map(async (incentive) => {
+      const leaderboard = await getIncentiveLeaderboard(incentive.id);
+      return {
+        incentiveId: incentive.id,
+        title: incentive.title,
+        startDate: incentive.startDate,
+        endDate: incentive.endDate,
+        isActive: incentive.startDate <= now && now <= incentive.endDate,
+        topEntries: leaderboard.slice(0, 3),
+        achievedCount: leaderboard.filter((e) => e.achieved).length,
+        totalParticipants: leaderboard.length,
+      };
+    })
+  );
+}
+
+export type KpiHeatmapCell = {
+  metric: KpiMetric;
+  month: number;
+  /** null = maand nog niet afgelopen, of nog geen doel/data */
+  achieved: boolean | null;
+};
+
+export type KpiHeatmapRow = {
+  userId: string;
+  name: string;
+  cells: KpiHeatmapCell[];
+};
+
+/**
+ * Per actieve gebruiker, per maand van `year`, of elke KPI gehaald is:
+ * Productie/Gesprekken automatisch (zelfde als de jaarlijkse KPI-kaart),
+ * Belsessie = minstens 1 ingevoerd die maand, Seminarie = minstens 1 bevestigd
+ * bijgewoond seminarie die maand.
+ */
+export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
+  await requireBeheerder();
+
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  const now = new Date();
+
+  return Promise.all(
+    users.map(async (u) => {
+      const [monthlyAchievements, callingSessionEntries, seminarAttendances] =
+        await Promise.all([
+          getMonthlyGoalAchievements(u.id, year),
+          prisma.userKpiMonthlyEntry.findMany({
+            where: { userId: u.id, year, metric: KpiMetric.CALLING_SESSION },
+          }),
+          prisma.eventAttendance.findMany({
+            where: {
+              userId: u.id,
+              actualStatus: "GOING",
+              event: {
+                type: EventType.SEMINAR,
+                date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+              },
+            },
+            select: { event: { select: { date: true } } },
+          }),
+        ]);
+
+      const callingSessionByMonth = new Map(
+        callingSessionEntries.map((e) => [e.month, Number(e.value)])
+      );
+      const seminarMonths = new Set(
+        seminarAttendances.map((a) => a.event.date.getMonth() + 1)
+      );
+
+      const cells: KpiHeatmapCell[] = [];
+      for (let month = 1; month <= 12; month++) {
+        const notYetOver = now < new Date(year, month, 1);
+        const production = monthlyAchievements.find((m) => m.month === month);
+        cells.push({
+          metric: KpiMetric.PRODUCTION,
+          month,
+          achieved: production?.unitsAchieved ?? null,
+        });
+        cells.push({
+          metric: KpiMetric.CONVERSATIONS,
+          month,
+          achieved: production?.conversationsAchieved ?? null,
+        });
+        cells.push({
+          metric: KpiMetric.CALLING_SESSION,
+          month,
+          achieved: notYetOver ? null : (callingSessionByMonth.get(month) ?? 0) > 0,
+        });
+        cells.push({
+          metric: KpiMetric.SEMINAR,
+          month,
+          achieved: notYetOver ? null : seminarMonths.has(month),
+        });
+      }
+
+      return { userId: u.id, name: u.name, cells };
+    })
+  );
+}
+
+const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  MEETING: "Vergadering",
+  SEMINAR: "Seminarie",
+  BELSESSIE: "Belsessie",
+  MANAGEMENTMEETING: "Managementmeeting",
+  STRUCTUURMEETING: "Structuur meeting",
+};
+
+export type EventAttendanceStats = {
+  byEventType: {
+    type: EventType;
+    label: string;
+    totalVerified: number;
+    totalGoing: number;
+    ratio: number | null;
+  }[];
+  byEmployee: {
+    userId: string;
+    name: string;
+    totalVerified: number;
+    totalGoing: number;
+    ratio: number | null;
+  }[];
+};
+
+/** Effectieve aanwezigheidsratio (bevestigd door Beheerder/Admin) per evenement-type en per medewerker. */
+export async function getEventAttendanceStats(): Promise<EventAttendanceStats> {
+  await requireBeheerder();
+
+  const attendances = await prisma.eventAttendance.findMany({
+    where: { actualStatus: { not: null } },
+    select: {
+      actualStatus: true,
+      user: { select: { id: true, name: true } },
+      event: { select: { type: true } },
+    },
+  });
+
+  const byTypeMap = new Map<EventType, { total: number; going: number }>();
+  const byUserMap = new Map<string, { name: string; total: number; going: number }>();
+
+  for (const a of attendances) {
+    const typeEntry = byTypeMap.get(a.event.type) ?? { total: 0, going: 0 };
+    typeEntry.total++;
+    if (a.actualStatus === "GOING") typeEntry.going++;
+    byTypeMap.set(a.event.type, typeEntry);
+
+    const userEntry = byUserMap.get(a.user.id) ?? {
+      name: a.user.name,
+      total: 0,
+      going: 0,
+    };
+    userEntry.total++;
+    if (a.actualStatus === "GOING") userEntry.going++;
+    byUserMap.set(a.user.id, userEntry);
+  }
+
+  const byEventType = Array.from(byTypeMap.entries()).map(([type, v]) => ({
+    type,
+    label: EVENT_TYPE_LABELS[type],
+    totalVerified: v.total,
+    totalGoing: v.going,
+    ratio: v.total > 0 ? Math.round((v.going / v.total) * 100) : null,
+  }));
+
+  const byEmployee = Array.from(byUserMap.entries())
+    .map(([userId, v]) => ({
+      userId,
+      name: v.name,
+      totalVerified: v.total,
+      totalGoing: v.going,
+      ratio: v.total > 0 ? Math.round((v.going / v.total) * 100) : null,
+    }))
+    .sort((a, b) => (b.ratio ?? 0) - (a.ratio ?? 0));
+
+  return { byEventType, byEmployee };
 }
