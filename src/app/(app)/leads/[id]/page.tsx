@@ -12,6 +12,7 @@ import {
   canAccessOwner,
   canDeleteLeads,
   canDeleteActivities,
+  canManageCustomerData,
   getVisibleUserIds,
 } from "@/lib/permissions";
 import { getSubagents } from "@/lib/actions/subagents";
@@ -139,6 +140,7 @@ export default async function LeadDetailPage({
             leadEmail={lead.email}
             stages={stages}
             subagents={subagents}
+            canCloseDeals={canManageCustomerData(user)}
           />
           {canDeleteLeads(user) && (
             <DeleteLeadButton
@@ -169,6 +171,7 @@ export default async function LeadDetailPage({
               amount: Number(p.amount),
               units: p.units,
             }))}
+            canEdit={canManageCustomerData(user)}
           />
         </div>
 

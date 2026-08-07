@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions/pipeline";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { canManageCustomerData } from "@/lib/permissions";
 import { Role } from "@/generated/prisma/client";
 import { getSubagents } from "@/lib/actions/subagents";
 import { ensureFunnelStages, funnelStageKeys } from "@/lib/funnelStages";
@@ -256,6 +257,7 @@ export default async function PipelinePage({
                       leadEmail={lead.email}
                       stages={stages}
                       subagents={subagents}
+                      canCloseDeals={canManageCustomerData(user)}
                       variant="icon"
                     />
                   </div>

@@ -8,7 +8,12 @@ import {
   TaxDeclarationStatus,
   Role,
 } from "@/generated/prisma/client";
-import { canAccessOwner, canAccessLead, canManageUsers } from "@/lib/permissions";
+import {
+  canAccessOwner,
+  canAccessLead,
+  canManageCustomerData,
+  canManageUsers,
+} from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 
@@ -51,6 +56,9 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessLead(user, lead))) {
     throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
   }
 
   const products: { type: ProductType; amount: number; units: number }[] = [];
@@ -185,6 +193,9 @@ export async function setCaseManagerAction(leadId: string, formData: FormData) {
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");
   }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
 
   const subagentId = String(formData.get("subagentId") ?? "").trim();
 
@@ -209,6 +220,9 @@ export async function setTaxDeclarationStatusAction(
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
   }
 
   const raw = String(formData.get("status") ?? "");

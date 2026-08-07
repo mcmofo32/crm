@@ -36,6 +36,7 @@ export function StageSelect({
   stages,
   subagents,
   variant = "full",
+  canCloseDeals = true,
 }: {
   leadId: string;
   currentStageId: string;
@@ -44,6 +45,8 @@ export function StageSelect({
   subagents: SubagentRecord[];
   /** "icon" toont enkel een compacte "+"-knop (bv. in een tabelrij) i.p.v. de huidige fase + "Afgerond". */
   variant?: "full" | "icon";
+  /** Enkel subagenten (of Beheerder/Admin) mogen een lead als klant afsluiten — anders valt de "Klant"-fase weg uit de keuzelijst. */
+  canCloseDeals?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -60,7 +63,9 @@ export function StageSelect({
   const [products, setProducts] = useState<ProductsState>(emptyProductsState());
 
   const currentStage = stages.find((s) => s.id === currentStageId);
-  const otherStages = stages.filter((s) => s.id !== currentStageId);
+  const otherStages = stages.filter(
+    (s) => s.id !== currentStageId && (canCloseDeals || !s.isWon)
+  );
   const targetStage = stages.find((s) => s.id === targetStageId);
 
   if (open) {

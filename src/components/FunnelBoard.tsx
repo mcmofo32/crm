@@ -124,6 +124,7 @@ function LeadCard({
   lead,
   stages,
   subagents,
+  canCloseDeals,
   dragged,
   onDragStart,
   onDragEnd,
@@ -131,6 +132,7 @@ function LeadCard({
   lead: BoardLead;
   stages: BoardStage[];
   subagents: SubagentRecord[];
+  canCloseDeals: boolean;
   dragged: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -210,6 +212,7 @@ function LeadCard({
           leadEmail={lead.email}
           stages={stages}
           subagents={subagents}
+          canCloseDeals={canCloseDeals}
         />
       </div>
     </div>
@@ -232,12 +235,15 @@ export function FunnelBoard({
   leadType,
   subagents,
   pickerLeads,
+  canCloseDeals,
 }: {
   stages: BoardStage[];
   leadType: LeadType;
   subagents: SubagentRecord[];
   /** Alle leads van dit type (ook buiten dit bord, bv. nog in Pipeline), voor de "+"-zoekpopup. */
   pickerLeads: PickerLead[];
+  /** Enkel subagenten (of Beheerder/Admin) mogen een lead als klant afsluiten. */
+  canCloseDeals: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -309,6 +315,7 @@ export function FunnelBoard({
     const leadId = draggedLeadId;
     setDraggedLeadId(null);
     if (!leadId) return;
+    if (targetStage.isWon && !canCloseDeals) return;
 
     const lead = stages.flatMap((s) => s.leads).find((l) => l.id === leadId);
     if (!lead || lead.stageId === targetStage.id) return;
@@ -500,6 +507,7 @@ export function FunnelBoard({
                     lead={lead}
                     stages={stages}
                     subagents={subagents}
+                    canCloseDeals={canCloseDeals}
                     dragged={draggedLeadId === lead.id}
                     onDragStart={() => setDraggedLeadId(lead.id)}
                     onDragEnd={() => setDraggedLeadId(null)}
@@ -583,6 +591,7 @@ export function FunnelBoard({
                         lead={lead}
                         stages={stages}
                         subagents={subagents}
+                        canCloseDeals={canCloseDeals}
                         dragged={draggedLeadId === lead.id}
                         onDragStart={() => setDraggedLeadId(lead.id)}
                         onDragEnd={() => setDraggedLeadId(null)}

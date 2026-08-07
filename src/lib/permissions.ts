@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { Role } from "@/generated/prisma/client";
+import { AgentType, Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -202,4 +202,23 @@ export async function canAccessLead(
 ) {
   if (await canAccessOwner(user, lead.ownerId)) return true;
   return isInvitedSubagentOnLead(user, lead.id);
+}
+
+/**
+ * Mag `user` een lead als klant afsluiten (fase naar "Klant"/isWon zetten)
+ * en klantendata aanpassen (producten, dossierbeheerder,
+ * belastingsaangifte)? Enkel subagenten (Type: Subagent) mogen dat — wie
+ * enkel eigenaar is maar zelf geen subagent is, kan zijn eigen klanten dus
+ * wel zien maar niet aanpassen tot hij dat type krijgt. Beheerder/Admin
+ * mogen dit altijd, ongeacht hun eigen Type.
+ */
+export function canManageCustomerData(user: {
+  role: Role;
+  agentType: AgentType;
+}) {
+  return (
+    user.role === Role.BEHEERDER ||
+    user.role === Role.ADMIN ||
+    user.agentType === AgentType.SUBAGENT
+  );
 }

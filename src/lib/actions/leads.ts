@@ -13,6 +13,7 @@ import {
   canAccessOwner,
   canAccessLead,
   canDeleteLeads,
+  canManageCustomerData,
   canViewBeheerderTools,
   getVisibleUserIds,
 } from "@/lib/permissions";
@@ -197,6 +198,9 @@ export async function updateLeadStageAction(
   });
   if (!toStage || toStage.leadType !== lead.leadType) {
     throw new Error("Ongeldige funnel-stage");
+  }
+  if (toStage.isWon && !canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen een lead als klant afsluiten");
   }
 
   const status = toStage.isWon

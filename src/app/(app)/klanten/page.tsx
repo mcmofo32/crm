@@ -24,7 +24,7 @@ import {
   getCurrentProductionMonthRange,
   getCurrentProductionYearRange,
 } from "@/lib/actions/production";
-import { canManageUsers } from "@/lib/permissions";
+import { canManageCustomerData, canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
@@ -165,6 +165,13 @@ export default async function KlantenPage({
     { value: "SCHEDULED", label: `${currentYear} ingepland` },
     { value: "DONE", label: `${currentYear} gedaan` },
   ];
+  const taxStatusLabelByValue = new Map(
+    taxStatusOptions.map((o) => [o.value, o.label])
+  );
+  // Enkel subagenten (of Beheerder/Admin) mogen klantendata aanpassen; wie
+  // enkel eigenaar is ziet zijn klanten wel, maar kan ze niet bewerken tot
+  // hij zelf subagent is.
+  const canEditCustomerData = canManageCustomerData(viewer);
 
   return (
     <div className="flex flex-col gap-6">
@@ -361,19 +368,25 @@ export default async function KlantenPage({
                     )}
                   </td>
                   <td className="px-4 py-4">
-                    <InlineSelect
-                      action={boundSetCaseManager}
-                      name="subagentId"
-                      value={customer.caseManagerSubagentId ?? ""}
-                      options={[
-                        { value: "", label: customer.caseManagerName },
-                        ...subagents.map((s) => ({
-                          value: s.id,
-                          label: `${s.name} (${s.team.name})`,
-                        })),
-                      ]}
-                      className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
-                    />
+                    {canEditCustomerData ? (
+                      <InlineSelect
+                        action={boundSetCaseManager}
+                        name="subagentId"
+                        value={customer.caseManagerSubagentId ?? ""}
+                        options={[
+                          { value: "", label: customer.caseManagerName },
+                          ...subagents.map((s) => ({
+                            value: s.id,
+                            label: `${s.name} (${s.team.name})`,
+                          })),
+                        ]}
+                        className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                      />
+                    ) : (
+                      <span className="text-slate-600">
+                        {customer.caseManagerName}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-slate-600">
                     {customer.phone || "—"}
@@ -382,12 +395,20 @@ export default async function KlantenPage({
                     {customer.email || "—"}
                   </td>
                   <td className="px-6 py-4">
-                    <InlineSelect
-                      action={boundSetTaxStatus}
-                      name="status"
-                      value={customer.taxDeclarationStatus ?? "TODO"}
-                      options={taxStatusOptions}
-                    />
+                    {canEditCustomerData ? (
+                      <InlineSelect
+                        action={boundSetTaxStatus}
+                        name="status"
+                        value={customer.taxDeclarationStatus ?? "TODO"}
+                        options={taxStatusOptions}
+                      />
+                    ) : (
+                      <span className="text-slate-600">
+                        {taxStatusLabelByValue.get(
+                          customer.taxDeclarationStatus ?? "TODO"
+                        )}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-right font-medium text-slate-900">
                     {formatAmount(customer.totalAmount)}

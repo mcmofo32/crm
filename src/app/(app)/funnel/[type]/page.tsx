@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Plus, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { canManageCustomerData } from "@/lib/permissions";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType, Role } from "@/generated/prisma/client";
@@ -170,6 +171,7 @@ export default async function FunnelPage({
         stages={stages}
         leadType={leadType}
         subagents={subagents}
+        canCloseDeals={canManageCustomerData(user)}
         pickerLeads={pickerLeads.map((l) => ({
           id: l.id,
           firstName: l.firstName,

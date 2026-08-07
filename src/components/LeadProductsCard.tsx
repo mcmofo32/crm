@@ -32,9 +32,12 @@ function stateFromProducts(products: ProductRecord[]): ProductsState {
 export function LeadProductsCard({
   leadId,
   products,
+  canEdit = true,
 }: {
   leadId: string;
   products: ProductRecord[];
+  /** Enkel subagenten (of Beheerder/Admin) mogen klantendata zoals producten aanpassen. */
+  canEdit?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -85,15 +88,17 @@ export function LeadProductsCard({
     <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-medium text-slate-900">Producten</h2>
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          title="Bewerken"
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
-        >
-          <Pencil size={13} />
-          Bewerken
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            title="Bewerken"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+          >
+            <Pencil size={13} />
+            Bewerken
+          </button>
+        )}
       </div>
       {sortedProducts.length === 0 ? (
         <p className="text-slate-400">Nog geen producten toegevoegd.</p>

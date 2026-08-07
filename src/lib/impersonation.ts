@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/generated/prisma/client";
+import { AgentType, Role } from "@/generated/prisma/client";
 
 const VIEW_AS_COOKIE = "view-as-role";
 
@@ -17,6 +17,8 @@ export type EffectiveViewer = {
   /** De echte, geauthenticeerde rol — nooit overschreven, enkel gebruikt om impersonation toe te staan/tonen. */
   realRole: Role;
   isImpersonating: boolean;
+  /** Analyst (standaard) of subagent — bepaalt o.a. of deze gebruiker leads als klant mag afsluiten. */
+  agentType: AgentType;
 };
 
 function isViewableRole(value: string | undefined): value is Role {
@@ -37,7 +39,14 @@ async function getFreshSessionUser() {
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, role: true, active: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      active: true,
+      agentType: true,
+    },
   });
   if (!dbUser || !dbUser.active) return null;
 
@@ -69,6 +78,7 @@ export async function getEffectiveViewer(): Promise<EffectiveViewer | null> {
     role,
     realRole,
     isImpersonating: role !== realRole,
+    agentType: dbUser.agentType,
   };
 }
 
