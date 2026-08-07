@@ -657,19 +657,6 @@ model EventAttendance {
 }
 
 // ---------------------------------------------------------------------------
-// Klanten: statistieken bovenaan de Klanten-pagina
-// ---------------------------------------------------------------------------
-
-/// De actieve periode ("dit jaar") voor "nieuwe klanten dit jaar" op de
-/// Klanten-pagina — door een Beheerder/Admin ingesteld begin/einde.
-model CustomerYearPeriod {
-  id        String   @id @default(cuid())
-  startDate DateTime
-  endDate   DateTime
-  updatedAt DateTime @updatedAt
-}
-
-// ---------------------------------------------------------------------------
 // Automatische back-up naar Google Sheets
 // ---------------------------------------------------------------------------
 

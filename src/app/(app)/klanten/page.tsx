@@ -15,14 +15,13 @@ import { getSubagents } from "@/lib/actions/subagents";
 import {
   getCustomersForCurrentUser,
   getCustomerStats,
-  getCurrentCustomerYearPeriodForInput,
-  setCustomerYearPeriodAction,
   setCaseManagerAction,
   setTaxDeclarationStatusAction,
   getTeamsForCustomerFilter,
   type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
 import { getCurrentGoalPeriod } from "@/lib/actions/goals";
+import { getCurrentProductionYearRange } from "@/lib/actions/production";
 import { canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { ProductType } from "@/generated/prisma/client";
@@ -65,15 +64,14 @@ export default async function KlantenPage({
     sort === "oldest" || sort === "amount" || sort === "units" ? sort : undefined;
 
   const viewer = (await getEffectiveViewer())!;
-  const [assignableUsers, teams, subagents, monthPeriod, yearPeriodInput] =
+  const [assignableUsers, teams, subagents, monthPeriod, yearPeriod] =
     await Promise.all([
       getAssignableUsers(),
       getTeamsForCustomerFilter(),
       getSubagents(),
       getCurrentGoalPeriod(),
-      getCurrentCustomerYearPeriodForInput(),
+      getCurrentProductionYearRange(),
     ]);
-  const canManageYearPeriod = canManageUsers(viewer);
   // Enkel Beheerder/Admin mogen klanten van andere mensen bekijken; een
   // Coach ziet hier — anders dan bij leads/pipeline/funnel — altijd enkel
   // zijn eigen klanten, nooit die van zijn medewerkers.
@@ -147,17 +145,10 @@ export default async function KlantenPage({
       becameCustomerTo: to ? new Date(`${to}T23:59:59.999`) : undefined,
       sortBy,
     }),
-    getCustomerStats(
-      monthPeriod,
-      {
-        startDate: new Date(`${yearPeriodInput.startDate}T00:00:00`),
-        endDate: new Date(`${yearPeriodInput.endDate}T23:59:59.999`),
-      },
-      {
-        ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
-        ownerIds: selectedOwnerIds,
-      }
-    ),
+    getCustomerStats(monthPeriod, yearPeriod, {
+      ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
+      ownerIds: selectedOwnerIds,
+    }),
   ]);
 
   const monthlyPremiumTotal = customers.reduce(
@@ -208,7 +199,7 @@ export default async function KlantenPage({
           value={stats.newThisYear.toLocaleString("nl-BE")}
           icon={CalendarRange}
           color="bg-purple-100 text-purple-700"
-          hint={`${yearPeriodInput.startDate} – ${yearPeriodInput.endDate}`}
+          hint={`${formatDate(yearPeriod.startDate)} – ${formatDate(yearPeriod.endDate)}`}
         />
         <StatCard
           label="Totaal maandelijks incasso"
@@ -217,44 +208,6 @@ export default async function KlantenPage({
           color="bg-amber-100 text-amber-700"
         />
       </div>
-
-      {canManageYearPeriod && (
-        <form
-          action={setCustomerYearPeriodAction}
-          className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4"
-        >
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-slate-700">
-              "Dit jaar" begint op
-            </span>
-            <input
-              type="date"
-              name="yearPeriodStart"
-              defaultValue={yearPeriodInput.startDate}
-              required
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-slate-700">
-              "Dit jaar" eindigt op
-            </span>
-            <input
-              type="date"
-              name="yearPeriodEnd"
-              defaultValue={yearPeriodInput.endDate}
-              required
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </label>
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            Periode toepassen
-          </button>
-        </form>
-      )}
 
       {ownerSwitcher}
 

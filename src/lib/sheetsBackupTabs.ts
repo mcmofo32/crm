@@ -439,20 +439,12 @@ const settingsTab: SheetsBackupTab = {
   name: "Instellingen",
   headers: ["Instelling", "Begin", "Eind"],
   fetchRows: async () => {
-    const [goalPeriod, customerYearPeriod] = await Promise.all([
-      prisma.goalPeriod.findFirst({ orderBy: { updatedAt: "desc" } }),
-      prisma.customerYearPeriod.findFirst({ orderBy: { updatedAt: "desc" } }),
-    ]);
+    const goalPeriod = await prisma.goalPeriod.findFirst({
+      orderBy: { updatedAt: "desc" },
+    });
     const rows: (string | number | null)[][] = [];
     if (goalPeriod) {
       rows.push(["Wekelijkse doelperiode", fmtDate(goalPeriod.startDate), fmtDate(goalPeriod.endDate)]);
-    }
-    if (customerYearPeriod) {
-      rows.push([
-        "Klanten-jaarperiode",
-        fmtDate(customerYearPeriod.startDate),
-        fmtDate(customerYearPeriod.endDate),
-      ]);
     }
     return rows;
   },
