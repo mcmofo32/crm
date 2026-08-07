@@ -18,7 +18,7 @@ import {
   INSURANCE_COMPANY_ORDER,
   POLICY_STATUS_LABELS,
   POLICY_STATUS_ORDER,
-  POLICY_STATUS_CLASSES,
+  POLICY_STATUS_COLORS,
 } from "@/lib/policyLabels";
 import { InlineSelect } from "@/components/InlineSelect";
 import { InlineCheckbox } from "@/components/InlineCheckbox";
@@ -41,6 +41,7 @@ function toDateInputValue(date: Date | null) {
 const STATUS_OPTIONS = POLICY_STATUS_ORDER.map((status) => ({
   value: status,
   label: POLICY_STATUS_LABELS[status],
+  style: POLICY_STATUS_COLORS[status],
 }));
 
 const COMPANY_OPTIONS = [
@@ -218,7 +219,8 @@ export default async function PolissenPage({
                     name="status"
                     value={p.status}
                     options={STATUS_OPTIONS}
-                    className={`w-44 rounded-md border-0 px-2 py-1.5 text-sm font-medium ${POLICY_STATUS_CLASSES[p.status]}`}
+                    className="w-44 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                    style={POLICY_STATUS_COLORS[p.status]}
                   />
                 </td>
                 <td className="px-2 py-2 text-center">

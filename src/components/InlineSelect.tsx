@@ -9,12 +9,15 @@ export function InlineSelect({
   value,
   options,
   className,
+  style,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   name: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; style?: React.CSSProperties }[];
   className?: string;
+  /** Kleurt de select zelf (bv. de kleur van de huidige status), los van de kleur per option. */
+  style?: React.CSSProperties;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -34,9 +37,10 @@ export function InlineSelect({
         className ??
         "rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
       }
+      style={style}
     >
       {options.map((option) => (
-        <option key={option.value} value={option.value}>
+        <option key={option.value} value={option.value} style={option.style}>
           {option.label}
         </option>
       ))}

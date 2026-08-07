@@ -39,15 +39,23 @@ export const POLICY_STATUS_ORDER: PolicyStatus[] = [
   "AFWACHTEND_EERSTE_PREMIE",
 ];
 
-/** Tailwind-klassen die zo dicht mogelijk de kleurcodering van de oorspronkelijke Excel benaderen. */
-export const POLICY_STATUS_CLASSES: Record<PolicyStatus, string> = {
-  OPGELADEN_WACHT_ACTIEF: "bg-orange-100 text-orange-800",
-  ACTIEF: "bg-green-100 text-green-800",
-  UITBETAALD: "bg-green-700 text-white",
-  GEANNULEERD: "bg-red-600 text-white",
-  BACKOFFICE: "bg-purple-700 text-white",
-  POLIS_NOG_TEKENEN: "bg-yellow-700 text-white",
-  PROBLEEM_DOCUMENTEN: "bg-slate-800 text-white",
-  POLIS_NOG_OPMAKEN: "bg-sky-200 text-sky-900",
-  AFWACHTEND_EERSTE_PREMIE: "bg-pink-300 text-pink-900",
+/**
+ * Hex-kleuren (niet Tailwind-klassen) die zo dicht mogelijk de kleurcodering
+ * van de oorspronkelijke Excel benaderen. Als inline `style` toegepast, ook
+ * per `<option>` — Tailwind-klassen op een `<option>` worden door de meeste
+ * browsers genegeerd in de opengeklapte lijst, inline `style` wel gebruikt.
+ */
+export const POLICY_STATUS_COLORS: Record<
+  PolicyStatus,
+  { background: string; color: string }
+> = {
+  OPGELADEN_WACHT_ACTIEF: { background: "#fed7aa", color: "#9a3412" },
+  ACTIEF: { background: "#bbf7d0", color: "#166534" },
+  UITBETAALD: { background: "#15803d", color: "#ffffff" },
+  GEANNULEERD: { background: "#dc2626", color: "#ffffff" },
+  BACKOFFICE: { background: "#7e22ce", color: "#ffffff" },
+  POLIS_NOG_TEKENEN: { background: "#a16207", color: "#ffffff" },
+  PROBLEEM_DOCUMENTEN: { background: "#1e293b", color: "#ffffff" },
+  POLIS_NOG_OPMAKEN: { background: "#bae6fd", color: "#0c4a6e" },
+  AFWACHTEND_EERSTE_PREMIE: { background: "#f9a8d4", color: "#831843" },
 };
