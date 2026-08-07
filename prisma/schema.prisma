@@ -143,11 +143,6 @@ model User {
   /// Analyst (standaard) of subagent; subagenten krijgen een icoon op het organigram.
   agentType AgentType @default(ANALYST)
 
-  /// Puur visueel: toont deze gebruiker in het organigram bovenaan, los van
-  /// en boven de echte team-structuur (die blijft uitsluitend bepaald door
-  /// Team.coachId/teamId). Wijzigt niets aan rechten of zichtbaarheid.
-  featuredInOrgChart Boolean @default(false)
-
   leadsOwned        Lead[]            @relation("LeadOwner")
   leadsCreated      Lead[]            @relation("LeadCreatedBy")
   leadsDeleted      Lead[]            @relation("LeadDeletedBy")

@@ -21,8 +21,15 @@ type Person = {
   jobFunction: JobFunction | null;
   agentType: AgentType;
   avatarUpdatedAt: Date | null;
-  featuredInOrgChart: boolean;
+  email: string | null;
 };
+
+/**
+ * Wie hier staat wordt altijd bovenaan het organigram getoond, los van en
+ * boven de echte team-structuur — puur visueel, geen vinkje/instelling
+ * nodig. Bewust vast in code i.p.v. een admin-toggle, op expliciet verzoek.
+ */
+const ALWAYS_FEATURED_EMAILS = ["thibault@ackeconsulting.com"];
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -48,7 +55,7 @@ async function requireViewer() {
  * rechtstreeks zijn eigen ouder op.
  *
  * `featured` is volledig los van deze boom: puur visuele markering
- * (User.featuredInOrgChart) om iemand bovenaan het organigram te tonen,
+ * (ALWAYS_FEATURED_EMAILS) om iemand bovenaan het organigram te tonen,
  * zonder de echte structuur of rechten aan te raken. Wie featured is,
  * blijft ook gewoon op zijn eigen plek in `roots` staan.
  */
@@ -67,7 +74,7 @@ export async function getFullOrgChart(): Promise<{
       jobFunction: true,
       agentType: true,
       avatarUpdatedAt: true,
-      featuredInOrgChart: true,
+      email: true,
       team: { select: { coachId: true } },
     },
     orderBy: { name: "asc" },
@@ -132,7 +139,7 @@ export async function getFullOrgChart(): Promise<{
     });
 
   const featured = users
-    .filter((u) => u.featuredInOrgChart)
+    .filter((u) => u.email && ALWAYS_FEATURED_EMAILS.includes(u.email))
     .map((u) => ({
       id: u.id,
       name: u.name,

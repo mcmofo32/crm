@@ -264,7 +264,6 @@ export async function updateUserAction(
     const teamId = (formData.get("teamId") as string) || null;
     const jobFunction = parseJobFunction(formData.get("jobFunction"));
     const agentType = parseAgentType(formData.get("agentType"));
-    const featuredInOrgChart = formData.get("featuredInOrgChart") === "on";
 
     if (!name || !email) {
       throw new Error("Naam en e-mail zijn verplicht");
@@ -288,7 +287,6 @@ export async function updateUserAction(
         role,
         jobFunction,
         agentType,
-        featuredInOrgChart,
         // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
         // iedereen ergens in de organigram-structuur kan hangen.
         teamId,
