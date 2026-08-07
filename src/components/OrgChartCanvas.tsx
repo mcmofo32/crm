@@ -56,6 +56,44 @@ function flatten(p: PositionedNode, acc: PositionedNode[] = []) {
   return acc;
 }
 
+function shiftY(p: PositionedNode, dy: number): PositionedNode {
+  return { node: p.node, x: p.x, y: p.y + dy, children: p.children.map((c) => shiftY(c, dy)) };
+}
+
+const FEATURED_ROW_HEIGHT = NODE_HEIGHT + V_GAP;
+
+/**
+ * Voegt `featured` toe als een extra rij bovenaan, gecentreerd boven de
+ * bestaande roots en verbonden met dezelfde lijnstijl — in hetzelfde
+ * coördinatenstelsel als de rest van de boom, zodat het altijd exact
+ * uitlijnt en mee scrollt/zoomt. Verandert niets aan de echte boom zelf.
+ */
+function layoutWithFeatured(roots: OrgNode[], featured: OrgNode[]) {
+  const base = layout(roots);
+  if (featured.length === 0) {
+    return { positioned: base.positioned, width: base.width, height: base.height, featuredPositioned: [] as { node: OrgNode; x: number; y: number }[] };
+  }
+
+  const positioned = base.positioned.map((p) => shiftY(p, FEATURED_ROW_HEIGHT));
+  const minX = Math.min(...positioned.map((p) => p.x));
+  const maxX = Math.max(...positioned.map((p) => p.x + NODE_WIDTH));
+  const centerX = (minX + maxX) / 2;
+  const rowWidth = featured.length * NODE_WIDTH + (featured.length - 1) * H_GAP;
+  const startX = centerX - rowWidth / 2;
+  const featuredPositioned = featured.map((node, i) => ({
+    node,
+    x: startX + i * (NODE_WIDTH + H_GAP),
+    y: 0,
+  }));
+
+  return {
+    positioned,
+    width: Math.max(base.width, rowWidth + PADDING * 2),
+    height: base.height + FEATURED_ROW_HEIGHT,
+    featuredPositioned,
+  };
+}
+
 function NodeCard({ node }: { node: OrgNode }) {
   return (
     <div className="relative flex w-full flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center shadow-sm">
@@ -109,7 +147,10 @@ export function OrgChartCanvas({
   const [scale, setScale] = useState(1);
   const [centered, setCentered] = useState(false);
 
-  const { positioned, width, height } = useMemo(() => layout(roots), [roots]);
+  const { positioned, width, height, featuredPositioned } = useMemo(
+    () => layoutWithFeatured(roots, featured),
+    [roots, featured]
+  );
   const allNodes = useMemo(
     () => positioned.flatMap((p) => flatten(p)),
     [positioned]
@@ -133,18 +174,6 @@ export function OrgChartCanvas({
 
   return (
     <div className="flex flex-col gap-2">
-      {featured.length > 0 && (
-        <div className="flex flex-col items-center gap-3 pb-2">
-          <div className="flex flex-wrap justify-center gap-4">
-            {featured.map((node) => (
-              <div key={node.id} style={{ width: NODE_WIDTH }}>
-                <NodeCard node={node} />
-              </div>
-            ))}
-          </div>
-          <div className="h-px w-full max-w-2xl bg-slate-300" />
-        </div>
-      )}
       <div className="flex items-center justify-end gap-1.5">
         <button
           type="button"
@@ -219,7 +248,38 @@ export function OrgChartCanvas({
                   );
                 })
               )}
+              {featuredPositioned.flatMap((f) =>
+                positioned.map((rootP) => {
+                  const startX = f.x + NODE_WIDTH / 2 + PADDING;
+                  const startY = f.y + NODE_HEIGHT + PADDING;
+                  const endX = rootP.x + NODE_WIDTH / 2 + PADDING;
+                  const endY = rootP.y + PADDING;
+                  const midY = startY + (endY - startY) / 2;
+                  return (
+                    <path
+                      key={`featured-${f.node.id}-${rootP.node.id}`}
+                      d={`M ${startX} ${startY} V ${midY} H ${endX} V ${endY}`}
+                      fill="none"
+                      stroke="#cbd5e1"
+                      strokeWidth={2}
+                    />
+                  );
+                })
+              )}
             </svg>
+            {featuredPositioned.map((f) => (
+              <div
+                key={f.node.id}
+                style={{
+                  position: "absolute",
+                  left: f.x + PADDING,
+                  top: f.y + PADDING,
+                  width: NODE_WIDTH,
+                }}
+              >
+                <NodeCard node={f.node} />
+              </div>
+            ))}
             {allNodes.map((p) => (
               <div
                 key={p.node.id}
