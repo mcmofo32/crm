@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Server Action-requests zijn standaard beperkt tot 1 MB — ruim onder de
+  // 4 MB (profielfoto) en 8 MB (incentive-poster) die de app zelf toestaat,
+  // waardoor een normale foto-upload al mislukte nog vóór onze eigen
+  // grootte-check ooit liep. Met marge voor multipart-overhead ingesteld op
+  // de grootste upload (poster) + ruimte.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   async headers() {
     return [
       {
