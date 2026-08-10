@@ -39,15 +39,18 @@ export async function getProductionStructureOptions(): Promise<
   const viewer = await requireViewer();
   if (!canManageUsers(viewer)) return [];
 
-  const coaches = await prisma.user.findMany({
-    where: { role: Role.COACH, active: true },
-    select: { id: true, name: true, coachedTeam: { select: { name: true } } },
+  // Een team-"coach" kan om het even welke rol hebben — ook Admin/Beheerder
+  // (bv. de eigenaar die zelf bovenaan de structuur staat) — dus filteren op
+  // Team i.p.v. op User met role COACH, anders vallen die teams hier weg.
+  const teams = await prisma.team.findMany({
+    where: { coach: { active: true } },
+    select: { name: true, coach: { select: { id: true, name: true } } },
     orderBy: { name: "asc" },
   });
 
-  return coaches.map((c) => ({
-    id: c.id,
-    label: c.coachedTeam ? `${c.coachedTeam.name} (${c.name})` : c.name,
+  return teams.map((t) => ({
+    id: t.coach.id,
+    label: `${t.name} (${t.coach.name})`,
   }));
 }
 
