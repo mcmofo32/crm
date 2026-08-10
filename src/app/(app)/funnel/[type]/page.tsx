@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Plus, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData } from "@/lib/permissions";
@@ -148,17 +147,10 @@ export default async function FunnelPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-3xl font-semibold text-slate-900">
-          {LEAD_TYPE_LABELS[leadType]} — funnel
+          {leadType} Funnel
         </h1>
-        <Link
-          href={`/leads/new?type=${leadType}`}
-          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
-        >
-          <Plus size={17} />
-          Nieuwe lead
-        </Link>
       </div>
 
       {ownerSwitcher}

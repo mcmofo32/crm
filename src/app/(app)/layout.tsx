@@ -52,8 +52,8 @@ export default async function AppLayout({
       href: "/funnel/FA",
       label: "Funnel",
       children: [
-        { href: "/funnel/FA", label: "Funnel FA" },
-        { href: "/funnel/RG", label: "Funnel RG" },
+        { href: "/funnel/FA", label: "FA Funnel" },
+        { href: "/funnel/RG", label: "RG Funnel" },
       ],
     },
     { href: "/klanten", label: "Klanten" },
