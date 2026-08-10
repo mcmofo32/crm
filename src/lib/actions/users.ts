@@ -330,7 +330,7 @@ export async function updateUserAction(
   }
 }
 
-/** Hoeveel klanten/leads deze gebruiker nog bezit/beheert — bepaalt of het verwijderformulier een nieuwe eigenaar vereist. */
+/** Hoeveel klanten/leads deze gebruiker nog bezit/beheert — getoond op het verwijderformulier, waar overzetten optioneel is. */
 export async function getUserDeletionImpact(userId: string) {
   await requireUserManager();
   const [ownedLeadsCount, caseManagedLeadsCount, coachedTeam] = await Promise.all([
@@ -360,7 +360,9 @@ export async function getReassignableUsers(excludeUserId: string) {
  * die ernaar verwijst (activiteiten, audit log, ...) blijven gewoon bestaan,
  * maar de gebruiker kan niet meer inloggen en verdwijnt uit alle
  * keuzelijsten. Klanten/leads die deze gebruiker nog bezat of als
- * dossierbeheerder had, worden verplicht overgezet naar `newOwnerId`.
+ * dossierbeheerder had, worden — indien `newOwnerId` meegegeven wordt —
+ * overgezet; dat is optioneel, want de leads zelf blijven hoe dan ook
+ * gewoon in de database bestaan (enkel bij de verwijderde gebruiker).
  */
 export async function deleteUserAction(userId: string, newOwnerId: string | null) {
   const actor = await requireUserManager();
@@ -382,25 +384,8 @@ export async function deleteUserAction(userId: string, newOwnerId: string | null
     );
   }
 
-  const [ownedLeads, caseManagedLeads] = await Promise.all([
-    prisma.lead.findMany({
-      where: { ownerId: userId, deletedAt: null },
-      select: { id: true },
-    }),
-    prisma.lead.findMany({
-      where: { caseManagerUserId: userId, deletedAt: null },
-      select: { id: true },
-    }),
-  ]);
-  const hasLeads = ownedLeads.length > 0 || caseManagedLeads.length > 0;
-
   let newOwner = null;
-  if (hasLeads) {
-    if (!newOwnerId) {
-      throw new Error(
-        "Deze gebruiker heeft nog klanten/leads — kies naar wie deze overgezet moeten worden."
-      );
-    }
+  if (newOwnerId) {
     if (newOwnerId === userId) {
       throw new Error("Kies een andere gebruiker om de klanten aan over te dragen.");
     }
@@ -409,6 +394,19 @@ export async function deleteUserAction(userId: string, newOwnerId: string | null
       throw new Error("Gekozen nieuwe eigenaar niet gevonden");
     }
   }
+
+  const [ownedLeads, caseManagedLeads] = newOwnerId
+    ? await Promise.all([
+        prisma.lead.findMany({
+          where: { ownerId: userId, deletedAt: null },
+          select: { id: true },
+        }),
+        prisma.lead.findMany({
+          where: { caseManagerUserId: userId, deletedAt: null },
+          select: { id: true },
+        }),
+      ])
+    : [[], []];
 
   await prisma.$transaction([
     ...(ownedLeads.length > 0
@@ -440,8 +438,8 @@ export async function deleteUserAction(userId: string, newOwnerId: string | null
     action: "user.deleted",
     entityType: "User",
     entityId: target.id,
-    description: hasLeads
-      ? `Gebruiker "${target.name}" verwijderd — ${ownedLeads.length} eigen lead(en) en ${caseManagedLeads.length} dossier(s) overgezet naar "${newOwner!.name}"`
+    description: newOwner
+      ? `Gebruiker "${target.name}" verwijderd — ${ownedLeads.length} eigen lead(en) en ${caseManagedLeads.length} dossier(s) overgezet naar "${newOwner.name}"`
       : `Gebruiker "${target.name}" verwijderd`,
   });
 

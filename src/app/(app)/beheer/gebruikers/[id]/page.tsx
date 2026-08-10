@@ -244,7 +244,8 @@ export default async function EditUserPage({
               <p className="mb-3 text-sm text-red-800">
                 Het account kan nadien niet meer inloggen en verdwijnt uit
                 alle keuzelijsten. Alle bestaande historiek (activiteiten,
-                logboek, ...) blijft gewoon bewaard.
+                logboek, klanten/leads, ...) blijft gewoon bewaard, ook als
+                je de klanten hieronder niet overzet naar een collega.
               </p>
               <DeleteUserButton
                 userId={target.id}

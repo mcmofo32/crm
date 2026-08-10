@@ -22,10 +22,10 @@ export function DeleteUserButton({
   const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const needsReassign = leadsCount > 0;
+  const hasLeads = leadsCount > 0;
   const nameMatches =
     confirmText.trim().toLowerCase() === userName.trim().toLowerCase();
-  const canSubmit = nameMatches && (!needsReassign || newOwnerId);
+  const canSubmit = nameMatches;
 
   function handleClick() {
     if (!canSubmit) return;
@@ -39,7 +39,7 @@ export function DeleteUserButton({
     setError(null);
     startTransition(async () => {
       try {
-        await deleteUserAction(userId, needsReassign ? newOwnerId : null);
+        await deleteUserAction(userId, newOwnerId || null);
         router.push("/beheer/gebruikers");
         router.refresh();
       } catch (err) {
@@ -52,19 +52,20 @@ export function DeleteUserButton({
 
   return (
     <div className="flex flex-col gap-3">
-      {needsReassign && (
+      {hasLeads && (
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-red-900">
             Deze gebruiker heeft nog {leadsCount}{" "}
-            {leadsCount === 1 ? "klant/lead" : "klanten/leads"}. Zet deze
-            over naar:
+            {leadsCount === 1 ? "klant/lead" : "klanten/leads"}. Optioneel:
+            zet deze over naar — laat leeg om ze gewoon bij dit
+            (verwijderde) profiel te laten staan.
           </label>
           <select
             value={newOwnerId}
             onChange={(e) => setNewOwnerId(e.target.value)}
             className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm"
           >
-            <option value="">Kies een gebruiker...</option>
+            <option value="">Niet overzetten</option>
             {reassignableUsers.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
