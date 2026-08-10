@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canManageUsers } from "@/lib/permissions";
+import { canManageUsers, getDescendantUserIds } from "@/lib/permissions";
 import { GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
 import {
   GOAL_METRIC_ORDER,
@@ -23,6 +23,58 @@ async function requireGoalManager() {
     throw new Error("Je hebt geen rechten om doelen te beheren");
   }
   return viewer;
+}
+
+export type ProductionStructureOption = { id: string; label: string };
+
+/**
+ * Elke Coach is de wortel van een substructuur (zichzelf + iedereen die
+ * rechtstreeks of onrechtstreeks aan hem rapporteert). Admin/Beheerder
+ * kunnen op Cijfers/Productie zo'n substructuur kiezen om enkel die groep
+ * te zien i.p.v. het hele bedrijf.
+ */
+export async function getProductionStructureOptions(): Promise<
+  ProductionStructureOption[]
+> {
+  const viewer = await requireViewer();
+  if (!canManageUsers(viewer)) return [];
+
+  const coaches = await prisma.user.findMany({
+    where: { role: Role.COACH, active: true },
+    select: { id: true, name: true, coachedTeam: { select: { name: true } } },
+    orderBy: { name: "asc" },
+  });
+
+  return coaches.map((c) => ({
+    id: c.id,
+    label: c.coachedTeam ? `${c.coachedTeam.name} (${c.name})` : c.name,
+  }));
+}
+
+/**
+ * Bepaalt welke gebruikers meetellen op Cijfers/Productie:
+ * - Coach: altijd verplicht beperkt tot zichzelf + zijn hele substructuur
+ *   (ook onderliggende teams van sub-coaches).
+ * - Admin/Beheerder: standaard iedereen (`null`), tenzij ze een specifieke
+ *   substructuur (`structureId`, het id van een Coach) kozen.
+ * - Gewone User: geen beperking — de ranglijst is bedoeld als
+ *   bedrijfsbreed, gedeeld overzicht.
+ * `null` betekent: geen filter (iedereen).
+ */
+export async function resolveProductionUserIds(
+  structureId?: string
+): Promise<string[] | null> {
+  const viewer = await requireViewer();
+
+  if (viewer.role === Role.COACH) {
+    const descendants = await getDescendantUserIds(viewer.id);
+    return [viewer.id, ...descendants];
+  }
+
+  if (!canManageUsers(viewer) || !structureId) return null;
+
+  const descendants = await getDescendantUserIds(structureId);
+  return [structureId, ...descendants];
 }
 
 function monthRange(year: number, month: number) {
@@ -129,7 +181,9 @@ export type ProductionRow = {
 
 export async function getProductionLeaderboard(
   year: number,
-  month: number
+  month: number,
+  /** Beperkt de ranglijst tot deze gebruikers (bv. een gekozen substructuur) — `null`/weggelaten = iedereen. */
+  scopeUserIds?: string[] | null
 ): Promise<ProductionRow[]> {
   await requireViewer();
   const { start, end } = await getProductionMonthRange(year, month);
@@ -139,7 +193,7 @@ export async function getProductionLeaderboard(
   const week = currentWeekRange();
 
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: { active: true, ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}) },
     select: {
       id: true,
       name: true,
@@ -279,7 +333,10 @@ export async function getCurrentConversationsContext() {
  * verdeeld over het aantal weken dat die productiemaand beslaat — zo weet
  * je hoeveel je die week effectief moet inplannen.
  */
-export async function getConversationsLeaderboard(): Promise<ConversationsRow[]> {
+export async function getConversationsLeaderboard(
+  /** Beperkt de ranglijst tot deze gebruikers (bv. een gekozen substructuur) — `null`/weggelaten = iedereen. */
+  scopeUserIds?: string[] | null
+): Promise<ConversationsRow[]> {
   await requireViewer();
   const week = currentWeekRange();
   const { year, month } = await getCurrentProductionMonth();
@@ -290,7 +347,7 @@ export async function getConversationsLeaderboard(): Promise<ConversationsRow[]>
   const weeks = weeksInRange(monthStart, monthEnd);
 
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: { active: true, ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}) },
     select: {
       id: true,
       name: true,

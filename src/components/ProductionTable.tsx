@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { InlineTextField } from "@/components/InlineTextField";
-import { Position, percentColor } from "@/components/ProductionShared";
+import { Position, PercentBadge } from "@/components/ProductionShared";
 import type { ProductionRow } from "@/lib/actions/production";
 
 export type ProductionTableRow = ProductionRow & {
@@ -61,7 +61,10 @@ export function ProductionTable({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div
+        id="cijfers-export-tabel"
+        className="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+      >
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
@@ -125,10 +128,8 @@ export function ProductionTable({
                     row.actualCustomers
                   )}
                 </td>
-                <td
-                  className={`px-3 py-2.5 text-center font-medium ${percentColor(row.percentCustomers)}`}
-                >
-                  {row.percentCustomers === null ? "—" : `${row.percentCustomers}%`}
+                <td className="px-3 py-2.5 text-center">
+                  <PercentBadge percent={row.percentCustomers} />
                 </td>
                 <td className="px-3 py-2.5 text-center text-slate-600">
                   {showInputs ? (
@@ -160,10 +161,8 @@ export function ProductionTable({
                     row.actualUnits
                   )}
                 </td>
-                <td
-                  className={`px-3 py-2.5 text-center font-medium ${percentColor(row.percentUnits)}`}
-                >
-                  {row.percentUnits === null ? "—" : `${row.percentUnits}%`}
+                <td className="px-3 py-2.5 text-center">
+                  <PercentBadge percent={row.percentUnits} />
                 </td>
                 <td className="px-3 py-2.5 text-center text-slate-600">
                   {row.conversationsPerWeek}
@@ -187,12 +186,12 @@ export function ProductionTable({
                 <td className="px-3 py-2.5 text-center">{totalTargetCustomers}</td>
                 <td className="px-3 py-2.5 text-center">{totalActualCustomers}</td>
                 <td className="px-3 py-2.5 text-center">
-                  {totalPercentCustomers === null ? "—" : `${totalPercentCustomers}%`}
+                  <PercentBadge percent={totalPercentCustomers} />
                 </td>
                 <td className="px-3 py-2.5 text-center">{totalTargetUnits}</td>
                 <td className="px-3 py-2.5 text-center">{totalActualUnits}</td>
                 <td className="px-3 py-2.5 text-center">
-                  {totalPercentUnits === null ? "—" : `${totalPercentUnits}%`}
+                  <PercentBadge percent={totalPercentUnits} />
                 </td>
                 <td className="px-3 py-2.5 text-center">{totalConversationsPerWeek}</td>
               </tr>

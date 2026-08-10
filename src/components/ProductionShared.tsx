@@ -12,6 +12,25 @@ export function percentColor(percent: number | null) {
   return "text-red-600";
 }
 
+/** Gekleurde pil-achtergrond voor een percentage — levendiger dan enkel gekleurde tekst, fijn voor export/screenshots. */
+export function percentBadgeStyle(percent: number | null): React.CSSProperties {
+  if (percent === null) return { background: "#f1f5f9", color: "#64748b" };
+  if (percent >= 100) return { background: "#bbf7d0", color: "#166534" };
+  if (percent >= 60) return { background: "#fed7aa", color: "#9a3412" };
+  return { background: "#fecaca", color: "#991b1b" };
+}
+
+export function PercentBadge({ percent }: { percent: number | null }) {
+  return (
+    <span
+      className="inline-flex min-w-14 items-center justify-center rounded-full px-2.5 py-1 text-sm font-semibold"
+      style={percentBadgeStyle(percent)}
+    >
+      {percent === null ? "—" : `${percent}%`}
+    </span>
+  );
+}
+
 export function Position({ position }: { position: number }) {
   return (
     <span
