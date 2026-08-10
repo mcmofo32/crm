@@ -183,6 +183,7 @@ export default async function ProductiePage({
           </div>
 
           <ProductionTable
+            key={`${year}-${month}`}
             rows={productionRows.map((row) => ({
               ...row,
               setCustomersGoal: setUserMonthlyGoalAction.bind(

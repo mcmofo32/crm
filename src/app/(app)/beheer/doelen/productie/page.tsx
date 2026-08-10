@@ -55,7 +55,7 @@ export default async function ProductieDoelenPage({
           </Link>
         </div>
 
-        <form action={boundSaveDates} className="flex flex-col gap-3">
+        <form key={year} action={boundSaveDates} className="flex flex-col gap-3">
           <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-500">

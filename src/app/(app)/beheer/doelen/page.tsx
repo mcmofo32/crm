@@ -73,7 +73,11 @@ export default async function DoelenPage({
         </Link>
       </div>
 
-      <form action={boundSaveGoals} className="flex flex-col gap-3">
+      <form
+        key={`${year}-${month}`}
+        action={boundSaveGoals}
+        className="flex flex-col gap-3"
+      >
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-slate-500">
