@@ -221,6 +221,9 @@ export default async function LeadDetailPage({
                             >
                               {ACTIVITY_STATUS_LABELS[activity.status]}
                             </Badge>
+                            {activity.wasVoicemail && (
+                              <Badge variant="amber">Voicemail</Badge>
+                            )}
                           </div>
                           <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
                             <Avatar name={activity.assignee.name} size="sm" />

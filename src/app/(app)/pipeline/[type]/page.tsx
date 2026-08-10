@@ -117,7 +117,7 @@ export default async function PipelinePage({
           </p>
         </div>
         <Link
-          href="/leads/new"
+          href={`/leads/new?type=${leadType}`}
           className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
         >
           <Plus size={17} />
@@ -138,7 +138,7 @@ export default async function PipelinePage({
           label="Te contacteren"
           value={stats.teContacteren}
           icon={Phone}
-          color="bg-slate-100 text-slate-700"
+          color="bg-green-100 text-green-700"
         />
         <StatCard
           label="Voicemail"

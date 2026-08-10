@@ -6,6 +6,7 @@ import {
   getFunnelStagesForFilter,
   getAssignableUsers,
   type LeadContactFilter,
+  type LeadCategoryFilter,
   type LeadSortOption,
 } from "@/lib/actions/leads";
 import { canDeleteLeads } from "@/lib/permissions";
@@ -34,9 +35,10 @@ export default async function LeadsPage({
     ownerId?: string;
     contact?: string;
     sort?: string;
+    view?: string;
   }>;
 }) {
-  const { type, q, stageId, ownerId, contact, sort } = await searchParams;
+  const { type, q, stageId, ownerId, contact, sort, view } = await searchParams;
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
   const contactFilter =
@@ -44,6 +46,10 @@ export default async function LeadsPage({
       ? (contact as LeadContactFilter)
       : undefined;
   const sortBy = sort === "stale" ? ("stale" as LeadSortOption) : undefined;
+  const category =
+    view === "open" || view === "ingepland" || view === "geen_interesse"
+      ? (view as LeadCategoryFilter)
+      : undefined;
 
   const viewer = (await getEffectiveViewer())!;
   const canDelete = canDeleteLeads(viewer);
@@ -72,6 +78,20 @@ export default async function LeadsPage({
     if (stageId) params.set("stageId", stageId);
     if (contact) params.set("contact", contact);
     if (sort) params.set("sort", sort);
+    if (category) params.set("view", category);
+    const qs = params.toString();
+    return qs ? `/leads?${qs}` : "/leads";
+  }
+
+  function categoryHref(c: "ALLE" | LeadCategoryFilter) {
+    const params = new URLSearchParams();
+    if (leadType) params.set("type", leadType);
+    if (q) params.set("q", q);
+    if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
+    if (stageId) params.set("stageId", stageId);
+    if (contact) params.set("contact", contact);
+    if (sort) params.set("sort", sort);
+    if (c !== "ALLE") params.set("view", c);
     const qs = params.toString();
     return qs ? `/leads?${qs}` : "/leads";
   }
@@ -83,6 +103,7 @@ export default async function LeadsPage({
     >
       {leadType && <input type="hidden" name="type" value={leadType} />}
       {q && <input type="hidden" name="q" value={q} />}
+      {category && <input type="hidden" name="view" value={category} />}
       <Users size={17} className="text-slate-400" />
       <label className="text-sm text-slate-600">Bekijk leads van:</label>
       <select
@@ -111,6 +132,7 @@ export default async function LeadsPage({
     ownerId: isTeamView ? undefined : selectedOwnerId,
     ownerIds: isTeamView ? assignableUsers.map((u) => u.id) : undefined,
     contactFilter,
+    category,
     sortBy,
   });
 
@@ -128,6 +150,7 @@ export default async function LeadsPage({
     if (leadType) params.set("type", leadType);
     if (q) params.set("q", q);
     if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
+    if (category) params.set("view", category);
     const qs = params.toString();
     return qs ? `/leads?${qs}` : "/leads";
   }
@@ -156,7 +179,7 @@ export default async function LeadsPage({
             Bulk toevoegen
           </Link>
           <Link
-            href="/leads/new"
+            href={`/leads/new${leadType ? `?type=${leadType}` : ""}`}
             className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
           >
             <Plus size={17} />
@@ -166,6 +189,29 @@ export default async function LeadsPage({
       </div>
 
       {ownerSwitcher}
+
+      <div className="flex gap-2 text-sm">
+        {(
+          [
+            ["ALLE", "Alle leads"],
+            ["open", "Open leads"],
+            ["ingepland", "Ingepland"],
+            ["geen_interesse", "Geen interesse"],
+          ] as const
+        ).map(([c, label]) => (
+          <Link
+            key={c}
+            href={categoryHref(c)}
+            className={`rounded-full px-4 py-1.5 font-medium ${
+              (c === "ALLE" && !category) || c === category
+                ? "bg-slate-700 text-white"
+                : "bg-white text-slate-600 border border-slate-200"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2 text-base">
@@ -186,6 +232,7 @@ export default async function LeadsPage({
 
         <form method="GET" className="flex flex-wrap items-center gap-2">
           {leadType && <input type="hidden" name="type" value={leadType} />}
+          {category && <input type="hidden" name="view" value={category} />}
           {selectedOwnerId && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
@@ -364,7 +411,7 @@ export default async function LeadsPage({
                   }
                   className="px-6 py-8 text-center text-slate-400"
                 >
-                  {filtersActive || q
+                  {filtersActive || q || category
                     ? "Geen leads gevonden voor deze filters."
                     : "Nog geen leads."}
                 </td>

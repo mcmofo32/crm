@@ -424,6 +424,12 @@ export async function getDeletedLeads() {
 
 export type LeadContactFilter = "none" | "overdue";
 export type LeadSortOption = "recent" | "stale";
+/**
+ * Categoriseert leads op het leadsoverzicht, zodat een lange lijst
+ * overzichtelijk blijft: "open" = nog niet gewonnen/verloren, "ingepland" =
+ * heeft een toekomstige geplande activiteit, "geen_interesse" = status LOST.
+ */
+export type LeadCategoryFilter = "open" | "ingepland" | "geen_interesse";
 
 export async function getLeadsForCurrentUser(
   leadType?: LeadType,
@@ -434,6 +440,7 @@ export async function getLeadsForCurrentUser(
     /** Toont leads van al deze eigenaars samen (bv. "heel mijn team" voor een Coach). */
     ownerIds?: string[];
     contactFilter?: LeadContactFilter;
+    category?: LeadCategoryFilter;
     sortBy?: LeadSortOption;
   }
 ) {
@@ -458,6 +465,11 @@ export async function getLeadsForCurrentUser(
         : {}),
       ...(options?.contactFilter === "overdue"
         ? { activities: { some: { status: "PLANNED", scheduledAt: { lt: now } } } }
+        : {}),
+      ...(options?.category === "open" ? { status: "OPEN" } : {}),
+      ...(options?.category === "geen_interesse" ? { status: "LOST" } : {}),
+      ...(options?.category === "ingepland"
+        ? { activities: { some: { status: "PLANNED", scheduledAt: { gte: now } } } }
         : {}),
       ...(trimmedSearch
         ? {
