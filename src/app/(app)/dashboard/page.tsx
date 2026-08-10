@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getVisibleUserIds } from "@/lib/permissions";
+import { getVisibleUserIds, canManageUsers } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { conversionBadgeVariant } from "@/lib/roleLabels";
 import {
@@ -21,13 +21,21 @@ import {
 } from "@/lib/actions/analytics";
 import { isBeheerder } from "@/lib/permissions";
 import { getYearlyKpiProgress } from "@/lib/actions/goals";
-import { getProductionMonthGoalProgress } from "@/lib/actions/production";
+import {
+  getProductionMonthGoalProgress,
+  getGroupProductionMonthGoalProgress,
+  getCurrentProductionMonth,
+  getProductionLeaderboard,
+  getConversationsLeaderboard,
+} from "@/lib/actions/production";
+import { getAssignableUsers } from "@/lib/actions/leads";
 import { getUnverifiedPastSeminars } from "@/lib/actions/events";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { Position } from "@/components/ProductionShared";
 
 const GOAL_ICONS: Record<string, LucideIcon> = {
   UNITS: Boxes,
@@ -73,31 +81,55 @@ export default async function DashboardPage({
   const leadWhere = { deletedAt: null, ...ownerWhere };
   const now = new Date();
   const currentYear = now.getFullYear();
+  // Groepsdoelen (totaal van het team/iedereen) enkel tonen aan wie ook
+  // effectief een groep heeft: Coach (zijn team), Admin/Beheerder (iedereen).
+  const showGroupGoals = canManageUsers(user) || user.role === Role.COACH;
+  const currentProductionMonth = await getCurrentProductionMonth();
 
   const [
     overdueTasks,
     productionGoals,
+    groupProductionGoals,
     yearlyKpis,
     teamOverview,
     allTeamOverviews,
     unverifiedSeminars,
     crossOwnerDuplicates,
+    productionRows,
+    conversationsRows,
   ] = await Promise.all([
     prisma.activity.count({
       where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
     }),
     getProductionMonthGoalProgress(user.id),
+    showGroupGoals
+      ? getAssignableUsers().then((users) =>
+          getGroupProductionMonthGoalProgress(users.map((u) => u.id))
+        )
+      : Promise.resolve(null),
     getYearlyKpiProgress(user.id, currentYear),
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
     isBeheerder(user) ? getAllTeamOverviews() : Promise.resolve(null),
     getUnverifiedPastSeminars(),
     getCrossOwnerDuplicateGroups(),
+    getProductionLeaderboard(currentProductionMonth.year, currentProductionMonth.month),
+    getConversationsLeaderboard(),
   ]);
 
   const activeTeam =
     allTeamOverviews?.find((t) => t.teamId === selectedTeamId) ??
     allTeamOverviews?.[0] ??
     null;
+
+  // Compact overzicht op het dashboard: top 5 op eenheden, met de
+  // Gesprekken-doel/percentage erbij gemengd zodat je in één klein tabelletje
+  // zowel Productie als Gesprekken ziet (net als de aparte tabbladen).
+  const conversationsByUserId = new Map(conversationsRows.map((r) => [r.id, r]));
+  const compactProductionRows = productionRows.slice(0, 5).map((row) => ({
+    ...row,
+    conversationsTarget: conversationsByUserId.get(row.id)?.target ?? 0,
+    conversationsPercent: conversationsByUserId.get(row.id)?.percent ?? null,
+  }));
 
   return (
     <div className="flex flex-col gap-10">
@@ -167,18 +199,23 @@ export default async function DashboardPage({
         </Link>
       )}
 
-      <div className="-mb-2 flex flex-col gap-0.5 text-sm text-slate-400">
-        <p>
-          Productiemaand {String(productionGoals.month).padStart(2, "0")} —{" "}
-          {formatDate(productionGoals.periodStart)}
-          {" – "}
-          {formatDate(productionGoals.periodEnd)}
-        </p>
-        <p>
-          Gesprekken: deze week ({formatDate(productionGoals.weekStart)}
-          {" – "}
-          {formatDate(productionGoals.weekEnd)})
-        </p>
+      <div>
+        <h2 className="mb-1 text-xl font-medium text-slate-900">
+          Maandelijkse individuele doelen
+        </h2>
+        <div className="-mb-2 flex flex-col gap-0.5 text-sm text-slate-400">
+          <p>
+            Productiemaand {String(productionGoals.month).padStart(2, "0")} —{" "}
+            {formatDate(productionGoals.periodStart)}
+            {" – "}
+            {formatDate(productionGoals.periodEnd)}
+          </p>
+          <p>
+            Gesprekken: deze week ({formatDate(productionGoals.weekStart)}
+            {" – "}
+            {formatDate(productionGoals.weekEnd)})
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
@@ -191,9 +228,35 @@ export default async function DashboardPage({
             percent={goal.percent}
             icon={GOAL_ICONS[goal.metric]}
             percentPosition={goal.metric === "ABV_RG" ? "beside" : "below"}
+            accent="blue"
           />
         ))}
       </div>
+
+      {showGroupGoals && groupProductionGoals && (
+        <div>
+          <h2 className="mb-4 text-xl font-medium text-slate-900">
+            Maandelijkse groepsdoelen
+            <span className="ml-1.5 text-base font-normal text-slate-400">
+              — totaal van {isBeheerder(user) ? "iedereen" : "je team"}
+            </span>
+          </h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
+            {groupProductionGoals.rows.map((goal) => (
+              <GoalCard
+                key={goal.metric}
+                label={GOAL_METRIC_LABELS[goal.metric]}
+                actual={goal.actual}
+                target={goal.target}
+                percent={goal.percent}
+                icon={GOAL_ICONS[goal.metric]}
+                percentPosition={goal.metric === "ABV_RG" ? "beside" : "below"}
+                accent="violet"
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <h2 className="mb-4 text-xl font-medium text-slate-900">
@@ -209,10 +272,78 @@ export default async function DashboardPage({
               percent={kpi.percent}
               icon={KPI_ICONS[kpi.metric]}
               percentPosition="below"
+              accent="amber"
             />
           ))}
         </div>
       </div>
+
+      {compactProductionRows.length > 0 && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-medium text-slate-900">
+              Productie &amp; gesprekken
+              <span className="ml-1.5 text-base font-normal text-slate-400">
+                — top 5, productiemaand {String(currentProductionMonth.month).padStart(2, "0")}
+              </span>
+            </h2>
+            <Link
+              href="/productie"
+              className="text-sm text-slate-500 hover:text-slate-700 hover:underline"
+            >
+              Volledige ranglijst →
+            </Link>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-3 py-2.5 font-medium">#</th>
+                  <th className="px-3 py-2.5 font-medium">Naam</th>
+                  <th className="px-3 py-2.5 text-center font-medium">Klanten</th>
+                  <th className="px-3 py-2.5 text-center font-medium">Eenheden</th>
+                  <th className="px-3 py-2.5 text-center font-medium">
+                    Gesprekken/week
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {compactProductionRows.map((row, i) => (
+                  <tr key={row.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-2">
+                      <Position position={i + 1} />
+                    </td>
+                    <td className="px-3 py-2 font-medium text-slate-900">
+                      {row.name}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <LeaderboardCell
+                        actual={row.actualCustomers}
+                        target={row.targetCustomers}
+                        percent={row.percentCustomers}
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <LeaderboardCell
+                        actual={row.actualUnits}
+                        target={row.targetUnits}
+                        percent={row.percentUnits}
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <LeaderboardCell
+                        actual={row.conversationsPerWeek}
+                        target={row.conversationsTarget}
+                        percent={row.conversationsPercent}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {teamOverview && (
         <TeamOverviewTable
@@ -300,6 +431,21 @@ function TeamOverviewTable({
   );
 }
 
+const GOAL_CARD_ACCENTS = {
+  blue: {
+    border: "border-l-4 border-l-blue-400",
+    icon: "bg-blue-100 text-blue-600",
+  },
+  violet: {
+    border: "border-l-4 border-l-violet-400",
+    icon: "bg-violet-100 text-violet-600",
+  },
+  amber: {
+    border: "border-l-4 border-l-amber-400",
+    icon: "bg-amber-100 text-amber-700",
+  },
+} as const;
+
 function GoalCard({
   label,
   actual,
@@ -308,6 +454,7 @@ function GoalCard({
   icon: Icon,
   percentPosition,
   percentSize = "text-2xl",
+  accent,
 }: {
   label: string;
   actual: number;
@@ -316,10 +463,16 @@ function GoalCard({
   icon: LucideIcon;
   percentPosition: "below" | "beside";
   percentSize?: string;
+  accent: keyof typeof GOAL_CARD_ACCENTS;
 }) {
+  const accentClasses = GOAL_CARD_ACCENTS[accent];
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+    <div
+      className={`rounded-xl border border-slate-200 ${accentClasses.border} bg-white p-6 shadow-sm`}
+    >
+      <span
+        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${accentClasses.icon}`}
+      >
         <Icon size={20} />
       </span>
       <p className="text-base text-slate-500">{label}</p>
@@ -346,5 +499,28 @@ function GoalCard({
         </p>
       </div>
     </div>
+  );
+}
+
+/** Compacte "behaald / doel · %"-weergave voor de mini-productietabel op het dashboard. */
+function LeaderboardCell({
+  actual,
+  target,
+  percent,
+}: {
+  actual: number;
+  target: number;
+  percent: number | null;
+}) {
+  return (
+    <span className="whitespace-nowrap">
+      <span className="font-medium text-slate-900">{actual}</span>
+      <span className="text-slate-400"> / {target || "—"}</span>
+      {percent !== null && (
+        <span className={`ml-1.5 font-medium ${percentColor(percent)}`}>
+          {percent}%
+        </span>
+      )}
+    </span>
   );
 }

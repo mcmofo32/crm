@@ -469,6 +469,146 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
   };
 }
 
+/**
+ * Zelfde als `getProductionMonthGoalProgress`, maar dan als totaal over een
+ * groep gebruikers (bv. heel het team van een Coach, of iedereen voor
+ * Admin/Beheerder) — voor het "Maandelijkse groepsdoelen"-blok op het
+ * dashboard. Doelen worden per gebruiker opgeteld; Gesprekken wordt, net als
+ * op de Gesprekken-ranglijst, per gebruiker afgerond naar het weekdoel en
+ * dan pas opgeteld.
+ */
+export async function getGroupProductionMonthGoalProgress(
+  userIds: string[]
+): Promise<{
+  year: number;
+  month: number;
+  periodStart: Date;
+  periodEnd: Date;
+  weekStart: Date;
+  weekEnd: Date;
+  rows: GoalProgress[];
+}> {
+  await requireViewer();
+  const { year, month } = await getCurrentProductionMonth();
+  const { start, end } = await getProductionMonthRange(year, month);
+  const week = currentWeekRange();
+  const weeks = weeksInRange(start, end);
+
+  const [targets, wonThisMonth, conversationsThisWeek, newFaLeads, newRgLeads] =
+    await Promise.all([
+      prisma.userMonthlyGoal.findMany({
+        where: { userId: { in: userIds }, year, month },
+      }),
+      prisma.leadStageChange.findMany({
+        where: {
+          changedById: { in: userIds },
+          toStage: { isWon: true },
+          changedAt: { gte: start, lt: end },
+        },
+        select: {
+          lead: { select: { id: true, products: { select: { units: true } } } },
+        },
+      }),
+      prisma.activity.groupBy({
+        by: ["assigneeId"],
+        where: {
+          assigneeId: { in: userIds },
+          status: "PLANNED",
+          type: { in: ["CALL", "MEETING"] },
+          scheduledAt: { gte: week.start, lt: week.end },
+          lead: { leadType: "FA" },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.count({
+        where: {
+          ownerId: { in: userIds },
+          deletedAt: null,
+          leadType: "FA",
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+      prisma.lead.count({
+        where: {
+          ownerId: { in: userIds },
+          deletedAt: null,
+          leadType: "RG",
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+    ]);
+
+  const targetSumByMetric = new Map<GoalMetric, number>();
+  const conversationsMonthlyTargetByUser = new Map<string, number>();
+  for (const t of targets) {
+    targetSumByMetric.set(
+      t.metric,
+      (targetSumByMetric.get(t.metric) ?? 0) + Number(t.target)
+    );
+    if (t.metric === GoalMetric.CONVERSATIONS) {
+      conversationsMonthlyTargetByUser.set(t.userId, Number(t.target));
+    }
+  }
+
+  const seenLeadIds = new Set<string>();
+  const units = wonThisMonth
+    .map((c) => c.lead)
+    .filter((lead) => {
+      if (seenLeadIds.has(lead.id)) return false;
+      seenLeadIds.add(lead.id);
+      return true;
+    })
+    .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
+  const customers = seenLeadIds.size;
+
+  const conversationsActual = conversationsThisWeek.reduce(
+    (sum, c) => sum + c._count._all,
+    0
+  );
+  const weeklyConversationsTarget = Array.from(
+    conversationsMonthlyTargetByUser.values()
+  ).reduce(
+    (sum, monthly) => sum + (monthly > 0 ? Math.round(monthly / weeks) : 0),
+    0
+  );
+
+  const actualByMetric: Record<GoalMetric, number> = {
+    UNITS: units,
+    CUSTOMERS: customers,
+    CONVERSATIONS: conversationsActual,
+    ABV_SALES: newFaLeads,
+    ABV_RG: newRgLeads,
+  };
+  const effectiveTargetByMetric: Record<GoalMetric, number> = {
+    UNITS: targetSumByMetric.get(GoalMetric.UNITS) ?? 0,
+    CUSTOMERS: targetSumByMetric.get(GoalMetric.CUSTOMERS) ?? 0,
+    CONVERSATIONS: weeklyConversationsTarget,
+    ABV_SALES: targetSumByMetric.get(GoalMetric.ABV_SALES) ?? 0,
+    ABV_RG: targetSumByMetric.get(GoalMetric.ABV_RG) ?? 0,
+  };
+
+  const rows = GOAL_METRIC_ORDER.map((metric) => {
+    const target = effectiveTargetByMetric[metric];
+    const actual = actualByMetric[metric];
+    return {
+      metric,
+      actual,
+      target,
+      percent: target > 0 ? Math.round((actual / target) * 100) : null,
+    };
+  });
+
+  return {
+    year,
+    month,
+    periodStart: start,
+    periodEnd: new Date(end.getTime() - 1),
+    weekStart: week.start,
+    weekEnd: new Date(week.end.getTime() - 1),
+    rows,
+  };
+}
+
 export type MonthlyGoalAchievement = {
   month: number;
   unitsAchieved: boolean | null;
