@@ -161,10 +161,15 @@ export default async function KlantenPage({
 
   const filtersActive = Boolean(product || from || to || sortBy);
   const currentYear = new Date().getFullYear();
+  const taxStatusColors: Record<string, { background: string; color: string }> = {
+    TODO: { background: "#fed7aa", color: "#9a3412" }, // oranje
+    SCHEDULED: { background: "#fef08a", color: "#854d0e" }, // geel
+    DONE: { background: "#bbf7d0", color: "#166534" }, // groen
+  };
   const taxStatusOptions = [
-    { value: "TODO", label: `${currentYear} nog te doen` },
-    { value: "SCHEDULED", label: `${currentYear} ingepland` },
-    { value: "DONE", label: `${currentYear} gedaan` },
+    { value: "TODO", label: `${currentYear} nog te doen`, style: taxStatusColors.TODO },
+    { value: "SCHEDULED", label: `${currentYear} ingepland`, style: taxStatusColors.SCHEDULED },
+    { value: "DONE", label: `${currentYear} gedaan`, style: taxStatusColors.DONE },
   ];
   const taxStatusLabelByValue = new Map(
     taxStatusOptions.map((o) => [o.value, o.label])
@@ -200,7 +205,7 @@ export default async function KlantenPage({
           color="bg-green-100 text-green-700"
         />
         <StatCard
-          label="Nieuwe klanten (deze maand)"
+          label="Nieuwe klanten deze maand"
           value={stats.newThisMonth.toLocaleString("nl-BE")}
           icon={UserPlus}
           color="bg-blue-100 text-blue-700"
@@ -404,9 +409,14 @@ export default async function KlantenPage({
                         name="status"
                         value={customer.taxDeclarationStatus ?? "TODO"}
                         options={taxStatusOptions}
+                        className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                        style={taxStatusColors[customer.taxDeclarationStatus ?? "TODO"]}
                       />
                     ) : (
-                      <span className="text-slate-600">
+                      <span
+                        className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                        style={taxStatusColors[customer.taxDeclarationStatus ?? "TODO"]}
+                      >
                         {taxStatusLabelByValue.get(
                           customer.taxDeclarationStatus ?? "TODO"
                         )}

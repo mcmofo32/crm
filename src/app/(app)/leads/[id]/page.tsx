@@ -16,7 +16,6 @@ import {
   getVisibleUserIds,
 } from "@/lib/permissions";
 import { getSubagents } from "@/lib/actions/subagents";
-import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
@@ -99,14 +98,9 @@ export default async function LeadDetailPage({
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold text-slate-900">
-              {lead.firstName} {lead.lastName}
-            </h1>
-            <Badge variant={LEAD_TYPE_BADGE_VARIANT[lead.leadType]}>
-              {LEAD_TYPE_LABELS[lead.leadType]}
-            </Badge>
-          </div>
+          <h1 className="text-3xl font-semibold text-slate-900">
+            {lead.firstName} {lead.lastName}
+          </h1>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
             <Avatar name={lead.owner.name} />
             Eigenaar: {lead.owner.name}
