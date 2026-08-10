@@ -11,6 +11,7 @@ import {
   Eye,
   Target,
   CloudUpload,
+  Newspaper,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -130,6 +131,9 @@ export function ProfileMenu({
         {showBeheerderTools && (
           <>
             <SectionLabel>Beheerderstools</SectionLabel>
+            <MenuLink href="/beheer/dagrapport" icon={Newspaper}>
+              Dagrapport
+            </MenuLink>
             <MenuLink href="/beheer/analyse" icon={BarChart3}>
               Analyse
             </MenuLink>
