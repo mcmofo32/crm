@@ -57,6 +57,16 @@ export function funnelStageKeys(leadType: LeadType): string[] {
   return [...spec.main, ...spec.secondary].map((s) => s.key);
 }
 
+/**
+ * De 3 "actieve" funnel-fases (bv. Financiële analyse/Adviesgesprek/
+ * Opvolggesprek voor FA) — een lead met zo'n fase heeft dus een
+ * ingepland/lopend contactmoment. Gebruikt om leads als "Ingepland" te
+ * categoriseren op Pipeline en het leadsoverzicht.
+ */
+export function mainFunnelStageKeys(leadType: LeadType): string[] {
+  return specFor(leadType).main.map((s) => s.key);
+}
+
 async function upsertStage(leadType: LeadType, s: StageSpec) {
   return prisma.funnelStage.upsert({
     where: { leadType_key: { leadType, key: s.key } },

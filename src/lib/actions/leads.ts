@@ -19,7 +19,7 @@ import {
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { ensureDefaultPipelineStage } from "@/lib/funnelStages";
+import { ensureDefaultPipelineStage, mainFunnelStageKeys } from "@/lib/funnelStages";
 import { normalizePhone } from "@/lib/actions/duplicates";
 
 async function requireUser() {
@@ -425,9 +425,11 @@ export async function getDeletedLeads() {
 export type LeadContactFilter = "none" | "overdue";
 export type LeadSortOption = "recent" | "stale";
 /**
- * Categoriseert leads op het leadsoverzicht, zodat een lange lijst
+ * Categoriseert leads op het leadsoverzicht/Pipeline, zodat een lange lijst
  * overzichtelijk blijft: "open" = nog niet gewonnen/verloren, "ingepland" =
- * heeft een toekomstige geplande activiteit, "geen_interesse" = status LOST.
+ * staat in één van de 3 actieve funnel-fases (bv. Financiële
+ * analyse/Adviesgesprek/Opvolggesprek voor FA — zie mainFunnelStageKeys),
+ * "geen_interesse" = status LOST.
  */
 export type LeadCategoryFilter = "open" | "ingepland" | "geen_interesse";
 
@@ -469,7 +471,15 @@ export async function getLeadsForCurrentUser(
       ...(options?.category === "open" ? { status: "OPEN" } : {}),
       ...(options?.category === "geen_interesse" ? { status: "LOST" } : {}),
       ...(options?.category === "ingepland"
-        ? { activities: { some: { status: "PLANNED", scheduledAt: { gte: now } } } }
+        ? {
+            stage: {
+              key: {
+                in: leadType
+                  ? mainFunnelStageKeys(leadType)
+                  : [...mainFunnelStageKeys("FA"), ...mainFunnelStageKeys("RG")],
+              },
+            },
+          }
         : {}),
       ...(trimmedSearch
         ? {

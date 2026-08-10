@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { LeadType } from "@/generated/prisma/client";
 import { canAccessOwner } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { mainFunnelStageKeys } from "@/lib/funnelStages";
 import type { LeadCategoryFilter } from "@/lib/actions/leads";
 
 async function requireUser() {
@@ -105,7 +106,6 @@ export async function getPipelineLeads(
     throw new Error("Geen toegang tot deze medewerker");
   }
   const trimmedSearch = search?.trim();
-  const now = new Date();
 
   const leads = await prisma.lead.findMany({
     where: {
@@ -115,7 +115,7 @@ export async function getPipelineLeads(
       ...(category === "open" ? { status: "OPEN" } : {}),
       ...(category === "geen_interesse" ? { status: "LOST" } : {}),
       ...(category === "ingepland"
-        ? { activities: { some: { status: "PLANNED", scheduledAt: { gte: now } } } }
+        ? { stage: { key: { in: mainFunnelStageKeys(leadType) } } }
         : {}),
       ...(trimmedSearch
         ? {
