@@ -12,7 +12,7 @@ import {
 import {
   getManagedPolicies,
   getManagedScopePersons,
-  resolveManagedSubagentIds,
+  resolveManagedUserIds,
 } from "@/lib/actions/subagentPortal";
 import { getProductionStructureOptions } from "@/lib/actions/production";
 import { canManageUsers } from "@/lib/permissions";
@@ -31,6 +31,8 @@ import { SubagentTabs } from "@/components/SubagentTabs";
 
 /** Voorvoegsel om een structuur-optie te onderscheiden van een individuele gebruiker in de scope-select. */
 const TEAM_PREFIX = "team:";
+/** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. */
+const ALL_OPTION = "alles";
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
@@ -68,16 +70,21 @@ export default async function SubagentPolissenPage({
     canPickScope ? getManagedScopePersons() : Promise.resolve([]),
   ]);
 
+  const showAll = canPickScope && scope === ALL_OPTION;
   const structureId =
     canPickScope && scope?.startsWith(TEAM_PREFIX)
       ? scope.slice(TEAM_PREFIX.length)
       : undefined;
   const personId =
-    canPickScope && scope && !scope.startsWith(TEAM_PREFIX) && personOptions.some((p) => p.id === scope)
+    canPickScope &&
+    scope &&
+    scope !== ALL_OPTION &&
+    !scope.startsWith(TEAM_PREFIX) &&
+    personOptions.some((p) => p.id === scope)
       ? scope
       : undefined;
 
-  const subagentIds = await resolveManagedSubagentIds(structureId, personId);
+  const userIds = await resolveManagedUserIds(structureId, personId, showAll);
 
   const scopeSwitcher = canPickScope && (
     <form
@@ -92,12 +99,15 @@ export default async function SubagentPolissenPage({
         defaultValue={scope ?? ""}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
-        <option value="">Iedereen</option>
-        {personOptions.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.id === viewer.id ? `${p.name} (jezelf)` : p.name}
-          </option>
-        ))}
+        <option value="">Mezelf</option>
+        <option value={ALL_OPTION}>Iedereen</option>
+        {personOptions
+          .filter((p) => p.id !== viewer.id)
+          .map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
         {structureOptions.map((s) => (
           <option key={s.id} value={`${TEAM_PREFIX}${s.id}`}>
             Structuur: {s.label}
@@ -113,7 +123,7 @@ export default async function SubagentPolissenPage({
     </form>
   );
 
-  const policies = await getManagedPolicies({ subagentIds, search: q });
+  const policies = await getManagedPolicies({ userIds, search: q });
   const totalUnits = policies.reduce((sum, p) => sum + p.units, 0);
 
   return (

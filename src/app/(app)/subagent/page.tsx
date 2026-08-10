@@ -20,7 +20,7 @@ import {
   getManagedCustomers,
   getManagedCustomerStats,
   getManagedScopePersons,
-  resolveManagedSubagentIds,
+  resolveManagedUserIds,
 } from "@/lib/actions/subagentPortal";
 import {
   getProductionStructureOptions,
@@ -48,6 +48,8 @@ function formatAmount(amount: number) {
 
 /** Voorvoegsel om een structuur-optie te onderscheiden van een individuele gebruiker in de scope-select. */
 const TEAM_PREFIX = "team:";
+/** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. */
+const ALL_OPTION = "alles";
 
 export default async function SubagentKlantenPage({
   searchParams,
@@ -80,16 +82,21 @@ export default async function SubagentKlantenPage({
       getCurrentProductionYearRange(),
     ]);
 
+  const showAll = canPickScope && scope === ALL_OPTION;
   const structureId =
     canPickScope && scope?.startsWith(TEAM_PREFIX)
       ? scope.slice(TEAM_PREFIX.length)
       : undefined;
   const personId =
-    canPickScope && scope && !scope.startsWith(TEAM_PREFIX) && personOptions.some((p) => p.id === scope)
+    canPickScope &&
+    scope &&
+    scope !== ALL_OPTION &&
+    !scope.startsWith(TEAM_PREFIX) &&
+    personOptions.some((p) => p.id === scope)
       ? scope
       : undefined;
 
-  const subagentIds = await resolveManagedSubagentIds(structureId, personId);
+  const userIds = await resolveManagedUserIds(structureId, personId, showAll);
 
   const scopeSwitcher = canPickScope && (
     <form
@@ -108,12 +115,15 @@ export default async function SubagentKlantenPage({
         defaultValue={scope ?? ""}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
-        <option value="">Iedereen</option>
-        {personOptions.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.id === viewer.id ? `${p.name} (jezelf)` : p.name}
-          </option>
-        ))}
+        <option value="">Mezelf</option>
+        <option value={ALL_OPTION}>Iedereen</option>
+        {personOptions
+          .filter((p) => p.id !== viewer.id)
+          .map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
         {structureOptions.map((s) => (
           <option key={s.id} value={`${TEAM_PREFIX}${s.id}`}>
             Structuur: {s.label}
@@ -130,8 +140,8 @@ export default async function SubagentKlantenPage({
   );
 
   const [customers, stats] = await Promise.all([
-    getManagedCustomers({ subagentIds, search: q, productType, sortBy }),
-    getManagedCustomerStats(monthPeriod, yearPeriod, subagentIds),
+    getManagedCustomers({ userIds, search: q, productType, sortBy }),
+    getManagedCustomerStats(monthPeriod, yearPeriod, userIds),
   ]);
 
   const monthlyPremiumTotal = customers.reduce((sum, c) => sum + c.totalAmount, 0);

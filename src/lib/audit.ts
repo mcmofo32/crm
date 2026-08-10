@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { canViewBeheerderTools } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 
-export async function getAuditLog(entityType?: string) {
+export async function getAuditLog(
+  entityType?: string,
+  options?: { actorId?: string; actorIds?: string[] }
+) {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
   if (!canViewBeheerderTools(viewer)) {
@@ -10,7 +13,14 @@ export async function getAuditLog(entityType?: string) {
   }
 
   return prisma.auditLog.findMany({
-    where: entityType ? { entityType } : {},
+    where: {
+      ...(entityType ? { entityType } : {}),
+      ...(options?.actorId
+        ? { actorId: options.actorId }
+        : options?.actorIds
+        ? { actorId: { in: options.actorIds } }
+        : {}),
+    },
     include: { actor: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
     take: 200,

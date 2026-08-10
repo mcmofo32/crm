@@ -35,55 +35,52 @@ export async function getManagedScopePersons(): Promise<ManagedScopeOption[]> {
 }
 
 /**
- * Bepaalt welke Subagent-id's meetellen voor "Klanten onder beheer":
- * - Subagent (geen Beheerder/Admin): altijd verplicht enkel zichzelf.
- * - Beheerder/Admin: `personId` (één gekozen medewerker) heeft voorrang op
- *   `structureId` (een hele substructuur — zichzelf + iedereen
- *   rechtstreeks/onrechtstreeks eronder), en zonder één van beide zien ze
- *   standaard alles (`null` = geen filter, bedrijfsbreed).
+ * Bepaalt welke gebruikers-id's meetellen voor "Klanten onder beheer":
+ * - `showAll` (enkel Beheerder/Admin): geen filter — heel het bedrijf.
+ * - `personId` (enkel Beheerder/Admin): exact één gekozen medewerker.
+ * - `structureId` (enkel Beheerder/Admin): een hele substructuur — die
+ *   persoon + iedereen rechtstreeks/onrechtstreeks eronder.
+ * - Standaard (iedereen, ook Beheerder/Admin zonder keuze): enkel zichzelf.
  */
-export async function resolveManagedSubagentIds(
+export async function resolveManagedUserIds(
   structureId?: string,
-  personId?: string
+  personId?: string,
+  showAll?: boolean
 ): Promise<string[] | null> {
   const viewer = await requireSubagentPortalAccess();
 
-  if (!canManageUsers(viewer)) {
-    const mine = await prisma.subagent.findUnique({
-      where: { userId: viewer.id },
-      select: { id: true },
-    });
-    return mine ? [mine.id] : [];
-  }
-
-  let userIds: string[] | null = null;
-  if (personId) {
-    userIds = [personId];
-  } else if (structureId) {
-    const descendants = await getDescendantUserIds(structureId);
-    userIds = [structureId, ...descendants];
-  }
-
-  if (!userIds) return null;
-
-  const subagents = await prisma.subagent.findMany({
-    where: { userId: { in: userIds } },
-    select: { id: true },
-  });
-  return subagents.map((s) => s.id);
+  if (!canManageUsers(viewer)) return [viewer.id];
+  if (personId) return [personId];
+  if (structureId) return [structureId, ...(await getDescendantUserIds(structureId))];
+  if (showAll) return null;
+  return [viewer.id];
 }
 
-function subagentWhere(subagentIds: string[] | null) {
-  // `null` = geen beperking (Beheerder/Admin zonder gekozen structuur/persoon):
-  // toon elke klant die effectief een dossierbeheerder-subagent heeft.
-  return subagentIds
-    ? { caseManagerSubagentId: { in: subagentIds } }
-    : { caseManagerSubagentId: { not: null } };
+/**
+ * Filtert leads op effectieve dossierbeheerder, binnen `userIds`
+ * (`null` = geen filter, iedereen): dat is de toegewezen subagent indien
+ * die een eigen inlogaccount heeft, anders de expliciet toegewezen
+ * medewerker, anders (bij geen van beide) gewoon de lead-eigenaar — exact
+ * dezelfde afleiding als `caseManagerName` elders in de app.
+ */
+function managedByWhere(userIds: string[] | null) {
+  if (userIds === null) return {};
+  return {
+    OR: [
+      { caseManagerUserId: { in: userIds } },
+      {
+        caseManagerUserId: null,
+        caseManagerSubagentId: null,
+        ownerId: { in: userIds },
+      },
+      { caseManagerSubagent: { userId: { in: userIds } } },
+    ],
+  };
 }
 
-/** Klanten (gewonnen leads) waar één van `subagentIds` dossierbeheerder is — zelfde vorm als getCustomersForCurrentUser. */
+/** Klanten (gewonnen leads) waar één van `userIds` effectief dossierbeheerder is — zelfde vorm als getCustomersForCurrentUser. */
 export async function getManagedCustomers(options: {
-  subagentIds: string[] | null;
+  userIds: string[] | null;
   search?: string;
   productType?: ProductType;
   sortBy?: CustomerSortOption;
@@ -95,7 +92,7 @@ export async function getManagedCustomers(options: {
     where: {
       deletedAt: null,
       status: "WON",
-      ...subagentWhere(options.subagentIds),
+      ...managedByWhere(options.userIds),
       ...(options.productType
         ? { products: { some: { type: options.productType } } }
         : {}),
@@ -161,12 +158,12 @@ export type ManagedCustomerStats = {
 export async function getManagedCustomerStats(
   monthPeriod: { startDate: Date; endDate: Date },
   yearPeriod: { startDate: Date; endDate: Date },
-  subagentIds: string[] | null
+  userIds: string[] | null
 ): Promise<ManagedCustomerStats> {
   await requireSubagentPortalAccess();
   const monthEnd = new Date(monthPeriod.endDate.getTime() + 1);
   const yearEnd = new Date(yearPeriod.endDate.getTime() + 1);
-  const where = subagentWhere(subagentIds);
+  const where = managedByWhere(userIds);
 
   const [totalCustomers, newThisMonthLeads, newThisYearLeads] = await Promise.all([
     prisma.lead.count({ where: { deletedAt: null, status: "WON", ...where } }),
@@ -197,9 +194,9 @@ export async function getManagedCustomerStats(
   };
 }
 
-/** Polis-lijnen van klanten waar één van `subagentIds` dossierbeheerder is — zelfde vorm als getPoliciesForCurrentUser. */
+/** Polis-lijnen van klanten waar één van `userIds` effectief dossierbeheerder is — zelfde vorm als getPoliciesForCurrentUser. */
 export async function getManagedPolicies(options: {
-  subagentIds: string[] | null;
+  userIds: string[] | null;
   search?: string;
 }) {
   await requireSubagentPortalAccess();
@@ -209,7 +206,7 @@ export async function getManagedPolicies(options: {
     where: {
       lead: {
         deletedAt: null,
-        ...subagentWhere(options.subagentIds),
+        ...managedByWhere(options.userIds),
         ...(trimmedSearch
           ? {
               OR: [
