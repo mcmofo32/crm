@@ -919,8 +919,9 @@ export type KpiHeatmapRow = {
 /**
  * Per actieve gebruiker, per maand van `year`, of elke KPI gehaald is:
  * Productie/Gesprekken automatisch (zelfde als de jaarlijkse KPI-kaart),
- * Belsessie = minstens 1 ingevoerd die maand, Seminarie = minstens 1 bevestigd
- * bijgewoond seminarie die maand.
+ * Belsessie/Seminarie = minstens 1 bevestigd bijgewoond evenement van dat
+ * type die maand (enkel evenementen die een Beheerder/Admin achteraf
+ * bevestigd heeft tellen mee).
  */
 export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
   await requireBeheerder();
@@ -934,11 +935,19 @@ export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
 
   return Promise.all(
     users.map(async (u) => {
-      const [monthlyAchievements, callingSessionEntries, seminarAttendances] =
+      const [monthlyAchievements, callingSessionAttendances, seminarAttendances] =
         await Promise.all([
           getMonthlyGoalAchievements(u.id, year),
-          prisma.userKpiMonthlyEntry.findMany({
-            where: { userId: u.id, year, metric: KpiMetric.CALLING_SESSION },
+          prisma.eventAttendance.findMany({
+            where: {
+              userId: u.id,
+              actualStatus: "GOING",
+              event: {
+                type: EventType.BELSESSIE,
+                date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+              },
+            },
+            select: { event: { select: { date: true } } },
           }),
           prisma.eventAttendance.findMany({
             where: {
@@ -953,8 +962,8 @@ export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
           }),
         ]);
 
-      const callingSessionByMonth = new Map(
-        callingSessionEntries.map((e) => [e.month, Number(e.value)])
+      const callingSessionMonths = new Set(
+        callingSessionAttendances.map((a) => a.event.date.getMonth() + 1)
       );
       const seminarMonths = new Set(
         seminarAttendances.map((a) => a.event.date.getMonth() + 1)
@@ -977,7 +986,7 @@ export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
         cells.push({
           metric: KpiMetric.CALLING_SESSION,
           month,
-          achieved: notYetOver ? null : (callingSessionByMonth.get(month) ?? 0) > 0,
+          achieved: notYetOver ? null : callingSessionMonths.has(month),
         });
         cells.push({
           metric: KpiMetric.SEMINAR,

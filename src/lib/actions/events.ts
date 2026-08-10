@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { AttendanceStatus, EventType } from "@/generated/prisma/client";
 import { canManageEvents } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -180,7 +181,9 @@ export async function getEventForDetail(eventId: string) {
     event.attendances.find((a) => a.userId === user.id)?.status ?? "PENDING";
 
   const needsVerification =
-    event.type === "SEMINAR" && event.date < new Date() && !event.verifiedAt;
+    VERIFIABLE_EVENT_TYPES.includes(event.type) &&
+    event.date < new Date() &&
+    !event.verifiedAt;
 
   // Wie nog geen enkele reactie gaf, heeft helemaal geen EventAttendance-rij
   // (die wordt pas aangemaakt zodra iemand zichzelf aan-/afwezig zet) — dus
@@ -224,15 +227,19 @@ export async function getEventForDetail(eventId: string) {
   };
 }
 
-/** Seminaries die al plaatsvonden maar nog niet bevestigd zijn — voor de melding aan Beheerder/Admin. */
-export async function getUnverifiedPastSeminars() {
+/** Seminaries/belsessies die al plaatsvonden maar nog niet bevestigd zijn — voor de melding aan Beheerder/Admin. */
+export async function getUnverifiedPastVerifiableEvents() {
   const user = await requireUser();
   if (!canManageEvents(user)) return [];
 
   return prisma.event.findMany({
-    where: { type: "SEMINAR", date: { lt: new Date() }, verifiedAt: null },
+    where: {
+      type: { in: VERIFIABLE_EVENT_TYPES },
+      date: { lt: new Date() },
+      verifiedAt: null,
+    },
     orderBy: { date: "asc" },
-    select: { id: true, title: true, date: true },
+    select: { id: true, title: true, date: true, type: true },
   });
 }
 
@@ -312,20 +319,22 @@ export async function verifyEventAttendanceAction(
 }
 
 /**
- * Percentage bevestigde seminaries dit jaar waarop de gebruiker effectief
- * aanwezig was — vormt KPI Seminarie op het dashboard. Enkel seminaries die
- * een Beheerder/Admin achteraf bevestigd heeft, tellen mee.
+ * Percentage bevestigde evenementen van dit type (SEMINAR of BELSESSIE)
+ * dit jaar waarop de gebruiker effectief aanwezig was — vormt KPI
+ * Seminarie resp. KPI Belsessie op het dashboard. Enkel evenementen die een
+ * Beheerder/Admin achteraf bevestigd heeft, tellen mee.
  */
-export async function getSeminarAttendancePercent(
+export async function getEventAttendancePercent(
   userId: string,
-  year: number
+  year: number,
+  eventType: EventType
 ): Promise<{ actual: number; total: number; percent: number | null }> {
   const start = new Date(year, 0, 1);
   const end = new Date(year + 1, 0, 1);
 
-  const seminars = await prisma.event.findMany({
+  const events = await prisma.event.findMany({
     where: {
-      type: "SEMINAR",
+      type: eventType,
       date: { gte: start, lt: end },
       verifiedAt: { not: null },
     },
@@ -335,9 +344,9 @@ export async function getSeminarAttendancePercent(
     },
   });
 
-  const total = seminars.length;
-  const going = seminars.filter(
-    (s) => s.attendances[0]?.actualStatus === "GOING"
+  const total = events.length;
+  const going = events.filter(
+    (e) => e.attendances[0]?.actualStatus === "GOING"
   ).length;
 
   return {

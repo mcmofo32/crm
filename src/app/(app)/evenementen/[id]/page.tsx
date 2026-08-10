@@ -7,6 +7,7 @@ import {
   setMyAttendanceAction,
   verifyEventAttendanceAction,
 } from "@/lib/actions/events";
+import { VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
@@ -42,9 +43,13 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const boundSetAttendance = setMyAttendanceAction.bind(null, id);
-  const isPastSeminar = event.type === "SEMINAR" && event.date < new Date();
+  const isPastVerifiableEvent =
+    (VERIFIABLE_EVENT_TYPES as string[]).includes(event.type) &&
+    event.date < new Date();
   const verificationRows =
-    event.canManage && isPastSeminar ? await getEventVerification(id) : null;
+    event.canManage && isPastVerifiableEvent
+      ? await getEventVerification(id)
+      : null;
   const boundVerifyAttendance = verifyEventAttendanceAction.bind(null, id);
 
   return (
@@ -143,9 +148,10 @@ export default async function EventDetailPage({
               </>
             ) : (
               <>
-                Dit seminarie vond al plaats. Bevestig per persoon wie echt
-                aanwezig was — pas iemands opgegeven status hieronder aan waar
-                nodig. Pas na bevestiging telt dit mee voor KPI Seminarie.
+                Dit evenement ({TYPE_LABELS[event.type]}) vond al plaats.
+                Bevestig per persoon wie echt aanwezig was — pas iemands
+                opgegeven status hieronder aan waar nodig. Pas na bevestiging
+                telt dit mee voor KPI {TYPE_LABELS[event.type]}.
               </>
             )}
           </p>

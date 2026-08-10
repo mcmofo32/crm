@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, Eye } from "lucide-react";
+import { LogOut, Eye, Bell } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canManageCustomerData } from "@/lib/permissions";
+import { canManageCustomerData, canViewBeheerderTools } from "@/lib/permissions";
+import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { NavLinks } from "@/components/NavLinks";
@@ -37,6 +39,10 @@ export default async function AppLayout({
       lead: { deletedAt: null },
     },
   });
+
+  const duplicateLeadCount = canViewBeheerderTools(viewer)
+    ? (await getCrossOwnerDuplicateGroups()).length
+    : 0;
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
@@ -90,6 +96,24 @@ export default async function AppLayout({
             <NavLinks items={navItems} />
           </div>
           <div className="flex items-center gap-3">
+            {canViewBeheerderTools(viewer) && (
+              <Link
+                href="/beheer/duplicaten"
+                title={
+                  duplicateLeadCount > 0
+                    ? `${duplicateLeadCount} dubbele lead${duplicateLeadCount === 1 ? "" : "s"} gevonden`
+                    : "Geen dubbele leads"
+                }
+                className="relative flex h-9 w-9 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <Bell size={18} />
+                {duplicateLeadCount > 0 && (
+                  <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
+                    {duplicateLeadCount}
+                  </span>
+                )}
+              </Link>
+            )}
             <ProfileMenu
               name={viewer.name}
               viewer={viewer}

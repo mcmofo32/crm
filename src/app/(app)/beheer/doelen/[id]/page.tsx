@@ -1,19 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Target } from "lucide-react";
-import {
-  getUserForGoals,
-  getUserKpiGoals,
-  getUserKpiMonthlyEntries,
-  saveUserKpiGoalsAction,
-  saveUserKpiMonthlyEntriesAction,
-} from "@/lib/actions/goals";
+import { getUserForGoals } from "@/lib/actions/goals";
 import { getMonthlyGoalAchievements } from "@/lib/actions/production";
-import {
-  KPI_METRIC_LABELS,
-  MANUAL_KPI_METRIC_ORDER,
-  MONTH_LABELS,
-} from "@/lib/goalLabels";
+import { KPI_METRIC_LABELS, MONTH_LABELS } from "@/lib/goalLabels";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 
 export default async function UserDoelenPage({
@@ -32,15 +22,7 @@ export default async function UserDoelenPage({
   const user = await getUserForGoals(id);
   if (!user) notFound();
 
-  const [kpiGoalByMetricYear, monthlyByMetricMonth, monthlyAchievements] =
-    await Promise.all([
-      getUserKpiGoals(id),
-      getUserKpiMonthlyEntries(id, year),
-      getMonthlyGoalAchievements(id, year),
-    ]);
-
-  const boundSaveKpiGoals = saveUserKpiGoalsAction.bind(null, id, year);
-  const boundSaveMonthly = saveUserKpiMonthlyEntriesAction.bind(null, id, year);
+  const monthlyAchievements = await getMonthlyGoalAchievements(id, year);
 
   const yearOptions = [year - 1, year, year + 1];
 
@@ -64,73 +46,30 @@ export default async function UserDoelenPage({
       </div>
 
       <p className="text-sm text-slate-400">
-        KPI Seminarie staat hier niet bij: die wordt automatisch berekend uit
-        de aanwezigheidsregistratie op{" "}
+        De 4 jaarlijkse KPI&apos;s (&ldquo;Productie jaarlijks&rdquo;) zijn allemaal
+        automatisch berekend, hier is niets manueel in te vullen. KPI
+        Seminarie/Belsessie komen uit de aanwezigheidsregistratie op{" "}
         <Link href="/evenementen" className="underline hover:text-slate-600">
           Evenementen
-        </Link>
-        . KPI Productie en KPI Gesprekken staan er ook niet bij: die worden
-        automatisch berekend op basis van het behalen van het Eenheden- resp.
-        Gesprekken-doel per productiemaand (zie het overzicht hieronder).
+        </Link>{" "}
+        (enkel evenementen die een Beheerder/Admin achteraf bevestigd heeft
+        tellen mee). KPI Productie/Gesprekken komen uit het behalen van het
+        Eenheden- resp. Gesprekken-doel per productiemaand (zie het overzicht
+        hieronder).
       </p>
 
-      <form
-        action={boundSaveKpiGoals}
-        className="flex flex-col gap-6 rounded-lg border border-slate-200 bg-white p-6"
-      >
+      <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-medium text-slate-900">
-              Jaarlijkse KPI-doelen — Productie jaarlijks
+              Maandelijkse stand — {year}
             </h2>
             <p className="text-sm text-slate-500">
-              Doel per KPI voor het gekozen jaar.
+              ✓ = doel gehaald, ✗ = niet gehaald, — = maand nog niet
+              afgelopen of geen doel ingesteld.
             </p>
           </div>
           <YearSwitcher basePath={`/beheer/doelen/${id}`} year={year} options={yearOptions} />
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {MANUAL_KPI_METRIC_ORDER.map((metric) => (
-            <label key={metric} className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-slate-700">
-                {KPI_METRIC_LABELS[metric]}
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name={`kpiGoal_${metric}`}
-                defaultValue={kpiGoalByMetricYear.get(`${metric}:${year}`) ?? ""}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-            </label>
-          ))}
-        </div>
-
-        <div>
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
-          >
-            Doelen opslaan
-          </button>
-        </div>
-      </form>
-
-      <form
-        action={boundSaveMonthly}
-        className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6"
-      >
-        <div>
-          <h2 className="text-lg font-medium text-slate-900">
-            Maandelijkse stand — {year}
-          </h2>
-          <p className="text-sm text-slate-500">
-            KPI Productie/Gesprekken hierboven zijn automatisch (✓ = doel
-            gehaald, ✗ = niet gehaald, — = maand nog niet afgelopen of geen
-            doel ingesteld). Voor KPI Belsessie vormt de som van de 12
-            maanden hieronder het jaarcijfer op het dashboard.
-          </p>
         </div>
 
         <div className="overflow-x-auto">
@@ -146,12 +85,9 @@ export default async function UserDoelenPage({
               </tr>
             </thead>
             <tbody>
-              <tr className="border-t border-slate-100 bg-slate-50/50">
+              <tr className="border-t border-slate-100">
                 <td className="py-2 pr-3 font-medium text-slate-900 whitespace-nowrap">
                   {KPI_METRIC_LABELS.PRODUCTION}
-                  <span className="block text-xs font-normal text-slate-400">
-                    automatisch
-                  </span>
                 </td>
                 {monthlyAchievements.map((m) => (
                   <td
@@ -162,12 +98,9 @@ export default async function UserDoelenPage({
                   </td>
                 ))}
               </tr>
-              <tr className="border-t border-slate-100 bg-slate-50/50">
+              <tr className="border-t border-slate-100">
                 <td className="py-2 pr-3 font-medium text-slate-900 whitespace-nowrap">
                   {KPI_METRIC_LABELS.CONVERSATIONS}
-                  <span className="block text-xs font-normal text-slate-400">
-                    automatisch
-                  </span>
                 </td>
                 {monthlyAchievements.map((m) => (
                   <td
@@ -182,40 +115,10 @@ export default async function UserDoelenPage({
                   </td>
                 ))}
               </tr>
-              {MANUAL_KPI_METRIC_ORDER.map((metric) => (
-                <tr key={metric} className="border-t border-slate-100">
-                  <td className="py-2 pr-3 font-medium text-slate-900 whitespace-nowrap">
-                    {KPI_METRIC_LABELS[metric]}
-                  </td>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                    <td key={month} className="px-1 py-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        name={`monthly_${metric}_${month}`}
-                        defaultValue={
-                          monthlyByMetricMonth.get(`${metric}:${month}`) ?? ""
-                        }
-                        className="w-16 rounded-md border border-slate-300 px-1.5 py-1.5 text-center text-sm"
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
             </tbody>
           </table>
         </div>
-
-        <div>
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
-          >
-            Maandwaarden opslaan
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

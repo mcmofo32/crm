@@ -49,10 +49,13 @@ const ACTIVITY_STATUS_BADGE_VARIANT: Record<string, BadgeVariant> = {
 
 export default async function LeadDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ duplicateName?: string; duplicateOwner?: string }>;
 }) {
   const { id } = await params;
+  const { duplicateName, duplicateOwner } = await searchParams;
   const user = await getEffectiveViewer();
   if (!user) redirect("/login");
 
@@ -96,6 +99,14 @@ export default async function LeadDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
+      {duplicateName && duplicateOwner && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Let op: <strong>{duplicateName}</strong> staat al als lead
+          geregistreerd bij <strong>{duplicateOwner}</strong> (zelfde
+          e-mailadres of telefoonnummer). Deze nieuwe lead is wel aangemaakt —
+          neem contact op met {duplicateOwner} om dubbel werk te vermijden.
+        </div>
+      )}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">

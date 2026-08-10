@@ -164,6 +164,68 @@ async function computeDuplicateGroups(): Promise<DuplicateGroup[]> {
   return result.sort((a, b) => b.leads.length - a.leads.length);
 }
 
+export type ContactDuplicateMatch = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  ownerName: string;
+  matchedOn: "email" | "phone";
+};
+
+/**
+ * Bestaande (niet-verwijderde) leads van eender welke eigenaar die hetzelfde
+ * e-mailadres of telefoonnummer hebben als opgegeven — voor de melding aan
+ * wie een nieuwe lead ingeeft dat die persoon mogelijk al bestaat.
+ */
+export async function findLeadsByContact(
+  email: string | null,
+  phone: string | null,
+  excludeLeadId?: string
+): Promise<ContactDuplicateMatch[]> {
+  const normEmail = normalizeEmail(email);
+  const normPhone = normalizePhone(phone);
+  if (!normEmail && !normPhone) return [];
+
+  const candidates = await prisma.lead.findMany({
+    where: {
+      deletedAt: null,
+      ...(excludeLeadId ? { id: { not: excludeLeadId } } : {}),
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      owner: { select: { name: true } },
+    },
+  });
+
+  const matches: ContactDuplicateMatch[] = [];
+  for (const c of candidates) {
+    if (normEmail && normalizeEmail(c.email) === normEmail) {
+      matches.push({
+        id: c.id,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        ownerName: c.owner.name,
+        matchedOn: "email",
+      });
+      continue;
+    }
+    if (normPhone && normalizePhone(c.phone) === normPhone) {
+      matches.push({
+        id: c.id,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        ownerName: c.owner.name,
+        matchedOn: "phone",
+      });
+    }
+  }
+  return matches;
+}
+
 export async function getDuplicateLeads(): Promise<DuplicateGroup[]> {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");

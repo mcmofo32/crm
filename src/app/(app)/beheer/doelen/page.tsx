@@ -121,7 +121,7 @@ export default async function DoelenPage({
                   <td className="px-3 py-2 text-right">
                     <Link
                       href={`/beheer/doelen/${u.id}`}
-                      title="Jaarlijkse KPI's instellen"
+                      title="Jaarlijkse KPI's bekijken"
                       className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                     >
                       <Settings2 size={16} />
@@ -161,9 +161,9 @@ export default async function DoelenPage({
         automatisch verdeeld over het aantal weken in die maand, zodat je
         ziet hoeveel je die week moet inplannen. Eenheden, Klanten, ABV
         verkoop en ABV RG worden op het dashboard vergeleken tegen het volle
-        maanddoel. De jaarlijkse KPI&apos;s (Productie jaarlijks) stel je per
-        gebruiker in via het tandwiel-icoon — daar geef je ook de
-        maandelijkse stand in.
+        maanddoel. De jaarlijkse KPI&apos;s (Productie jaarlijks) zijn
+        allemaal automatisch — via het tandwiel-icoon zie je per gebruiker
+        de maandelijkse stand.
       </p>
 
       <Link

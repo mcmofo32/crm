@@ -20,7 +20,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { ensureDefaultPipelineStage, mainFunnelStageKeys } from "@/lib/funnelStages";
-import { normalizePhone } from "@/lib/actions/duplicates";
+import { normalizePhone, findLeadsByContact } from "@/lib/actions/duplicates";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -57,13 +57,16 @@ export async function createLeadAction(formData: FormData) {
     );
   }
 
+  const email = (formData.get("email") as string) || null;
+  const contactMatches = await findLeadsByContact(email, phone);
+
   const defaultStageId = await ensureDefaultPipelineStage(leadType);
 
   const lead = await prisma.lead.create({
     data: {
       firstName: String(formData.get("firstName") ?? ""),
       lastName: String(formData.get("lastName") ?? ""),
-      email: (formData.get("email") as string) || null,
+      email,
       phone,
       source: (formData.get("source") as string) || null,
       notes: (formData.get("notes") as string) || null,
@@ -84,7 +87,14 @@ export async function createLeadAction(formData: FormData) {
 
   revalidatePath("/leads");
   revalidatePath(`/funnel/${leadType}`);
-  redirect(`/leads/${lead.id}`);
+
+  const duplicate = contactMatches[0];
+  const duplicateQuery = duplicate
+    ? `?duplicateName=${encodeURIComponent(
+        `${duplicate.firstName} ${duplicate.lastName}`
+      )}&duplicateOwner=${encodeURIComponent(duplicate.ownerName)}`
+    : "";
+  redirect(`/leads/${lead.id}${duplicateQuery}`);
 }
 
 /**
@@ -208,7 +218,10 @@ export async function updateLeadStageAction(
 ) {
   const user = await requireUser();
 
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: { stage: true },
+  });
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessLead(user, lead))) {
     throw new Error("Geen toegang tot deze lead");
@@ -274,6 +287,14 @@ export async function updateLeadStageAction(
         ]
       : []),
   ]);
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.stageChanged",
+    entityType: "Lead",
+    entityId: leadId,
+    description: `Lead "${lead.firstName} ${lead.lastName}" verplaatst van "${lead.stage.label}" naar "${toStage.label}"`,
+  });
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
@@ -343,6 +364,14 @@ export async function updateLeadEmailAction(leadId: string, email: string) {
   await prisma.lead.update({
     where: { id: leadId },
     data: { email: trimmedEmail },
+  });
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.updated",
+    entityType: "Lead",
+    entityId: leadId,
+    description: `E-mailadres van lead "${lead.firstName} ${lead.lastName}" ingevuld: ${trimmedEmail}`,
   });
 
   revalidatePath(`/leads/${leadId}`);

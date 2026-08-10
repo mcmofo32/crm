@@ -12,6 +12,7 @@ import { Avatar } from "@/components/Avatar";
 const ACTION_LABELS: Record<string, string> = {
   "lead.created": "Lead aangemaakt",
   "lead.updated": "Lead gewijzigd",
+  "lead.stageChanged": "Lead-status gewijzigd",
   "lead.deleted": "Lead verwijderd",
   "lead.restored": "Lead hersteld",
   "user.created": "Gebruiker aangemaakt",

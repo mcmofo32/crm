@@ -29,7 +29,7 @@ import {
   getConversationsLeaderboard,
 } from "@/lib/actions/production";
 import { getAssignableUsers } from "@/lib/actions/leads";
-import { getUnverifiedPastSeminars } from "@/lib/actions/events";
+import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
@@ -93,7 +93,7 @@ export default async function DashboardPage({
     yearlyKpis,
     teamOverview,
     allTeamOverviews,
-    unverifiedSeminars,
+    unverifiedEvents,
     crossOwnerDuplicates,
     productionRows,
     conversationsRows,
@@ -110,7 +110,7 @@ export default async function DashboardPage({
     getYearlyKpiProgress(user.id, currentYear),
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
     isBeheerder(user) ? getAllTeamOverviews() : Promise.resolve(null),
-    getUnverifiedPastSeminars(),
+    getUnverifiedPastVerifiableEvents(),
     getCrossOwnerDuplicateGroups(),
     getProductionLeaderboard(currentProductionMonth.year, currentProductionMonth.month),
     getConversationsLeaderboard(),
@@ -160,17 +160,17 @@ export default async function DashboardPage({
         </Link>
       )}
 
-      {unverifiedSeminars.length > 0 && (
+      {unverifiedEvents.length > 0 && (
         <Link
-          href={`/evenementen/${unverifiedSeminars[0].id}`}
+          href={`/evenementen/${unverifiedEvents[0].id}`}
           className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-800 hover:bg-amber-100"
         >
           <AlertTriangle size={20} className="flex-shrink-0" />
           <span>
-            <strong>{unverifiedSeminars.length}</strong>{" "}
-            {unverifiedSeminars.length === 1
-              ? "seminarie wacht op bevestiging van de aanwezigheid."
-              : "seminaries wachten op bevestiging van de aanwezigheid."}{" "}
+            <strong>{unverifiedEvents.length}</strong>{" "}
+            {unverifiedEvents.length === 1
+              ? "seminarie/belsessie wacht op bevestiging van de aanwezigheid."
+              : "seminaries/belsessies wachten op bevestiging van de aanwezigheid."}{" "}
             Bevestig nu →
           </span>
         </Link>
