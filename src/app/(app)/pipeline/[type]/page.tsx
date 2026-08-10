@@ -9,7 +9,7 @@ import {
   setLeadInformedAction,
   setLeadCharacteristicsAction,
 } from "@/lib/actions/pipeline";
-import { getAssignableUsers } from "@/lib/actions/leads";
+import { getAssignableUsers, type LeadCategoryFilter } from "@/lib/actions/leads";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData } from "@/lib/permissions";
 import { Role } from "@/generated/prisma/client";
@@ -39,11 +39,15 @@ export default async function PipelinePage({
   searchParams,
 }: {
   params: Promise<{ type: string }>;
-  searchParams: Promise<{ q?: string; ownerId?: string }>;
+  searchParams: Promise<{ q?: string; ownerId?: string; view?: string }>;
 }) {
   const { type } = await params;
   if (type !== "verkoop" && type !== "recrutering") notFound();
-  const { q, ownerId } = await searchParams;
+  const { q, ownerId, view } = await searchParams;
+  const category =
+    view === "open" || view === "ingepland" || view === "geen_interesse"
+      ? (view as LeadCategoryFilter)
+      : undefined;
 
   const leadType = TYPE_MAP[type];
   const isRecrutering = type === "recrutering";
@@ -83,6 +87,7 @@ export default async function PipelinePage({
         ))}
       </select>
       {q && <input type="hidden" name="q" value={q} />}
+      {category && <input type="hidden" name="view" value={category} />}
       <button
         type="submit"
         className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
@@ -92,9 +97,18 @@ export default async function PipelinePage({
     </form>
   );
 
+  function categoryHref(c: "ALLE" | LeadCategoryFilter) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (requiresSelection) params.set("ownerId", selectedOwnerId);
+    if (c !== "ALLE") params.set("view", c);
+    const qs = params.toString();
+    return qs ? `/pipeline/${type}?${qs}` : `/pipeline/${type}`;
+  }
+
   const [stats, leads, stages] = await Promise.all([
     getPipelineStats(leadType, selectedOwnerId),
-    getPipelineLeads(leadType, selectedOwnerId, q),
+    getPipelineLeads(leadType, selectedOwnerId, q, category),
     prisma.funnelStage.findMany({
       where: { leadType, key: { in: funnelStageKeys(leadType) } },
       orderBy: { order: "asc" },
@@ -154,11 +168,35 @@ export default async function PipelinePage({
         />
       </div>
 
+      <div className="flex gap-2 text-sm">
+        {(
+          [
+            ["ALLE", "Alle leads"],
+            ["open", "Open leads"],
+            ["ingepland", "Ingeplande leads"],
+            ["geen_interesse", "Geen interesse"],
+          ] as const
+        ).map(([c, label]) => (
+          <Link
+            key={c}
+            href={categoryHref(c)}
+            className={`rounded-full px-4 py-1.5 font-medium ${
+              (c === "ALLE" && !category) || c === category
+                ? "bg-slate-700 text-white"
+                : "bg-white text-slate-600 border border-slate-200"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <form method="GET" className="flex items-center gap-2">
           {requiresSelection && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
+          {category && <input type="hidden" name="view" value={category} />}
           <div className="relative">
             <Search
               size={16}
@@ -270,7 +308,9 @@ export default async function PipelinePage({
                   colSpan={isRecrutering ? 6 : 10}
                   className="px-4 py-8 text-center text-slate-400"
                 >
-                  {q ? "Geen leads gevonden voor deze zoekopdracht." : "Nog geen leads."}
+                  {q || category
+                    ? "Geen leads gevonden voor deze filters."
+                    : "Nog geen leads."}
                 </td>
               </tr>
             )}

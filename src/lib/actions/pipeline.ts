@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { LeadType } from "@/generated/prisma/client";
 import { canAccessOwner } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import type { LeadCategoryFilter } from "@/lib/actions/leads";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -96,19 +97,26 @@ export type PipelineLeadRow = {
 export async function getPipelineLeads(
   leadType: LeadType,
   ownerId: string,
-  search?: string
+  search?: string,
+  category?: LeadCategoryFilter
 ): Promise<PipelineLeadRow[]> {
   const user = await requireUser();
   if (!(await canAccessOwner(user, ownerId))) {
     throw new Error("Geen toegang tot deze medewerker");
   }
   const trimmedSearch = search?.trim();
+  const now = new Date();
 
   const leads = await prisma.lead.findMany({
     where: {
       deletedAt: null,
       leadType,
       ownerId,
+      ...(category === "open" ? { status: "OPEN" } : {}),
+      ...(category === "geen_interesse" ? { status: "LOST" } : {}),
+      ...(category === "ingepland"
+        ? { activities: { some: { status: "PLANNED", scheduledAt: { gte: now } } } }
+        : {}),
       ...(trimmedSearch
         ? {
             OR: [
