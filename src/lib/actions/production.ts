@@ -50,7 +50,7 @@ export async function getProductionStructureOptions(): Promise<
 
   return teams.map((t) => ({
     id: t.coach.id,
-    label: `${t.name} (${t.coach.name})`,
+    label: t.name,
   }));
 }
 

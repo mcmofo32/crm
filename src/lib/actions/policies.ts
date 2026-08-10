@@ -168,6 +168,7 @@ async function requireEditablePolicy(policyId: string) {
 
 function revalidatePolicyPaths(leadId: string) {
   revalidatePath("/klanten/polissen");
+  revalidatePath("/subagent/polissen");
   revalidatePath(`/leads/${leadId}`);
 }
 

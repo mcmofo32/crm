@@ -115,7 +115,9 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/leads");
   revalidatePath("/klanten");
+  revalidatePath("/subagent");
   revalidatePath("/klanten/polissen");
+  revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
@@ -238,6 +240,7 @@ export async function setCaseManagerAction(leadId: string, formData: FormData) {
   });
 
   revalidatePath("/klanten");
+  revalidatePath("/subagent");
   revalidatePath(`/leads/${leadId}`);
 }
 
@@ -269,6 +272,7 @@ export async function setTaxDeclarationStatusAction(
   });
 
   revalidatePath("/klanten");
+  revalidatePath("/subagent");
 }
 
 export type CustomerStats = {

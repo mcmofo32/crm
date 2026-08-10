@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { LogOut, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { canManageCustomerData } from "@/lib/permissions";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { NavLinks } from "@/components/NavLinks";
@@ -61,6 +62,20 @@ export default async function AppLayout({
     { href: "/evenementen", label: "Evenementen" },
     { href: "/organigram", label: "Organigram" },
     { href: "/productie", label: "Cijfers" },
+    // Enkel zichtbaar voor subagenten en Beheerder/Admin (zelfde
+    // toegangsregel als de klantendata-bewerkrechten elders).
+    ...(canManageCustomerData(viewer)
+      ? [
+          {
+            href: "/subagent",
+            label: "Subagent",
+            children: [
+              { href: "/subagent", label: "Klanten onder beheer" },
+              { href: "/subagent/polissen", label: "Polissen" },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (
