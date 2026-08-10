@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { LogOut, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getVisibleUserIds } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/roleLabels";
@@ -18,24 +17,23 @@ export default async function AppLayout({
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
 
-  const [visibleUserIds, viewerDetails] = await Promise.all([
-    getVisibleUserIds(viewer),
-    prisma.user.findUnique({
-      where: { id: viewer.id },
-      select: { jobFunction: true, avatarUpdatedAt: true },
-    }),
-  ]);
+  const viewerDetails = await prisma.user.findUnique({
+    where: { id: viewer.id },
+    select: { jobFunction: true, avatarUpdatedAt: true },
+  });
   const photoUrl = viewerDetails?.avatarUpdatedAt
     ? `/api/users/${viewer.id}/avatar?v=${viewerDetails.avatarUpdatedAt.getTime()}`
     : null;
+  // Enkel de eigen verlopen taken van de ingelogde gebruiker tellen mee voor
+  // het badge-cijfer naast "Taken" — anders krijgt bv. een coach of
+  // beheerder hier het totaal van zijn hele team te zien, wat aanvoelt als
+  // een melding over eigen niet-afgewerkte taken terwijl dat niet zo is.
   const overdueTasks = await prisma.activity.count({
     where: {
       status: "PLANNED",
       scheduledAt: { lt: new Date() },
-      lead: {
-        deletedAt: null,
-        ...(visibleUserIds ? { ownerId: { in: visibleUserIds } } : {}),
-      },
+      assigneeId: viewer.id,
+      lead: { deletedAt: null },
     },
   });
 
