@@ -2,9 +2,7 @@ import Link from "next/link";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { createLeadAction } from "@/lib/actions/leads";
 import { getAssignableUsers } from "@/lib/actions/leads";
-import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { LeadType } from "@/generated/prisma/client";
-import { Badge } from "@/components/Badge";
 
 export default async function NewLeadPage({
   searchParams,
@@ -42,15 +40,6 @@ export default async function NewLeadPage({
           <Field label="E-mail" name="email" type="email" />
           <Field label="Telefoon" name="phone" type="tel" />
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-slate-700">
-            Funnel
-          </label>
-          <Badge variant={LEAD_TYPE_BADGE_VARIANT[leadType]} className="w-fit">
-            {LEAD_TYPE_LABELS[leadType]}
-          </Badge>
-        </div>
-
         {assignableUsers.length > 1 && (
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-slate-700">
