@@ -69,7 +69,7 @@ export default async function AppLayout({
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-2.5 lg:px-10">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <Logo size={32} />
+              <Logo size={44} />
               Structuur A
             </span>
             <NavLinks items={navItems} />

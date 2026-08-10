@@ -121,11 +121,13 @@ export default async function DashboardPage({
     allTeamOverviews?.[0] ??
     null;
 
-  // Compact overzicht op het dashboard: top 5 op eenheden, met de
-  // Gesprekken-doel/percentage erbij gemengd zodat je in één klein tabelletje
-  // zowel Productie als Gesprekken ziet (net als de aparte tabbladen).
+  // Compact overzicht op het dashboard: alle actieve medewerkers, met de
+  // Gesprekken-doel/percentage erbij gemengd zodat je in één tabelletje
+  // zowel Productie als Gesprekken ziet (net als de aparte tabbladen). De
+  // lijst zelf toont iedereen — enkel de tabel krijgt een vaste (scrollbare)
+  // hoogte zodat het dashboard niet te lang wordt.
   const conversationsByUserId = new Map(conversationsRows.map((r) => [r.id, r]));
-  const compactProductionRows = productionRows.slice(0, 5).map((row) => ({
+  const compactProductionRows = productionRows.map((row) => ({
     ...row,
     conversationsTarget: conversationsByUserId.get(row.id)?.target ?? 0,
     conversationsPercent: conversationsByUserId.get(row.id)?.percent ?? null,
@@ -284,7 +286,7 @@ export default async function DashboardPage({
             <h2 className="text-xl font-medium text-slate-900">
               Productie &amp; gesprekken
               <span className="ml-1.5 text-base font-normal text-slate-400">
-                — top 5, productiemaand {String(currentProductionMonth.month).padStart(2, "0")}
+                — productiemaand {String(currentProductionMonth.month).padStart(2, "0")}
               </span>
             </h2>
             <Link
@@ -294,9 +296,9 @@ export default async function DashboardPage({
               Volledige ranglijst →
             </Link>
           </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
+              <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
                 <tr>
                   <th className="px-3 py-2.5 font-medium">#</th>
                   <th className="px-3 py-2.5 font-medium">Naam</th>
