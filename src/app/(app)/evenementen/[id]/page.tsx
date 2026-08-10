@@ -79,6 +79,10 @@ export default async function EventDetailPage({
             dateStyle: "full",
             timeStyle: "short",
           })}
+          {event.endDate &&
+            ` - ${event.endDate.toLocaleTimeString("nl-BE", {
+              timeStyle: "short",
+            })}`}
         </p>
         {event.location && (
           <p className="flex items-center gap-2 text-base text-slate-700">

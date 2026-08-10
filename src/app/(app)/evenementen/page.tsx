@@ -98,6 +98,10 @@ function EventSection({
                     dateStyle: "medium",
                     timeStyle: "short",
                   })}
+                  {event.endDate &&
+                    ` - ${event.endDate.toLocaleTimeString("nl-BE", {
+                      timeStyle: "short",
+                    })}`}
                 </span>
                 {event.location && (
                   <span className="flex items-center gap-1">

@@ -34,6 +34,18 @@ function parseEventType(raw: FormDataEntryValue | null | undefined): EventType {
   return EVENT_TYPES.includes(raw as EventType) ? (raw as EventType) : "MEETING";
 }
 
+function parseEndDate(dateRaw: string, endTimeRaw: string, startDate: Date): Date | null {
+  if (!endTimeRaw) return null;
+  const endDate = new Date(`${dateRaw}T${endTimeRaw}:00`);
+  if (Number.isNaN(endDate.getTime())) {
+    throw new Error("Ongeldig einduur");
+  }
+  if (endDate <= startDate) {
+    throw new Error("Einduur moet na het startuur liggen");
+  }
+  return endDate;
+}
+
 export async function createEventAction(formData: FormData) {
   const actor = await requireEventManager();
 
@@ -41,6 +53,7 @@ export async function createEventAction(formData: FormData) {
   const type = parseEventType(formData.get("type"));
   const dateRaw = String(formData.get("date") ?? "");
   const timeRaw = String(formData.get("time") ?? "").trim();
+  const endTimeRaw = String(formData.get("endTime") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
 
@@ -53,11 +66,14 @@ export async function createEventAction(formData: FormData) {
     throw new Error("Ongeldige datum/tijd");
   }
 
+  const endDate = parseEndDate(dateRaw, endTimeRaw, date);
+
   const event = await prisma.event.create({
     data: {
       title,
       type,
       date,
+      endDate,
       location,
       description,
       createdById: actor.id,
@@ -75,6 +91,7 @@ export async function updateEventAction(eventId: string, formData: FormData) {
   const type = parseEventType(formData.get("type"));
   const dateRaw = String(formData.get("date") ?? "");
   const timeRaw = String(formData.get("time") ?? "").trim();
+  const endTimeRaw = String(formData.get("endTime") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
 
@@ -87,9 +104,11 @@ export async function updateEventAction(eventId: string, formData: FormData) {
     throw new Error("Ongeldige datum/tijd");
   }
 
+  const endDate = parseEndDate(dateRaw, endTimeRaw, date);
+
   await prisma.event.update({
     where: { id: eventId },
-    data: { title, type, date, location, description },
+    data: { title, type, date, endDate, location, description },
   });
 
   revalidatePath("/evenementen");
@@ -131,6 +150,7 @@ export type EventWithMyStatus = {
   title: string;
   type: EventType;
   date: Date;
+  endDate: Date | null;
   location: string | null;
   description: string | null;
   myStatus: AttendanceStatus;
@@ -154,6 +174,7 @@ export async function getEventsForCurrentUser(): Promise<EventWithMyStatus[]> {
     title: event.title,
     type: event.type,
     date: event.date,
+    endDate: event.endDate,
     location: event.location,
     description: event.description,
     myStatus:
@@ -207,6 +228,7 @@ export async function getEventForDetail(eventId: string) {
     title: event.title,
     type: event.type,
     date: event.date,
+    endDate: event.endDate,
     location: event.location,
     description: event.description,
     createdById: event.createdById,

@@ -689,6 +689,7 @@ model Event {
   title       String
   type        EventType
   date        DateTime
+  endDate     DateTime?
   location    String?
   description String?
   createdAt   DateTime  @default(now())

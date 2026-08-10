@@ -41,7 +41,7 @@ export default async function NewEventPage() {
           </select>
         </label>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-slate-700">Datum</span>
             <input
@@ -52,10 +52,18 @@ export default async function NewEventPage() {
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-slate-700">Uur</span>
+            <span className="text-sm font-medium text-slate-700">Startuur</span>
             <input
               type="time"
               name="time"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-slate-700">Einduur</span>
+            <input
+              type="time"
+              name="endTime"
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
           </label>
