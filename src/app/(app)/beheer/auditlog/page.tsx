@@ -16,6 +16,7 @@ const ACTION_LABELS: Record<string, string> = {
   "user.updated": "Gebruiker gewijzigd",
   "user.activated": "Gebruiker geactiveerd",
   "user.deactivated": "Gebruiker gedeactiveerd",
+  "user.deleted": "Gebruiker verwijderd",
   "user.password_reset": "Wachtwoord gereset",
   "team.created": "Team aangemaakt",
   "team.member_added": "Lid toegevoegd",

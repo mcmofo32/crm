@@ -27,6 +27,7 @@ export async function getTeamsWithMembers() {
     include: {
       coach: { select: { id: true, name: true, email: true, teamId: true } },
       members: {
+        where: { deletedAt: null },
         select: { id: true, name: true, email: true, role: true },
         orderBy: { name: "asc" },
       },

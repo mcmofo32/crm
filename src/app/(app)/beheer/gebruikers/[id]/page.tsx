@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import {
   getUserForEdit,
@@ -6,11 +7,14 @@ import {
   updateUserAction,
   resetUserPasswordAction,
   setUserActiveAction,
+  getUserDeletionImpact,
+  getReassignableUsers,
 } from "@/lib/actions/users";
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
 import { EditUserForm } from "@/components/EditUserForm";
+import { DeleteUserButton } from "@/components/DeleteUserButton";
 
 const JOB_FUNCTIONS = Object.values(JobFunction);
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
@@ -32,6 +36,12 @@ export default async function EditUserPage({
     getTeamsForAssignment(),
   ]);
   if (!target) notFound();
+
+  const isSelf = target.id === viewer.id;
+  const [deletionImpact, reassignableUsers] = await Promise.all([
+    isSelf ? null : getUserDeletionImpact(id),
+    isSelf ? [] : getReassignableUsers(id),
+  ]);
 
   // Enkel de Beheerder mag iemand Admin maken (gevoelige data, bewust beperkt tot 1 persoon).
   const assignableRoles = (
@@ -214,6 +224,41 @@ export default async function EditUserPage({
           </button>
         </form>
       </div>
+
+      {!isSelf && deletionImpact && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <h2 className="mb-2 text-sm font-medium text-red-900">
+            Gevarenzone — profiel verwijderen
+          </h2>
+          {deletionImpact.coachesTeam ? (
+            <p className="text-sm text-red-800">
+              Deze gebruiker coacht nog een team. Verwijder of herverdeel dat
+              team eerst via{" "}
+              <Link href="/beheer/teams" className="underline">
+                Teams
+              </Link>{" "}
+              voor je dit profiel kan verwijderen.
+            </p>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-red-800">
+                Het account kan nadien niet meer inloggen en verdwijnt uit
+                alle keuzelijsten. Alle bestaande historiek (activiteiten,
+                logboek, ...) blijft gewoon bewaard.
+              </p>
+              <DeleteUserButton
+                userId={target.id}
+                userName={target.name}
+                leadsCount={
+                  deletionImpact.ownedLeadsCount +
+                  deletionImpact.caseManagedLeadsCount
+                }
+                reassignableUsers={reassignableUsers}
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

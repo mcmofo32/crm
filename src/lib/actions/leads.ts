@@ -500,7 +500,7 @@ export async function getAssignableUsers() {
   const user = await requireUser();
   const ids = await getVisibleUserIds(user);
   return prisma.user.findMany({
-    where: ids ? { id: { in: ids } } : {},
+    where: { deletedAt: null, ...(ids ? { id: { in: ids } } : {}) },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
