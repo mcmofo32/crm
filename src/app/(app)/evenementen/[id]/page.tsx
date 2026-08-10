@@ -226,6 +226,25 @@ export default async function EventDetailPage({
         </div>
       )}
 
+      {event.canManage && event.nonResponders.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+          <h2 className="mb-3 text-lg font-medium text-amber-900">
+            Nog niet gereageerd ({event.nonResponders.length})
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {event.nonResponders.map((u) => (
+              <li
+                key={u.userId}
+                className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm text-slate-700"
+              >
+                <Avatar name={u.name} size="sm" />
+                {u.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {event.canManage && (
         <div>
           <DeleteEventButton eventId={event.id} eventTitle={event.title} />

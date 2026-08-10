@@ -182,6 +182,23 @@ export async function getEventForDetail(eventId: string) {
   const needsVerification =
     event.type === "SEMINAR" && event.date < new Date() && !event.verifiedAt;
 
+  // Wie nog geen enkele reactie gaf, heeft helemaal geen EventAttendance-rij
+  // (die wordt pas aangemaakt zodra iemand zichzelf aan-/afwezig zet) — dus
+  // enkel af te leiden door alle actieve gebruikers te vergelijken met wie
+  // wél al gereageerd heeft.
+  let nonResponders: { userId: string; name: string }[] = [];
+  if (canManage) {
+    const respondedIds = new Set(event.attendances.map((a) => a.userId));
+    const allActiveUsers = await prisma.user.findMany({
+      where: { active: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+    nonResponders = allActiveUsers
+      .filter((u) => !respondedIds.has(u.id))
+      .map((u) => ({ userId: u.id, name: u.name }));
+  }
+
   return {
     id: event.id,
     title: event.title,
@@ -203,6 +220,7 @@ export async function getEventForDetail(eventId: string) {
           actualStatus: a.actualStatus,
         }))
       : [],
+    nonResponders,
   };
 }
 
