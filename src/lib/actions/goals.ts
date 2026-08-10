@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
-import { KpiMetric, Role } from "@/generated/prisma/client";
+import { KpiMetric } from "@/generated/prisma/client";
 import { KPI_METRIC_ORDER, MANUAL_KPI_METRIC_ORDER } from "@/lib/goalLabels";
 import { getEventAttendancePercent } from "@/lib/actions/events";
 import { getMonthlyGoalAchievements } from "@/lib/actions/production";
@@ -23,15 +23,12 @@ async function requireGoalManager() {
 // ---------------------------------------------------------------------------
 
 export async function getGoalManagementUsers() {
-  const actor = await requireGoalManager();
-  const users = await prisma.user.findMany({
+  await requireGoalManager();
+  return prisma.user.findMany({
     where: { active: true },
     select: { id: true, name: true, role: true },
     orderBy: { name: "asc" },
   });
-  return actor.role === Role.BEHEERDER
-    ? users
-    : users.filter((u) => u.role !== Role.BEHEERDER);
 }
 
 export async function getUserForGoals(userId: string) {

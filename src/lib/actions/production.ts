@@ -834,7 +834,7 @@ export async function saveProductionMonthDatesAction(
 // ---------------------------------------------------------------------------
 
 export async function getAllUserMonthlyGoalsForTable(year: number, month: number) {
-  const actor = await requireGoalManager();
+  await requireGoalManager();
   const users = await prisma.user.findMany({
     where: { active: true },
     select: {
@@ -845,12 +845,8 @@ export async function getAllUserMonthlyGoalsForTable(year: number, month: number
     },
     orderBy: { name: "asc" },
   });
-  const visible =
-    actor.role === Role.BEHEERDER
-      ? users
-      : users.filter((u) => u.role !== Role.BEHEERDER);
 
-  return visible.map((u) => ({
+  return users.map((u) => ({
     id: u.id,
     name: u.name,
     role: u.role,
