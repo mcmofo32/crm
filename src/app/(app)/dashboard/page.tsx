@@ -296,15 +296,15 @@ export default async function DashboardPage({
               Volledige ranglijst →
             </Link>
           </div>
-          <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
+              <thead className="bg-slate-50 text-left text-slate-500">
                 <tr>
-                  <th className="px-3 py-2.5 font-medium">#</th>
-                  <th className="px-3 py-2.5 font-medium">Naam</th>
-                  <th className="px-3 py-2.5 text-center font-medium">Klanten</th>
-                  <th className="px-3 py-2.5 text-center font-medium">Eenheden</th>
-                  <th className="px-3 py-2.5 text-center font-medium">
+                  <th className="px-3 py-2 font-medium">#</th>
+                  <th className="px-3 py-2 font-medium">Naam</th>
+                  <th className="px-3 py-2 text-center font-medium">Klanten</th>
+                  <th className="px-3 py-2 text-center font-medium">Eenheden</th>
+                  <th className="px-3 py-2 text-center font-medium">
                     Gesprekken/week
                   </th>
                 </tr>
