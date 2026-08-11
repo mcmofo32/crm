@@ -45,7 +45,6 @@ const COLOR_AMBER = "#d97706";
 const COLOR_TAX_TODO = "#e11d48";
 
 const SEASON_METRICS = [
-  { key: "newLeads", label: "Leads" },
   { key: "won", label: "Klanten" },
   { key: "financieleAnalyses", label: "Financiële analyses" },
   { key: "adviesgesprekken", label: "Adviesgesprekken" },
@@ -155,7 +154,7 @@ export default async function AnalysePage({
   const year = yearRaw && /^\d{4}$/.test(yearRaw) ? Number(yearRaw) : new Date().getFullYear();
   const seasonMetric = SEASON_METRICS.some((m) => m.key === seasonMetricRaw)
     ? seasonMetricRaw!
-    : "newLeads";
+    : "won";
 
   const [
     { byType, stageDistribution, perEmployee, teams },
@@ -204,7 +203,7 @@ export default async function AnalysePage({
   function seasonHref(metric: string) {
     const params = new URLSearchParams();
     if (trendType) params.set("trendType", trendType);
-    if (metric !== "newLeads") params.set("seasonMetric", metric);
+    if (metric !== "won") params.set("seasonMetric", metric);
     const qs = params.toString();
     return qs ? `/beheer/analyse?${qs}#seizoen` : "/beheer/analyse#seizoen";
   }
