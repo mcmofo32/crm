@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers, getDescendantUserIds } from "@/lib/permissions";
-import { GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
+import { ActivityStatus, GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
 import {
   GOAL_METRIC_ORDER,
   MONTHLY_GOAL_METRICS,
@@ -78,6 +78,23 @@ export async function resolveProductionUserIds(
 
   const descendants = await getDescendantUserIds(structureId);
   return [structureId, ...descendants];
+}
+
+/**
+ * "Gesprekken" = Financiële analyse-afspraken (het onderwerp bevat
+ * "Financiële analyse", zie meetingPlanning.ts) binnen een periode. Telt
+ * zowel nog geplande als al afgeronde gesprekken mee — het is een totaal
+ * voor de periode, geen "nog te doen"-teller, dus het cijfer valt niet
+ * terug op 0 zodra je je gesprekken effectief afrondt. Geannuleerde/
+ * no-show-afspraken tellen niet mee.
+ */
+function financieleAnalyseActivityWhere(range: { gte: Date; lt: Date }) {
+  return {
+    status: { in: [ActivityStatus.PLANNED, ActivityStatus.COMPLETED] },
+    subject: { contains: "Financiële analyse", mode: "insensitive" as const },
+    scheduledAt: range,
+    lead: { leadType: "FA" as const },
+  };
 }
 
 function monthRange(year: number, month: number) {
@@ -231,10 +248,7 @@ export async function getProductionLeaderboard(
       by: ["assigneeId"],
       where: {
         assigneeId: { in: userIds },
-        status: "PLANNED",
-        type: { in: ["CALL", "MEETING"] },
-        scheduledAt: { gte: week.start, lt: week.end },
-        lead: { leadType: "FA" },
+        ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
       },
       _count: { _all: true },
     }),
@@ -367,10 +381,7 @@ export async function getConversationsLeaderboard(
     by: ["assigneeId"],
     where: {
       assigneeId: { in: userIds },
-      status: "PLANNED",
-      type: { in: ["CALL", "MEETING"] },
-      scheduledAt: { gte: week.start, lt: week.end },
-      lead: { leadType: "FA" },
+      ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
     },
     _count: { _all: true },
   });
@@ -449,10 +460,7 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
       prisma.activity.count({
         where: {
           assigneeId: userId,
-          status: "PLANNED",
-          type: { in: ["CALL", "MEETING"] },
-          scheduledAt: { gte: week.start, lt: week.end },
-          lead: { leadType: "FA" },
+          ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
         },
       }),
       prisma.lead.count({
@@ -573,10 +581,7 @@ export async function getGroupProductionMonthGoalProgress(
         by: ["assigneeId"],
         where: {
           assigneeId: { in: userIds },
-          status: "PLANNED",
-          type: { in: ["CALL", "MEETING"] },
-          scheduledAt: { gte: week.start, lt: week.end },
-          lead: { leadType: "FA" },
+          ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
         },
         _count: { _all: true },
       }),
@@ -736,10 +741,7 @@ export async function getMonthlyGoalAchievements(
         prisma.activity.count({
           where: {
             assigneeId: userId,
-            status: "PLANNED",
-            type: { in: ["CALL", "MEETING"] },
-            scheduledAt: { gte: start, lt: end },
-            lead: { leadType: "FA" },
+            ...financieleAnalyseActivityWhere({ gte: start, lt: end }),
           },
         }),
       ]);
