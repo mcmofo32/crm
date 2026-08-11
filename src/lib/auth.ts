@@ -3,6 +3,13 @@ import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 
+/** E-mail case-insensitief opzoeken: Google geeft niet altijd exact dezelfde schrijfwijze terug als hoe het adres in Gebruikers werd ingevoerd. */
+function findUserByEmail(email: string) {
+  return prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -21,9 +28,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Google-account.
     signIn: async ({ user }) => {
       if (!user.email) return false;
-      const dbUser = await prisma.user.findUnique({
-        where: { email: user.email },
-      });
+      const dbUser = await findUserByEmail(user.email);
       return !!dbUser && dbUser.active;
     },
     // Overschrijft de edge-safe jwt-callback (die enkel de reeds aanwezige
@@ -33,9 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // gebruikt.
     jwt: async ({ token, user }) => {
       if (user?.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: user.email },
-        });
+        const dbUser = await findUserByEmail(user.email);
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;

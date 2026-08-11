@@ -1,14 +1,20 @@
 import type { NextAuthConfig } from "next-auth";
 
 /**
- * Edge-safe deel van de NextAuth config: geen providers die Prisma/bcrypt
- * (Node.js-only) importeren, zodat dit bestand veilig in de proxy/middleware
- * (Edge runtime) gebruikt kan worden. De volledige config met de Credentials
- * provider zit in `auth.ts`.
+ * Edge-safe deel van de NextAuth config: geen providers/callbacks die
+ * Prisma (Node.js-only) importeren, zodat dit bestand veilig in de proxy/
+ * middleware (Edge runtime) gebruikt kan worden. De volledige config met de
+ * Google-provider en de Prisma-afhankelijke signIn/jwt-callbacks zit in
+ * `auth.ts`.
  */
 export const authConfig = {
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  // Zonder expliciete `error`-pagina toont NextAuth zijn eigen kale
+  // "Access Denied"-scherm bij een geweigerde login (bv. een Google-account
+  // dat niet aan een actieve CRM-gebruiker gekoppeld is) — met deze
+  // instelling komt diezelfde fout op /login terecht, waar de duidelijke
+  // Nederlandstalige foutmelding staat.
+  pages: { signIn: "/login", error: "/login" },
   // Nodig op Vercel: het platform draait achter een proxy met een dynamische
   // host (bv. per preview-deployment), dus NextAuth moet die host vertrouwen
   // in plaats van een vaste NEXTAUTH_URL te vereisen.
