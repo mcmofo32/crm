@@ -17,10 +17,17 @@ export type HeatmapRow = {
   key: string;
   label: string;
   /** Index 0 = januari t.e.m. index 11 = december. `null` = nog geen data/te vroeg. */
-  cells: (boolean | null)[];
+  cells: (number | null)[];
 };
 
-/** Compacte 12-koloms heatmap (per maand), cel groen = gehaald, rood = niet gehaald, leeg = nog geen data. */
+function cellColor(percent: number | null) {
+  if (percent === null) return "bg-slate-100";
+  if (percent >= 100) return "bg-green-500";
+  if (percent >= 75) return "bg-orange-400";
+  return "bg-red-400";
+}
+
+/** Compacte 12-koloms heatmap (per maand): rood <75%, oranje 75-99%, groen 100%+, leeg = nog geen data. */
 export function Heatmap({ rows }: { rows: HeatmapRow[] }) {
   if (rows.length === 0) {
     return <p className="text-sm text-slate-400">Geen gebruikers gevonden.</p>;
@@ -48,20 +55,8 @@ export function Heatmap({ rows }: { rows: HeatmapRow[] }) {
               {row.cells.map((cell, i) => (
                 <td key={i} className="px-1 py-1.5 text-center">
                   <span
-                    title={
-                      cell === null
-                        ? "Nog geen data"
-                        : cell
-                        ? "Gehaald"
-                        : "Niet gehaald"
-                    }
-                    className={`mx-auto flex h-4 w-4 rounded-sm ${
-                      cell === null
-                        ? "bg-slate-100"
-                        : cell
-                        ? "bg-green-500"
-                        : "bg-red-400"
-                    }`}
+                    title={cell === null ? "Nog geen data" : `${cell}%`}
+                    className={`mx-auto flex h-4 w-4 rounded-sm ${cellColor(cell)}`}
                   />
                 </td>
               ))}

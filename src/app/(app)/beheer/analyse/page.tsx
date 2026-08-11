@@ -689,7 +689,7 @@ export default async function AnalysePage({
 
       <Section
         title="KPI-heatmap per medewerker"
-        hint={`Groen = gehaald, rood = niet gehaald, leeg = nog geen data — per maand van ${year}.`}
+        hint={`Rood <75%, oranje 75-99%, groen 100%+, leeg = nog geen data — per maand van ${year}.`}
         action={
           <div className="flex items-center gap-2 text-sm">
             <Link
@@ -721,7 +721,7 @@ export default async function AnalysePage({
                   cells: row.cells
                     .filter((c) => c.metric === metric)
                     .sort((a, b) => a.month - b.month)
-                    .map((c) => c.achieved),
+                    .map((c) => c.percent),
                 }))}
               />
             </div>

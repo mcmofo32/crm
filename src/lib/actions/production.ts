@@ -673,6 +673,8 @@ export type MonthlyGoalAchievement = {
   month: number;
   unitsAchieved: boolean | null;
   conversationsAchieved: boolean | null;
+  unitsPercent: number | null;
+  conversationsPercent: number | null;
 };
 
 /**
@@ -693,7 +695,13 @@ export async function getMonthlyGoalAchievements(
     Array.from({ length: 12 }, (_, i) => i + 1).map(async (month) => {
       const { start, end } = await getProductionMonthRange(year, month);
       if (now < end) {
-        return { month, unitsAchieved: null, conversationsAchieved: null };
+        return {
+          month,
+          unitsAchieved: null,
+          conversationsAchieved: null,
+          unitsPercent: null,
+          conversationsPercent: null,
+        };
       }
 
       const [targets, unitsOverride, wonThisMonth, conversations] = await Promise.all([
@@ -758,6 +766,12 @@ export async function getMonthlyGoalAchievements(
         unitsAchieved: unitsTarget > 0 ? units >= unitsTarget : null,
         conversationsAchieved:
           conversationsTarget > 0 ? conversations >= conversationsTarget : null,
+        unitsPercent:
+          unitsTarget > 0 ? Math.round((units / unitsTarget) * 100) : null,
+        conversationsPercent:
+          conversationsTarget > 0
+            ? Math.round((conversations / conversationsTarget) * 100)
+            : null,
       };
     })
   );

@@ -977,8 +977,8 @@ export async function getIncentiveOverview(): Promise<IncentiveOverviewEntry[]> 
 export type KpiHeatmapCell = {
   metric: KpiMetric;
   month: number;
-  /** null = maand nog niet afgelopen, of nog geen doel/data */
-  achieved: boolean | null;
+  /** null = maand nog niet afgelopen, of nog geen doel/data. 0-100(+), kan boven 100 uitkomen bij een overschrijding. */
+  percent: number | null;
 };
 
 export type KpiHeatmapRow = {
@@ -1047,22 +1047,22 @@ export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
         cells.push({
           metric: KpiMetric.PRODUCTION,
           month,
-          achieved: production?.unitsAchieved ?? null,
+          percent: production?.unitsPercent ?? null,
         });
         cells.push({
           metric: KpiMetric.CONVERSATIONS,
           month,
-          achieved: production?.conversationsAchieved ?? null,
+          percent: production?.conversationsPercent ?? null,
         });
         cells.push({
           metric: KpiMetric.CALLING_SESSION,
           month,
-          achieved: notYetOver ? null : callingSessionMonths.has(month),
+          percent: notYetOver ? null : callingSessionMonths.has(month) ? 100 : 0,
         });
         cells.push({
           metric: KpiMetric.SEMINAR,
           month,
-          achieved: notYetOver ? null : seminarMonths.has(month),
+          percent: notYetOver ? null : seminarMonths.has(month) ? 100 : 0,
         });
       }
 
