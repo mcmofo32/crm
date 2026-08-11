@@ -4,6 +4,7 @@ import {
   updateMyZoomLinkAction,
   updateMyAvatarAction,
   removeMyAvatarAction,
+  changeMyPasswordAction,
 } from "@/lib/actions/profile";
 import { Avatar } from "@/components/Avatar";
 
@@ -142,6 +143,52 @@ export default async function SettingsPage({
           >
             Opslaan
           </button>
+        </form>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+        <h2 className="mb-2 font-medium text-slate-900">Wachtwoord wijzigen</h2>
+        <p className="mb-3 text-slate-500">
+          Kies een nieuw wachtwoord van minstens 8 tekens.
+        </p>
+        <form action={changeMyPasswordAction} className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-slate-700">Huidig wachtwoord</span>
+            <input
+              type="password"
+              name="currentPassword"
+              required
+              className="rounded-md border border-slate-300 px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-slate-700">Nieuw wachtwoord</span>
+            <input
+              type="password"
+              name="newPassword"
+              required
+              minLength={8}
+              className="rounded-md border border-slate-300 px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-slate-700">Bevestig nieuw wachtwoord</span>
+            <input
+              type="password"
+              name="newPasswordConfirm"
+              required
+              minLength={8}
+              className="rounded-md border border-slate-300 px-3 py-2"
+            />
+          </label>
+          <div>
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+            >
+              Wachtwoord wijzigen
+            </button>
+          </div>
         </form>
       </div>
     </div>

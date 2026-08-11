@@ -112,6 +112,7 @@ export async function createUserAction(formData: FormData) {
       email,
       phone,
       passwordHash,
+      mustChangePassword: true,
       role,
       jobFunction,
       agentType,
@@ -467,7 +468,10 @@ export async function resetUserPasswordAction(
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash, mustChangePassword: true },
+  });
 
   await logAudit({
     actorId: actor.id,

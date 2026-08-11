@@ -108,6 +108,12 @@ model User {
   /// Tijdelijke lock na te veel mislukte pogingen (brute-force-bescherming).
   lockedUntil         DateTime?
 
+  /// Verplicht om het wachtwoord te wijzigen bij de eerstvolgende login —
+  /// aangezet bij het aanmaken van een account of een wachtwoordreset door
+  /// Beheerder/Admin (die allebei starten met een gedeeld tijdelijk
+  /// wachtwoord), uitgezet zodra de gebruiker zelf een nieuw wachtwoord kiest.
+  mustChangePassword Boolean @default(false)
+
   /// Soft delete: het account zelf (en alle historiek die ernaar verwijst —
   /// activiteiten, audit log, ...) blijft bestaan, maar de gebruiker kan niet
   /// meer inloggen en verdwijnt uit alle keuzelijsten. Klanten/leads die deze
