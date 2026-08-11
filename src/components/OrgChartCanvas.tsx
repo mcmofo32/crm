@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, Maximize2, Link2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
+import { ExportImageButton } from "@/components/ExportImageButton";
 import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
 import type { OrgNode } from "@/lib/actions/orgChart";
 
@@ -138,6 +139,7 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-end gap-1.5">
+        <ExportImageButton targetId="organigram-export" filename="organigram" />
         <button
           type="button"
           title="Uitzoomen"
@@ -170,7 +172,7 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
       <div
         ref={containerRef}
         className="overflow-auto rounded-lg border border-slate-200 bg-slate-50"
-        style={{ maxHeight: "calc(100vh - 260px)" }}
+        style={{ maxHeight: "calc(100vh - 180px)", minHeight: "70vh" }}
       >
         <div
           style={{
@@ -179,6 +181,7 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
           }}
         >
           <div
+            id="organigram-export"
             style={{
               width,
               height: height + ROOT_STUB,

@@ -13,8 +13,9 @@ export default function BulkNewLeadPage() {
           <p className="mt-1 text-base text-slate-500">
             Vul de tabel in zoals in Excel — elke rij wordt één lead, en komt
             bij jezelf terecht. Handig om je eigen oude leads te importeren:
-            vul het sjabloon hieronder in en plak alle rijen in één keer in
-            de tabel.
+            download het sjabloon, vul het in in Excel, selecteer daar alle
+            ingevulde rijen (Ctrl+C) en plak ze (Ctrl+V) in de eerste cel
+            hieronder — er is geen aparte upload-knop, dit gaat via plakken.
           </p>
         </div>
         <div className="flex items-center gap-4">
