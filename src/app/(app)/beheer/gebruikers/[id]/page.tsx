@@ -5,7 +5,6 @@ import {
   getUserForEdit,
   getTeamsForAssignment,
   updateUserAction,
-  resetUserPasswordAction,
   setUserActiveAction,
   getUserDeletionImpact,
   getReassignableUsers,
@@ -51,7 +50,6 @@ export default async function EditUserPage({
   ) as Role[];
 
   const boundUpdate = updateUserAction.bind(null, id);
-  const boundResetPassword = resetUserPasswordAction.bind(null, id);
   const boundToggleActive = setUserActiveAction.bind(null, id, !target.active);
 
   return (
@@ -194,33 +192,6 @@ export default async function EditUserPage({
             }
           >
             {target.active ? "Account inactief zetten" : "Account activeren"}
-          </button>
-        </form>
-      </div>
-
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-medium text-slate-900">
-          Wachtwoord resetten
-        </h2>
-        <p className="mb-3 text-sm text-slate-500">
-          Stelt een nieuw wachtwoord in voor deze gebruiker. Geef dit
-          persoonlijk door; de gebruiker kan het nadien zelf niet zelf
-          wijzigen in deze eerste versie.
-        </p>
-        <form action={boundResetPassword} className="flex gap-2 text-sm">
-          <input
-            name="password"
-            type="password"
-            minLength={8}
-            required
-            placeholder="Nieuw wachtwoord"
-            className="flex-1 rounded-md border border-slate-300 px-3 py-2"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
-          >
-            Resetten
           </button>
         </form>
       </div>

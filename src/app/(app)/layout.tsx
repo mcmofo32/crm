@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { LogOut, Eye, Bell } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -20,19 +19,6 @@ export default async function AppLayout({
 }) {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
-
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  const isForcedPasswordPage = pathname === "/wachtwoord-wijzigen";
-  if (viewer.mustChangePassword && !isForcedPasswordPage) {
-    redirect("/wachtwoord-wijzigen");
-  }
-  if (isForcedPasswordPage) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
-        {children}
-      </div>
-    );
-  }
 
   const viewerDetails = await prisma.user.findUnique({
     where: { id: viewer.id },

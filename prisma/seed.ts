@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import { PrismaClient, Role, LeadType } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
@@ -56,18 +55,15 @@ async function seedStages(leadType: LeadType, stages: typeof FA_STAGES) {
 async function upsertUser(data: {
   name: string;
   email: string;
-  password: string;
   role: Role;
   teamId?: string;
 }) {
-  const passwordHash = await bcrypt.hash(data.password, 10);
   return prisma.user.upsert({
     where: { email: data.email },
     update: {},
     create: {
       name: data.name,
       email: data.email,
-      passwordHash,
       role: data.role,
       teamId: data.teamId,
     },
@@ -81,21 +77,18 @@ async function main() {
   const beheerder = await upsertUser({
     name: "Robin (Beheerder)",
     email: "beheerder@ceuppensconsulting.com",
-    password: "Wijzig-Dit-Wachtwoord!1",
     role: Role.BEHEERDER,
   });
 
   const admin = await upsertUser({
     name: "Voorbeeld Admin",
     email: "admin@ceuppensconsulting.com",
-    password: "Wijzig-Dit-Wachtwoord!1",
     role: Role.ADMIN,
   });
 
   const coach = await upsertUser({
     name: "Voorbeeld Coach",
     email: "coach@ceuppensconsulting.com",
-    password: "Wijzig-Dit-Wachtwoord!1",
     role: Role.COACH,
   });
 
@@ -108,7 +101,6 @@ async function main() {
   const teamUser = await upsertUser({
     name: "Voorbeeld Medewerker",
     email: "user@ceuppensconsulting.com",
-    password: "Wijzig-Dit-Wachtwoord!1",
     role: Role.USER,
     teamId: team.id,
   });
@@ -152,7 +144,9 @@ async function main() {
   console.log(`- Admin: ${admin.email}`);
   console.log(`- Coach: ${coach.email}`);
   console.log(`- User: ${teamUser.email}`);
-  console.log("Wachtwoord voor alle voorbeeldaccounts: Wijzig-Dit-Wachtwoord!1");
+  console.log(
+    "Log in met Google via bovenstaande e-mailadressen (Google-only login)."
+  );
 }
 
 main()

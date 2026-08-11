@@ -1,56 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-
-async function applyPasswordChange(formData: FormData) {
-  const viewer = await getEffectiveViewer();
-  if (!viewer) throw new Error("Niet ingelogd");
-
-  const user = await prisma.user.findUnique({ where: { id: viewer.id } });
-  if (!user) throw new Error("Gebruiker niet gevonden");
-
-  const newPassword = String(formData.get("newPassword") ?? "");
-  const newPasswordConfirm = String(formData.get("newPasswordConfirm") ?? "");
-
-  // Bij een verplichte eerste wachtwoordwijziging (net ingelogd met een
-  // tijdelijk wachtwoord) hoeft het huidige wachtwoord niet herhaald te
-  // worden; bij een vrijwillige wijziging via Instellingen wel, ter
-  // bevestiging dat je nog steeds de eigenaar van de sessie bent.
-  if (!user.mustChangePassword) {
-    const currentPassword = String(formData.get("currentPassword") ?? "");
-    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!valid) throw new Error("Huidig wachtwoord is onjuist");
-  }
-
-  if (newPassword.length < 8) {
-    throw new Error("Nieuw wachtwoord moet minstens 8 tekens hebben");
-  }
-  if (newPassword !== newPasswordConfirm) {
-    throw new Error("De twee nieuwe wachtwoorden komen niet overeen");
-  }
-
-  const passwordHash = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({
-    where: { id: viewer.id },
-    data: { passwordHash, mustChangePassword: false },
-  });
-}
-
-/** Vrijwillige wachtwoordwijziging via Instellingen — vereist het huidige wachtwoord. */
-export async function changeMyPasswordAction(formData: FormData) {
-  await applyPasswordChange(formData);
-  revalidatePath("/instellingen");
-}
-
-/** Verplichte eerste wachtwoordwijziging na een (reset-)login met een tijdelijk wachtwoord. */
-export async function completeForcedPasswordChangeAction(formData: FormData) {
-  await applyPasswordChange(formData);
-  redirect("/dashboard");
-}
 
 /** Iedere gebruiker mag zijn eigen Zoom-link instellen, net als de Google Agenda-koppeling. */
 export async function updateMyZoomLinkAction(formData: FormData) {

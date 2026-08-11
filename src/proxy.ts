@@ -9,19 +9,11 @@ const PUBLIC_PATHS = ["/login"];
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Doorgegeven als request-header zodat server components (bv. het
-  // (app)-layout) het huidige pad kennen zonder client-only hooks als
-  // usePathname — nodig om de verplichte-wachtwoordwijziging-redirect
-  // zichzelf niet in een lus te laten lopen op zijn eigen pagina.
-  const headers = new Headers(req.headers);
-  headers.set("x-pathname", pathname);
-  const withPathname = () => NextResponse.next({ request: { headers } });
-
   const isPublic =
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
     pathname.startsWith("/api/auth");
 
-  if (isPublic) return withPathname();
+  if (isPublic) return NextResponse.next();
 
   if (!req.auth) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
@@ -45,7 +37,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
-  return withPathname();
+  return NextResponse.next();
 });
 
 export const config = {

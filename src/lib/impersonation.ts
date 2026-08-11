@@ -19,8 +19,6 @@ export type EffectiveViewer = {
   isImpersonating: boolean;
   /** Analyst (standaard) of subagent — bepaalt o.a. of deze gebruiker leads als klant mag afsluiten. */
   agentType: AgentType;
-  /** Moet eerst een nieuw wachtwoord kiezen vóór de rest van de app toegankelijk is. */
-  mustChangePassword: boolean;
 };
 
 function isViewableRole(value: string | undefined): value is Role {
@@ -48,7 +46,6 @@ async function getFreshSessionUser() {
       role: true,
       active: true,
       agentType: true,
-      mustChangePassword: true,
     },
   });
   if (!dbUser || !dbUser.active) return null;
@@ -82,7 +79,6 @@ export async function getEffectiveViewer(): Promise<EffectiveViewer | null> {
     realRole,
     isImpersonating: role !== realRole,
     agentType: dbUser.agentType,
-    mustChangePassword: dbUser.mustChangePassword,
   };
 }
 

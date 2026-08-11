@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import {
@@ -14,9 +13,6 @@ import { logAudit } from "@/lib/audit";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { syncSubagentForUser } from "@/lib/actions/subagents";
-
-/** Vast tijdelijk wachtwoord voor nieuwe gebruikers; zij wijzigen dit zelf na de eerste login. */
-const DEFAULT_TEMP_PASSWORD = "veranderditwachtwoord123";
 
 /**
  * Vaste lijst i.p.v. Object.values(JobFunction): zo hangt validatie niet af
@@ -104,15 +100,11 @@ export async function createUserAction(formData: FormData) {
     }
   }
 
-  const passwordHash = await bcrypt.hash(DEFAULT_TEMP_PASSWORD, 10);
-
   const user = await prisma.user.create({
     data: {
       name,
       email,
       phone,
-      passwordHash,
-      mustChangePassword: true,
       role,
       jobFunction,
       agentType,
@@ -449,37 +441,4 @@ export async function deleteUserAction(userId: string, newOwnerId: string | null
   revalidatePath("/beheer/teams");
   revalidatePath("/beheer/doelen");
   revalidatePath("/productie");
-}
-
-export async function resetUserPasswordAction(
-  userId: string,
-  formData: FormData
-) {
-  const actor = await requireUserManager();
-  const target = await prisma.user.findUnique({ where: { id: userId } });
-  if (!target) throw new Error("Gebruiker niet gevonden");
-  if (!canManageUser(actor, target)) {
-    throw new Error("Je mag deze gebruiker niet beheren");
-  }
-
-  const password = String(formData.get("password") ?? "");
-  if (password.length < 8) {
-    throw new Error("Wachtwoord moet minstens 8 tekens hebben");
-  }
-
-  const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash, mustChangePassword: true },
-  });
-
-  await logAudit({
-    actorId: actor.id,
-    action: "user.password_reset",
-    entityType: "User",
-    entityId: target.id,
-    description: `Wachtwoord gereset voor gebruiker "${target.name}"`,
-  });
-
-  revalidatePath(`/beheer/gebruikers/${userId}`);
 }
