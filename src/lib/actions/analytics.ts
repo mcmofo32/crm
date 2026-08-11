@@ -115,10 +115,18 @@ function buildEmployeeStats(
     .sort((a, b) => b.totalLeads - a.totalLeads);
 }
 
-export async function getAnalytics() {
+/**
+ * `teamFilter`/`personFilter` beperken alle onderstaande cijfers (FA/RG-
+ * kaarten, open leads per fase, overzicht per medewerker) tot een team of
+ * één specifieke medewerker — dezelfde structuur/persoon-keuze als elders
+ * in de app. `teamFilter` is het id van een Team (rechtstreekse leden +
+ * coach, geen substructuur), `"geen"` betekent "zonder team", leeg/`"alle"`
+ * betekent geen beperking. `personFilter` overschrijft `teamFilter`.
+ */
+export async function getAnalytics(teamFilter?: string, personFilter?: string) {
   await requireBeheerder();
 
-  const [leads, users, teams, activityGroups] = await Promise.all([
+  const [leadsAll, usersAll, teams, activityGroupsAll] = await Promise.all([
     prisma.lead.findMany({
       where: { deletedAt: null },
       select: {
@@ -148,6 +156,18 @@ export async function getAnalytics() {
       _count: { _all: true },
     }),
   ]);
+
+  const users = personFilter
+    ? usersAll.filter((u) => u.id === personFilter)
+    : !teamFilter || teamFilter === "alle"
+    ? usersAll
+    : teamFilter === "geen"
+    ? usersAll.filter((u) => !(u.coachedTeam ?? u.team))
+    : usersAll.filter((u) => (u.coachedTeam ?? u.team)?.id === teamFilter);
+
+  const scopeUserIds = new Set(users.map((u) => u.id));
+  const leads = leadsAll.filter((l) => scopeUserIds.has(l.ownerId));
+  const activityGroups = activityGroupsAll.filter((g) => scopeUserIds.has(g.assigneeId));
 
   const byType: Record<LeadType, LeadTypeStats> = {
     FA: { total: 0, open: 0, won: 0, lost: 0, conversionRate: null },
@@ -333,14 +353,42 @@ function monthBucketIndex(buckets: { bucketStart: Date }[], date: Date) {
   return idx >= 0 && idx < buckets.length ? idx : null;
 }
 
+/**
+ * De weergavevolgorde van de "hoofd-funnel" per leadtype, voor Drop-off en
+ * Gemiddelde doorlooptijd — expliciet op label i.p.v. op de opgeslagen
+ * `order`-kolom, omdat die door historische/oudere fases (bv. de vroegere
+ * "... ingepland"-vorm, zie meetingPlanning.ts) niet meer overeenkomt met de
+ * echte volgorde waarin een lead de funnel doorloopt.
+ */
+const FUNNEL_DISPLAY_ORDER: Record<LeadType, string[]> = {
+  FA: [
+    "Eerste contact",
+    "Financiële analyse ingepland",
+    "Financiële analyse",
+    "Adviesgesprek ingepland",
+    "Adviesgesprek",
+    "Opvolggesprek",
+    "Klant",
+  ],
+  RG: [
+    "Eerste contact",
+    "Kennismakingsgesprek",
+    "Carrièregesprek",
+    "Terugkoppeling",
+    "Medewerker",
+  ],
+};
+
 /** De "hoofd-funnel" van een leadtype: actieve fases + de gewonnen-fase, op volgorde — dus zonder Verloren/Opvolging/de "Nieuwe lead"-instapfase. */
 async function getFunnelSequence(leadType: LeadType) {
+  const labels = FUNNEL_DISPLAY_ORDER[leadType];
   const stages = await prisma.funnelStage.findMany({
-    where: { leadType, isLost: false, order: { gte: 0 } },
-    orderBy: { order: "asc" },
+    where: { leadType, label: { in: labels } },
   });
-  const wonOrder = stages.find((s) => s.isWon)?.order ?? Infinity;
-  return stages.filter((s) => s.order <= wonOrder);
+  const byLabel = new Map(stages.map((s) => [s.label, s]));
+  return labels
+    .map((label) => byLabel.get(label))
+    .filter((s): s is (typeof stages)[number] => Boolean(s));
 }
 
 // ---------------------------------------------------------------------------
@@ -540,15 +588,20 @@ export type SeasonalBucket = {
   label: string;
   newLeads: number;
   won: number;
+  financieleAnalyses: number;
+  adviesgesprekken: number;
 };
 
-/** Nieuwe leads en gewonnen leads per kalendermaand, opgeteld over alle jaren — toont seizoenspatronen (bv. piekmaanden), optioneel gefilterd op leadtype. */
+const FINANCIELE_ANALYSE_LABELS = ["Financiële analyse", "Financiële analyse ingepland"];
+const ADVIESGESPREK_LABELS = ["Adviesgesprek", "Adviesgesprek ingepland"];
+
+/** Nieuwe leads, gewonnen leads, financiële analyses en adviesgesprekken per kalendermaand, opgeteld over alle jaren — toont seizoenspatronen (bv. piekmaanden), optioneel gefilterd op leadtype. */
 export async function getSeasonalPattern(
   leadType: LeadType | null
 ): Promise<SeasonalBucket[]> {
   await requireBeheerder();
 
-  const [leads, wins] = await Promise.all([
+  const [leads, wins, financieleAnalyses, adviesgesprekken] = await Promise.all([
     prisma.lead.findMany({
       where: { deletedAt: null, ...(leadType ? { leadType } : {}) },
       select: { createdAt: true },
@@ -562,6 +615,20 @@ export async function getSeasonalPattern(
       distinct: ["leadId"],
       select: { changedAt: true },
     }),
+    prisma.leadStageChange.findMany({
+      where: {
+        toStage: { label: { in: FINANCIELE_ANALYSE_LABELS } },
+        lead: { deletedAt: null, ...(leadType ? { leadType } : {}) },
+      },
+      select: { changedAt: true },
+    }),
+    prisma.leadStageChange.findMany({
+      where: {
+        toStage: { label: { in: ADVIESGESPREK_LABELS } },
+        lead: { deletedAt: null, ...(leadType ? { leadType } : {}) },
+      },
+      select: { changedAt: true },
+    }),
   ]);
 
   const buckets: SeasonalBucket[] = MONTH_LABELS.map((label, i) => ({
@@ -569,10 +636,14 @@ export async function getSeasonalPattern(
     label,
     newLeads: 0,
     won: 0,
+    financieleAnalyses: 0,
+    adviesgesprekken: 0,
   }));
 
   for (const l of leads) buckets[l.createdAt.getMonth()].newLeads++;
   for (const w of wins) buckets[w.changedAt.getMonth()].won++;
+  for (const f of financieleAnalyses) buckets[f.changedAt.getMonth()].financieleAnalyses++;
+  for (const a of adviesgesprekken) buckets[a.changedAt.getMonth()].adviesgesprekken++;
 
   return buckets;
 }

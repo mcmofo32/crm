@@ -17,7 +17,9 @@ import {
   getIncentiveOverview,
   getKpiHeatmap,
   getEventAttendanceStats,
+  type SeasonalBucket,
 } from "@/lib/actions/analytics";
+import { getAssignableUsers } from "@/lib/actions/leads";
 import {
   LEAD_TYPE_LABELS,
   ROLE_LABELS,
@@ -41,6 +43,13 @@ const COLOR_WON = "#059669";
 const COLOR_LOST = "#dc2626";
 const COLOR_AMBER = "#d97706";
 const COLOR_TAX_TODO = "#e11d48";
+
+const SEASON_METRICS = [
+  { key: "newLeads", label: "Leads" },
+  { key: "won", label: "Klanten" },
+  { key: "financieleAnalyses", label: "Financiële analyses" },
+  { key: "adviesgesprekken", label: "Adviesgesprekken" },
+] as const;
 
 function formatAmount(amount: number) {
   return amount.toLocaleString("nl-BE", {
@@ -123,6 +132,7 @@ export default async function AnalysePage({
     trendType?: string;
     trendMonths?: string;
     year?: string;
+    seasonMetric?: string;
   }>;
 }) {
   const viewer = await getEffectiveViewer();
@@ -135,6 +145,7 @@ export default async function AnalysePage({
     trendType: trendTypeRaw,
     trendMonths: trendMonthsRaw,
     year: yearRaw,
+    seasonMetric: seasonMetricRaw,
   } = await searchParams;
 
   const trendType = trendTypeRaw === "FA" || trendTypeRaw === "RG" ? trendTypeRaw : null;
@@ -142,9 +153,13 @@ export default async function AnalysePage({
     ? Number(trendMonthsRaw)
     : 12;
   const year = yearRaw && /^\d{4}$/.test(yearRaw) ? Number(yearRaw) : new Date().getFullYear();
+  const seasonMetric = SEASON_METRICS.some((m) => m.key === seasonMetricRaw)
+    ? seasonMetricRaw!
+    : "newLeads";
 
   const [
     { byType, stageDistribution, perEmployee, teams },
+    allEmployees,
     funnelDropoff,
     stageDurations,
     leadTrend,
@@ -158,7 +173,8 @@ export default async function AnalysePage({
     kpiHeatmap,
     eventAttendance,
   ] = await Promise.all([
-    getAnalytics(),
+    getAnalytics(teamFilter, personFilter),
+    getAssignableUsers(),
     getFunnelDropoff(),
     getStageDurations(),
     getLeadTrend(trendType, trendMonths),
@@ -175,14 +191,6 @@ export default async function AnalysePage({
 
   const maxStageCount = Math.max(1, ...stageDistribution.map((s) => s.count));
 
-  const filteredEmployees = personFilter
-    ? perEmployee.filter((e) => e.id === personFilter)
-    : !teamFilter || teamFilter === "alle"
-    ? perEmployee
-    : teamFilter === "geen"
-    ? perEmployee.filter((e) => !e.teamId)
-    : perEmployee.filter((e) => e.teamId === teamFilter);
-
   function trendHref(overrides: { trendType?: string; trendMonths?: string }) {
     const params = new URLSearchParams();
     const nextType = overrides.trendType ?? trendType ?? "";
@@ -193,7 +201,18 @@ export default async function AnalysePage({
     return qs ? `/beheer/analyse?${qs}#trends` : "/beheer/analyse#trends";
   }
 
-  const seasonMax = Math.max(1, ...seasonalPattern.map((s) => s.newLeads));
+  function seasonHref(metric: string) {
+    const params = new URLSearchParams();
+    if (trendType) params.set("trendType", trendType);
+    if (metric !== "newLeads") params.set("seasonMetric", metric);
+    const qs = params.toString();
+    return qs ? `/beheer/analyse?${qs}#seizoen` : "/beheer/analyse#seizoen";
+  }
+
+  const seasonMax = Math.max(
+    1,
+    ...seasonalPattern.map((s) => s[seasonMetric as keyof SeasonalBucket] as number)
+  );
 
   const heatmapMetrics = ["PRODUCTION", "CONVERSATIONS", "CALLING_SESSION", "SEMINAR"] as const;
 
@@ -206,6 +225,70 @@ export default async function AnalysePage({
         </h1>
         <p className="mt-1 text-base text-slate-500">
           Conversie en prestaties. Enkel zichtbaar voor de Beheerder.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Link
+              href="/beheer/analyse"
+              className={`rounded-full px-3 py-1.5 ${
+                !personFilter && (!teamFilter || teamFilter === "alle")
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white text-slate-600"
+              }`}
+            >
+              Alle teams
+            </Link>
+            {teams.map((team) => (
+              <Link
+                key={team.id}
+                href={`/beheer/analyse?team=${team.id}`}
+                className={`rounded-full px-3 py-1.5 ${
+                  !personFilter && teamFilter === team.id
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-600"
+                }`}
+              >
+                {team.name}
+              </Link>
+            ))}
+            <Link
+              href="/beheer/analyse?team=geen"
+              className={`rounded-full px-3 py-1.5 ${
+                !personFilter && teamFilter === "geen"
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white text-slate-600"
+              }`}
+            >
+              Zonder team
+            </Link>
+          </div>
+          <form method="GET" className="flex items-center gap-2 text-sm">
+            <select
+              name="person"
+              defaultValue={personFilter ?? ""}
+              className="rounded-md border border-slate-300 px-3 py-1.5"
+            >
+              <option value="">Alle medewerkers</option>
+              {allEmployees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800"
+            >
+              Bekijken
+            </button>
+          </form>
+        </div>
+        <p className="text-xs text-slate-400">
+          Filtert alle cijfers hieronder tot dit team of deze medewerker
+          (persoon overschrijft team).
         </p>
       </div>
 
@@ -250,9 +333,6 @@ export default async function AnalysePage({
               className="flex items-center gap-3"
             >
               <span className="w-40 flex-shrink-0 text-sm text-slate-600">
-                <span className="mr-1.5 text-xs text-slate-400">
-                  {LEAD_TYPE_LABELS[bucket.leadType]}
-                </span>
                 {bucket.label}
               </span>
               <div className="h-3 flex-1 rounded-full bg-slate-100">
@@ -414,14 +494,31 @@ export default async function AnalysePage({
 
         <Section
           title="Seizoenspatroon"
-          hint="Nieuwe leads per kalendermaand, opgeteld over alle jaren — toont piekmaanden."
+          hint="Per kalendermaand, opgeteld over alle jaren — toont piekmaanden."
+          action={
+            <div id="seizoen" className="scroll-mt-6 flex flex-wrap gap-1 text-sm">
+              {SEASON_METRICS.map((m) => (
+                <Link
+                  key={m.key}
+                  href={seasonHref(m.key)}
+                  className={`rounded-full px-3 py-1.5 ${
+                    seasonMetric === m.key
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white text-slate-600"
+                  }`}
+                >
+                  {m.label}
+                </Link>
+              ))}
+            </div>
+          }
         >
           <BarList
             items={seasonalPattern.map((s) => ({
               key: String(s.month),
               label: s.label,
-              value: s.newLeads,
-              displayValue: String(s.newLeads),
+              value: s[seasonMetric as keyof SeasonalBucket] as number,
+              displayValue: String(s[seasonMetric as keyof SeasonalBucket]),
               color: STAGE_COLORS[(s.month - 1) % STAGE_COLORS.length],
             }))}
           />
@@ -663,67 +760,10 @@ export default async function AnalysePage({
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-6 pb-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-medium text-slate-900">
-              Overzicht per medewerker
-            </h2>
-            <form method="GET" className="flex items-center gap-2 text-sm">
-              <select
-                name="person"
-                defaultValue={personFilter ?? ""}
-                className="rounded-md border border-slate-300 px-3 py-1.5"
-              >
-                <option value="">Alle medewerkers</option>
-                {perEmployee.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800"
-              >
-                Bekijken
-              </button>
-            </form>
-          </div>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <Link
-              href="/beheer/analyse"
-              className={`rounded-full px-3 py-1.5 ${
-                !personFilter && (!teamFilter || teamFilter === "alle")
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-600"
-              }`}
-            >
-              Alle teams
-            </Link>
-            {teams.map((team) => (
-              <Link
-                key={team.id}
-                href={`/beheer/analyse?team=${team.id}`}
-                className={`rounded-full px-3 py-1.5 ${
-                  !personFilter && teamFilter === team.id
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-600"
-                }`}
-              >
-                {team.name}
-              </Link>
-            ))}
-            <Link
-              href="/beheer/analyse?team=geen"
-              className={`rounded-full px-3 py-1.5 ${
-                !personFilter && teamFilter === "geen"
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-600"
-              }`}
-            >
-              Zonder team
-            </Link>
-          </div>
+        <div className="border-b border-slate-100 p-6 pb-4">
+          <h2 className="text-lg font-medium text-slate-900">
+            Overzicht per medewerker
+          </h2>
         </div>
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
@@ -739,7 +779,7 @@ export default async function AnalysePage({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredEmployees.map((employee) => (
+            {perEmployee.map((employee) => (
               <tr key={employee.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-slate-900">
                   <div className="flex items-center gap-2">
@@ -772,7 +812,7 @@ export default async function AnalysePage({
                 </td>
               </tr>
             ))}
-            {filteredEmployees.length === 0 && (
+            {perEmployee.length === 0 && (
               <tr>
                 <td
                   colSpan={8}
