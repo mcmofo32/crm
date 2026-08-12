@@ -588,7 +588,13 @@ export default async function AnalysePage({
               value: t.count,
               displayValue: `${t.count} (${t.percent}%)`,
               color:
-                t.status === "DONE" ? COLOR_WON : t.status === "SCHEDULED" ? COLOR_AMBER : COLOR_TAX_TODO,
+                t.status === "DONE"
+                  ? COLOR_WON
+                  : t.status === "SCHEDULED"
+                  ? COLOR_AMBER
+                  : t.status === "NVT"
+                  ? "#94a3b8"
+                  : COLOR_TAX_TODO,
             }))}
           />
         </Section>

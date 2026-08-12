@@ -8,7 +8,7 @@ import type { NextAuthConfig } from "next-auth";
  * `auth.ts`.
  */
 export const authConfig = {
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   // Zonder expliciete `error`-pagina toont NextAuth zijn eigen kale
   // "Access Denied"-scherm bij een geweigerde login (bv. een Google-account
   // dat niet aan een actieve CRM-gebruiker gekoppeld is) — met deze
@@ -32,6 +32,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.loginAt = token.loginAt;
       }
       return session;
     },

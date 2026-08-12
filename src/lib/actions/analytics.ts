@@ -890,16 +890,17 @@ export async function getCustomerGrowthCurve(
 }
 
 export type TaxStatusBreakdown = {
-  status: "TODO" | "SCHEDULED" | "DONE";
+  status: "TODO" | "SCHEDULED" | "DONE" | "NVT";
   label: string;
   count: number;
   percent: number;
 };
 
 const TAX_STATUS_LABELS: Record<TaxStatusBreakdown["status"], string> = {
-  TODO: "Nog te doen",
-  SCHEDULED: "Ingepland",
-  DONE: "Gedaan",
+  DONE: "Opvolging Gedaan",
+  TODO: "Opvolging nog te doen",
+  SCHEDULED: "Opvolging Ingepland",
+  NVT: "NVT",
 };
 
 /** Verdeling van de belastingsaangifte-status over alle klanten (niet ingesteld telt als "Nog te doen", zoals ook op de Klanten-pagina). */
@@ -912,9 +913,10 @@ export async function getTaxStatusBreakdown(): Promise<TaxStatusBreakdown[]> {
   });
 
   const counts: Record<TaxStatusBreakdown["status"], number> = {
+    DONE: 0,
     TODO: 0,
     SCHEDULED: 0,
-    DONE: 0,
+    NVT: 0,
   };
   for (const c of customers) {
     const status = c.taxDeclarationStatus ?? "TODO";

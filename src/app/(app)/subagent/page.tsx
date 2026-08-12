@@ -145,16 +145,17 @@ export default async function SubagentKlantenPage({
   ]);
 
   const monthlyPremiumTotal = customers.reduce((sum, c) => sum + c.totalAmount, 0);
-  const currentYear = new Date().getFullYear();
   const taxStatusColors: Record<string, { background: string; color: string }> = {
-    TODO: { background: "#fed7aa", color: "#9a3412" },
+    TODO: { background: "#fecaca", color: "#991b1b" },
     SCHEDULED: { background: "#fef08a", color: "#854d0e" },
     DONE: { background: "#bbf7d0", color: "#166534" },
+    NVT: { background: "#e2e8f0", color: "#475569" },
   };
   const taxStatusOptions = [
-    { value: "TODO", label: `${currentYear} nog te doen`, style: taxStatusColors.TODO },
-    { value: "SCHEDULED", label: `${currentYear} ingepland`, style: taxStatusColors.SCHEDULED },
-    { value: "DONE", label: `${currentYear} gedaan`, style: taxStatusColors.DONE },
+    { value: "DONE", label: "Opvolging Gedaan", style: taxStatusColors.DONE },
+    { value: "TODO", label: "Opvolging nog te doen", style: taxStatusColors.TODO },
+    { value: "SCHEDULED", label: "Opvolging Ingepland", style: taxStatusColors.SCHEDULED },
+    { value: "NVT", label: "NVT", style: taxStatusColors.NVT },
   ];
   const taxStatusLabelByValue = new Map(
     taxStatusOptions.map((o) => [o.value, o.label])

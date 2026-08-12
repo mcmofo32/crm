@@ -6,6 +6,8 @@ declare module "next-auth" {
     user: {
       id: string;
       role: Role;
+      /** Timestamp (ms) van deze sessie's login — voor de forced-logout-check in impersonation.ts. */
+      loginAt: number;
     } & DefaultSession["user"];
   }
 
@@ -19,6 +21,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role: Role;
+    loginAt: number;
   }
 }
 
@@ -26,5 +29,6 @@ declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
     role: Role;
+    loginAt: number;
   }
 }

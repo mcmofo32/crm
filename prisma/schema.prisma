@@ -109,6 +109,16 @@ model User {
   /// een andere gebruiker (zie deleteUserAction).
   deletedAt DateTime?
 
+  /// Tijdstip van de laatste geslaagde Google-login — gebruikt op de
+  /// "Actieve sessies"-pagina (enkel Beheerder) om te tonen wie momenteel
+  /// een geldige sessie heeft.
+  lastLoginAt DateTime?
+  /// Gezet door de Beheerder via "Uitloggen" op die sessies-pagina: elke
+  /// sessie die vóór dit tijdstip is ingelogd, wordt bij de eerstvolgende
+  /// paginanavigatie als uitgelogd behandeld (zie getFreshSessionUser),
+  /// ongeacht of het onderliggende sessie-token zelf nog geldig zou zijn.
+  sessionInvalidatedAt DateTime?
+
   /// Team waarvan deze gebruiker lid is (enkel relevant voor rol USER)
   teamId String?
   team   Team?   @relation("TeamMembers", fields: [teamId], references: [id])
@@ -209,6 +219,7 @@ enum TaxDeclarationStatus {
   DONE
   TODO
   SCHEDULED
+  NVT
 }
 
 /// Configureerbare kolommen van de funnel-boards, per leadtype.

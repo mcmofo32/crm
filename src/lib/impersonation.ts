@@ -31,7 +31,8 @@ function isViewableRole(value: string | undefined): value is Role {
  * gevuld, dus zonder deze verse check zou een rolwijziging of deactivatie
  * pas na uit-/opnieuw inloggen doorwerken — een gedeactiveerde gebruiker zou
  * dan met een lopende sessie gewoon toegang houden. `null` = niet (meer)
- * ingelogd, ook als het account intussen gedeactiveerd is.
+ * ingelogd, ook als het account intussen gedeactiveerd is, of als de
+ * Beheerder deze sessie geforceerd heeft uitgelogd (zie sessions.ts).
  */
 async function getFreshSessionUser() {
   const session = await auth();
@@ -46,9 +47,16 @@ async function getFreshSessionUser() {
       role: true,
       active: true,
       agentType: true,
+      sessionInvalidatedAt: true,
     },
   });
   if (!dbUser || !dbUser.active) return null;
+  if (
+    dbUser.sessionInvalidatedAt &&
+    dbUser.sessionInvalidatedAt.getTime() > session.user.loginAt
+  ) {
+    return null;
+  }
 
   return dbUser;
 }

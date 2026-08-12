@@ -105,14 +105,16 @@ function NodeCard({ node }: { node: OrgNode }) {
   );
 }
 
+function fitScale(availableWidth: number, contentWidth: number) {
+  return availableWidth > 0
+    ? Math.max(0.35, Math.min(1, availableWidth / contentWidth))
+    : 1;
+}
+
 export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Standaard 100% i.p.v. automatisch verkleind tot het geheel past — bij
-  // een organisatie met wat meer mensen werd de tekst daardoor onleesbaar
-  // klein. Wie een overzicht wil, gebruikt de "Passend maken"-knop; anders
-  // scroll je gewoon (de container is scrollbaar) op volledige grootte.
   const [scale, setScale] = useState(1);
-  const [centered, setCentered] = useState(false);
+  const [ready, setReady] = useState(false);
 
   const { positioned, width, height } = useMemo(() => layout(roots), [roots]);
   const allNodes = useMemo(
@@ -120,20 +122,21 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
     [positioned]
   );
 
-  // Centreert de horizontale scrollpositie op de boom bij het laden, zodat
-  // de bovenste persoon niet toevallig links tegen de rand aan lijkt te
-  // staan wanneer de boom breder is dan het zichtbare venster.
+  // Start standaard passend op het scherm (i.p.v. 100%, wat vaak veel
+  // horizontaal scrollen vergde) en centreert meteen mee — daarna kan je
+  // altijd nog verder in-/uitzoomen met de knoppen.
   useLayoutEffect(() => {
-    if (centered || !containerRef.current) return;
+    if (ready || !containerRef.current) return;
     const el = containerRef.current;
-    el.scrollLeft = Math.max(0, (width * scale - el.clientWidth) / 2);
-    setCentered(true);
-  }, [centered, width, scale]);
+    const fitted = fitScale(el.clientWidth - PADDING, width);
+    setScale(fitted);
+    el.scrollLeft = Math.max(0, (width * fitted - el.clientWidth) / 2);
+    setReady(true);
+  }, [ready, width]);
 
   function fitToScreen() {
     if (!containerRef.current) return;
-    const available = containerRef.current.clientWidth - PADDING;
-    setScale(available > 0 ? Math.max(0.35, Math.min(1, available / width)) : 1);
+    setScale(fitScale(containerRef.current.clientWidth - PADDING, width));
   }
 
   return (
