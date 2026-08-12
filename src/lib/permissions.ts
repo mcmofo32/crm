@@ -87,28 +87,45 @@ export function canManageUser(actor: SessionUser, target: { role: Role }) {
   return false;
 }
 
+/**
+ * Alle teams (coachId + leden) in één keer, voor het recursief oplossen van
+ * een structuur — anders kost elk niveau in de hiërarchie een aparte
+ * round-trip naar de database. `cache()` zorgt dat deze query maar één keer
+ * per request draait, ongeacht hoeveel structuren (verschillende coachId's)
+ * binnen diezelfde request opgelost moeten worden.
+ */
+const getAllTeamsWithMembers = cache(() =>
+  prisma.team.findMany({
+    select: { coachId: true, members: { select: { id: true, role: true } } },
+  })
+);
+
 async function collectDescendantUserIds(
   coachId: string,
   seen: Set<string>
 ): Promise<string[]> {
-  if (seen.has(coachId)) return [];
-  seen.add(coachId);
+  const teams = await getAllTeamsWithMembers();
+  const membersByCoachId = new Map(teams.map((t) => [t.coachId, t.members]));
 
-  const team = await prisma.team.findUnique({
-    where: { coachId },
-    include: { members: { select: { id: true, role: true } } },
-  });
-  if (!team) return [];
+  function walk(id: string): string[] {
+    if (seen.has(id)) return [];
+    seen.add(id);
 
-  const ids: string[] = [];
-  for (const member of team.members) {
-    if (seen.has(member.id)) continue;
-    ids.push(member.id);
-    if (member.role === Role.COACH) {
-      ids.push(...(await collectDescendantUserIds(member.id, seen)));
+    const members = membersByCoachId.get(id);
+    if (!members) return [];
+
+    const ids: string[] = [];
+    for (const member of members) {
+      if (seen.has(member.id)) continue;
+      ids.push(member.id);
+      if (member.role === Role.COACH) {
+        ids.push(...walk(member.id));
+      }
     }
+    return ids;
   }
-  return ids;
+
+  return walk(coachId);
 }
 
 /**
