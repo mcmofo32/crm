@@ -433,6 +433,82 @@ export async function getConversationsLeaderboard(
 }
 
 // ---------------------------------------------------------------------------
+// Aanbevelingen: ranglijst met doel vs. effectief toegevoegde leads (FA/RG)
+// per productiemaand, vergelijkbaar met de ABV-doelen op het dashboard maar
+// dan per persoon i.p.v. samengevat.
+// ---------------------------------------------------------------------------
+
+export type RecommendationsRow = {
+  id: string;
+  name: string;
+  jobFunction: JobFunction | null;
+  targetFaLeads: number;
+  actualFaLeads: number;
+  targetRgLeads: number;
+  actualRgLeads: number;
+};
+
+export async function getRecommendationsLeaderboard(
+  year: number,
+  month: number,
+  /** Beperkt de ranglijst tot deze gebruikers (bv. een gekozen substructuur) — `null`/weggelaten = iedereen. */
+  scopeUserIds?: string[] | null
+): Promise<RecommendationsRow[]> {
+  await requireViewer();
+  const { start, end } = await getProductionMonthRange(year, month);
+
+  const users = await prisma.user.findMany({
+    where: { active: true, ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}) },
+    select: {
+      id: true,
+      name: true,
+      jobFunction: true,
+      monthlyGoals: {
+        where: {
+          year,
+          month,
+          metric: { in: [GoalMetric.ABV_SALES, GoalMetric.ABV_RG] },
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+  const userIds = users.map((u) => u.id);
+
+  const newLeadsByOwnerAndType = await prisma.lead.groupBy({
+    by: ["ownerId", "leadType"],
+    where: {
+      ownerId: { in: userIds },
+      deletedAt: null,
+      createdAt: { gte: start, lt: end },
+    },
+    _count: { _all: true },
+  });
+
+  const faByUser = new Map<string, number>();
+  const rgByUser = new Map<string, number>();
+  for (const row of newLeadsByOwnerAndType) {
+    if (row.leadType === "FA") faByUser.set(row.ownerId, row._count._all);
+    else if (row.leadType === "RG") rgByUser.set(row.ownerId, row._count._all);
+  }
+
+  return users.map((u) => {
+    const goalByMetric = new Map(
+      u.monthlyGoals.map((g) => [g.metric, Number(g.target)])
+    );
+    return {
+      id: u.id,
+      name: u.name,
+      jobFunction: u.jobFunction,
+      targetFaLeads: goalByMetric.get(GoalMetric.ABV_SALES) ?? 0,
+      actualFaLeads: faByUser.get(u.id) ?? 0,
+      targetRgLeads: goalByMetric.get(GoalMetric.ABV_RG) ?? 0,
+      actualRgLeads: rgByUser.get(u.id) ?? 0,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Dashboard: doel vs. stand van zaken per productiemaand, voor de ingelogde
 // gebruiker.
 // ---------------------------------------------------------------------------

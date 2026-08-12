@@ -33,7 +33,6 @@ export function ProductionTable({
   const totalActualUnits = rows.reduce((s, r) => s + r.actualUnits, 0);
   const totalPercentUnits =
     totalTargetUnits > 0 ? Math.round((totalActualUnits / totalTargetUnits) * 100) : null;
-  const totalConversationsPerWeek = rows.reduce((s, r) => s + r.conversationsPerWeek, 0);
 
   return (
     <div className="flex flex-col gap-3">
@@ -78,9 +77,6 @@ export function ProductionTable({
               <th className="px-3 py-3 text-center font-medium">Doel EH</th>
               <th className="px-3 py-3 text-center font-medium">Behaald EH</th>
               <th className="px-3 py-3 text-center font-medium">% Doel EH</th>
-              <th className="px-3 py-3 text-center font-medium">
-                Gesprekken/week
-              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -164,14 +160,11 @@ export function ProductionTable({
                 <td className="px-3 py-2.5 text-center">
                   <PercentBadge percent={row.percentUnits} />
                 </td>
-                <td className="px-3 py-2.5 text-center text-slate-600">
-                  {row.conversationsPerWeek}
-                </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={10} className="px-4 py-8 text-center text-slate-400">
                   Geen gebruikers gevonden.
                 </td>
               </tr>
@@ -193,7 +186,6 @@ export function ProductionTable({
                 <td className="px-3 py-2.5 text-center">
                   <PercentBadge percent={totalPercentUnits} />
                 </td>
-                <td className="px-3 py-2.5 text-center">{totalConversationsPerWeek}</td>
               </tr>
             </tfoot>
           )}

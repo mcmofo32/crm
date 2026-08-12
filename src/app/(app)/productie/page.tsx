@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, TrendingUp, Users } from "lucide-react";
 import {
   getProductionLeaderboard,
   getConversationsLeaderboard,
+  getRecommendationsLeaderboard,
   getCurrentProductionMonth,
   getCurrentConversationsContext,
   getProductionStructureOptions,
@@ -38,7 +39,12 @@ export default async function ProductiePage({
 }) {
   const { tab, year: yearParam, month: monthParam, structureId } =
     await searchParams;
-  const activeTab = tab === "gesprekken" ? "gesprekken" : "productie";
+  const activeTab =
+    tab === "gesprekken"
+      ? "gesprekken"
+      : tab === "aanbevelingen"
+      ? "aanbevelingen"
+      : "productie";
 
   const current = await getCurrentProductionMonth();
   const year = yearParam ? Number(yearParam) : current.year;
@@ -54,16 +60,23 @@ export default async function ProductiePage({
   ]);
   const canEditGoals = viewer ? canManageUsers(viewer) : false;
 
-  const [productionRows, conversationsContext] =
+  const productionRows =
     activeTab === "productie"
-      ? await Promise.all([
-          getProductionLeaderboard(year, month, scopeUserIds),
-          null,
-        ])
-      : [null, await getCurrentConversationsContext()];
-  const conversationsRows =
+      ? await getProductionLeaderboard(year, month, scopeUserIds)
+      : null;
+  const [conversationsRows, conversationsContext] =
     activeTab === "gesprekken"
-      ? await getConversationsLeaderboard(scopeUserIds)
+      ? await Promise.all([
+          getConversationsLeaderboard(scopeUserIds),
+          getCurrentConversationsContext(),
+        ])
+      : [null, null];
+
+  // "Laatste productiemaand" — altijd de huidige, ongeacht welke maand op
+  // het Productie-tabblad eventueel bekeken wordt.
+  const recommendationsRows =
+    activeTab === "aanbevelingen"
+      ? await getRecommendationsLeaderboard(current.year, current.month, scopeUserIds)
       : null;
 
   const conversationsTotals = conversationsRows
@@ -120,6 +133,16 @@ export default async function ProductiePage({
           }`}
         >
           Gesprekken
+        </Link>
+        <Link
+          href={`/productie?tab=aanbevelingen${structureSuffix}`}
+          className={`rounded-full px-4 py-1.5 ${
+            activeTab === "aanbevelingen"
+              ? "bg-slate-900 text-white"
+              : "bg-white text-slate-600 border border-slate-200"
+          }`}
+        >
+          Aanbevelingen
         </Link>
       </div>
 
@@ -326,6 +349,115 @@ export default async function ProductiePage({
                     <td className="px-3 py-2.5 text-center">
                       {conversationsTotals.toBePlanned}
                     </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </>
+      )}
+
+      {activeTab === "aanbevelingen" && recommendationsRows && (
+        <>
+          <p className="text-sm text-slate-400">
+            Productiemaand {String(current.month).padStart(2, "0")}/{current.year}{" "}
+            (huidige)
+          </p>
+
+          <div
+            id="cijfers-export-tabel"
+            className="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+          >
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-3 py-3 font-medium">#</th>
+                  <th className="px-3 py-3 font-medium">Naam</th>
+                  <th className="px-3 py-3 font-medium">Functie</th>
+                  <th className="px-3 py-3 text-center font-medium">Doel FA-leads</th>
+                  <th className="px-3 py-3 text-center font-medium">
+                    Toegevoegd FA-leads
+                  </th>
+                  <th className="px-3 py-3 text-center font-medium">% Doel FA</th>
+                  <th className="px-3 py-3 text-center font-medium">Doel RG-leads</th>
+                  <th className="px-3 py-3 text-center font-medium">
+                    Toegevoegd RG-leads
+                  </th>
+                  <th className="px-3 py-3 text-center font-medium">% Doel RG</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recommendationsRows.map((row, i) => (
+                  <tr key={row.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-2.5">
+                      <Position position={i + 1} />
+                    </td>
+                    <td className="px-3 py-2.5 font-medium text-slate-900">
+                      {row.name}
+                    </td>
+                    <td className="px-3 py-2.5 text-slate-600">
+                      {row.jobFunction ?? "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-center text-slate-600">
+                      {row.targetFaLeads || "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-center text-slate-900">
+                      {row.actualFaLeads}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <PercentBadge
+                        percent={
+                          row.targetFaLeads > 0
+                            ? Math.round((row.actualFaLeads / row.targetFaLeads) * 100)
+                            : null
+                        }
+                      />
+                    </td>
+                    <td className="px-3 py-2.5 text-center text-slate-600">
+                      {row.targetRgLeads || "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-center text-slate-900">
+                      {row.actualRgLeads}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <PercentBadge
+                        percent={
+                          row.targetRgLeads > 0
+                            ? Math.round((row.actualRgLeads / row.targetRgLeads) * 100)
+                            : null
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {recommendationsRows.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
+                      Geen gebruikers gevonden.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+              {recommendationsRows.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-slate-900 bg-slate-900 font-semibold text-white">
+                    <td className="px-3 py-2.5" colSpan={3}>
+                      Totaal
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {recommendationsRows.reduce((s, r) => s + r.targetFaLeads, 0)}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {recommendationsRows.reduce((s, r) => s + r.actualFaLeads, 0)}
+                    </td>
+                    <td className="px-3 py-2.5"></td>
+                    <td className="px-3 py-2.5 text-center">
+                      {recommendationsRows.reduce((s, r) => s + r.targetRgLeads, 0)}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      {recommendationsRows.reduce((s, r) => s + r.actualRgLeads, 0)}
+                    </td>
+                    <td className="px-3 py-2.5"></td>
                   </tr>
                 </tfoot>
               )}
