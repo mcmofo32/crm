@@ -46,7 +46,7 @@ export function ScheduleActivityForm({
   const [pending, startTransition] = useTransition();
   const [type, setType] = useState("CALL");
   const [assigneeId, setAssigneeId] = useState(currentUserId);
-  const [subjectPreset, setSubjectPreset] = useState("Opvolgingsgesprek");
+  const [subjectPreset, setSubjectPreset] = useState(ACTIVITY_TYPE_LABELS.CALL);
   const [customSubject, setCustomSubject] = useState("");
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
@@ -58,8 +58,21 @@ export function ScheduleActivityForm({
   const subject = subjectPreset === CUSTOM_SUBJECT ? customSubject : subjectPreset;
   const richMeeting = isRichMeetingType(subject);
 
+  // Het onderwerp volgt automatisch het gekozen type (Telefoongesprek/
+  // Afspraak/E-mail/Notitie) — zo krijgt elke activiteit een agendatitel die
+  // overeenkomt met wat het effectief is i.p.v. dat alles er hetzelfde
+  // uitziet. Koos je zelf al een specifiek onderwerp (bv.
+  // "Opvolgingsgesprek"), dan blijft die keuze behouden ook als je nadien
+  // nog van type wisselt.
+  function handleTypeChange(nextType: string) {
+    setType(nextType);
+    if (Object.values(ACTIVITY_TYPE_LABELS).includes(subjectPreset)) {
+      setSubjectPreset(ACTIVITY_TYPE_LABELS[nextType]);
+    }
+  }
+
   function reset() {
-    setSubjectPreset("Opvolgingsgesprek");
+    setSubjectPreset(ACTIVITY_TYPE_LABELS[type]);
     setCustomSubject("");
     setNotes("");
     setScheduledAt("");
@@ -103,7 +116,7 @@ export function ScheduleActivityForm({
         {!richMeeting && (
           <select
             value={type}
-            onChange={(e) => setType(e.target.value)}
+            onChange={(e) => handleTypeChange(e.target.value)}
             className="rounded-md border border-slate-300 px-3 py-2"
           >
             {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
