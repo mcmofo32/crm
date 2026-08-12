@@ -11,7 +11,7 @@ import {
   setPolicyChecklistFieldAction,
   setPolicyDateAction,
 } from "@/lib/actions/policies";
-import { canManageUsers } from "@/lib/permissions";
+import { canManageUsers, getDescendantUserIds } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS } from "@/lib/productTypes";
 import {
   INSURANCE_COMPANY_LABELS,
@@ -72,8 +72,14 @@ export default async function PolissenPage({
     : canViewOthersCustomers && ownerId && assignableUsers.some((u) => u.id === ownerId)
     ? ownerId
     : viewer.id;
+  // De volledige onderliggende structuur (ook sub-teams van eventuele
+  // onder-coaches), niet enkel de rechtstreekse teamleden — zelfde fix als
+  // op de Klanten-pagina.
   const selectedOwnerIds = selectedTeam
-    ? [selectedTeam.coachId, ...selectedTeam.members.map((m) => m.id)]
+    ? [
+        selectedTeam.coachId,
+        ...(await getDescendantUserIds(selectedTeam.coachId)),
+      ]
     : undefined;
 
   const ownerSwitcher = requiresSelection && (

@@ -25,7 +25,11 @@ import {
   getCurrentProductionMonthRange,
   getCurrentProductionYearRange,
 } from "@/lib/actions/production";
-import { canManageCustomerData, canManageUsers } from "@/lib/permissions";
+import {
+  canManageCustomerData,
+  canManageUsers,
+  getDescendantUserIds,
+} from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
@@ -90,8 +94,14 @@ export default async function KlantenPage({
     : canViewOthersCustomers && ownerId && assignableUsers.some((u) => u.id === ownerId)
     ? ownerId
     : viewer.id;
+  // De volledige onderliggende structuur (ook sub-teams van eventuele
+  // onder-coaches), niet enkel de rechtstreekse teamleden — anders klopt dit
+  // niet met "Klanten onder beheer" (Subagent), dat wel recursief telt.
   const selectedOwnerIds = selectedTeam
-    ? [selectedTeam.coachId, ...selectedTeam.members.map((m) => m.id)]
+    ? [
+        selectedTeam.coachId,
+        ...(await getDescendantUserIds(selectedTeam.coachId)),
+      ]
     : undefined;
 
   function clearFiltersHref() {
