@@ -137,7 +137,11 @@ export async function createWonLeadRecord(params: {
       leadType: params.leadType,
       ownerId: params.ownerId,
       createdById: params.actorId,
-      caseManagerUserId: params.actorId,
+      // Dossierbeheerder standaard op de eigenaar, niet op wie de actie
+      // uitvoerde — zelfde reden als bij changedById hierboven: een
+      // Beheerder/Admin die een bulk-import doet namens medewerkers mag
+      // daardoor niet zelf dossierbeheerder van al die klanten worden.
+      caseManagerUserId: params.ownerId,
       stageId: params.wonStageId,
       status: LeadStatus.WON,
       createdAt: params.occurredAt,
