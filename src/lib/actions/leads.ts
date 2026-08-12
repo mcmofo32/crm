@@ -8,6 +8,7 @@ import {
   ActivityType,
   LeadStatus,
   LeadType,
+  type ProductType,
 } from "@/generated/prisma/client";
 import {
   canAccessOwner,
@@ -19,8 +20,13 @@ import {
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { ensureDefaultPipelineStage, mainFunnelStageKeys } from "@/lib/funnelStages";
+import {
+  ensureDefaultPipelineStage,
+  ensureFunnelStages,
+  mainFunnelStageKeys,
+} from "@/lib/funnelStages";
 import { normalizePhone, findLeadsByContact } from "@/lib/actions/duplicates";
+import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -95,6 +101,111 @@ export async function createLeadAction(formData: FormData) {
       )}&duplicateOwner=${encodeURIComponent(duplicate.ownerName)}`
     : "";
   redirect(`/leads/${lead.id}${duplicateQuery}`);
+}
+
+/**
+ * Maakt een lead rechtstreeks aan als klant (fase "Klant"/"Medewerker",
+ * status WON) mét producten, in één stap — vooral bedoeld om bestaande
+ * klanten uit een oud systeem over te zetten, zonder ze eerst door de hele
+ * funnel te moeten laten lopen. Zelfde rechten als een deal effectief
+ * afsluiten: enkel subagenten (of Beheerder/Admin).
+ */
+export async function createCustomerAction(formData: FormData) {
+  const user = await requireUser();
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen een klant rechtstreeks aanmaken");
+  }
+
+  const leadType = formData.get("leadType") as LeadType;
+  const requestedOwnerId = String(formData.get("ownerId") ?? user.id);
+  const ownerId = (await canAccessOwner(user, requestedOwnerId))
+    ? requestedOwnerId
+    : user.id;
+
+  const phone = (formData.get("phone") as string) || null;
+  const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);
+  if (existingOwnLead) {
+    throw new Error(
+      `Bestaat al: ${existingOwnLead.firstName} ${existingOwnLead.lastName} heeft dit telefoonnummer al bij jouw leads.`
+    );
+  }
+
+  const email = (formData.get("email") as string) || null;
+
+  const products: { type: ProductType; amount: number; units: number }[] = [];
+  for (const type of PRODUCT_TYPE_ORDER) {
+    const amountRaw = String(formData.get(`amount-${type}`) ?? "").trim();
+    const unitsRaw = String(formData.get(`units-${type}`) ?? "").trim();
+    const amount = amountRaw ? Number(amountRaw) : 0;
+    const units = unitsRaw ? Math.round(Number(unitsRaw)) : 0;
+    if (Number.isFinite(amount) && amount > 0) {
+      products.push({ type, amount, units: Number.isFinite(units) ? units : 0 });
+    }
+  }
+  if (products.length === 0) {
+    throw new Error("Voeg minstens één product met een bedrag toe");
+  }
+
+  await ensureFunnelStages(leadType);
+  const wonStage = await prisma.funnelStage.findFirst({
+    where: { leadType, isWon: true },
+  });
+  if (!wonStage) throw new Error("Kon de klant-fase niet vinden");
+
+  const lead = await prisma.lead.create({
+    data: {
+      firstName: String(formData.get("firstName") ?? ""),
+      lastName: String(formData.get("lastName") ?? ""),
+      email,
+      phone,
+      source: (formData.get("source") as string) || null,
+      leadType,
+      ownerId,
+      createdById: user.id,
+      caseManagerUserId: user.id,
+      stageId: wonStage.id,
+      status: LeadStatus.WON,
+    },
+  });
+
+  await prisma.$transaction([
+    prisma.leadStageChange.create({
+      data: {
+        leadId: lead.id,
+        fromStageId: null,
+        toStageId: wonStage.id,
+        changedById: user.id,
+      },
+    }),
+    ...products.map((p) =>
+      prisma.leadProduct.create({
+        data: {
+          leadId: lead.id,
+          type: p.type,
+          amount: p.amount,
+          units: p.units,
+          policy: { create: { leadId: lead.id, employeeId: ownerId } },
+        },
+      })
+    ),
+  ]);
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.created",
+    entityType: "Lead",
+    entityId: lead.id,
+    description: `Klant "${lead.firstName} ${lead.lastName}" rechtstreeks aangemaakt (${leadType}, bv. overgezet vanuit een oud systeem)`,
+  });
+
+  revalidatePath("/leads");
+  revalidatePath("/klanten");
+  revalidatePath("/klanten/polissen");
+  revalidatePath("/subagent");
+  revalidatePath("/subagent/polissen");
+  revalidatePath(`/funnel/${leadType}`);
+
+  redirect(`/leads/${lead.id}`);
 }
 
 /**

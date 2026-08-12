@@ -8,6 +8,7 @@ import {
   UserPlus,
   CalendarRange,
   Coins,
+  Plus,
 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { getAssignableUsers } from "@/lib/actions/leads";
@@ -193,6 +194,15 @@ export default async function KlantenPage({
             Overzicht van alle klanten en de producten die ze genomen hebben.
           </p>
         </div>
+        {canEditCustomerData && (
+          <Link
+            href="/klanten/new"
+            className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+          >
+            <Plus size={17} />
+            Klant toevoegen
+          </Link>
+        )}
       </div>
 
       <KlantenTabs active="klanten" />
