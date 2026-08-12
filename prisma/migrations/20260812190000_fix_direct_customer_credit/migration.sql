@@ -14,9 +14,9 @@
 -- correct staat (changedById = ownerId) verandert dit niets.
 UPDATE "LeadStageChange" AS lsc
 SET "changedById" = l."ownerId"
-FROM "Lead" AS l
-JOIN "FunnelStage" AS fs ON fs."id" = lsc."toStageId"
+FROM "Lead" AS l, "FunnelStage" AS fs
 WHERE lsc."leadId" = l."id"
+  AND fs."id" = lsc."toStageId"
   AND lsc."fromStageId" IS NULL
   AND fs."isWon" = true
   AND lsc."changedById" <> l."ownerId";
