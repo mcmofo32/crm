@@ -52,12 +52,13 @@ export default async function PipelinePage({
   const leadType = TYPE_MAP[type];
   const isRecrutering = type === "recrutering";
 
-  const user = (await getEffectiveViewer())!;
-  await ensureFunnelStages(leadType);
-  const [assignableUsers, subagents] = await Promise.all([
+  const [user, , assignableUsers, subagents] = await Promise.all([
+    getEffectiveViewer(),
+    ensureFunnelStages(leadType),
     getAssignableUsers(),
     getSubagents(),
   ]);
+  if (!user) notFound();
   // Beheerder/Admin zien anders iedereens leads door elkaar, en een Coach
   // moet net als bij de Funnel per teamlid kunnen wisselen — dus altijd de
   // balk tonen zodra er meer dan enkel jezelf te kiezen valt.

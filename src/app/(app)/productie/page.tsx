@@ -46,18 +46,17 @@ export default async function ProductiePage({
       ? "aanbevelingen"
       : "productie";
 
-  const current = await getCurrentProductionMonth();
+  const [current, viewer, structureOptions, scopeUserIds] = await Promise.all([
+    getCurrentProductionMonth(),
+    getEffectiveViewer(),
+    getProductionStructureOptions(),
+    resolveProductionUserIds(structureId),
+  ]);
   const year = yearParam ? Number(yearParam) : current.year;
   const month = monthParam ? Number(monthParam) : current.month;
   const isCurrentMonth = year === current.year && month === current.month;
   const next = shiftMonth(year, month, 1);
   const prev = shiftMonth(year, month, -1);
-
-  const [viewer, structureOptions, scopeUserIds] = await Promise.all([
-    getEffectiveViewer(),
-    getProductionStructureOptions(),
-    resolveProductionUserIds(structureId),
-  ]);
   const canEditGoals = viewer ? canManageUsers(viewer) : false;
 
   const productionRows =

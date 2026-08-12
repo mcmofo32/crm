@@ -7,11 +7,8 @@ import { canAccessOwner, canManageCustomerData } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { logAudit } from "@/lib/audit";
 import { ensureFunnelStages } from "@/lib/funnelStages";
-import {
-  createWonLeadRecord,
-  findOwnLeadWithSamePhone,
-  getAssignableUsers,
-} from "@/lib/actions/leads";
+import { createWonLeadRecord, getAssignableUsers } from "@/lib/actions/leads";
+import { normalizePhone } from "@/lib/actions/duplicates";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import type ExcelJS from "exceljs";
 
@@ -169,6 +166,22 @@ async function processSheet(
   const skipped: { row: number; name: string; reason: string }[] = [];
   let created = 0;
 
+  // Eén keer alle bestaande telefoonnummers van deze eigenaar ophalen i.p.v.
+  // findOwnLeadWithSamePhone per rij te laten herhalen (dat deed voorheen
+  // zijn eigen volledige prisma.lead.findMany per rij — bij een bestand met
+  // honderden rijen dus evenveel identieke queries). Wordt tijdens de loop
+  // zelf bijgewerkt, zodat dubbels binnen hetzelfde bestand ook nog gevonden
+  // worden.
+  const existingOwnLeads = await prisma.lead.findMany({
+    where: { ownerId, deletedAt: null, phone: { not: null } },
+    select: { firstName: true, lastName: true, phone: true },
+  });
+  const ownPhoneMap = new Map<string, { firstName: string; lastName: string }>();
+  for (const lead of existingOwnLeads) {
+    const normalized = normalizePhone(lead.phone);
+    if (normalized) ownPhoneMap.set(normalized, lead);
+  }
+
   for (let rowNumber = headerRowNumber + 1; rowNumber <= sheet.rowCount; rowNumber++) {
     const row = sheet.getRow(rowNumber);
     if (row.cellCount === 0) continue;
@@ -204,16 +217,15 @@ async function processSheet(
       continue;
     }
 
-    if (phone) {
-      const existing = await findOwnLeadWithSamePhone(ownerId, phone);
-      if (existing) {
-        skipped.push({
-          row: rowNumber,
-          name: displayName,
-          reason: `bestaat al (${existing.firstName} ${existing.lastName} heeft dit nummer al)`,
-        });
-        continue;
-      }
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone && ownPhoneMap.has(normalizedPhone)) {
+      const existing = ownPhoneMap.get(normalizedPhone)!;
+      skipped.push({
+        row: rowNumber,
+        name: displayName,
+        reason: `bestaat al (${existing.firstName} ${existing.lastName} heeft dit nummer al)`,
+      });
+      continue;
     }
 
     try {
@@ -231,6 +243,7 @@ async function processSheet(
         occurredAt,
       });
       created++;
+      if (normalizedPhone) ownPhoneMap.set(normalizedPhone, { firstName, lastName });
     } catch (err) {
       skipped.push({
         row: rowNumber,

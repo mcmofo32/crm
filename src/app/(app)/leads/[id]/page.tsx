@@ -59,21 +59,22 @@ export default async function LeadDetailPage({
 }) {
   const { id } = await params;
   const { duplicateName, duplicateOwner } = await searchParams;
-  const user = await getEffectiveViewer();
-  if (!user) redirect("/login");
-
-  const lead = await prisma.lead.findUnique({
-    where: { id },
-    include: {
-      owner: true,
-      stage: true,
-      products: true,
-      activities: {
-        include: { assignee: { select: { name: true } } },
-        orderBy: { scheduledAt: "desc" },
+  const [user, lead] = await Promise.all([
+    getEffectiveViewer(),
+    prisma.lead.findUnique({
+      where: { id },
+      include: {
+        owner: true,
+        stage: true,
+        products: true,
+        activities: {
+          include: { assignee: { select: { name: true } } },
+          orderBy: { scheduledAt: "desc" },
+        },
       },
-    },
-  });
+    }),
+  ]);
+  if (!user) redirect("/login");
 
   if (!lead || lead.deletedAt) notFound();
   if (!(await canAccessOwner(user, lead.ownerId))) notFound();

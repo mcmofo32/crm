@@ -193,6 +193,7 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([entityType, entityId])
+  @@index([actorId, createdAt])
 }
 
 /// Een duplicaten-groep (zie duplicates.ts) die een Beheerder/Admin bewust

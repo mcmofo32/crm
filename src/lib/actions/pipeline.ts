@@ -173,8 +173,10 @@ export async function getPipelineLeads(
 }
 
 async function requireLeadAccessFor(leadId: string) {
-  const user = await requireUser();
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");

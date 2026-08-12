@@ -151,11 +151,13 @@ export async function getPoliciesForCurrentUser(options?: {
 }
 
 async function requireEditablePolicy(policyId: string) {
-  const user = await requireUser();
-  const policy = await prisma.policy.findUnique({
-    where: { id: policyId },
-    include: { lead: true },
-  });
+  const [user, policy] = await Promise.all([
+    requireUser(),
+    prisma.policy.findUnique({
+      where: { id: policyId },
+      include: { lead: true },
+    }),
+  ]);
   if (!policy) throw new Error("Polis niet gevonden");
   if (!(await canAccessOwner(user, policy.lead.ownerId))) {
     throw new Error("Geen toegang tot deze polis");

@@ -390,20 +390,19 @@ export async function updateLeadStageAction(
   toStageId: string,
   notes?: string
 ) {
-  const user = await requireUser();
-
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    include: { stage: true },
-  });
+  const [user, lead, toStage] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({
+      where: { id: leadId },
+      include: { stage: true },
+    }),
+    prisma.funnelStage.findUnique({ where: { id: toStageId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessLead(user, lead))) {
     throw new Error("Geen toegang tot deze lead");
   }
 
-  const toStage = await prisma.funnelStage.findUnique({
-    where: { id: toStageId },
-  });
   if (!toStage || toStage.leadType !== lead.leadType) {
     throw new Error("Ongeldige funnel-stage");
   }
@@ -478,9 +477,10 @@ export async function updateLeadStageAction(
 
 /** Wijzigt de contactgegevens van een bestaande lead (naam, e-mail, telefoon, bedrijf, bron, notities). */
 export async function updateLeadDetailsAction(leadId: string, formData: FormData) {
-  const user = await requireUser();
-
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");
@@ -524,9 +524,10 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
  * zonder de andere contactgegevens aan te raken.
  */
 export async function updateLeadEmailAction(leadId: string, email: string) {
-  const user = await requireUser();
-
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");
@@ -715,10 +716,13 @@ export async function getLeadsForCurrentUser(
 
 /** Alle funnel-stages (beide leadtypes), gebruikt om op fase te filteren op de leadslijst. */
 export async function getFunnelStagesForFilter() {
-  await requireUser();
-  return prisma.funnelStage.findMany({
-    orderBy: [{ leadType: "asc" }, { order: "asc" }],
-  });
+  const [, stages] = await Promise.all([
+    requireUser(),
+    prisma.funnelStage.findMany({
+      orderBy: [{ leadType: "asc" }, { order: "asc" }],
+    }),
+  ]);
+  return stages;
 }
 
 /**

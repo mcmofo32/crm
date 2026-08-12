@@ -56,9 +56,10 @@ function resolveCustomerOwnerWhere(
  * een nieuwe polis-lijn, met deze lead-eigenaar als standaard-medewerker.
  */
 export async function saveLeadProductsAction(leadId: string, formData: FormData) {
-  const user = await requireUser();
-
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessLead(user, lead))) {
     throw new Error("Geen toegang tot deze lead");
@@ -227,8 +228,10 @@ export type CustomerRow = Awaited<ReturnType<typeof getCustomersForCurrentUser>>
 
 /** Wijst de dossierbeheerder van een klant toe: een subagent, of leeg = terug naar de oorspronkelijke medewerker. */
 export async function setCaseManagerAction(leadId: string, formData: FormData) {
-  const user = await requireUser();
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");
@@ -301,8 +304,10 @@ export async function setCustomerOwnerAction(leadId: string, formData: FormData)
  * de lead zelf in het systeem kwam (kan lang vóór "klant geworden" liggen).
  */
 export async function setBecameCustomerAtAction(leadId: string, formData: FormData) {
-  const user = await requireUser();
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");
@@ -343,8 +348,10 @@ export async function setTaxDeclarationStatusAction(
   leadId: string,
   formData: FormData
 ) {
-  const user = await requireUser();
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(user, lead.ownerId))) {
     throw new Error("Geen toegang tot deze lead");

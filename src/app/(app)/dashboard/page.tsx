@@ -82,6 +82,13 @@ export default async function DashboardPage({
   // Groepsdoelen (totaal van het team/iedereen) enkel tonen aan wie ook
   // effectief een groep heeft: Coach (zijn team), Admin/Beheerder (iedereen).
   const showGroupGoals = canManageUsers(user) || user.role === Role.COACH;
+  // getProductionLeaderboard hieronder heeft year/month als expliciete
+  // argumenten nodig, dus dit moet vóór de Promise.all opgelost zijn. Zit
+  // wel achter cache() (zie production.ts), dus alle andere plekken die
+  // hieronder óók getCurrentProductionMonth() aanroepen (via
+  // getProductionMonthGoalProgress, getGroupProductionMonthGoalProgress,
+  // getConversationsLeaderboard, ...) hergebruiken dit resultaat i.p.v. elk
+  // hun eigen, identieke query te doen.
   const currentProductionMonth = await getCurrentProductionMonth();
 
   const [

@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -178,8 +179,15 @@ function currentWeekRange() {
   return { start, end };
 }
 
-/** Welke productiemaand "nu" valt: de ingestelde maand waar `now` binnen valt, anders de kalendermaand. */
-export async function getCurrentProductionMonth() {
+/**
+ * Welke productiemaand "nu" valt: de ingestelde maand waar `now` binnen
+ * valt, anders de kalendermaand. `cache()` zorgt dat dit maar één keer per
+ * request bevraagd wordt — wordt zowel rechtstreeks (dashboard, Cijfers) als
+ * onrechtstreeks (via getProductionMonthGoalProgress,
+ * getCurrentProductionMonthRange, getCurrentProductionYearRange, ...)
+ * meerdere keren per paginarender opgeroepen.
+ */
+export const getCurrentProductionMonth = cache(async () => {
   const now = new Date();
   const configured = await prisma.productionMonth.findFirst({
     where: { startDate: { lte: now }, endDate: { gte: now } },
@@ -188,7 +196,7 @@ export async function getCurrentProductionMonth() {
     return { year: configured.year, month: configured.month };
   }
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
-}
+});
 
 /**
  * "Dit jaar" voor de Klanten-statistieken: begint op dag 1 van
@@ -201,8 +209,10 @@ export async function getCurrentProductionYearRange(): Promise<{
   endDate: Date;
 }> {
   const { year } = await getCurrentProductionMonth();
-  const first = await getProductionMonthRange(year, 1);
-  const last = await getProductionMonthRange(year, 12);
+  const [first, last] = await Promise.all([
+    getProductionMonthRange(year, 1),
+    getProductionMonthRange(year, 12),
+  ]);
   return { startDate: first.start, endDate: new Date(last.end.getTime() - 1) };
 }
 
