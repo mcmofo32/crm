@@ -177,8 +177,13 @@ function extractMeetLink(eventData: {
  * Maakt een Google Calendar event aan voor een ingeplande activiteit
  * (bv. een uitgaand telefoongesprek) en slaat het event-id op de activiteit op.
  */
+export type GoogleCalendarUser = Pick<
+  User,
+  "googleCalendarConnected" | "googleCalendarRefreshToken" | "googleCalendarId"
+>;
+
 export async function syncActivityToGoogleCalendar(
-  user: User,
+  user: GoogleCalendarUser,
   activity: Activity,
   lead: Lead,
   subagent?: Subagent | null,
@@ -247,7 +252,7 @@ export async function syncActivityToGoogleCalendar(
 }
 
 export async function deleteActivityFromGoogleCalendar(
-  user: User,
+  user: GoogleCalendarUser,
   activity: Activity
 ) {
   if (

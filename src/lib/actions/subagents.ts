@@ -115,9 +115,7 @@ export async function syncAllSubagentsAction() {
   await requireUserManager();
 
   const users = await prisma.user.findMany({ select: { id: true } });
-  for (const user of users) {
-    await syncSubagentForUser(user.id);
-  }
+  await Promise.all(users.map((user) => syncSubagentForUser(user.id)));
 
   revalidatePath("/beheer/teams");
   revalidatePath("/beheer/gebruikers");

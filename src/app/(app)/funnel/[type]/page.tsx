@@ -22,12 +22,13 @@ export default async function FunnelPage({
   const leadType = type.toUpperCase();
   if (leadType !== "FA" && leadType !== "RG") notFound();
 
-  const user = (await getEffectiveViewer())!;
-  await ensureFunnelStages(leadType as LeadType);
-  const [assignableUsers, subagents] = await Promise.all([
+  const [user, , assignableUsers, subagents] = await Promise.all([
+    getEffectiveViewer(),
+    ensureFunnelStages(leadType as LeadType),
     getAssignableUsers(),
     getSubagents(),
   ]);
+  if (!user) notFound();
   // Coach ziet de balk altijd (ook met een klein/leeg team), zodat duidelijk
   // is dat hij enkel toegang heeft tot zichzelf + zijn teamleden.
   const requiresSelection =

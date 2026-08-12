@@ -47,10 +47,12 @@ export default async function ProductiePage({
   const next = shiftMonth(year, month, 1);
   const prev = shiftMonth(year, month, -1);
 
-  const viewer = await getEffectiveViewer();
+  const [viewer, structureOptions, scopeUserIds] = await Promise.all([
+    getEffectiveViewer(),
+    getProductionStructureOptions(),
+    resolveProductionUserIds(structureId),
+  ]);
   const canEditGoals = viewer ? canManageUsers(viewer) : false;
-  const structureOptions = await getProductionStructureOptions();
-  const scopeUserIds = await resolveProductionUserIds(structureId);
 
   const [productionRows, conversationsContext] =
     activeTab === "productie"

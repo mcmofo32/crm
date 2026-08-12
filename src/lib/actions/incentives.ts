@@ -7,6 +7,7 @@ import {
   IncentiveMetric,
   IncentiveMode,
   LeadType,
+  type Prisma,
 } from "@/generated/prisma/client";
 import { canManageIncentives } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -227,6 +228,10 @@ async function computeMetricScores(
   return scores;
 }
 
+type IncentiveWithCategories = Prisma.IncentiveGetPayload<{
+  include: { categories: true };
+}>;
+
 export async function getIncentiveLeaderboard(
   incentiveId: string
 ): Promise<LeaderboardEntry[]> {
@@ -236,6 +241,17 @@ export async function getIncentiveLeaderboard(
   });
   if (!incentive) return [];
 
+  return computeIncentiveLeaderboard(incentive);
+}
+
+/**
+ * Kernlogica van `getIncentiveLeaderboard`, maar dan voor een al opgehaalde
+ * incentive — vermijdt een dubbele `incentive.findUnique` wanneer de
+ * aanroeper (bv. `getIncentiveOverview`) de incentive al in handen heeft.
+ */
+export async function computeIncentiveLeaderboard(
+  incentive: IncentiveWithCategories
+): Promise<LeaderboardEntry[]> {
   const activeUsers = await prisma.user.findMany({
     where: { active: true },
     select: { id: true, name: true },

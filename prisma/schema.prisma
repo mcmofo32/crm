@@ -297,6 +297,10 @@ model Lead {
   @@index([ownerId])
   @@index([leadType, stageId])
   @@index([deletedAt])
+  @@index([deletedAt, ownerId])
+  @@index([deletedAt, status])
+  @@index([caseManagerUserId])
+  @@index([caseManagerSubagentId])
 }
 
 /// De financiële producten die Ceuppens Consulting aanbiedt, gekoppeld aan een klant.
@@ -409,6 +413,11 @@ model LeadStageChange {
   changedBy   User   @relation("StageChangedBy", fields: [changedById], references: [id])
 
   changedAt DateTime @default(now())
+
+  @@index([changedAt])
+  @@index([leadId])
+  @@index([toStageId])
+  @@index([changedById])
 }
 
 // ---------------------------------------------------------------------------
@@ -475,6 +484,8 @@ model Activity {
   @@index([leadId])
   @@index([assigneeId])
   @@index([scheduledAt])
+  @@index([assigneeId, status])
+  @@index([status, scheduledAt])
 }
 
 // ---------------------------------------------------------------------------

@@ -8,8 +8,8 @@ import {
   Role,
 } from "@/generated/prisma/client";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { getMonthlyGoalAchievements } from "@/lib/actions/production";
-import { getIncentiveLeaderboard, type LeaderboardEntry } from "@/lib/actions/incentives";
+import { getMonthlyGoalAchievementsForUsers } from "@/lib/actions/production";
+import { computeIncentiveLeaderboard, type LeaderboardEntry } from "@/lib/actions/incentives";
 import { MONTH_LABELS } from "@/lib/goalLabels";
 
 async function requireBeheerder() {
@@ -956,12 +956,12 @@ export async function getIncentiveOverview(): Promise<IncentiveOverviewEntry[]> 
   const incentives = await prisma.incentive.findMany({
     where: { endDate: { gte: ninetyDaysAgo } },
     orderBy: { startDate: "desc" },
-    select: { id: true, title: true, startDate: true, endDate: true },
+    include: { categories: { orderBy: { order: "asc" } } },
   });
 
   return Promise.all(
     incentives.map(async (incentive) => {
-      const leaderboard = await getIncentiveLeaderboard(incentive.id);
+      const leaderboard = await computeIncentiveLeaderboard(incentive);
       return {
         incentiveId: incentive.id,
         title: incentive.title,
@@ -1004,73 +1004,82 @@ export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+  const userIds = users.map((u) => u.id);
   const now = new Date();
 
-  return Promise.all(
-    users.map(async (u) => {
-      const [monthlyAchievements, callingSessionAttendances, seminarAttendances] =
-        await Promise.all([
-          getMonthlyGoalAchievements(u.id, year),
-          prisma.eventAttendance.findMany({
-            where: {
-              userId: u.id,
-              actualStatus: "GOING",
-              event: {
-                type: EventType.BELSESSIE,
-                date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
-              },
-            },
-            select: { event: { select: { date: true } } },
-          }),
-          prisma.eventAttendance.findMany({
-            where: {
-              userId: u.id,
-              actualStatus: "GOING",
-              event: {
-                type: EventType.SEMINAR,
-                date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
-              },
-            },
-            select: { event: { select: { date: true } } },
-          }),
-        ]);
+  const [achievementsByUser, callingSessionAttendances, seminarAttendances] =
+    await Promise.all([
+      getMonthlyGoalAchievementsForUsers(userIds, year),
+      prisma.eventAttendance.findMany({
+        where: {
+          userId: { in: userIds },
+          actualStatus: "GOING",
+          event: {
+            type: EventType.BELSESSIE,
+            date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+          },
+        },
+        select: { userId: true, event: { select: { date: true } } },
+      }),
+      prisma.eventAttendance.findMany({
+        where: {
+          userId: { in: userIds },
+          actualStatus: "GOING",
+          event: {
+            type: EventType.SEMINAR,
+            date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+          },
+        },
+        select: { userId: true, event: { select: { date: true } } },
+      }),
+    ]);
 
-      const callingSessionMonths = new Set(
-        callingSessionAttendances.map((a) => a.event.date.getMonth() + 1)
-      );
-      const seminarMonths = new Set(
-        seminarAttendances.map((a) => a.event.date.getMonth() + 1)
-      );
+  const callingSessionMonthsByUser = new Map<string, Set<number>>();
+  for (const a of callingSessionAttendances) {
+    const months = callingSessionMonthsByUser.get(a.userId) ?? new Set<number>();
+    months.add(a.event.date.getMonth() + 1);
+    callingSessionMonthsByUser.set(a.userId, months);
+  }
+  const seminarMonthsByUser = new Map<string, Set<number>>();
+  for (const a of seminarAttendances) {
+    const months = seminarMonthsByUser.get(a.userId) ?? new Set<number>();
+    months.add(a.event.date.getMonth() + 1);
+    seminarMonthsByUser.set(a.userId, months);
+  }
 
-      const cells: KpiHeatmapCell[] = [];
-      for (let month = 1; month <= 12; month++) {
-        const notYetOver = now < new Date(year, month, 1);
-        const production = monthlyAchievements.find((m) => m.month === month);
-        cells.push({
-          metric: KpiMetric.PRODUCTION,
-          month,
-          percent: production?.unitsPercent ?? null,
-        });
-        cells.push({
-          metric: KpiMetric.CONVERSATIONS,
-          month,
-          percent: production?.conversationsPercent ?? null,
-        });
-        cells.push({
-          metric: KpiMetric.CALLING_SESSION,
-          month,
-          percent: notYetOver ? null : callingSessionMonths.has(month) ? 100 : 0,
-        });
-        cells.push({
-          metric: KpiMetric.SEMINAR,
-          month,
-          percent: notYetOver ? null : seminarMonths.has(month) ? 100 : 0,
-        });
-      }
+  return users.map((u) => {
+    const monthlyAchievements = achievementsByUser.get(u.id) ?? [];
+    const callingSessionMonths = callingSessionMonthsByUser.get(u.id) ?? new Set<number>();
+    const seminarMonths = seminarMonthsByUser.get(u.id) ?? new Set<number>();
 
-      return { userId: u.id, name: u.name, cells };
-    })
-  );
+    const cells: KpiHeatmapCell[] = [];
+    for (let month = 1; month <= 12; month++) {
+      const notYetOver = now < new Date(year, month, 1);
+      const production = monthlyAchievements.find((m) => m.month === month);
+      cells.push({
+        metric: KpiMetric.PRODUCTION,
+        month,
+        percent: production?.unitsPercent ?? null,
+      });
+      cells.push({
+        metric: KpiMetric.CONVERSATIONS,
+        month,
+        percent: production?.conversationsPercent ?? null,
+      });
+      cells.push({
+        metric: KpiMetric.CALLING_SESSION,
+        month,
+        percent: notYetOver ? null : callingSessionMonths.has(month) ? 100 : 0,
+      });
+      cells.push({
+        metric: KpiMetric.SEMINAR,
+        month,
+        percent: notYetOver ? null : seminarMonths.has(month) ? 100 : 0,
+      });
+    }
+
+    return { userId: u.id, name: u.name, cells };
+  });
 }
 
 const EVENT_TYPE_LABELS: Record<EventType, string> = {

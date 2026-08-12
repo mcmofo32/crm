@@ -92,7 +92,7 @@ export async function createUserAction(formData: FormData) {
   if (underId) {
     underPerson = await prisma.user.findUnique({
       where: { id: underId },
-      include: { coachedTeam: true },
+      select: { id: true, role: true, name: true, coachedTeam: { select: { id: true } } },
     });
     if (!underPerson) throw new Error("Gebruiker niet gevonden");
     if (!canManageUser(actor, underPerson)) {
@@ -165,7 +165,10 @@ export async function createUserAction(formData: FormData) {
 
 export async function setUserActiveAction(userId: string, active: boolean) {
   const actor = await requireUserManager();
-  const target = await prisma.user.findUnique({ where: { id: userId } });
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, name: true },
+  });
   if (!target) throw new Error("Gebruiker niet gevonden");
   if (!canManageUser(actor, target)) {
     throw new Error("Je mag deze gebruiker niet beheren");
@@ -191,7 +194,15 @@ export async function getManageableUsers() {
   const actor = await requireUserManager();
   const users = await prisma.user.findMany({
     where: { deletedAt: null },
-    include: { team: true, coachedTeam: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      active: true,
+      team: { select: { name: true } },
+      coachedTeam: { select: { name: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
   return actor.role === Role.BEHEERDER
@@ -209,7 +220,22 @@ export async function getTeamsForAssignment() {
 
 export async function getUserForEdit(userId: string) {
   const actor = await requireUserManager();
-  const target = await prisma.user.findUnique({ where: { id: userId } });
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      jobFunction: true,
+      agentType: true,
+      teamId: true,
+      active: true,
+      deletedAt: true,
+      updatedAt: true,
+    },
+  });
   if (!target || target.deletedAt || !canManageUser(actor, target)) return null;
   return target;
 }
@@ -232,7 +258,12 @@ export async function updateUserAction(
     const actor = await requireUserManager();
     const target = await prisma.user.findUnique({
       where: { id: userId },
-      include: { coachedTeam: true },
+      select: {
+        role: true,
+        name: true,
+        email: true,
+        coachedTeam: { select: { id: true } },
+      },
     });
     if (!target) throw new Error("Gebruiker niet gevonden");
     if (!canManageUser(actor, target)) {
@@ -361,7 +392,13 @@ export async function deleteUserAction(userId: string, newOwnerId: string | null
   const actor = await requireUserManager();
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    include: { coachedTeam: true },
+    select: {
+      id: true,
+      role: true,
+      name: true,
+      deletedAt: true,
+      coachedTeam: { select: { id: true } },
+    },
   });
   if (!target) throw new Error("Gebruiker niet gevonden");
   if (target.deletedAt) throw new Error("Deze gebruiker is al verwijderd");
@@ -382,7 +419,10 @@ export async function deleteUserAction(userId: string, newOwnerId: string | null
     if (newOwnerId === userId) {
       throw new Error("Kies een andere gebruiker om de klanten aan over te dragen.");
     }
-    newOwner = await prisma.user.findUnique({ where: { id: newOwnerId } });
+    newOwner = await prisma.user.findUnique({
+      where: { id: newOwnerId },
+      select: { name: true, deletedAt: true },
+    });
     if (!newOwner || newOwner.deletedAt) {
       throw new Error("Gekozen nieuwe eigenaar niet gevonden");
     }

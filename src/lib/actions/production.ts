@@ -125,6 +125,30 @@ async function getProductionMonthRange(year: number, month: number) {
   return monthRange(year, month);
 }
 
+/**
+ * Alle 12 productiemaand-ranges van `year` in één query i.p.v. 12 losse
+ * `getProductionMonthRange`-calls — gebruikt door batch-functies die per
+ * gebruiker over alle maanden itereren (zie `getMonthlyGoalAchievementsForUsers`).
+ */
+async function getProductionMonthRangesForYear(
+  year: number
+): Promise<Map<number, { start: Date; end: Date }>> {
+  const configured = await prisma.productionMonth.findMany({ where: { year } });
+  const byMonth = new Map(configured.map((c) => [c.month, c]));
+
+  const ranges = new Map<number, { start: Date; end: Date }>();
+  for (let month = 1; month <= 12; month++) {
+    const existing = byMonth.get(month);
+    ranges.set(
+      month,
+      existing
+        ? { start: existing.startDate, end: new Date(existing.endDate.getTime() + 1) }
+        : monthRange(year, month)
+    );
+  }
+  return ranges;
+}
+
 /** Maandag 00:00 t.e.m. volgende maandag 00:00 (lokale tijd) van de huidige week. */
 function currentWeekRange() {
   const now = new Date();
@@ -777,6 +801,144 @@ export async function getMonthlyGoalAchievements(
       };
     })
   );
+}
+
+/**
+ * Batch-versie van `getMonthlyGoalAchievements` voor meerdere gebruikers
+ * tegelijk (bv. de jaarlijkse KPI-heatmap): dezelfde uitkomst per gebruiker,
+ * maar met telkens 1 query voor alle gebruikers/maanden samen i.p.v. 12
+ * losse queries per gebruiker. Vermijdt zo de N+1 die ontstond doordat
+ * `getMonthlyGoalAchievements` per gebruiker apart werd aangeroepen.
+ */
+export async function getMonthlyGoalAchievementsForUsers(
+  userIds: string[],
+  year: number
+): Promise<Map<string, MonthlyGoalAchievement[]>> {
+  await requireViewer();
+  const now = new Date();
+  const ranges = await getProductionMonthRangesForYear(year);
+  const yearStart = ranges.get(1)!.start;
+  const yearEnd = ranges.get(12)!.end;
+
+  function monthForDate(date: Date): number | null {
+    for (let month = 1; month <= 12; month++) {
+      const range = ranges.get(month)!;
+      if (date >= range.start && date < range.end) return month;
+    }
+    return null;
+  }
+
+  const [targets, unitsOverrides, wonChanges, conversationActivities] =
+    await Promise.all([
+      prisma.userMonthlyGoal.findMany({
+        where: {
+          userId: { in: userIds },
+          year,
+          metric: { in: [GoalMetric.UNITS, GoalMetric.CONVERSATIONS] },
+        },
+      }),
+      prisma.userMonthlyActual.findMany({
+        where: { userId: { in: userIds }, year, metric: GoalMetric.UNITS },
+      }),
+      prisma.leadStageChange.findMany({
+        where: {
+          changedById: { in: userIds },
+          toStage: { isWon: true },
+          changedAt: { gte: yearStart, lt: yearEnd },
+        },
+        select: {
+          changedById: true,
+          changedAt: true,
+          lead: { select: { id: true, products: { select: { units: true } } } },
+        },
+      }),
+      prisma.activity.findMany({
+        where: {
+          assigneeId: { in: userIds },
+          ...financieleAnalyseActivityWhere({ gte: yearStart, lt: yearEnd }),
+        },
+        select: { assigneeId: true, scheduledAt: true },
+      }),
+    ]);
+
+  const targetByKey = new Map<string, number>();
+  for (const t of targets) {
+    targetByKey.set(`${t.userId}_${t.month}_${t.metric}`, Number(t.target));
+  }
+  const overrideByKey = new Map<string, number>();
+  for (const o of unitsOverrides) {
+    overrideByKey.set(`${o.userId}_${o.month}`, Number(o.value));
+  }
+
+  const wonByKey = new Map<string, { leadId: string; units: number }[]>();
+  for (const change of wonChanges) {
+    const month = monthForDate(change.changedAt);
+    if (month === null) continue;
+    const key = `${change.changedById}_${month}`;
+    const entries = wonByKey.get(key) ?? [];
+    entries.push({
+      leadId: change.lead.id,
+      units: change.lead.products.reduce((s, p) => s + p.units, 0),
+    });
+    wonByKey.set(key, entries);
+  }
+
+  const conversationsByKey = new Map<string, number>();
+  for (const activity of conversationActivities) {
+    if (!activity.scheduledAt) continue;
+    const month = monthForDate(activity.scheduledAt);
+    if (month === null) continue;
+    const key = `${activity.assigneeId}_${month}`;
+    conversationsByKey.set(key, (conversationsByKey.get(key) ?? 0) + 1);
+  }
+
+  const result = new Map<string, MonthlyGoalAchievement[]>();
+  for (const userId of userIds) {
+    const achievements: MonthlyGoalAchievement[] = [];
+    for (let month = 1; month <= 12; month++) {
+      const { end } = ranges.get(month)!;
+      if (now < end) {
+        achievements.push({
+          month,
+          unitsAchieved: null,
+          conversationsAchieved: null,
+          unitsPercent: null,
+          conversationsPercent: null,
+        });
+        continue;
+      }
+
+      const unitsTarget = targetByKey.get(`${userId}_${month}_${GoalMetric.UNITS}`) ?? 0;
+      const conversationsTarget =
+        targetByKey.get(`${userId}_${month}_${GoalMetric.CONVERSATIONS}`) ?? 0;
+
+      const seenLeadIds = new Set<string>();
+      let computedUnits = 0;
+      for (const entry of wonByKey.get(`${userId}_${month}`) ?? []) {
+        if (seenLeadIds.has(entry.leadId)) continue;
+        seenLeadIds.add(entry.leadId);
+        computedUnits += entry.units;
+      }
+      const override = overrideByKey.get(`${userId}_${month}`);
+      const units = override ?? computedUnits;
+      const conversations = conversationsByKey.get(`${userId}_${month}`) ?? 0;
+
+      achievements.push({
+        month,
+        unitsAchieved: unitsTarget > 0 ? units >= unitsTarget : null,
+        conversationsAchieved:
+          conversationsTarget > 0 ? conversations >= conversationsTarget : null,
+        unitsPercent:
+          unitsTarget > 0 ? Math.round((units / unitsTarget) * 100) : null,
+        conversationsPercent:
+          conversationsTarget > 0
+            ? Math.round((conversations / conversationsTarget) * 100)
+            : null,
+      });
+    }
+    result.set(userId, achievements);
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------

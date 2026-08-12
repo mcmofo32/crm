@@ -63,7 +63,7 @@ export async function createTeamAction(formData: FormData) {
 
   const coach = await prisma.user.findUnique({
     where: { id: coachId },
-    include: { coachedTeam: true },
+    select: { role: true, name: true, coachedTeam: { select: { id: true } } },
   });
   if (!coach) throw new Error("Coach niet gevonden");
   if (!canManageUser(actor, coach)) {
@@ -102,7 +102,10 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
   const team = await prisma.team.findUnique({ where: { id: teamId } });
   if (!team) throw new Error("Team niet gevonden");
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, name: true },
+  });
   if (!user) throw new Error("Gebruiker niet gevonden");
   if (!canManageUser(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
@@ -147,14 +150,17 @@ export async function addSubordinateAction(personId: string, formData: FormData)
 
   const person = await prisma.user.findUnique({
     where: { id: personId },
-    include: { coachedTeam: true },
+    select: { role: true, name: true, coachedTeam: { select: { id: true } } },
   });
   if (!person) throw new Error("Gebruiker niet gevonden");
   if (!canManageUser(actor, person)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, name: true },
+  });
   if (!user) throw new Error("Gebruiker niet gevonden");
   if (!canManageUser(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
@@ -211,9 +217,14 @@ export async function changeTeamCoachAction(teamId: string, formData: FormData) 
 
   const newCoach = await prisma.user.findUnique({
     where: { id: newCoachId },
-    include: {
+    select: {
+      role: true,
+      name: true,
       coachedTeam: {
-        include: { _count: { select: { members: true, subagents: true } } },
+        select: {
+          id: true,
+          _count: { select: { members: true, subagents: true } },
+        },
       },
     },
   });
@@ -299,7 +310,10 @@ export async function deleteTeamAction(teamId: string) {
 export async function removeTeamMemberAction(teamId: string, userId: string) {
   const actor = await requireUserManager();
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { teamId: true, name: true },
+  });
   if (!user || user.teamId !== teamId) {
     throw new Error("Gebruiker zit niet in dit team");
   }

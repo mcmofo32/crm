@@ -8,6 +8,13 @@ import {
   deleteActivityFromGoogleCalendar,
   syncActivityToGoogleCalendar,
 } from "@/lib/googleCalendar";
+
+/** Enkel de velden die syncActivityToGoogleCalendar/deleteActivityFromGoogleCalendar nodig hebben — bespaart de (soms grote) avatarData-blob op elke activiteit-actie. */
+const GOOGLE_CALENDAR_USER_SELECT = {
+  googleCalendarConnected: true,
+  googleCalendarRefreshToken: true,
+  googleCalendarId: true,
+} as const;
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { updateLeadStageAction } from "@/lib/actions/leads";
@@ -87,7 +94,10 @@ export async function scheduleActivityAction(formData: FormData) {
       meetingMode === MeetingMode.ONLINE && formData.get("useGoogleMeet") === "on";
 
     if (meetingMode === MeetingMode.ONLINE && !useGoogleMeet) {
-      const assignee = await prisma.user.findUnique({ where: { id: assigneeId } });
+      const assignee = await prisma.user.findUnique({
+        where: { id: assigneeId },
+        select: { zoomLink: true },
+      });
       meetingLink = assignee?.zoomLink ?? null;
       if (!meetingLink) {
         throw new Error(
@@ -132,6 +142,7 @@ export async function scheduleActivityAction(formData: FormData) {
   if (scheduledAt) {
     const assignee = await prisma.user.findUnique({
       where: { id: assigneeId },
+      select: GOOGLE_CALENDAR_USER_SELECT,
     });
     if (assignee) {
       // Wie de afspraak effectief inplant staat altijd mee als deelnemer,
@@ -299,6 +310,7 @@ export async function updateActivityAction(
 
   const assignee = await prisma.user.findUnique({
     where: { id: activity.assigneeId },
+    select: GOOGLE_CALENDAR_USER_SELECT,
   });
   if (assignee && scheduledAt) {
     await syncActivityToGoogleCalendar(assignee, updated, lead);
@@ -322,6 +334,7 @@ export async function deleteActivityAction(activityId: string) {
 
   const assignee = await prisma.user.findUnique({
     where: { id: activity.assigneeId },
+    select: GOOGLE_CALENDAR_USER_SELECT,
   });
   if (assignee) {
     await deleteActivityFromGoogleCalendar(assignee, activity);
@@ -351,6 +364,7 @@ export async function cancelActivityAction(activityId: string) {
 
   const assignee = await prisma.user.findUnique({
     where: { id: activity.assigneeId },
+    select: GOOGLE_CALENDAR_USER_SELECT,
   });
   if (assignee) {
     await deleteActivityFromGoogleCalendar(assignee, activity);
@@ -390,6 +404,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
 
   const assignee = await prisma.user.findUnique({
     where: { id: freshLead.ownerId },
+    select: { zoomLink: true, ...GOOGLE_CALENDAR_USER_SELECT },
   });
   if (!assignee) throw new Error("Eigenaar van deze lead niet gevonden");
 
@@ -494,6 +509,7 @@ export async function planFollowUpCallAction(leadId: string, formData: FormData)
 
   const assignee = await prisma.user.findUnique({
     where: { id: freshLead.ownerId },
+    select: GOOGLE_CALENDAR_USER_SELECT,
   });
   if (!assignee) throw new Error("Eigenaar van deze lead niet gevonden");
 

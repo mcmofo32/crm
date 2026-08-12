@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -34,7 +35,7 @@ function isViewableRole(value: string | undefined): value is Role {
  * ingelogd, ook als het account intussen gedeactiveerd is, of als de
  * Beheerder deze sessie geforceerd heeft uitgelogd (zie sessions.ts).
  */
-async function getFreshSessionUser() {
+const getFreshSessionUser = cache(async function getFreshSessionUser() {
   const session = await auth();
   if (!session?.user) return null;
 
@@ -59,7 +60,7 @@ async function getFreshSessionUser() {
   }
 
   return dbUser;
-}
+});
 
 /**
  * Geeft de "effectieve" gebruiker voor read-only weergave: als de echt
@@ -68,27 +69,29 @@ async function getFreshSessionUser() {
  * genegeerd — enkel de Beheerder kan zichzelf ooit een lagere rol geven,
  * nooit omgekeerd.
  */
-export async function getEffectiveViewer(): Promise<EffectiveViewer | null> {
-  const dbUser = await getFreshSessionUser();
-  if (!dbUser) return null;
+export const getEffectiveViewer = cache(
+  async (): Promise<EffectiveViewer | null> => {
+    const dbUser = await getFreshSessionUser();
+    if (!dbUser) return null;
 
-  const realRole = dbUser.role;
-  const cookieStore = await cookies();
-  const viewAs = cookieStore.get(VIEW_AS_COOKIE)?.value;
+    const realRole = dbUser.role;
+    const cookieStore = await cookies();
+    const viewAs = cookieStore.get(VIEW_AS_COOKIE)?.value;
 
-  const role =
-    realRole === Role.BEHEERDER && isViewableRole(viewAs) ? viewAs : realRole;
+    const role =
+      realRole === Role.BEHEERDER && isViewableRole(viewAs) ? viewAs : realRole;
 
-  return {
-    id: dbUser.id,
-    name: dbUser.name,
-    email: dbUser.email ?? "",
-    role,
-    realRole,
-    isImpersonating: role !== realRole,
-    agentType: dbUser.agentType,
-  };
-}
+    return {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email ?? "",
+      role,
+      realRole,
+      isImpersonating: role !== realRole,
+      agentType: dbUser.agentType,
+    };
+  }
+);
 
 export async function setViewAsRoleAction(role: Role) {
   const dbUser = await getFreshSessionUser();
