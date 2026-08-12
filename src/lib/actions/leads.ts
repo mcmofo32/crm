@@ -35,7 +35,7 @@ async function requireUser() {
 }
 
 /** Bestaat er al een (niet-verwijderde) lead van deze eigenaar met hetzelfde telefoonnummer? */
-async function findOwnLeadWithSamePhone(ownerId: string, phone: string | null) {
+export async function findOwnLeadWithSamePhone(ownerId: string, phone: string | null) {
   const target = normalizePhone(phone);
   if (!target) return null;
 
@@ -104,6 +104,73 @@ export async function createLeadAction(formData: FormData) {
 }
 
 /**
+ * Kernlogica om een lead rechtstreeks als klant (status WON, op de
+ * "Klant"/"Medewerker"-fase) aan te maken mét producten: gebruikt zowel
+ * door `createCustomerAction` (één klant via het formulier) als door de
+ * bulk-import vanuit Excel (`importCustomersBulkAction`, elders). Zet meteen
+ * ook de LeadStageChange (voor de productiestatistieken) en de
+ * Policy-lijnen per product. `occurredAt` bepaalt zowel `createdAt` als het
+ * moment van de stage-overgang — bij een bulk-import is dat de historische
+ * datum uit het bronbestand i.p.v. het importmoment, zodat cijfers per
+ * maand/jaar kloppen.
+ */
+export async function createWonLeadRecord(params: {
+  actorId: string;
+  ownerId: string;
+  leadType: LeadType;
+  wonStageId: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  source: string | null;
+  products: { type: ProductType; amount: number; units: number }[];
+  occurredAt: Date;
+}) {
+  const lead = await prisma.lead.create({
+    data: {
+      firstName: params.firstName,
+      lastName: params.lastName,
+      email: params.email,
+      phone: params.phone,
+      source: params.source,
+      leadType: params.leadType,
+      ownerId: params.ownerId,
+      createdById: params.actorId,
+      caseManagerUserId: params.actorId,
+      stageId: params.wonStageId,
+      status: LeadStatus.WON,
+      createdAt: params.occurredAt,
+    },
+  });
+
+  await prisma.$transaction([
+    prisma.leadStageChange.create({
+      data: {
+        leadId: lead.id,
+        fromStageId: null,
+        toStageId: params.wonStageId,
+        changedById: params.actorId,
+        changedAt: params.occurredAt,
+      },
+    }),
+    ...params.products.map((p) =>
+      prisma.leadProduct.create({
+        data: {
+          leadId: lead.id,
+          type: p.type,
+          amount: p.amount,
+          units: p.units,
+          policy: { create: { leadId: lead.id, employeeId: params.ownerId } },
+        },
+      })
+    ),
+  ]);
+
+  return lead;
+}
+
+/**
  * Maakt een lead rechtstreeks aan als klant (fase "Klant"/"Medewerker",
  * status WON) mét producten, in één stap — vooral bedoeld om bestaande
  * klanten uit een oud systeem over te zetten, zonder ze eerst door de hele
@@ -152,43 +219,19 @@ export async function createCustomerAction(formData: FormData) {
   });
   if (!wonStage) throw new Error("Kon de klant-fase niet vinden");
 
-  const lead = await prisma.lead.create({
-    data: {
-      firstName: String(formData.get("firstName") ?? ""),
-      lastName: String(formData.get("lastName") ?? ""),
-      email,
-      phone,
-      source: (formData.get("source") as string) || null,
-      leadType,
-      ownerId,
-      createdById: user.id,
-      caseManagerUserId: user.id,
-      stageId: wonStage.id,
-      status: LeadStatus.WON,
-    },
+  const lead = await createWonLeadRecord({
+    actorId: user.id,
+    ownerId,
+    leadType,
+    wonStageId: wonStage.id,
+    firstName: String(formData.get("firstName") ?? ""),
+    lastName: String(formData.get("lastName") ?? ""),
+    email,
+    phone,
+    source: (formData.get("source") as string) || null,
+    products,
+    occurredAt: new Date(),
   });
-
-  await prisma.$transaction([
-    prisma.leadStageChange.create({
-      data: {
-        leadId: lead.id,
-        fromStageId: null,
-        toStageId: wonStage.id,
-        changedById: user.id,
-      },
-    }),
-    ...products.map((p) =>
-      prisma.leadProduct.create({
-        data: {
-          leadId: lead.id,
-          type: p.type,
-          amount: p.amount,
-          units: p.units,
-          policy: { create: { leadId: lead.id, employeeId: ownerId } },
-        },
-      })
-    ),
-  ]);
 
   await logAudit({
     actorId: user.id,

@@ -1,0 +1,106 @@
+"use client";
+
+import { useActionState } from "react";
+import {
+  importCustomersBulkAction,
+  type CustomerImportState,
+} from "@/lib/actions/customerImport";
+
+export function BulkCustomerImportForm({
+  assignableUsers,
+  defaultOwnerId,
+}: {
+  assignableUsers: { id: string; name: string }[];
+  defaultOwnerId: string;
+}) {
+  const [state, formAction, pending] = useActionState<CustomerImportState, FormData>(
+    importCustomersBulkAction,
+    null
+  );
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-slate-700">Funnel</label>
+        <select
+          name="leadType"
+          defaultValue="FA"
+          className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="FA">Financiële analyse (Klant)</option>
+          <option value="RG">Recrutering (Medewerker)</option>
+        </select>
+      </div>
+
+      {assignableUsers.length > 1 && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-slate-700">
+            Medewerker <span className="font-normal text-slate-400">(eigenaar van elke klant in dit bestand)</span>
+          </label>
+          <select
+            name="ownerId"
+            defaultValue={defaultOwnerId}
+            className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            {assignableUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-slate-700">
+          Excel-bestand (.xlsx)
+        </label>
+        <input
+          type="file"
+          name="file"
+          accept=".xlsx,.xls"
+          required
+          className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+      </div>
+
+      {state?.error && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {state.error}
+        </div>
+      )}
+
+      {state?.createdCount !== undefined && (
+        <div className="flex flex-col gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+          <span>
+            <strong>{state.createdCount}</strong>{" "}
+            {state.createdCount === 1 ? "klant" : "klanten"} aangemaakt.
+          </span>
+          {state.skipped && state.skipped.length > 0 && (
+            <div className="text-amber-800">
+              <p className="font-medium">
+                {state.skipped.length}{" "}
+                {state.skipped.length === 1 ? "rij" : "rijen"} overgeslagen:
+              </p>
+              <ul className="mt-1 list-inside list-disc">
+                {state.skipped.map((s, i) => (
+                  <li key={i}>
+                    Rij {s.row} ({s.name || "geen naam"}): {s.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+      >
+        {pending ? "Bezig met importeren…" : "Klanten importeren"}
+      </button>
+    </form>
+  );
+}
