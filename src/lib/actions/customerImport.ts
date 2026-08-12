@@ -80,6 +80,32 @@ function normalizeHeader(value: unknown): string {
   return cellToString(value).toUpperCase();
 }
 
+/**
+ * Zoekt de rij met de kolomkoppen: meestal rij 1, maar een tabel die als
+ * "Table"/structured range vanuit Google Sheets geëxporteerd is, staat soms
+ * een rij lager (bv. door een titelrij of een naam-cel boven de tabel). Kijkt
+ * de eerste 10 rijen af op een cel die op een herkende kolomkop lijkt (Naam/
+ * Voornaam/Nummer/Email) i.p.v. blindelings rij 1 te nemen.
+ */
+function findHeaderRowNumber(sheet: ExcelJS.Worksheet): number {
+  const knownHeaders = new Set([
+    ...NAME_HEADERS,
+    ...FIRSTNAME_HEADERS,
+    ...LASTNAME_HEADERS,
+    ...PHONE_HEADERS,
+    ...EMAIL_HEADERS,
+  ]);
+  const maxScan = Math.min(sheet.rowCount, 10);
+  for (let r = 1; r <= maxScan; r++) {
+    let found = false;
+    sheet.getRow(r).eachCell({ includeEmpty: false }, (cell) => {
+      if (knownHeaders.has(normalizeHeader(cell.value))) found = true;
+    });
+    if (found) return r;
+  }
+  return 1;
+}
+
 /** Normaliseert een naam voor vergelijking: hoofdletterongevoelig, spaties genegeerd. */
 function normalizeName(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -99,8 +125,9 @@ async function processSheet(
   leadType: LeadType,
   wonStageId: string
 ): Promise<{ created: number; skipped: { row: number; name: string; reason: string }[] }> {
+  const headerRowNumber = findHeaderRowNumber(sheet);
   const columnByHeader = new Map<string, number>();
-  sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNumber) => {
+  sheet.getRow(headerRowNumber).eachCell({ includeEmpty: false }, (cell, colNumber) => {
     columnByHeader.set(normalizeHeader(cell.value), colNumber);
   });
 
@@ -120,14 +147,14 @@ async function processSheet(
   const dateCol = findColumn(DATE_HEADERS);
 
   if (!fullNameCol && !(firstNameCol && lastNameCol)) {
+    const foundHeaders = [...columnByHeader.keys()].join(", ") || "geen enkele";
     return {
       created: 0,
       skipped: [
         {
-          row: 1,
+          row: headerRowNumber,
           name: "",
-          reason:
-            'geen naamkolom gevonden — voorzie een kolom "Naam" (volledige naam) of aparte kolommen "Voornaam"/"Achternaam"',
+          reason: `geen naamkolom gevonden op rij ${headerRowNumber} — voorzie een kolom "Naam" (volledige naam) of aparte kolommen "Voornaam"/"Achternaam". Herkende kolomkoppen op die rij: ${foundHeaders}`,
         },
       ],
     };
@@ -142,7 +169,7 @@ async function processSheet(
   const skipped: { row: number; name: string; reason: string }[] = [];
   let created = 0;
 
-  for (let rowNumber = 2; rowNumber <= sheet.rowCount; rowNumber++) {
+  for (let rowNumber = headerRowNumber + 1; rowNumber <= sheet.rowCount; rowNumber++) {
     const row = sheet.getRow(rowNumber);
     if (row.cellCount === 0) continue;
 
