@@ -277,7 +277,7 @@ export async function getProductionLeaderboard(
       where: {
         toStage: { isWon: true },
         changedAt: { gte: start, lt: end },
-        lead: { status: "WON", ownerId: { in: userIds } },
+        lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
       },
       select: {
         lead: {
@@ -568,7 +568,7 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
         where: {
           toStage: { isWon: true },
           changedAt: { gte: start, lt: end },
-          lead: { status: "WON", ownerId: userId },
+          lead: { deletedAt: null, status: "WON", ownerId: userId },
         },
         select: {
           lead: {
@@ -681,7 +681,7 @@ export async function getGroupProductionMonthGoalProgress(
         where: {
           toStage: { isWon: true },
           changedAt: { gte: start, lt: end },
-          lead: { status: "WON", ownerId: { in: userIds } },
+          lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
         },
         select: {
           lead: { select: { id: true, products: { select: { units: true } } } },
@@ -825,7 +825,7 @@ export async function getMonthlyGoalAchievements(
           where: {
             toStage: { isWon: true },
             changedAt: { gte: start, lt: end },
-            lead: { status: "WON", ownerId: userId },
+            lead: { deletedAt: null, status: "WON", ownerId: userId },
           },
           select: {
             lead: { select: { id: true, products: { select: { units: true } } } },
@@ -915,7 +915,7 @@ export async function getMonthlyGoalAchievementsForUsers(
         where: {
           toStage: { isWon: true },
           changedAt: { gte: yearStart, lt: yearEnd },
-          lead: { status: "WON", ownerId: { in: userIds } },
+          lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
         },
         select: {
           changedAt: true,
