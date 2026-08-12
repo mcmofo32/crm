@@ -312,7 +312,7 @@ export default async function SubagentKlantenPage({
               <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
               <th className="px-6 py-3 font-medium">Telefoonnummer</th>
               <th className="px-6 py-3 font-medium">E-mailadres</th>
-              <th className="px-6 py-3 font-medium">Belastingsaangifte</th>
+              <th className="px-6 py-3 font-medium">Opvolging</th>
               <th className="px-6 py-3 font-medium text-right">Totale premies</th>
               <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
               <th className="px-6 py-3 font-medium"></th>

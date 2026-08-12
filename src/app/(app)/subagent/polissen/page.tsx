@@ -179,8 +179,6 @@ export default async function SubagentPolissenPage({
               <th className="px-2 py-2.5 text-center font-medium">Easy</th>
               <th className="px-2 py-2.5 text-center font-medium">Tool</th>
               <th className="px-2 py-2.5 text-center font-medium">RL</th>
-              <th className="px-2 py-2.5 text-center font-medium">SA File</th>
-              <th className="px-2 py-2.5 text-center font-medium">CC File</th>
               <th className="px-3 py-2.5 font-medium">Ingangsdatum</th>
               <th className="px-3 py-2.5 font-medium">Betaald</th>
             </tr>
@@ -224,7 +222,7 @@ export default async function SubagentPolissenPage({
                     name="status"
                     value={p.status}
                     options={STATUS_OPTIONS}
-                    className="w-44 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                    className="w-56 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
                     style={POLICY_STATUS_COLORS[p.status]}
                   />
                 </td>
@@ -249,20 +247,6 @@ export default async function SubagentPolissenPage({
                     checked={p.rl}
                   />
                 </td>
-                <td className="px-2 py-2 text-center">
-                  <InlineCheckbox
-                    action={setPolicyChecklistFieldAction.bind(null, p.id, "saFile")}
-                    name="saFile"
-                    checked={p.saFile}
-                  />
-                </td>
-                <td className="px-2 py-2 text-center">
-                  <InlineCheckbox
-                    action={setPolicyChecklistFieldAction.bind(null, p.id, "ccFile")}
-                    name="ccFile"
-                    checked={p.ccFile}
-                  />
-                </td>
                 <td className="px-3 py-2">
                   <InlineTextField
                     type="date"
@@ -285,7 +269,7 @@ export default async function SubagentPolissenPage({
             ))}
             {policies.length === 0 && (
               <tr>
-                <td colSpan={14} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={12} className="px-3 py-8 text-center text-slate-400">
                   {q
                     ? "Geen polissen gevonden voor deze zoekopdracht."
                     : "Geen polissen van klanten onder beheer."}
@@ -300,7 +284,7 @@ export default async function SubagentPolissenPage({
                   {policies.length}
                 </td>
                 <td className="px-3 py-2.5 text-right">{totalUnits}</td>
-                <td className="px-3 py-2.5" colSpan={10}></td>
+                <td className="px-3 py-2.5" colSpan={8}></td>
               </tr>
             </tfoot>
           )}
