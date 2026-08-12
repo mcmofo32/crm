@@ -46,7 +46,7 @@ export default async function UserDoelenPage({
       </div>
 
       <p className="text-sm text-slate-400">
-        De 4 jaarlijkse KPI&apos;s (&ldquo;Productie jaarlijks&rdquo;) zijn allemaal
+        De 4 jaarlijkse KPI&apos;s (&ldquo;Jaarlijkse KPI&apos;s&rdquo;) zijn allemaal
         automatisch berekend, hier is niets manueel in te vullen. KPI
         Seminarie/Belsessie komen uit de aanwezigheidsregistratie op{" "}
         <Link href="/evenementen" className="underline hover:text-slate-600">

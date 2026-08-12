@@ -39,7 +39,7 @@ export const KPI_METRIC_LABELS: Record<KpiMetric, string> = {
   SEMINAR: "KPI Seminarie",
 };
 
-/** Volgorde waarin de jaarlijkse KPI's onder "Productie jaarlijks" getoond worden. */
+/** Volgorde waarin de jaarlijkse KPI's onder "Jaarlijkse KPI's" getoond worden. */
 export const KPI_METRIC_ORDER: KpiMetric[] = [
   "CONVERSATIONS",
   "PRODUCTION",

@@ -29,6 +29,7 @@ import {
 } from "@/lib/actions/production";
 import { canManageCustomerData, canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import { MONTH_LABELS } from "@/lib/goalLabels";
 import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { SubagentTabs } from "@/components/SubagentTabs";
@@ -59,15 +60,21 @@ export default async function SubagentKlantenPage({
     q?: string;
     product?: string;
     sort?: string;
+    followUpMonth?: string;
   }>;
 }) {
-  const { scope, q, product, sort } = await searchParams;
+  const { scope, q, product, sort, followUpMonth } = await searchParams;
   const productType =
     product && (Object.values(ProductType) as string[]).includes(product)
       ? (product as ProductType)
       : undefined;
   const sortBy: CustomerSortOption | undefined =
     sort === "oldest" || sort === "amount" || sort === "units" ? sort : undefined;
+  const followUpMonthNum = Number(followUpMonth);
+  const followUpMonthValue =
+    followUpMonth && followUpMonthNum >= 1 && followUpMonthNum <= 12
+      ? followUpMonthNum
+      : undefined;
 
   const viewer = (await getEffectiveViewer())!;
   const canEditCustomerData = canManageCustomerData(viewer);
@@ -106,6 +113,9 @@ export default async function SubagentKlantenPage({
       {q && <input type="hidden" name="q" value={q} />}
       {product && <input type="hidden" name="product" value={product} />}
       {sort && <input type="hidden" name="sort" value={sort} />}
+      {followUpMonth && (
+        <input type="hidden" name="followUpMonth" value={followUpMonth} />
+      )}
       <Users size={17} className="text-slate-400" />
       <label className="text-sm text-slate-600">
         Bekijk klanten onder beheer van:
@@ -140,7 +150,13 @@ export default async function SubagentKlantenPage({
   );
 
   const [customers, stats] = await Promise.all([
-    getManagedCustomers({ userIds, search: q, productType, sortBy }),
+    getManagedCustomers({
+      userIds,
+      search: q,
+      productType,
+      sortBy,
+      followUpMonth: followUpMonthValue,
+    }),
     getManagedCustomerStats(monthPeriod, yearPeriod, userIds),
   ]);
 
@@ -161,7 +177,7 @@ export default async function SubagentKlantenPage({
     taxStatusOptions.map((o) => [o.value, o.label])
   );
 
-  const filtersActive = Boolean(product || sortBy);
+  const filtersActive = Boolean(product || sortBy || followUpMonthValue);
   function clearFiltersHref() {
     const params = new URLSearchParams();
     if (scope) params.set("scope", scope);
@@ -282,6 +298,27 @@ export default async function SubagentKlantenPage({
                 <option value="units">Meeste eenheden</option>
               </select>
 
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Opvolging — verjaardagsmaand
+              </label>
+              <select
+                name="followUpMonth"
+                defaultValue={followUpMonthValue ? String(followUpMonthValue) : ""}
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">Alle maanden</option>
+                {MONTH_LABELS.map((label, i) => (
+                  <option key={label} value={i + 1}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <p className="mb-3 -mt-2 text-xs text-slate-400">
+                Toont enkel klanten die in deze kalendermaand klant geworden
+                zijn (elk jaar) — handig voor de jaarlijkse opvolging op hun
+                verjaardag.
+              </p>
+
               <div className="flex items-center gap-3">
                 <button
                   type="submit"
@@ -310,6 +347,7 @@ export default async function SubagentKlantenPage({
               <th className="px-6 py-3 font-medium">Klant sinds</th>
               <th className="px-6 py-3 font-medium">Naam</th>
               <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
+              <th className="px-4 py-3 font-medium">Aanbrenger</th>
               <th className="px-6 py-3 font-medium">Telefoonnummer</th>
               <th className="px-6 py-3 font-medium">E-mailadres</th>
               <th className="px-6 py-3 font-medium">Opvolging</th>
@@ -373,6 +411,9 @@ export default async function SubagentKlantenPage({
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-4 text-slate-600">
+                    {customer.owner.name}
+                  </td>
                   <td className="px-6 py-4 text-slate-600">
                     {customer.phone || "—"}
                   </td>
@@ -420,7 +461,7 @@ export default async function SubagentKlantenPage({
             })}
             {customers.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-6 py-8 text-center text-slate-400">
+                <td colSpan={10} className="px-6 py-8 text-center text-slate-400">
                   {filtersActive || q
                     ? "Geen klanten gevonden voor deze filters."
                     : "Geen klanten onder beheer."}

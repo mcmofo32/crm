@@ -84,6 +84,13 @@ export async function getManagedCustomers(options: {
   search?: string;
   productType?: ProductType;
   sortBy?: CustomerSortOption;
+  /**
+   * 1-12: enkel klanten tonen die in deze kalendermaand klant geworden zijn
+   * (ongeacht het jaar) — voor de jaarlijkse opvolging op de verjaardag van
+   * hun "klant sinds"-datum (bv. klant geworden in januari 2025 → elk jaar
+   * in januari opnieuw opvolgen).
+   */
+  followUpMonth?: number;
 }) {
   await requireSubagentPortalAccess();
   const trimmedSearch = options.search?.trim();
@@ -133,7 +140,15 @@ export async function getManagedCustomers(options: {
       customer.owner.name,
   }));
 
-  return withComputed.sort((a, b) => {
+  // becameCustomerAt is afgeleid (niet rechtstreeks in de database), dus
+  // wordt hier gefilterd i.p.v. via een Prisma where.
+  const monthFiltered = options.followUpMonth
+    ? withComputed.filter(
+        (c) => c.becameCustomerAt.getMonth() + 1 === options.followUpMonth
+      )
+    : withComputed;
+
+  return monthFiltered.sort((a, b) => {
     switch (options.sortBy) {
       case "oldest":
         return a.becameCustomerAt.getTime() - b.becameCustomerAt.getTime();

@@ -521,28 +521,23 @@ export type GoalProgress = {
 };
 
 /**
- * Doelen op het dashboard: Eenheden/Klanten/ABV verkoop/ABV RG worden
- * beoordeeld over de volledige lopende productiemaand (doel = het
- * maanddoel). Gesprekken wordt — net als op de Productie-tab — per week
- * beoordeeld: het maanddoel gedeeld door het aantal weken in de
- * productiemaand.
+ * Doelen op het dashboard: Eenheden/Klanten/Gesprekken/ABV verkoop/ABV RG
+ * worden allemaal beoordeeld over de volledige lopende productiemaand
+ * (doel = het maanddoel) — dus ook Gesprekken hier, in tegenstelling tot de
+ * aparte "Gesprekken"-ranglijst op de Productie-tab, die wél per week werkt.
  */
 export async function getProductionMonthGoalProgress(userId: string): Promise<{
   year: number;
   month: number;
   periodStart: Date;
   periodEnd: Date;
-  weekStart: Date;
-  weekEnd: Date;
   rows: GoalProgress[];
 }> {
   await requireViewer();
   const { year, month } = await getCurrentProductionMonth();
   const { start, end } = await getProductionMonthRange(year, month);
-  const week = currentWeekRange();
-  const weeks = weeksInRange(start, end);
 
-  const [targets, wonThisMonth, conversationsThisWeek, newFaLeads, newRgLeads] =
+  const [targets, wonThisMonth, conversationsThisMonth, newFaLeads, newRgLeads] =
     await Promise.all([
       prisma.userMonthlyGoal.findMany({ where: { userId, year, month } }),
       prisma.leadStageChange.findMany({
@@ -560,7 +555,7 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
       prisma.activity.count({
         where: {
           assigneeId: userId,
-          ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
+          ...financieleAnalyseActivityWhere({ gte: start, lt: end }),
         },
       }),
       prisma.lead.count({
@@ -596,21 +591,17 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
     .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
   const customers = seenLeadIds.size;
 
-  const monthlyConversationsTarget = targetByMetric.get(GoalMetric.CONVERSATIONS) ?? 0;
-  const weeklyConversationsTarget =
-    monthlyConversationsTarget > 0 ? Math.round(monthlyConversationsTarget / weeks) : 0;
-
   const actualByMetric: Record<GoalMetric, number> = {
     UNITS: units,
     CUSTOMERS: customers,
-    CONVERSATIONS: conversationsThisWeek,
+    CONVERSATIONS: conversationsThisMonth,
     ABV_SALES: newFaLeads,
     ABV_RG: newRgLeads,
   };
   const effectiveTargetByMetric: Record<GoalMetric, number> = {
     UNITS: targetByMetric.get(GoalMetric.UNITS) ?? 0,
     CUSTOMERS: targetByMetric.get(GoalMetric.CUSTOMERS) ?? 0,
-    CONVERSATIONS: weeklyConversationsTarget,
+    CONVERSATIONS: targetByMetric.get(GoalMetric.CONVERSATIONS) ?? 0,
     ABV_SALES: targetByMetric.get(GoalMetric.ABV_SALES) ?? 0,
     ABV_RG: targetByMetric.get(GoalMetric.ABV_RG) ?? 0,
   };
@@ -631,8 +622,6 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
     month,
     periodStart: start,
     periodEnd: new Date(end.getTime() - 1),
-    weekStart: week.start,
-    weekEnd: new Date(week.end.getTime() - 1),
     rows,
   };
 }
@@ -641,9 +630,8 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
  * Zelfde als `getProductionMonthGoalProgress`, maar dan als totaal over een
  * groep gebruikers (bv. heel het team van een Coach, of iedereen voor
  * Admin/Beheerder) — voor het "Maandelijkse groepsdoelen"-blok op het
- * dashboard. Doelen worden per gebruiker opgeteld; Gesprekken wordt, net als
- * op de Gesprekken-ranglijst, per gebruiker afgerond naar het weekdoel en
- * dan pas opgeteld.
+ * dashboard. Doelen (incl. Gesprekken) worden gewoon per gebruiker
+ * opgeteld over de volledige productiemaand.
  */
 export async function getGroupProductionMonthGoalProgress(
   userIds: string[]
@@ -652,17 +640,13 @@ export async function getGroupProductionMonthGoalProgress(
   month: number;
   periodStart: Date;
   periodEnd: Date;
-  weekStart: Date;
-  weekEnd: Date;
   rows: GoalProgress[];
 }> {
   await requireViewer();
   const { year, month } = await getCurrentProductionMonth();
   const { start, end } = await getProductionMonthRange(year, month);
-  const week = currentWeekRange();
-  const weeks = weeksInRange(start, end);
 
-  const [targets, wonThisMonth, conversationsThisWeek, newFaLeads, newRgLeads] =
+  const [targets, wonThisMonth, conversationsThisMonth, newFaLeads, newRgLeads] =
     await Promise.all([
       prisma.userMonthlyGoal.findMany({
         where: { userId: { in: userIds }, year, month },
@@ -677,13 +661,11 @@ export async function getGroupProductionMonthGoalProgress(
           lead: { select: { id: true, products: { select: { units: true } } } },
         },
       }),
-      prisma.activity.groupBy({
-        by: ["assigneeId"],
+      prisma.activity.count({
         where: {
           assigneeId: { in: userIds },
-          ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
+          ...financieleAnalyseActivityWhere({ gte: start, lt: end }),
         },
-        _count: { _all: true },
       }),
       prisma.lead.count({
         where: {
@@ -704,15 +686,11 @@ export async function getGroupProductionMonthGoalProgress(
     ]);
 
   const targetSumByMetric = new Map<GoalMetric, number>();
-  const conversationsMonthlyTargetByUser = new Map<string, number>();
   for (const t of targets) {
     targetSumByMetric.set(
       t.metric,
       (targetSumByMetric.get(t.metric) ?? 0) + Number(t.target)
     );
-    if (t.metric === GoalMetric.CONVERSATIONS) {
-      conversationsMonthlyTargetByUser.set(t.userId, Number(t.target));
-    }
   }
 
   const seenLeadIds = new Set<string>();
@@ -726,28 +704,17 @@ export async function getGroupProductionMonthGoalProgress(
     .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
   const customers = seenLeadIds.size;
 
-  const conversationsActual = conversationsThisWeek.reduce(
-    (sum, c) => sum + c._count._all,
-    0
-  );
-  const weeklyConversationsTarget = Array.from(
-    conversationsMonthlyTargetByUser.values()
-  ).reduce(
-    (sum, monthly) => sum + (monthly > 0 ? Math.round(monthly / weeks) : 0),
-    0
-  );
-
   const actualByMetric: Record<GoalMetric, number> = {
     UNITS: units,
     CUSTOMERS: customers,
-    CONVERSATIONS: conversationsActual,
+    CONVERSATIONS: conversationsThisMonth,
     ABV_SALES: newFaLeads,
     ABV_RG: newRgLeads,
   };
   const effectiveTargetByMetric: Record<GoalMetric, number> = {
     UNITS: targetSumByMetric.get(GoalMetric.UNITS) ?? 0,
     CUSTOMERS: targetSumByMetric.get(GoalMetric.CUSTOMERS) ?? 0,
-    CONVERSATIONS: weeklyConversationsTarget,
+    CONVERSATIONS: targetSumByMetric.get(GoalMetric.CONVERSATIONS) ?? 0,
     ABV_SALES: targetSumByMetric.get(GoalMetric.ABV_SALES) ?? 0,
     ABV_RG: targetSumByMetric.get(GoalMetric.ABV_RG) ?? 0,
   };
@@ -768,8 +735,6 @@ export async function getGroupProductionMonthGoalProgress(
     month,
     periodStart: start,
     periodEnd: new Date(end.getTime() - 1),
-    weekStart: week.start,
-    weekEnd: new Date(week.end.getTime() - 1),
     rows,
   };
 }

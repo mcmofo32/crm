@@ -248,11 +248,6 @@ export default async function DashboardPage({
             {" – "}
             {formatDate(productionGoals.periodEnd)}
           </p>
-          <p>
-            Gesprekken: deze week ({formatDate(productionGoals.weekStart)}
-            {" – "}
-            {formatDate(productionGoals.weekEnd)})
-          </p>
         </div>
       </div>
 
@@ -298,7 +293,7 @@ export default async function DashboardPage({
 
       <div>
         <h2 className="mb-4 text-xl font-medium text-slate-900">
-          Productie jaarlijks
+          Jaarlijkse KPI&apos;s
         </h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
           {yearlyKpis.map((kpi) => (

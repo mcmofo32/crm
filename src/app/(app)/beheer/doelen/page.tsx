@@ -161,13 +161,14 @@ export default async function DoelenPage({
 
       <p className="text-sm text-slate-400">
         Het doel Gesprekken hierboven is een totaal voor de hele
-        productiemaand — op de Productie-tab en het dashboard wordt dit
-        automatisch verdeeld over het aantal weken in die maand, zodat je
-        ziet hoeveel je die week moet inplannen. Eenheden, Klanten, ABV
-        verkoop en ABV RG worden op het dashboard vergeleken tegen het volle
-        maanddoel. De jaarlijkse KPI&apos;s (Productie jaarlijks) zijn
-        allemaal automatisch — via het tandwiel-icoon zie je per gebruiker
-        de maandelijkse stand.
+        productiemaand. Op het dashboard wordt Gesprekken (net als
+        Eenheden, Klanten, ABV verkoop en ABV RG) vergeleken tegen dat volle
+        maanddoel; enkel op de aparte Gesprekken-ranglijst (Productie-tab)
+        wordt het nog automatisch verdeeld over het aantal weken in die
+        maand, zodat je ziet hoeveel je die week moet inplannen. De
+        jaarlijkse KPI&apos;s (Jaarlijkse KPI&apos;s) zijn allemaal
+        automatisch — via het tandwiel-icoon zie je per gebruiker de
+        maandelijkse stand.
       </p>
 
       <Link
