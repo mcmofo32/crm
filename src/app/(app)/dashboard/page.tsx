@@ -77,8 +77,6 @@ export default async function DashboardPage({
   const { team: selectedTeamId } = await searchParams;
   const user = (await getEffectiveViewer())!;
   const ids = await getVisibleUserIds(user);
-  const ownerWhere = ids ? { ownerId: { in: ids } } : {};
-  const leadWhere = { deletedAt: null, ...ownerWhere };
   const now = new Date();
   const currentYear = now.getFullYear();
   // Groepsdoelen (totaal van het team/iedereen) enkel tonen aan wie ook
@@ -87,7 +85,8 @@ export default async function DashboardPage({
   const currentProductionMonth = await getCurrentProductionMonth();
 
   const [
-    overdueTasks,
+    ownOverdueTasks,
+    teamOverdueTasks,
     productionGoals,
     groupProductionGoals,
     yearlyKpis,
@@ -98,9 +97,30 @@ export default async function DashboardPage({
     productionRows,
     conversationsRows,
   ] = await Promise.all([
+    // Enkel de eigen verlopen taken van de ingelogde gebruiker — zelfde
+    // logica als het badge-cijfer naast "Taken" in de layout.
     prisma.activity.count({
-      where: { status: "PLANNED", scheduledAt: { lt: now }, lead: leadWhere },
+      where: {
+        status: "PLANNED",
+        scheduledAt: { lt: now },
+        assigneeId: user.id,
+        lead: { deletedAt: null },
+      },
     }),
+    // Verlopen taken van de rest van het team (dus niet de eigen), enkel
+    // opgehaald/getoond vanaf Coach — een gewone User heeft geen team.
+    showGroupGoals
+      ? prisma.activity.count({
+          where: {
+            status: "PLANNED",
+            scheduledAt: { lt: now },
+            assigneeId: ids
+              ? { in: ids.filter((id) => id !== user.id) }
+              : { not: user.id },
+            lead: { deletedAt: null },
+          },
+        })
+      : Promise.resolve(0),
     getProductionMonthGoalProgress(user.id),
     showGroupGoals
       ? getAssignableUsers().then((users) =>
@@ -144,17 +164,33 @@ export default async function DashboardPage({
         </p>
       </div>
 
-      {overdueTasks > 0 && (
+      {ownOverdueTasks > 0 && (
         <Link
           href="/taken"
           className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100"
         >
           <AlertTriangle size={20} className="flex-shrink-0" />
           <span>
-            <strong>{overdueTasks}</strong>{" "}
-            {overdueTasks === 1
-              ? "geplande activiteit is verlopen zonder afronding."
-              : "geplande activiteiten zijn verlopen zonder afronding."}{" "}
+            <strong>{ownOverdueTasks}</strong>{" "}
+            {ownOverdueTasks === 1
+              ? "eigen geplande activiteit is verlopen zonder afronding."
+              : "eigen geplande activiteiten zijn verlopen zonder afronding."}{" "}
+            Bekijk taken →
+          </span>
+        </Link>
+      )}
+
+      {showGroupGoals && teamOverdueTasks > 0 && (
+        <Link
+          href="/taken?ownerId=groep"
+          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100"
+        >
+          <AlertTriangle size={20} className="flex-shrink-0" />
+          <span>
+            <strong>{teamOverdueTasks}</strong>{" "}
+            {teamOverdueTasks === 1
+              ? "geplande activiteit in je team is verlopen zonder afronding."
+              : "geplande activiteiten in je team zijn verlopen zonder afronding."}{" "}
             Bekijk taken →
           </span>
         </Link>
