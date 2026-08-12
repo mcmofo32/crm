@@ -290,7 +290,7 @@ export default async function PolissenPage({
                   {policies.length}
                 </td>
                 <td className="px-3 py-2.5 text-right">{totalUnits}</td>
-                <td className="px-3 py-2.5" colSpan={9}></td>
+                <td className="px-3 py-2.5" colSpan={10}></td>
               </tr>
             </tfoot>
           )}
