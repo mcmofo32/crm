@@ -13,9 +13,11 @@ import {
   canDeleteLeads,
   canDeleteActivities,
   canManageCustomerData,
+  canManageUsers,
   getVisibleUserIds,
 } from "@/lib/permissions";
 import { getSubagents } from "@/lib/actions/subagents";
+import { setCustomerOwnerAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { ReportContactForm } from "@/components/ReportContactForm";
@@ -23,6 +25,7 @@ import { ScheduleActivityForm } from "@/components/ScheduleActivityForm";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { LeadDetailsCard } from "@/components/LeadDetailsCard";
 import { LeadProductsCard } from "@/components/LeadProductsCard";
+import { InlineSelect } from "@/components/InlineSelect";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
@@ -114,7 +117,28 @@ export default async function LeadDetailPage({
           </h1>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
             <Avatar name={lead.owner.name} />
-            Eigenaar: {lead.owner.name}
+            Eigenaar:{" "}
+            {lead.status === "WON" && canManageUsers(user) ? (
+              <InlineSelect
+                action={setCustomerOwnerAction.bind(null, lead.id)}
+                name="ownerId"
+                value={lead.ownerId}
+                options={
+                  assignableUsers.some((u) => u.id === lead.ownerId)
+                    ? assignableUsers.map((u) => ({ value: u.id, label: u.name }))
+                    : [
+                        { value: lead.ownerId, label: lead.owner.name },
+                        ...assignableUsers.map((u) => ({
+                          value: u.id,
+                          label: u.name,
+                        })),
+                      ]
+                }
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm disabled:opacity-60"
+              />
+            ) : (
+              lead.owner.name
+            )}
           </div>
           <p className="mt-1 text-sm text-slate-500">
             Laatste contact:{" "}
