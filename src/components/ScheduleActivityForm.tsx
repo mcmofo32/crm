@@ -25,13 +25,13 @@ const OPVOLGING_SUBJECTS = [
   "E-mail",
   "Notitie",
   "Opvolgingsgesprek",
-  "Belastingsaangifte",
 ];
 const AFSPRAAK_SUBJECTS = [
   "Financiële analyse",
   "Adviesgesprek",
   "Kennismakingsgesprek",
   "Carrièregesprek",
+  "Belastingsaangifte",
   "Opvolggesprek",
 ];
 
