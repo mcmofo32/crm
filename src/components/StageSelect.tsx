@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/leads";
 import { planStageMeetingAction, planFollowUpCallAction } from "@/lib/actions/activities";
@@ -211,9 +212,19 @@ export function StageSelect({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
-        {currentStage?.label}
-      </span>
+      {currentStage?.isWon ? (
+        <Link
+          href={`/klanten?customerId=${leadId}`}
+          title="Bekijk deze klant op de Klanten-pagina"
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:underline"
+        >
+          {currentStage.label}
+        </Link>
+      ) : (
+        <span className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+          {currentStage?.label}
+        </span>
+      )}
       <button
         type="button"
         disabled={pending}

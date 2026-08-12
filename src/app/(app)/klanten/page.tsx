@@ -57,9 +57,10 @@ export default async function KlantenPage({
     from?: string;
     to?: string;
     sort?: string;
+    customerId?: string;
   }>;
 }) {
-  const { ownerId, q, product, from, to, sort } = await searchParams;
+  const { ownerId, q, product, from, to, sort, customerId } = await searchParams;
   const productType =
     product && (Object.values(ProductType) as string[]).includes(product)
       ? (product as ProductType)
@@ -140,15 +141,17 @@ export default async function KlantenPage({
   );
 
   const [customers, stats] = await Promise.all([
-    getCustomersForCurrentUser({
-      ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
-      ownerIds: selectedOwnerIds,
-      search: q,
-      productType,
-      becameCustomerFrom: from ? new Date(`${from}T00:00:00`) : undefined,
-      becameCustomerTo: to ? new Date(`${to}T23:59:59.999`) : undefined,
-      sortBy,
-    }),
+    customerId
+      ? getCustomersForCurrentUser({ leadId: customerId })
+      : getCustomersForCurrentUser({
+          ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
+          ownerIds: selectedOwnerIds,
+          search: q,
+          productType,
+          becameCustomerFrom: from ? new Date(`${from}T00:00:00`) : undefined,
+          becameCustomerTo: to ? new Date(`${to}T23:59:59.999`) : undefined,
+          sortBy,
+        }),
     getCustomerStats(monthPeriod, yearPeriod, {
       ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
       ownerIds: selectedOwnerIds,
@@ -206,6 +209,15 @@ export default async function KlantenPage({
       </div>
 
       <KlantenTabs active="klanten" />
+
+      {customerId && (
+        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <span>Je bekijkt deze ene klant, rechtstreeks vanaf de lead.</span>
+          <Link href="/klanten" className="font-medium underline hover:text-blue-900">
+            Bekijk alle klanten →
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

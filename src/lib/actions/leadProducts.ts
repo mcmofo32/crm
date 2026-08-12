@@ -133,6 +133,8 @@ export async function getCustomersForCurrentUser(options?: {
   becameCustomerFrom?: Date;
   becameCustomerTo?: Date;
   sortBy?: CustomerSortOption;
+  /** Rechtstreeks naar één specifieke klant springen (bv. vanaf de leaddetailpagina) — negeert de eigenaar-scoping (blijft wel binnen de toegestane zichtbaarheid van de kijker). */
+  leadId?: string;
 }) {
   const user = await requireUser();
   const scope = customerOwnerScope(user);
@@ -140,13 +142,18 @@ export async function getCustomersForCurrentUser(options?: {
 
   // Enkel binnen de toegestane scope mag verder verfijnd worden op een
   // specifieke eigenaar/groep; een Coach (scope = [zichzelf]) kan dus nooit
-  // via ownerId/ownerIds naar klanten van medewerkers kijken.
+  // via ownerId/ownerIds naar klanten van medewerkers kijken. Bij een
+  // leadId-lookup (rechtstreeks vanaf de leaddetailpagina) geef je bewust
+  // geen ownerId/ownerIds mee, dus dit blijft voor Beheerder/Admin
+  // onbeperkt (kan elke klant vinden) en voor een Coach/User toch beperkt
+  // tot zijn eigen scope (kan geen klant van iemand anders opvragen).
   const ownerWhere = resolveCustomerOwnerWhere(scope, options);
 
   const customers = await prisma.lead.findMany({
     where: {
       deletedAt: null,
       status: "WON",
+      ...(options?.leadId ? { id: options.leadId } : {}),
       ...ownerWhere,
       ...(options?.leadType ? { leadType: options.leadType } : {}),
       ...(options?.productType
