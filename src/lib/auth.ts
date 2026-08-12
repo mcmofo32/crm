@@ -16,6 +16,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Zonder dit gebruikt Google gewoon het account waarmee de browser
+      // toevallig al ingelogd is, zonder te vragen — vervelend voor wie
+      // meerdere Google-accounts heeft (bv. werk + privé) en expliciet wil
+      // kiezen welke bij het inloggen op het CRM gebruikt wordt.
+      authorization: {
+        params: { prompt: "select_account" },
+      },
     }),
   ],
   callbacks: {

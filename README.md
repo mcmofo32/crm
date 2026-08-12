@@ -106,9 +106,9 @@ De app is klaar om te deployen op Vercel; er is geen `vercel.json` nodig
    | `DATABASE_URL` | (automatisch via Neon/Supabase-integratie) | — |
    | `AUTH_SECRET` | output van `npx auth secret` | verplicht |
    | `NEXTAUTH_URL` | *(mag leeg blijven op Vercel)* | de app vertrouwt de Vercel-host automatisch (`trustHost`) |
-   | `GOOGLE_CLIENT_ID` | uit Google Cloud Console | enkel nodig voor de Agenda-koppeling |
+   | `GOOGLE_CLIENT_ID` | uit Google Cloud Console | nodig voor zowel het inloggen (enige inlogmethode van de app) als de Agenda-koppeling |
    | `GOOGLE_CLIENT_SECRET` | uit Google Cloud Console | idem |
-   | `GOOGLE_REDIRECT_URI` | `https://<jouw-deploy-domein>/api/google/callback` | moet exact overeenkomen met de "Authorized redirect URI" in Google Cloud Console |
+   | `GOOGLE_REDIRECT_URI` | `https://<jouw-deploy-domein>/api/google/callback` | enkel voor de Agenda-koppeling — moet exact overeenkomen met een "Authorized redirect URI" in Google Cloud Console |
 
 3. **Deploy**: elke deploy voert automatisch `prisma migrate deploy` uit vóór
    de build (zie `build`-script in `package.json`), zodat het databaseschema
@@ -124,10 +124,20 @@ De app is klaar om te deployen op Vercel; er is geen `vercel.json` nodig
    zodat de voorbeeldaccounts (Beheerder/Admin/Coach/User) ook in de
    productie-database staan. Wijzig hun wachtwoorden meteen nadien.
 
-5. **Google Cloud Console**: vergeet niet de definitieve
-   `GOOGLE_REDIRECT_URI` (met je echte Vercel-domein) toe te voegen als
-   "Authorized redirect URI" bij je OAuth-client, anders slaagt het koppelen
-   van Google Agenda niet.
+5. **Google Cloud Console — twee "Authorized redirect URIs" nodig, niet één**:
+   bij dezelfde OAuth-client moeten **beide** onderstaande URI's toegevoegd
+   worden (elk op een eigen regel bij "Authorized redirect URIs"), anders
+   krijg je `Fout 400: redirect_uri_mismatch`:
+   - `https://<jouw-echte-domein>/api/auth/callback/google` — voor het
+     inloggen op het CRM zelf (NextAuth's ingebouwde callback-pad, niet
+     configureerbaar via een env var).
+   - `https://<jouw-echte-domein>/api/google/callback` — voor het koppelen
+     van de Google Agenda (moet exact overeenkomen met `GOOGLE_REDIRECT_URI`
+     hierboven).
+
+   Vergeet dit niet bij te werken als je domein wijzigt (bv. een nieuw
+   Vercel-preview-domein of een eigen domeinnaam) — dat is de meest
+   voorkomende oorzaak van deze foutmelding.
 
 ## Scripts
 
