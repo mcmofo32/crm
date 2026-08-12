@@ -391,13 +391,20 @@ export default async function KlantenPage({
                         action={boundSetCaseManager}
                         name="subagentId"
                         value={customer.caseManagerSubagentId ?? ""}
-                        options={[
-                          { value: "", label: customer.caseManagerName },
-                          ...subagents.map((s) => ({
-                            value: s.id,
-                            label: `${s.name} (${s.team.name})`,
-                          })),
-                        ]}
+                        options={
+                          customer.caseManagerSubagentId
+                            ? subagents.map((s) => ({ value: s.id, label: s.name }))
+                            : [
+                                { value: "", label: customer.caseManagerName },
+                                // Wie nu al dossierbeheerder is (via caseManagerUser) staat
+                                // hierboven al als eerste optie — zijn eigen
+                                // subagent-vermelding (indien hij er ook één heeft) mag dan
+                                // niet nog eens apart in de lijst staan.
+                                ...subagents
+                                  .filter((s) => s.userId !== customer.caseManagerUserId)
+                                  .map((s) => ({ value: s.id, label: s.name })),
+                              ]
+                        }
                         className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
                       />
                     ) : (

@@ -265,7 +265,7 @@ export default async function DashboardPage({
             target={goal.target}
             percent={goal.percent}
             icon={GOAL_ICONS[goal.metric]}
-            percentPosition={goal.metric === "ABV_RG" ? "beside" : "below"}
+            percentPosition="below"
             accent="blue"
           />
         ))}
@@ -288,7 +288,7 @@ export default async function DashboardPage({
                 target={goal.target}
                 percent={goal.percent}
                 icon={GOAL_ICONS[goal.metric]}
-                percentPosition={goal.metric === "ABV_RG" ? "beside" : "below"}
+                percentPosition="below"
                 accent="violet"
               />
             ))}
