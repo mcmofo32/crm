@@ -223,6 +223,22 @@ export async function createCustomerAction(formData: FormData) {
   });
   if (!wonStage) throw new Error("Kon de klant-fase niet vinden");
 
+  // "Klant sinds" bepaalt in welke productiemaand deze klant meetelt. Enkel
+  // relevant om te verifiëren dat het niet in de toekomst ligt (achteraf een
+  // bestaande klant uit een oud systeem invoeren gebeurt per definitie met
+  // een datum uit het verleden) — valt terug op nu bij een lege/ongeldige
+  // invoer.
+  const becameCustomerAtRaw = String(formData.get("becameCustomerAt") ?? "").trim();
+  const parsedBecameCustomerAt = becameCustomerAtRaw
+    ? new Date(`${becameCustomerAtRaw}T12:00:00`)
+    : null;
+  const occurredAt =
+    parsedBecameCustomerAt &&
+    !Number.isNaN(parsedBecameCustomerAt.getTime()) &&
+    parsedBecameCustomerAt.getTime() <= Date.now()
+      ? parsedBecameCustomerAt
+      : new Date();
+
   const lead = await createWonLeadRecord({
     actorId: user.id,
     ownerId,
@@ -234,7 +250,7 @@ export async function createCustomerAction(formData: FormData) {
     phone,
     source: (formData.get("source") as string) || null,
     products,
-    occurredAt: new Date(),
+    occurredAt,
   });
 
   await logAudit({

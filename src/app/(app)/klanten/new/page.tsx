@@ -74,6 +74,25 @@ export default async function NewCustomerPage() {
 
         <Field label="Bron" name="source" placeholder="bv. oud systeem, doorverwijzing" />
 
+        <div className="flex flex-col gap-1">
+          <label htmlFor="becameCustomerAt" className="text-sm font-medium text-slate-700">
+            Klant sinds
+          </label>
+          <input
+            id="becameCustomerAt"
+            name="becameCustomerAt"
+            type="date"
+            defaultValue={new Date().toISOString().slice(0, 10)}
+            max={new Date().toISOString().slice(0, 10)}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-slate-400">
+            Bepaalt in welke productiemaand deze klant meetelt — bij een
+            bestaande klant uit een oud systeem is dit dus niet vandaag, maar
+            wanneer die persoon toen effectief klant werd.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium text-slate-700">
             Producten <span className="font-normal text-slate-400">(minstens 1 verplicht)</span>
