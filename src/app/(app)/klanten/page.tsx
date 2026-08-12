@@ -18,6 +18,7 @@ import {
   getCustomerStats,
   setCaseManagerAction,
   setTaxDeclarationStatusAction,
+  setBecameCustomerAtAction,
   getTeamsForCustomerFilter,
   type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
@@ -33,10 +34,15 @@ import {
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
+import { InlineTextField } from "@/components/InlineTextField";
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
   return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+}
+
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
 
 function formatAmount(amount: number) {
@@ -387,10 +393,24 @@ export default async function KlantenPage({
                 null,
                 customer.id
               );
+              const boundSetBecameCustomerAt = setBecameCustomerAtAction.bind(
+                null,
+                customer.id
+              );
               return (
                 <tr key={customer.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4 text-slate-600">
-                    {formatDate(customer.becameCustomerAt)}
+                    {canEditCustomerData ? (
+                      <InlineTextField
+                        type="date"
+                        action={boundSetBecameCustomerAt}
+                        name="becameCustomerAt"
+                        value={toDateInputValue(customer.becameCustomerAt)}
+                        className="rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:opacity-60"
+                      />
+                    ) : (
+                      formatDate(customer.becameCustomerAt)
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <Link

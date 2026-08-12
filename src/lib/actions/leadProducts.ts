@@ -291,6 +291,53 @@ export async function setCustomerOwnerAction(leadId: string, formData: FormData)
   revalidatePath("/dashboard");
 }
 
+/**
+ * Corrigeert "Klant sinds" achteraf — bepaalt in welke productiemaand deze
+ * klant meetelt op de doelen/ranglijsten. Nodig omdat "Klant toevoegen" en de
+ * bulk-import de juiste historische datum al bij aanmaak vastleggen, maar
+ * eerder aangemaakte klanten (voor die fix, of gewoon fout ingevuld) hier
+ * anders geen weg terug hebben. Past de meest recente "naar Klant"-
+ * stage-overgang aan; niet Lead.createdAt, want dat blijft het moment waarop
+ * de lead zelf in het systeem kwam (kan lang vóór "klant geworden" liggen).
+ */
+export async function setBecameCustomerAtAction(leadId: string, formData: FormData) {
+  const user = await requireUser();
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!(await canAccessOwner(user, lead.ownerId))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
+
+  const raw = String(formData.get("becameCustomerAt") ?? "").trim();
+  if (!raw) throw new Error("Kies een datum");
+  const date = new Date(`${raw}T12:00:00`);
+  if (Number.isNaN(date.getTime())) throw new Error("Ongeldige datum");
+  if (date.getTime() > Date.now()) {
+    throw new Error("Datum mag niet in de toekomst liggen");
+  }
+
+  const latestWonChange = await prisma.leadStageChange.findFirst({
+    where: { leadId, toStage: { isWon: true } },
+    orderBy: { changedAt: "desc" },
+  });
+  if (!latestWonChange) {
+    throw new Error("Geen 'klant geworden'-overgang gevonden voor deze lead");
+  }
+
+  await prisma.leadStageChange.update({
+    where: { id: latestWonChange.id },
+    data: { changedAt: date },
+  });
+
+  revalidatePath("/klanten");
+  revalidatePath("/subagent");
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/dashboard");
+}
+
 /** Zet de status van de belastingsaangifte van een klant. */
 export async function setTaxDeclarationStatusAction(
   leadId: string,
