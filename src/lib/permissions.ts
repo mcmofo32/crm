@@ -44,9 +44,9 @@ export function canViewBeheerderTools(user: SessionUser) {
   return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
 }
 
-/** Enkel de Beheerder mag een lead verwijderen (naar de prullenbak). */
-export function canDeleteLeads(user: SessionUser) {
-  return user.role === Role.BEHEERDER;
+/** Iedereen mag een lead (of klant, want dat is ook gewoon een lead) verwijderen — naar de prullenbak, niet definitief. */
+export function canDeleteLeads(_user: SessionUser) {
+  return true;
 }
 
 /** Enkel de Beheerder mag activiteiten/afspraken definitief verwijderen (ongeacht status). */
