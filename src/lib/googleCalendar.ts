@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { encryptToken, decryptToken } from "@/lib/tokenCrypto";
 import type { Activity, Lead, Subagent, User } from "@/generated/prisma/client";
+import { subjectInvitesLead } from "@/lib/meetingPlanning";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
@@ -97,7 +98,7 @@ function buildEventBody(
   activity: Activity,
   lead: Lead,
   subagent?: Subagent | null,
-  scheduledBy?: { name: string; email: string | null } | null
+  scheduledBy?: { name: string; email: string | null; phone: string | null } | null
 ) {
   const start = activity.scheduledAt ?? new Date();
   const durationMinutes = activity.durationMinutes ?? 15;
@@ -113,6 +114,12 @@ function buildEventBody(
 
   const useGoogleMeet = activity.meetingMode === "ONLINE" && !activity.meetingLink;
 
+  // De lead wordt enkel effectief uitgenodigd voor een Financiële analyse/
+  // Adviesgesprek/Opvolggesprek — een uitgaand telefoongesprek, e-mail of
+  // notitie is enkel een herinnering in de eigen agenda, geen afspraak mét
+  // de klant, dus daar krijgt hij geen uitnodigingsmail voor.
+  const invitesLead = subjectInvitesLead(activity.subject);
+
   // Wie deze afspraak heeft ingepland (bv. een Coach die inplant namens een
   // teamlid) wordt mee uitgenodigd als die niet dezelfde persoon is als de
   // toegewezen gebruiker (die de afspraak al op zijn eigen agenda heeft staan).
@@ -124,25 +131,36 @@ function buildEventBody(
       attendees.push({ email });
     }
   }
-  addAttendee(lead.email);
+  if (invitesLead) {
+    addAttendee(lead.email);
+  }
   addAttendee(subagent?.email);
   addAttendee(scheduledBy?.email);
 
+  // Wordt de klant mee uitgenodigd, dan ziet hij deze beschrijving ook —
+  // daar komen dus enkel de contactgegevens van wie de afspraak inplande in
+  // te staan (zodat de klant weet bij wie hij terechtkan), nooit de interne
+  // notities. Bij een gewoon uitgaand contactmoment (geen klant uitgenodigd)
+  // is de beschrijving enkel voor onszelf, dus daar mogen de notities wel
+  // in staan.
+  const description = invitesLead
+    ? [
+        scheduledBy?.name ? `Ingepland door: ${scheduledBy.name}` : null,
+        scheduledBy?.phone ? `Telefoon: ${scheduledBy.phone}` : null,
+        scheduledBy?.email ? `E-mail: ${scheduledBy.email}` : null,
+        activity.meetingMode === "ONLINE" && activity.meetingLink
+          ? `Online via: ${activity.meetingLink}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : activity.notes
+    ? `Notities:\n${activity.notes}`
+    : "";
+
   return {
     summary,
-    description: [
-      `Type: ${activity.type}`,
-      lead.phone ? `Telefoon: ${lead.phone}` : null,
-      lead.email ? `E-mail: ${lead.email}` : null,
-      subagent ? `Subagent: ${subagent.name} (${subagent.email})` : null,
-      scheduledBy ? `Ingepland door: ${scheduledBy.name}` : null,
-      activity.meetingMode === "ONLINE" && activity.meetingLink
-        ? `\nOnline via: ${activity.meetingLink}`
-        : null,
-      activity.notes ? `\nNotities:\n${activity.notes}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n"),
+    description,
     location:
       activity.meetingMode === "ONSITE" && activity.location
         ? activity.location
@@ -187,7 +205,7 @@ export async function syncActivityToGoogleCalendar(
   activity: Activity,
   lead: Lead,
   subagent?: Subagent | null,
-  scheduledBy?: { name: string; email: string | null } | null
+  scheduledBy?: { name: string; email: string | null; phone: string | null } | null
 ) {
   if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
     return { synced: false as const, reason: "not_connected" as const };

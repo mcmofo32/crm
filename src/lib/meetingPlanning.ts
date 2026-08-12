@@ -58,6 +58,24 @@ export function isRichMeetingType(meetingType: string) {
   return isAdviesgesprekType(meetingType) || isFinancieleAnalyseType(meetingType);
 }
 
+/**
+ * Voor welke onderwerpen wordt de lead effectief uitgenodigd (als attendee
+ * met zijn e-mailadres) op het Google Agenda-item: Financiële analyse,
+ * Adviesgesprek en Opvolggesprek — dat zijn echte afspraken mét de klant.
+ * Een uitgaand telefoongesprek, e-mail of notitie is enkel een herinnering
+ * in de eigen agenda van de medewerker, dus daarbij wordt de lead niet
+ * uitgenodigd. Werkt op het volledige onderwerp (bv. "18:00 - Financiële
+ * analyse Jan Janssens"), niet enkel op het kale type, via `contains`.
+ */
+export function subjectInvitesLead(subject: string) {
+  const lower = subject.toLowerCase();
+  return (
+    lower.includes("financiële analyse") ||
+    lower.includes("adviesgesprek") ||
+    lower.includes("opvolggesprek")
+  );
+}
+
 /** Bouwt de afspraaknaam op in het vaste formaat "Uur - Type Voornaam Achternaam". */
 export function buildMeetingSubject(
   scheduledAt: Date,

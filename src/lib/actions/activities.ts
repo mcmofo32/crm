@@ -31,6 +31,19 @@ async function requireUser() {
   return viewer;
 }
 
+/**
+ * Contactgegevens van wie een afspraak inplant — komen in de beschrijving
+ * van het Google Agenda-item te staan zodra de klant mee uitgenodigd wordt
+ * (zie subjectInvitesLead), zodat de klant weet bij wie hij terechtkan.
+ */
+async function buildScheduledBy(user: { id: string; name: string; email: string }) {
+  const record = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { phone: true },
+  });
+  return { name: user.name, email: user.email || null, phone: record?.phone ?? null };
+}
+
 async function requireLeadAccess(leadId: string) {
   const user = await requireUser();
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
@@ -147,7 +160,7 @@ export async function scheduleActivityAction(formData: FormData) {
     if (assignee) {
       // Wie de afspraak effectief inplant staat altijd mee als deelnemer,
       // ook als dat dezelfde persoon is als de toegewezen gebruiker.
-      const scheduledBy = { name: user.name, email: user.email || null };
+      const scheduledBy = await buildScheduledBy(user);
       await syncActivityToGoogleCalendar(assignee, activity, lead, subagent, scheduledBy);
     }
   }
@@ -477,7 +490,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
 
   // Wie de afspraak effectief inplant staat altijd mee als deelnemer, ook
   // als dat dezelfde persoon is als de eigenaar van de lead.
-  const scheduledBy = { name: user.name, email: user.email || null };
+  const scheduledBy = await buildScheduledBy(user);
   await syncActivityToGoogleCalendar(assignee, activity, freshLead, subagent, scheduledBy);
 
   revalidatePath(`/leads/${leadId}`);
@@ -541,7 +554,7 @@ export async function planFollowUpCallAction(leadId: string, formData: FormData)
     data: { lastContactedAt: new Date() },
   });
 
-  const scheduledBy = { name: user.name, email: user.email || null };
+  const scheduledBy = await buildScheduledBy(user);
   await syncActivityToGoogleCalendar(assignee, activity, freshLead, null, scheduledBy);
 
   revalidatePath(`/leads/${leadId}`);
