@@ -19,7 +19,12 @@ export async function GET(
   return new NextResponse(new Uint8Array(user.avatarData), {
     headers: {
       "Content-Type": user.avatarMimeType,
-      "Cache-Control": "private, max-age=3600",
+      // De URL bevat al ?v=<avatarUpdatedAt> als cache-buster, dus deze
+      // exacte URL kan nooit een verouderde foto teruggeven — de browser
+      // mag dus onbeperkt cachen i.p.v. elk uur opnieuw op te vragen. Dit
+      // component wordt op elke pagina met een ledenlijst tientallen keren
+      // per keer geladen.
+      "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
 }
