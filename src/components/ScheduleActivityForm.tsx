@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { scheduleActivityAction } from "@/lib/actions/activities";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
-import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
 import {
   isRichMeetingType,
   buildMeetingFormData,
@@ -12,14 +11,37 @@ import {
   type MeetingPlannerValue,
 } from "@/lib/meetingPlanning";
 
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  CALL: "Telefoongesprek",
-  MEETING: "Afspraak",
-  EMAIL: "E-mail",
-  NOTE: "Notitie",
-};
+type Category = "OPVOLGING" | "AFSPRAAK";
 
 const CUSTOM_SUBJECT = "__custom__";
+
+// "Opvolging" = enkel voor jezelf (geen uitnodiging voor de klant),
+// "Afspraak" = de klant wordt mee uitgenodigd op het Google Agenda-item
+// (zie subjectInvitesLead in meetingPlanning.ts). Elke categorie heeft haar
+// eigen onderwerpen — zo kan je nooit per ongeluk een "Telefoongesprek" en
+// een "E-mail" door elkaar gebruiken.
+const OPVOLGING_SUBJECTS = [
+  "Telefoongesprek",
+  "E-mail",
+  "Notitie",
+  "Opvolgingsgesprek",
+  "Belastingsaangifte",
+];
+const AFSPRAAK_SUBJECTS = [
+  "Financiële analyse",
+  "Adviesgesprek",
+  "Kennismakingsgesprek",
+  "Carrièregesprek",
+  "Opvolggesprek",
+];
+
+function typeForSubject(category: Category, subject: string) {
+  if (category === "AFSPRAAK") return "MEETING";
+  if (subject === "Telefoongesprek") return "CALL";
+  if (subject === "E-mail") return "EMAIL";
+  if (subject === "Notitie") return "NOTE";
+  return "CALL";
+}
 
 type AssignableUser = { id: string; name: string; googleCalendarConnected: boolean };
 type SubagentRecord = { id: string; name: string; team: { name: string } };
@@ -44,9 +66,9 @@ export function ScheduleActivityForm({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [type, setType] = useState("CALL");
+  const [category, setCategory] = useState<Category>("OPVOLGING");
   const [assigneeId, setAssigneeId] = useState(currentUserId);
-  const [subjectPreset, setSubjectPreset] = useState(ACTIVITY_TYPE_LABELS.CALL);
+  const [subjectPreset, setSubjectPreset] = useState(OPVOLGING_SUBJECTS[0]);
   const [customSubject, setCustomSubject] = useState("");
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
@@ -55,24 +77,19 @@ export function ScheduleActivityForm({
     EMPTY_MEETING_PLANNER_VALUE
   );
 
+  const subjectOptions = category === "AFSPRAAK" ? AFSPRAAK_SUBJECTS : OPVOLGING_SUBJECTS;
   const subject = subjectPreset === CUSTOM_SUBJECT ? customSubject : subjectPreset;
   const richMeeting = isRichMeetingType(subject);
 
-  // Het onderwerp volgt automatisch het gekozen type (Telefoongesprek/
-  // Afspraak/E-mail/Notitie) — zo krijgt elke activiteit een agendatitel die
-  // overeenkomt met wat het effectief is i.p.v. dat alles er hetzelfde
-  // uitziet. Koos je zelf al een specifiek onderwerp (bv.
-  // "Opvolgingsgesprek"), dan blijft die keuze behouden ook als je nadien
-  // nog van type wisselt.
-  function handleTypeChange(nextType: string) {
-    setType(nextType);
-    if (Object.values(ACTIVITY_TYPE_LABELS).includes(subjectPreset)) {
-      setSubjectPreset(ACTIVITY_TYPE_LABELS[nextType]);
-    }
+  function handleCategoryChange(next: Category) {
+    setCategory(next);
+    const options = next === "AFSPRAAK" ? AFSPRAAK_SUBJECTS : OPVOLGING_SUBJECTS;
+    setSubjectPreset(options[0]);
   }
 
   function reset() {
-    setSubjectPreset(ACTIVITY_TYPE_LABELS[type]);
+    setCategory("OPVOLGING");
+    setSubjectPreset(OPVOLGING_SUBJECTS[0]);
     setCustomSubject("");
     setNotes("");
     setScheduledAt("");
@@ -90,7 +107,7 @@ export function ScheduleActivityForm({
       formData = new FormData();
       formData.set("scheduledAt", scheduledAt);
       formData.set("durationMinutes", durationMinutes);
-      formData.set("type", type);
+      formData.set("type", typeForSubject(category, subject));
     }
     formData.set("leadId", leadId);
     formData.set("assigneeId", assigneeId);
@@ -113,26 +130,19 @@ export function ScheduleActivityForm({
         Volgend gesprek inplannen
       </h2>
       <div className="grid grid-cols-2 gap-3 text-sm">
-        {!richMeeting && (
-          <select
-            value={type}
-            onChange={(e) => handleTypeChange(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2"
-          >
-            {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          value={category}
+          onChange={(e) => handleCategoryChange(e.target.value as Category)}
+          className="col-span-2 rounded-md border border-slate-300 px-3 py-2 font-medium"
+        >
+          <option value="OPVOLGING">Opvolging (enkel voor jezelf)</option>
+          <option value="AFSPRAAK">Afspraak (klant wordt uitgenodigd)</option>
+        </select>
 
         <select
           value={assigneeId}
           onChange={(e) => setAssigneeId(e.target.value)}
-          className={`rounded-md border border-slate-300 px-3 py-2 ${
-            richMeeting ? "col-span-2" : ""
-          }`}
+          className="rounded-md border border-slate-300 px-3 py-2"
         >
           {assignableUsers.map((u) => (
             <option key={u.id} value={u.id}>
@@ -145,9 +155,9 @@ export function ScheduleActivityForm({
         <select
           value={subjectPreset}
           onChange={(e) => setSubjectPreset(e.target.value)}
-          className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-md border border-slate-300 px-3 py-2"
         >
-          {ACTIVITY_SUBJECT_SUGGESTIONS.map((s) => (
+          {subjectOptions.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
