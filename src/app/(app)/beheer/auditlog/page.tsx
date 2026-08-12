@@ -47,7 +47,7 @@ export default async function AuditLogPage({
   const { type, team, medewerker } = await searchParams;
 
   const [assignableUsers, structureOptions] = await Promise.all([
-    getAssignableUsers(),
+    getAssignableUsers({ includeInactive: true }),
     getProductionStructureOptions(),
   ]);
   const medewerkerId =

@@ -701,11 +701,23 @@ export async function getFunnelStagesForFilter() {
   });
 }
 
-export async function getAssignableUsers() {
+/**
+ * Standaard enkel actieve gebruikers — je kan geen nieuwe lead/klant
+ * toewijzen aan iemand die niet meer kan inloggen, en ook filter-
+ * keuzelijsten ("Bekijk klanten/taken van") horen enkel actieve collega's
+ * te tonen. `includeInactive` is enkel bedoeld voor historische
+ * rapportage (bv. Analyse/Auditlog), waar je net wel nog wil kunnen
+ * filteren op iemand die intussen inactief is.
+ */
+export async function getAssignableUsers(options?: { includeInactive?: boolean }) {
   const user = await requireUser();
   const ids = await getVisibleUserIds(user);
   return prisma.user.findMany({
-    where: { deletedAt: null, ...(ids ? { id: { in: ids } } : {}) },
+    where: {
+      deletedAt: null,
+      ...(options?.includeInactive ? {} : { active: true }),
+      ...(ids ? { id: { in: ids } } : {}),
+    },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

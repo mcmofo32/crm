@@ -173,7 +173,7 @@ export default async function AnalysePage({
     eventAttendance,
   ] = await Promise.all([
     getAnalytics(teamFilter, personFilter),
-    getAssignableUsers(),
+    getAssignableUsers({ includeInactive: true }),
     getFunnelDropoff(),
     getStageDurations(),
     getLeadTrend(trendType, trendMonths),
