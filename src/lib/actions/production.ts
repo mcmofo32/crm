@@ -10,6 +10,7 @@ import {
   MONTHLY_GOAL_METRICS,
   MONTHLY_ACTUAL_METRICS,
 } from "@/lib/goalLabels";
+import type { ProductionMonthConfigRow } from "@/lib/productionMonth";
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -147,6 +148,21 @@ async function getProductionMonthRangesForYear(
     );
   }
   return ranges;
+}
+
+/**
+ * Alle ingestelde productiemaanden, over alle jaren — voor het groeperen van
+ * historische data per productiemaand (zie Polissen). Enkel ingelogd nodig,
+ * geen beheerrechten (in tegenstelling tot `getProductionMonthsForYear`, dat
+ * de bewerkpagina voor Beheerder/Admin voedt).
+ */
+export async function getAllProductionMonthConfigs(): Promise<
+  ProductionMonthConfigRow[]
+> {
+  await requireViewer();
+  return prisma.productionMonth.findMany({
+    select: { year: true, month: true, startDate: true, endDate: true },
+  });
 }
 
 /** Maandag 00:00 t.e.m. volgende maandag 00:00 (lokale tijd) van de huidige week. */

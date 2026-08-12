@@ -14,8 +14,13 @@ import {
   getManagedScopePersons,
   resolveManagedUserIds,
 } from "@/lib/actions/subagentPortal";
-import { getProductionStructureOptions } from "@/lib/actions/production";
+import {
+  getProductionStructureOptions,
+  getAllProductionMonthConfigs,
+} from "@/lib/actions/production";
+import { resolveProductionMonth } from "@/lib/productionMonth";
 import { canManageUsers } from "@/lib/permissions";
+import { MONTH_LABELS } from "@/lib/goalLabels";
 import { PRODUCT_TYPE_LABELS } from "@/lib/productTypes";
 import {
   INSURANCE_COMPANY_LABELS,
@@ -55,6 +60,123 @@ const COMPANY_OPTIONS = [
   ...INSURANCE_COMPANY_ORDER.map((c) => ({ value: c, label: INSURANCE_COMPANY_LABELS[c] })),
 ];
 
+type PolicyRow = Awaited<ReturnType<typeof getManagedPolicies>>[number];
+
+/** Eén polissentabel — herbruikt per productiemaand-groep, zodat er niet één lange lijst met alle polissen door elkaar staat. */
+function PolicyTable({
+  policies,
+  assignableUsers,
+}: {
+  policies: PolicyRow[];
+  assignableUsers: { id: string; name: string }[];
+}) {
+  return (
+    <table className="w-full text-sm">
+      <thead className="bg-slate-900 text-left text-white">
+        <tr>
+          <th className="px-3 py-2.5 font-medium">Datum</th>
+          <th className="px-3 py-2.5 font-medium">Medewerker</th>
+          <th className="px-3 py-2.5 font-medium">Klant</th>
+          <th className="px-3 py-2.5 text-right font-medium">Eenheden</th>
+          <th className="px-3 py-2.5 font-medium">Product</th>
+          <th className="px-3 py-2.5 font-medium">Maatschappij</th>
+          <th className="px-3 py-2.5 font-medium">Status</th>
+          <th className="px-2 py-2.5 text-center font-medium">Easy</th>
+          <th className="px-2 py-2.5 text-center font-medium">Tool</th>
+          <th className="px-2 py-2.5 text-center font-medium">RL</th>
+          <th className="px-3 py-2.5 font-medium">Ingangsdatum</th>
+          <th className="px-3 py-2.5 font-medium">Betaald</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {policies.map((p) => (
+          <tr key={p.id} className="hover:bg-slate-50">
+            <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+              {formatDate(p.createdAt)}
+            </td>
+            <td className="px-3 py-2">
+              <InlineSelect
+                action={setPolicyEmployeeAction.bind(null, p.id)}
+                name="employeeId"
+                value={p.employeeId}
+                options={assignableUsers.map((u) => ({ value: u.id, label: u.name }))}
+                className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
+              />
+            </td>
+            <td className="whitespace-nowrap px-3 py-2 font-medium text-slate-900">
+              <Link href={`/leads/${p.leadId}`} className="hover:underline">
+                {p.customerFirstName} {p.customerLastName}
+              </Link>
+            </td>
+            <td className="px-3 py-2 text-right text-slate-700">{p.units}</td>
+            <td className="whitespace-nowrap px-3 py-2 text-slate-700">
+              {PRODUCT_TYPE_LABELS[p.productType]}
+            </td>
+            <td className="px-3 py-2">
+              <InlineSelect
+                action={setPolicyCompanyAction.bind(null, p.id)}
+                name="company"
+                value={p.company ?? ""}
+                options={COMPANY_OPTIONS}
+                className="w-28 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
+              />
+            </td>
+            <td className="px-3 py-2">
+              <InlineSelect
+                action={setPolicyStatusAction.bind(null, p.id)}
+                name="status"
+                value={p.status}
+                options={STATUS_OPTIONS}
+                className="w-56 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                style={POLICY_STATUS_COLORS[p.status]}
+              />
+            </td>
+            <td className="px-2 py-2 text-center">
+              <InlineCheckbox
+                action={setPolicyChecklistFieldAction.bind(null, p.id, "easy")}
+                name="easy"
+                checked={p.easy}
+              />
+            </td>
+            <td className="px-2 py-2 text-center">
+              <InlineCheckbox
+                action={setPolicyChecklistFieldAction.bind(null, p.id, "tool")}
+                name="tool"
+                checked={p.tool}
+              />
+            </td>
+            <td className="px-2 py-2 text-center">
+              <InlineCheckbox
+                action={setPolicyChecklistFieldAction.bind(null, p.id, "rl")}
+                name="rl"
+                checked={p.rl}
+              />
+            </td>
+            <td className="px-3 py-2">
+              <InlineTextField
+                type="date"
+                action={setPolicyDateAction.bind(null, p.id, "ingangsdatum")}
+                name="ingangsdatum"
+                value={toDateInputValue(p.ingangsdatum)}
+                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              />
+            </td>
+            <td className="px-3 py-2">
+              <InlineTextField
+                type="date"
+                action={setPolicyDateAction.bind(null, p.id, "betaaldOp")}
+                name="betaaldOp"
+                value={toDateInputValue(p.betaaldOp)}
+                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default async function SubagentPolissenPage({
   searchParams,
 }: {
@@ -64,11 +186,13 @@ export default async function SubagentPolissenPage({
 
   const viewer = (await getEffectiveViewer())!;
   const canPickScope = canManageUsers(viewer);
-  const [assignableUsers, structureOptions, personOptions] = await Promise.all([
-    getAssignableUsers(),
-    canPickScope ? getProductionStructureOptions() : Promise.resolve([]),
-    canPickScope ? getManagedScopePersons() : Promise.resolve([]),
-  ]);
+  const [assignableUsers, structureOptions, personOptions, productionMonthConfigs] =
+    await Promise.all([
+      getAssignableUsers(),
+      canPickScope ? getProductionStructureOptions() : Promise.resolve([]),
+      canPickScope ? getManagedScopePersons() : Promise.resolve([]),
+      getAllProductionMonthConfigs(),
+    ]);
 
   const showAll = canPickScope && scope === ALL_OPTION;
   const structureId =
@@ -126,6 +250,24 @@ export default async function SubagentPolissenPage({
   const policies = await getManagedPolicies({ userIds, search: q });
   const totalUnits = policies.reduce((sum, p) => sum + p.units, 0);
 
+  // Per productiemaand groeperen — anders staan alle polissen door elkaar in
+  // één lange lijst. `createdAt` (wanneer de polis-lijn ontstond) bepaalt de
+  // productiemaand, net als "Klant sinds" op de Klanten-pagina.
+  const groupsByKey = new Map<
+    string,
+    { year: number; month: number; policies: typeof policies }
+  >();
+  for (const p of policies) {
+    const { year, month } = resolveProductionMonth(p.createdAt, productionMonthConfigs);
+    const key = `${year}-${month}`;
+    const bucket = groupsByKey.get(key);
+    if (bucket) bucket.policies.push(p);
+    else groupsByKey.set(key, { year, month, policies: [p] });
+  }
+  const groups = Array.from(groupsByKey.values()).sort((a, b) =>
+    a.year !== b.year ? b.year - a.year : b.month - a.month
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -165,131 +307,45 @@ export default async function SubagentPolissenPage({
 
       {scopeSwitcher}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-900 text-left text-white">
-            <tr>
-              <th className="px-3 py-2.5 font-medium">Datum</th>
-              <th className="px-3 py-2.5 font-medium">Medewerker</th>
-              <th className="px-3 py-2.5 font-medium">Klant</th>
-              <th className="px-3 py-2.5 text-right font-medium">Eenheden</th>
-              <th className="px-3 py-2.5 font-medium">Product</th>
-              <th className="px-3 py-2.5 font-medium">Maatschappij</th>
-              <th className="px-3 py-2.5 font-medium">Status</th>
-              <th className="px-2 py-2.5 text-center font-medium">Easy</th>
-              <th className="px-2 py-2.5 text-center font-medium">Tool</th>
-              <th className="px-2 py-2.5 text-center font-medium">RL</th>
-              <th className="px-3 py-2.5 font-medium">Ingangsdatum</th>
-              <th className="px-3 py-2.5 font-medium">Betaald</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {policies.map((p) => (
-              <tr key={p.id} className="hover:bg-slate-50">
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">
-                  {formatDate(p.createdAt)}
-                </td>
-                <td className="px-3 py-2">
-                  <InlineSelect
-                    action={setPolicyEmployeeAction.bind(null, p.id)}
-                    name="employeeId"
-                    value={p.employeeId}
-                    options={assignableUsers.map((u) => ({ value: u.id, label: u.name }))}
-                    className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
-                  />
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 font-medium text-slate-900">
-                  <Link href={`/leads/${p.leadId}`} className="hover:underline">
-                    {p.customerFirstName} {p.customerLastName}
-                  </Link>
-                </td>
-                <td className="px-3 py-2 text-right text-slate-700">{p.units}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-700">
-                  {PRODUCT_TYPE_LABELS[p.productType]}
-                </td>
-                <td className="px-3 py-2">
-                  <InlineSelect
-                    action={setPolicyCompanyAction.bind(null, p.id)}
-                    name="company"
-                    value={p.company ?? ""}
-                    options={COMPANY_OPTIONS}
-                    className="w-28 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <InlineSelect
-                    action={setPolicyStatusAction.bind(null, p.id)}
-                    name="status"
-                    value={p.status}
-                    options={STATUS_OPTIONS}
-                    className="w-56 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
-                    style={POLICY_STATUS_COLORS[p.status]}
-                  />
-                </td>
-                <td className="px-2 py-2 text-center">
-                  <InlineCheckbox
-                    action={setPolicyChecklistFieldAction.bind(null, p.id, "easy")}
-                    name="easy"
-                    checked={p.easy}
-                  />
-                </td>
-                <td className="px-2 py-2 text-center">
-                  <InlineCheckbox
-                    action={setPolicyChecklistFieldAction.bind(null, p.id, "tool")}
-                    name="tool"
-                    checked={p.tool}
-                  />
-                </td>
-                <td className="px-2 py-2 text-center">
-                  <InlineCheckbox
-                    action={setPolicyChecklistFieldAction.bind(null, p.id, "rl")}
-                    name="rl"
-                    checked={p.rl}
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <InlineTextField
-                    type="date"
-                    action={setPolicyDateAction.bind(null, p.id, "ingangsdatum")}
-                    name="ingangsdatum"
-                    value={toDateInputValue(p.ingangsdatum)}
-                    className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <InlineTextField
-                    type="date"
-                    action={setPolicyDateAction.bind(null, p.id, "betaaldOp")}
-                    name="betaaldOp"
-                    value={toDateInputValue(p.betaaldOp)}
-                    className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                  />
-                </td>
-              </tr>
-            ))}
-            {policies.length === 0 && (
-              <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-slate-400">
-                  {q
-                    ? "Geen polissen gevonden voor deze zoekopdracht."
-                    : "Geen polissen van klanten onder beheer."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-          {policies.length > 0 && (
-            <tfoot>
-              <tr className="border-t-2 border-slate-900 bg-slate-900 font-semibold text-white">
-                <td className="px-3 py-2.5" colSpan={3}>
-                  {policies.length}
-                </td>
-                <td className="px-3 py-2.5 text-right">{totalUnits}</td>
-                <td className="px-3 py-2.5" colSpan={8}></td>
-              </tr>
-            </tfoot>
-          )}
-        </table>
-      </div>
+      {groups.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400">
+          {q
+            ? "Geen polissen gevonden voor deze zoekopdracht."
+            : "Geen polissen van klanten onder beheer."}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {groups.map((group, index) => {
+            const groupUnits = group.policies.reduce((sum, p) => sum + p.units, 0);
+            return (
+              <details
+                key={`${group.year}-${group.month}`}
+                open={index === 0}
+                className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-200">
+                  <span>
+                    {MONTH_LABELS[group.month - 1]} {group.year}
+                  </span>
+                  <span className="font-normal text-slate-500">
+                    {group.policies.length} polissen · {groupUnits} eenheden
+                  </span>
+                </summary>
+                <div className="overflow-x-auto">
+                  <PolicyTable policies={group.policies} assignableUsers={assignableUsers} />
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      )}
+
+      {policies.length > 0 && (
+        <div className="flex items-center justify-between rounded-lg border-2 border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white">
+          <span>Totaal: {policies.length} polissen</span>
+          <span>{totalUnits} eenheden</span>
+        </div>
+      )}
     </div>
   );
 }
