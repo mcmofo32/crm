@@ -94,7 +94,7 @@ function financieleAnalyseActivityWhere(range: { gte: Date; lt: Date }) {
     status: { in: [ActivityStatus.PLANNED, ActivityStatus.COMPLETED] },
     subject: { contains: "Financiële analyse", mode: "insensitive" as const },
     scheduledAt: range,
-    lead: { leadType: "FA" as const },
+    lead: { deletedAt: null, leadType: "FA" as const },
   };
 }
 

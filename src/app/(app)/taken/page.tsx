@@ -12,10 +12,9 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 import { canDeleteActivities, canManageUsers } from "@/lib/permissions";
 import { getAssignableUsers } from "@/lib/actions/leads";
-import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
+import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType, Role } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
-import { Badge } from "@/components/Badge";
 
 /** Sentinelwaarde voor "iedereen die ik mag zien" (heel mijn team, of voor Admin/Beheerder alle medewerkers). */
 const GROUP_OPTION = "groep";
@@ -223,9 +222,6 @@ export default async function TakenPage({
                               >
                                 {task.lead.firstName} {task.lead.lastName}
                               </Link>
-                              <Badge variant={LEAD_TYPE_BADGE_VARIANT[task.lead.leadType]}>
-                                {LEAD_TYPE_LABELS[task.lead.leadType]}
-                              </Badge>
                             </div>
                             <p className="text-slate-500">
                               {ACTIVITY_TYPE_LABELS[task.type]} · {task.subject} ·{" "}
