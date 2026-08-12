@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { isBeheerder } from "@/lib/permissions";
 import {
   getUserForEdit,
   getTeamsForAssignment,
@@ -9,6 +10,7 @@ import {
   getUserDeletionImpact,
   getReassignableUsers,
 } from "@/lib/actions/users";
+import { forceLogoutUserAction } from "@/lib/actions/sessions";
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
@@ -51,6 +53,7 @@ export default async function EditUserPage({
 
   const boundUpdate = updateUserAction.bind(null, id);
   const boundToggleActive = setUserActiveAction.bind(null, id, !target.active);
+  const boundForceLogout = forceLogoutUserAction.bind(null, id);
 
   return (
     <div className="max-w-lg flex flex-col gap-8">
@@ -195,6 +198,27 @@ export default async function EditUserPage({
           </button>
         </form>
       </div>
+
+      {isBeheerder(viewer) && (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-2 text-sm font-medium text-slate-900">
+            Sessie beëindigen
+          </h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Beëindigt de huidige ingelogde sessie van deze gebruiker meteen —
+            die persoon moet dan opnieuw via Google inloggen bij de
+            eerstvolgende paginanavigatie. Enkel zichtbaar voor de Beheerder.
+          </p>
+          <form action={boundForceLogout}>
+            <button
+              type="submit"
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              Sessie beëindigen
+            </button>
+          </form>
+        </div>
+      )}
 
       {!isSelf && deletionImpact && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">

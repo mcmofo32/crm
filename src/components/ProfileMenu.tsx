@@ -12,7 +12,6 @@ import {
   Target,
   CloudUpload,
   Newspaper,
-  MonitorSmartphone,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -23,7 +22,6 @@ import {
   canManageSettings,
   canManageUsers,
   canViewBeheerderTools,
-  isBeheerder,
 } from "@/lib/permissions";
 import { ViewAsControls } from "@/components/ViewAsControls";
 import type { EffectiveViewer } from "@/lib/impersonation";
@@ -151,11 +149,6 @@ export function ProfileMenu({
           <MenuLink href="/beheer/auditlog" icon={ScrollText}>
             Logboek
           </MenuLink>
-          {isBeheerder(viewer) && (
-            <MenuLink href="/beheer/sessies" icon={MonitorSmartphone}>
-              Actieve sessies
-            </MenuLink>
-          )}
         </>
       )}
       {(showUserManagement || showBeheerderTools) && (
