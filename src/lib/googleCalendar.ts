@@ -145,7 +145,6 @@ function buildEventBody(
   // in staan.
   const description = invitesLead
     ? [
-        scheduledBy?.name ? `Ingepland door: ${scheduledBy.name}` : null,
         scheduledBy?.phone ? `Telefoon: ${scheduledBy.phone}` : null,
         scheduledBy?.email ? `E-mail: ${scheduledBy.email}` : null,
         activity.meetingMode === "ONLINE" && activity.meetingLink
