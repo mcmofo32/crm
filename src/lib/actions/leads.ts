@@ -150,7 +150,11 @@ export async function createWonLeadRecord(params: {
         leadId: lead.id,
         fromStageId: null,
         toStageId: params.wonStageId,
-        changedById: params.actorId,
+        // De eigenaar/verkoper krijgt het "behaalde klant"-krediet voor de
+        // productiemaand-doelen, niet wie de actie toevallig uitvoerde (bv.
+        // een Beheerder/Admin die een bulk-import doet namens medewerkers) —
+        // anders schrijft de importeur alle klanten op zijn eigen teller bij.
+        changedById: params.ownerId,
         changedAt: params.occurredAt,
       },
     }),
