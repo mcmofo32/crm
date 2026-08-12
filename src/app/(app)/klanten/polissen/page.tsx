@@ -23,6 +23,7 @@ import {
 import { InlineSelect } from "@/components/InlineSelect";
 import { InlineCheckbox } from "@/components/InlineCheckbox";
 import { InlineTextField } from "@/components/InlineTextField";
+import { KlantenTabs } from "@/components/KlantenTabs";
 
 /** Voorvoegsel om een team/structuur-optie te onderscheiden van een individuele gebruiker in "Bekijk klanten van". */
 const TEAM_PREFIX = "team:";
@@ -133,6 +134,8 @@ export default async function PolissenPage({
           </p>
         </div>
       </div>
+
+      <KlantenTabs active="polissen" />
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         <form method="GET" className="flex items-center gap-2">

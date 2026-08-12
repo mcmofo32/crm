@@ -35,7 +35,12 @@ export function BulkCustomerImportForm({
       {assignableUsers.length > 1 && (
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-slate-700">
-            Medewerker <span className="font-normal text-slate-400">(eigenaar van elke klant in dit bestand)</span>
+            Medewerker{" "}
+            <span className="font-normal text-slate-400">
+              (terugvalwaarde — heeft je bestand per medewerker een apart
+              tabblad, dan wordt de eigenaar automatisch uit de tabbladnaam
+              afgeleid en telt dit enkel nog mee als er geen match is)
+            </span>
           </label>
           <select
             name="ownerId"
@@ -76,6 +81,22 @@ export function BulkCustomerImportForm({
             <strong>{state.createdCount}</strong>{" "}
             {state.createdCount === 1 ? "klant" : "klanten"} aangemaakt.
           </span>
+          {state.skippedSheets && state.skippedSheets.length > 0 && (
+            <div className="text-amber-800">
+              <p className="font-medium">
+                {state.skippedSheets.length}{" "}
+                {state.skippedSheets.length === 1 ? "tabblad" : "tabbladen"}{" "}
+                overgeslagen:
+              </p>
+              <ul className="mt-1 list-inside list-disc">
+                {state.skippedSheets.map((s, i) => (
+                  <li key={i}>
+                    &ldquo;{s.sheet}&rdquo;: {s.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {state.skipped && state.skipped.length > 0 && (
             <div className="text-amber-800">
               <p className="font-medium">

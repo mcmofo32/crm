@@ -7,8 +7,13 @@ import { canAccessOwner, canManageCustomerData } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { logAudit } from "@/lib/audit";
 import { ensureFunnelStages } from "@/lib/funnelStages";
-import { createWonLeadRecord, findOwnLeadWithSamePhone } from "@/lib/actions/leads";
+import {
+  createWonLeadRecord,
+  findOwnLeadWithSamePhone,
+  getAssignableUsers,
+} from "@/lib/actions/leads";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import type ExcelJS from "exceljs";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -75,58 +80,25 @@ function normalizeHeader(value: unknown): string {
   return cellToString(value).toUpperCase();
 }
 
+/** Normaliseert een naam voor vergelijking: hoofdletterongevoelig, spaties genegeerd. */
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 export type CustomerImportState = {
   error?: string;
   createdCount?: number;
   skipped?: { row: number; name: string; reason: string }[];
+  skippedSheets?: { sheet: string; reason: string }[];
 } | null;
 
-/**
- * Leest een geüpload Excel-bestand (bv. gedownload vanuit Google Sheets) en
- * maakt er meteen klanten van, mét producten — dezelfde kernlogica als
- * "Klant toevoegen" (`createCustomerAction`), maar dan per rij uit het
- * bestand i.p.v. één keer via het formulier. Kolommen worden herkend op
- * naam (hoofdletterongevoelig), dus de kolomvolgorde maakt niet uit.
- */
-export async function importCustomersBulkAction(
-  _prevState: CustomerImportState,
-  formData: FormData
-): Promise<CustomerImportState> {
-  const user = await requireUser();
-  if (!canManageCustomerData(user)) {
-    return { error: "Enkel subagenten mogen klanten in bulk aanmaken" };
-  }
-
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Kies een Excel-bestand (.xlsx)" };
-  }
-
-  const leadType: LeadType =
-    String(formData.get("leadType") ?? "FA") === "RG" ? "RG" : "FA";
-  const requestedOwnerId = String(formData.get("ownerId") ?? user.id);
-  const ownerId = (await canAccessOwner(user, requestedOwnerId))
-    ? requestedOwnerId
-    : user.id;
-
-  // exceljs is een vrij groot pakket — enkel dynamisch inladen wanneer deze
-  // actie effectief draait, i.p.v. het altijd mee te bundelen zodra iets
-  // uit leads.ts geïmporteerd wordt (zelfde reden als de lazy googleapis-
-  // import in googleCalendar.ts).
-  const ExcelJS = (await import("exceljs")).default;
-  const workbook = new ExcelJS.Workbook();
-  const buffer = Buffer.from(await file.arrayBuffer());
-  try {
-    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
-  } catch {
-    return { error: "Kon dit bestand niet lezen — is het een geldig .xlsx-bestand?" };
-  }
-
-  const sheet = workbook.worksheets[0];
-  if (!sheet || sheet.rowCount < 2) {
-    return { error: "Geen gegevens gevonden in het bestand" };
-  }
-
+async function processSheet(
+  sheet: ExcelJS.Worksheet,
+  ownerId: string,
+  actorId: string,
+  leadType: LeadType,
+  wonStageId: string
+): Promise<{ created: number; skipped: { row: number; name: string; reason: string }[] }> {
   const columnByHeader = new Map<string, number>();
   sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNumber) => {
     columnByHeader.set(normalizeHeader(cell.value), colNumber);
@@ -149,8 +121,15 @@ export async function importCustomersBulkAction(
 
   if (!fullNameCol && !(firstNameCol && lastNameCol)) {
     return {
-      error:
-        'Geen naamkolom gevonden — voorzie een kolom "Naam" (volledige naam) of aparte kolommen "Voornaam"/"Achternaam".',
+      created: 0,
+      skipped: [
+        {
+          row: 1,
+          name: "",
+          reason:
+            'geen naamkolom gevonden — voorzie een kolom "Naam" (volledige naam) of aparte kolommen "Voornaam"/"Achternaam"',
+        },
+      ],
     };
   }
 
@@ -160,14 +139,8 @@ export async function importCustomersBulkAction(
     if (col) productColumns.push({ type, col });
   }
 
-  await ensureFunnelStages(leadType);
-  const wonStage = await prisma.funnelStage.findFirst({
-    where: { leadType, isWon: true },
-  });
-  if (!wonStage) return { error: "Kon de klant-fase niet vinden" };
-
   const skipped: { row: number; name: string; reason: string }[] = [];
-  let createdCount = 0;
+  let created = 0;
 
   for (let rowNumber = 2; rowNumber <= sheet.rowCount; rowNumber++) {
     const row = sheet.getRow(rowNumber);
@@ -218,10 +191,10 @@ export async function importCustomersBulkAction(
 
     try {
       await createWonLeadRecord({
-        actorId: user.id,
+        actorId,
         ownerId,
         leadType,
-        wonStageId: wonStage.id,
+        wonStageId,
         firstName,
         lastName,
         email,
@@ -230,7 +203,7 @@ export async function importCustomersBulkAction(
         products,
         occurredAt,
       });
-      createdCount++;
+      created++;
     } catch (err) {
       skipped.push({
         row: rowNumber,
@@ -238,6 +211,108 @@ export async function importCustomersBulkAction(
         reason: err instanceof Error ? err.message : "onbekende fout",
       });
     }
+  }
+
+  return { created, skipped };
+}
+
+/**
+ * Leest een geüpload Excel-bestand (bv. gedownload vanuit Google Sheets) en
+ * maakt er meteen klanten van, mét producten — dezelfde kernlogica als
+ * "Klant toevoegen" (`createCustomerAction`), maar dan per rij uit het
+ * bestand i.p.v. één keer via het formulier. Kolommen worden herkend op
+ * naam (hoofdletterongevoelig), dus de kolomvolgorde maakt niet uit.
+ *
+ * Heeft het bestand meerdere tabbladen (bv. één per medewerker), dan wordt
+ * elk tabblad apart verwerkt: de tabbladnaam wordt vergeleken met de namen
+ * van de medewerkers, en elke klant op dat tabblad krijgt automatisch die
+ * medewerker als eigenaar — de "Medewerker"-keuze in het formulier is dan
+ * enkel nog een terugvalwaarde voor een tabbladnaam die niet herkend wordt
+ * (of voor een bestand met maar één tabblad).
+ */
+export async function importCustomersBulkAction(
+  _prevState: CustomerImportState,
+  formData: FormData
+): Promise<CustomerImportState> {
+  const user = await requireUser();
+  if (!canManageCustomerData(user)) {
+    return { error: "Enkel subagenten mogen klanten in bulk aanmaken" };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Kies een Excel-bestand (.xlsx)" };
+  }
+
+  const leadType: LeadType =
+    String(formData.get("leadType") ?? "FA") === "RG" ? "RG" : "FA";
+  const requestedOwnerId = String(formData.get("ownerId") ?? user.id);
+  const fallbackOwnerId = (await canAccessOwner(user, requestedOwnerId))
+    ? requestedOwnerId
+    : user.id;
+
+  // exceljs is een vrij groot pakket — enkel dynamisch inladen wanneer deze
+  // actie effectief draait, i.p.v. het altijd mee te bundelen zodra iets
+  // uit leads.ts geïmporteerd wordt (zelfde reden als de lazy googleapis-
+  // import in googleCalendar.ts).
+  const ExcelJSModule = (await import("exceljs")).default;
+  const workbook = new ExcelJSModule.Workbook();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  try {
+    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+  } catch {
+    return { error: "Kon dit bestand niet lezen — is het een geldig .xlsx-bestand?" };
+  }
+
+  const sheets = workbook.worksheets.filter((s) => s.rowCount >= 2);
+  if (sheets.length === 0) {
+    return { error: "Geen gegevens gevonden in het bestand" };
+  }
+
+  await ensureFunnelStages(leadType);
+  const wonStage = await prisma.funnelStage.findFirst({
+    where: { leadType, isWon: true },
+  });
+  if (!wonStage) return { error: "Kon de klant-fase niet vinden" };
+
+  // Bij meerdere tabbladen wordt de eigenaar per tabblad afgeleid uit de
+  // tabbladnaam i.p.v. steeds dezelfde (manueel gekozen) medewerker te
+  // gebruiken — dat is precies waarom je dan in één keer het hele bestand
+  // (met alle medewerkers samen) kan uploaden.
+  const multiSheet = sheets.length > 1;
+  const assignableUsers = multiSheet ? await getAssignableUsers() : [];
+
+  const skipped: { row: number; name: string; reason: string }[] = [];
+  const skippedSheets: { sheet: string; reason: string }[] = [];
+  let createdCount = 0;
+
+  for (const sheet of sheets) {
+    let ownerId = fallbackOwnerId;
+    if (multiSheet) {
+      const normalized = normalizeName(sheet.name);
+      const match = assignableUsers.find((u) => normalizeName(u.name) === normalized);
+      if (!match) {
+        skippedSheets.push({
+          sheet: sheet.name,
+          reason: "geen medewerker gevonden met deze naam — tabblad overgeslagen",
+        });
+        continue;
+      }
+      if (!(await canAccessOwner(user, match.id))) {
+        skippedSheets.push({
+          sheet: sheet.name,
+          reason: `geen toegang tot medewerker "${match.name}" — tabblad overgeslagen`,
+        });
+        continue;
+      }
+      ownerId = match.id;
+    }
+
+    const result = await processSheet(sheet, ownerId, user.id, leadType, wonStage.id);
+    createdCount += result.created;
+    skipped.push(
+      ...result.skipped.map((s) => (multiSheet ? { ...s, name: `${s.name} (${sheet.name})` } : s))
+    );
   }
 
   if (createdCount > 0) {
@@ -248,7 +323,7 @@ export async function importCustomersBulkAction(
       entityId: "bulk",
       description: `${createdCount} klant(en) in bulk geïmporteerd vanuit Excel (${leadType})${
         skipped.length > 0 ? `, ${skipped.length} overgeslagen` : ""
-      }`,
+      }${skippedSheets.length > 0 ? `, ${skippedSheets.length} tabblad(en) overgeslagen` : ""}`,
     });
   }
 
@@ -259,5 +334,5 @@ export async function importCustomersBulkAction(
   revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${leadType}`);
 
-  return { createdCount, skipped };
+  return { createdCount, skipped, skippedSheets };
 }

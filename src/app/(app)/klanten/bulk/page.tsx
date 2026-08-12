@@ -19,11 +19,14 @@ export default async function BulkNewCustomerPage() {
         <p className="mt-1 text-base text-slate-500">
           Download je klantenlijst uit Google Sheets als Excel (.xlsx) en
           upload ze hier — elke rij wordt één klant, meteen met de juiste
-          producten. Kies eerst de medewerker: die wordt automatisch
-          eigenaar van alle klanten in dit bestand, dus je hoeft ze niet
-          één voor één toe te wijzen. Herkende kolommen: Naam (of
-          Voornaam/Achternaam apart), Nummer, Email, Datum, en de
-          productkolommen (bv. PSP, LTS, BEL, VAPZ, DELA, IPT).
+          producten. Heeft je bestand per medewerker een apart tabblad, dan
+          hoef je maar één keer te uploaden: de tabbladnaam wordt vergeleken
+          met de namen van je medewerkers, en elke klant op dat tabblad
+          krijgt automatisch die medewerker als eigenaar. Heeft het bestand
+          maar één tabblad, dan geldt gewoon de medewerker die je hieronder
+          kiest. Herkende kolommen: Naam (of Voornaam/Achternaam apart),
+          Nummer, Email, Datum, en de productkolommen (bv. PSP, LTS, BEL,
+          VAPZ, DELA, IPT).
         </p>
       </div>
 

@@ -1,7 +1,10 @@
 import Link from "next/link";
 
-export function KlantenTabs({ active }: { active: "klanten" }) {
-  const tabs = [{ key: "klanten" as const, label: "Klanten", href: "/klanten" }];
+export function KlantenTabs({ active }: { active: "klanten" | "polissen" }) {
+  const tabs = [
+    { key: "klanten" as const, label: "Klanten", href: "/klanten" },
+    { key: "polissen" as const, label: "Polissen", href: "/klanten/polissen" },
+  ];
 
   return (
     <div className="flex gap-2 text-base">
