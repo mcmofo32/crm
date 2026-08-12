@@ -1,7 +1,13 @@
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { canViewBeheerderTools } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import type { LeadType } from "@/generated/prisma/client";
+
+/** Stabiele sleutel voor een duplicaten-groep, los van welke lead toevallig de union-find-root is. */
+function duplicateGroupSignature(leadIds: string[]): string {
+  return [...leadIds].sort().join(",");
+}
 
 export function normalizeEmail(email: string | null) {
   return email ? email.trim().toLowerCase() : null;
@@ -60,29 +66,35 @@ export type DuplicateLead = {
 
 export type DuplicateGroup = {
   key: string;
+  /** Stabiele sleutel (sorted lead-id's) — te gebruiken bij het negeren van deze groep. */
+  signature: string;
   sharedEmails: string[];
   sharedPhones: string[];
   leads: DuplicateLead[];
 };
 
 async function computeDuplicateGroups(): Promise<DuplicateGroup[]> {
-  const leads = await prisma.lead.findMany({
-    where: { deletedAt: null },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      leadType: true,
-      createdAt: true,
-      stage: { select: { label: true } },
-      ownerId: true,
-      owner: { select: { name: true } },
-      createdBy: { select: { name: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  const [leads, dismissed] = await Promise.all([
+    prisma.lead.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        leadType: true,
+        createdAt: true,
+        stage: { select: { label: true } },
+        ownerId: true,
+        owner: { select: { name: true } },
+        createdBy: { select: { name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.dismissedDuplicateGroup.findMany({ select: { signature: true } }),
+  ]);
+  const dismissedSignatures = new Set(dismissed.map((d) => d.signature));
 
   const emailMap = new Map<string, string[]>();
   const phoneMap = new Map<string, string[]>();
@@ -128,6 +140,9 @@ async function computeDuplicateGroups(): Promise<DuplicateGroup[]> {
   for (const [root, ids] of groups) {
     if (ids.length < 2) continue;
 
+    const signature = duplicateGroupSignature(ids);
+    if (dismissedSignatures.has(signature)) continue;
+
     const groupLeads = ids
       .map((id) => leadById.get(id)!)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -143,6 +158,7 @@ async function computeDuplicateGroups(): Promise<DuplicateGroup[]> {
 
     result.push({
       key: root,
+      signature,
       sharedEmails: Array.from(sharedEmails),
       sharedPhones: Array.from(sharedPhones),
       leads: groupLeads.map((l) => ({
@@ -249,4 +265,28 @@ export async function getCrossOwnerDuplicateGroups(): Promise<DuplicateGroup[]> 
   return groups.filter(
     (g) => new Set(g.leads.map((l) => l.ownerId)).size > 1
   );
+}
+
+/**
+ * Markeert een duplicaten-groep als "geen probleem" — verdwijnt dan uit de
+ * Dubbele leads-lijst (en de meldingsbel op het dashboard) tot de
+ * samenstelling van de groep verandert (bv. een nieuwe lead met dezelfde
+ * contactgegevens komt erbij).
+ */
+export async function dismissDuplicateGroupAction(leadIds: string[]) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer || !canViewBeheerderTools(viewer)) {
+    throw new Error("Je hebt geen toegang tot dit overzicht");
+  }
+  if (leadIds.length < 2) throw new Error("Ongeldige duplicaten-groep");
+
+  const signature = duplicateGroupSignature(leadIds);
+  await prisma.dismissedDuplicateGroup.upsert({
+    where: { signature },
+    create: { signature, dismissedById: viewer.id },
+    update: {},
+  });
+
+  revalidatePath("/beheer/duplicaten");
+  revalidatePath("/dashboard");
 }

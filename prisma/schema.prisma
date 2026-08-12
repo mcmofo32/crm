@@ -158,6 +158,7 @@ model User {
   stageChanges      LeadStageChange[] @relation("StageChangedBy")
   incentivesCreated Incentive[]       @relation("IncentiveCreatedBy")
   auditLogEntries   AuditLog[]        @relation("AuditActor")
+  dismissedDuplicateGroups DismissedDuplicateGroup[] @relation("DuplicateGroupDismissedBy")
 
   goals             UserGoal[]            @relation("UserGoals")
   monthlyGoals      UserMonthlyGoal[]     @relation("UserMonthlyGoals")
@@ -192,6 +193,22 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([entityType, entityId])
+}
+
+/// Een duplicaten-groep (zie duplicates.ts) die een Beheerder/Admin bewust
+/// als "geen probleem" gemarkeerd heeft — verdwijnt dan uit de Dubbele
+/// leads-lijst tot de samenstelling van de groep verandert (bv. een nieuwe
+/// lead met dezelfde contactgegevens komt erbij, waardoor de signature
+/// wijzigt en de groep opnieuw beoordeeld moet worden).
+model DismissedDuplicateGroup {
+  id String @id @default(cuid())
+
+  /// De betrokken lead-id's, alfabetisch gesorteerd en met "," samengevoegd.
+  signature String @unique
+
+  dismissedById String
+  dismissedBy   User     @relation("DuplicateGroupDismissedBy", fields: [dismissedById], references: [id])
+  dismissedAt   DateTime @default(now())
 }
 
 // ---------------------------------------------------------------------------
