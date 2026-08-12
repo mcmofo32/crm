@@ -251,6 +251,46 @@ export async function setCaseManagerAction(leadId: string, formData: FormData) {
   revalidatePath(`/leads/${leadId}`);
 }
 
+/**
+ * Wijst een klant toe aan een andere medewerker (eigenaar). Enkel
+ * Beheerder/Admin mogen dit — dezelfde grens als "Bekijk klanten van", want
+ * het verplaatst de klant ook uit het overzicht van de huidige eigenaar naar
+ * dat van de nieuwe. De nieuwe eigenaar moet een actieve, niet-verwijderde
+ * gebruiker zijn die de uitvoerder ook effectief mag toewijzen.
+ */
+export async function setCustomerOwnerAction(leadId: string, formData: FormData) {
+  const user = await requireUser();
+  if (!canManageUsers(user)) {
+    throw new Error("Enkel Beheerder/Admin mogen de eigenaar van een klant wijzigen");
+  }
+
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+
+  const newOwnerId = String(formData.get("ownerId") ?? "").trim();
+  if (!newOwnerId) throw new Error("Geen nieuwe eigenaar opgegeven");
+  if (newOwnerId === lead.ownerId) return;
+
+  const newOwner = await prisma.user.findUnique({
+    where: { id: newOwnerId },
+    select: { id: true, deletedAt: true, active: true },
+  });
+  if (!newOwner || newOwner.deletedAt || !newOwner.active) {
+    throw new Error("Ongeldige nieuwe eigenaar");
+  }
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { ownerId: newOwnerId },
+  });
+
+  revalidatePath("/klanten");
+  revalidatePath("/subagent");
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/leads");
+  revalidatePath("/dashboard");
+}
+
 /** Zet de status van de belastingsaangifte van een klant. */
 export async function setTaxDeclarationStatusAction(
   leadId: string,

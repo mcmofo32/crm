@@ -18,6 +18,7 @@ import {
   getCustomerStats,
   setCaseManagerAction,
   setTaxDeclarationStatusAction,
+  setCustomerOwnerAction,
   getTeamsForCustomerFilter,
   type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
@@ -361,6 +362,7 @@ export default async function KlantenPage({
             <tr>
               <th className="px-6 py-3 font-medium">Klant sinds</th>
               <th className="px-6 py-3 font-medium">Naam</th>
+              <th className="px-4 py-3 font-medium">Eigenaar</th>
               <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
               <th className="px-6 py-3 font-medium">Telefoonnummer</th>
               <th className="px-6 py-3 font-medium">E-mailadres</th>
@@ -380,6 +382,10 @@ export default async function KlantenPage({
                 null,
                 customer.id
               );
+              const boundSetOwner = setCustomerOwnerAction.bind(
+                null,
+                customer.id
+              );
 
               return (
                 <tr key={customer.id} className="hover:bg-slate-50">
@@ -395,6 +401,29 @@ export default async function KlantenPage({
                     </Link>
                     {customer.company && (
                       <span className="ml-2 text-slate-400">{customer.company}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
+                    {canViewOthersCustomers ? (
+                      <InlineSelect
+                        action={boundSetOwner}
+                        name="ownerId"
+                        value={customer.ownerId}
+                        options={
+                          assignableUsers.some((u) => u.id === customer.ownerId)
+                            ? assignableUsers.map((u) => ({ value: u.id, label: u.name }))
+                            : [
+                                { value: customer.ownerId, label: customer.owner.name },
+                                ...assignableUsers.map((u) => ({
+                                  value: u.id,
+                                  label: u.name,
+                                })),
+                              ]
+                        }
+                        className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                      />
+                    ) : (
+                      <span className="text-slate-600">{customer.owner.name}</span>
                     )}
                   </td>
                   <td className="px-4 py-4">
@@ -473,7 +502,7 @@ export default async function KlantenPage({
             {customers.length === 0 && (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   className="px-6 py-8 text-center text-slate-400"
                 >
                   {filtersActive || q
