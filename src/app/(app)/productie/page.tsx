@@ -376,12 +376,12 @@ export default async function ProductiePage({
                   <th className="px-3 py-3 font-medium">Functie</th>
                   <th className="px-3 py-3 text-center font-medium">Doel FA-leads</th>
                   <th className="px-3 py-3 text-center font-medium">
-                    Toegevoegd FA-leads
+                    Behaalde FA-leads
                   </th>
                   <th className="px-3 py-3 text-center font-medium">% Doel FA</th>
                   <th className="px-3 py-3 text-center font-medium">Doel RG-leads</th>
                   <th className="px-3 py-3 text-center font-medium">
-                    Toegevoegd RG-leads
+                    Behaalde RG-leads
                   </th>
                   <th className="px-3 py-3 text-center font-medium">% Doel RG</th>
                 </tr>
