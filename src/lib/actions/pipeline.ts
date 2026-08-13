@@ -8,6 +8,9 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { mainFunnelStageKeys } from "@/lib/funnelStages";
 import type { LeadCategoryFilter } from "@/lib/actions/leads";
 
+/** Zoals LeadCategoryFilter, maar met "opvolging" erbij — enkel relevant op de Pipeline-pagina, dus niet in het gedeelde type op /leads. */
+export type PipelineCategoryFilter = LeadCategoryFilter | "opvolging";
+
 async function requireUser() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
@@ -103,7 +106,7 @@ export async function getPipelineLeads(
   leadType: LeadType,
   ownerId: string,
   search?: string,
-  category?: LeadCategoryFilter
+  category?: PipelineCategoryFilter
 ): Promise<PipelineLeadRow[]> {
   const user = await requireUser();
   if (!(await canAccessOwner(user, ownerId))) {
@@ -116,7 +119,10 @@ export async function getPipelineLeads(
       deletedAt: null,
       leadType,
       ownerId,
-      ...(category === "open" ? { status: "OPEN" } : {}),
+      // "Opvolging" heeft, net als de statistieken erboven, enkel zin voor
+      // nog actieve leads — een lead die al klant is of al geen interesse
+      // heeft hoeft niet meer opgevolgd te worden.
+      ...(category === "open" || category === "opvolging" ? { status: "OPEN" } : {}),
       ...(category === "geen_interesse" ? { status: "LOST" } : {}),
       ...(category === "klanten" ? { status: "WON" } : {}),
       ...(category === "ingepland"
@@ -148,12 +154,22 @@ export async function getPipelineLeads(
       characteristics: true,
       stageId: true,
       stage: { select: { label: true } },
-      activities: { select: { type: true, status: true } },
+      activities: {
+        select: { type: true, status: true, scheduledAt: true, wasVoicemail: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return leads.map((lead) => ({
+  // "Opvolging" = iedereen die nog niet succesvol bereikt is (nog te
+  // contacteren, enkel voicemail gehad, of een toekomstig terugbelmoment
+  // heeft) — zelfde definitie als de 3 statistiekkaarten erboven.
+  const filtered =
+    category === "opvolging"
+      ? leads.filter((lead) => contactState(lead.activities) !== "OVERIG")
+      : leads;
+
+  return filtered.map((lead) => ({
     id: lead.id,
     createdAt: lead.createdAt,
     firstName: lead.firstName,

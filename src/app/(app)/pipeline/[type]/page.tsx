@@ -8,8 +8,9 @@ import {
   setLeadQualityScoreAction,
   setLeadInformedAction,
   setLeadCharacteristicsAction,
+  type PipelineCategoryFilter,
 } from "@/lib/actions/pipeline";
-import { getAssignableUsers, type LeadCategoryFilter } from "@/lib/actions/leads";
+import { getAssignableUsers } from "@/lib/actions/leads";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData } from "@/lib/permissions";
 import { Role } from "@/generated/prisma/client";
@@ -47,11 +48,12 @@ export default async function PipelinePage({
   // Standaard tonen we enkel open leads — "Alle leads" moet je bewust
   // kiezen (view=alle), anders valt terug op "open" bij een lege/ongeldige
   // waarde i.p.v. alles door elkaar te tonen.
-  const resolvedView: LeadCategoryFilter | "alle" =
+  const resolvedView: PipelineCategoryFilter | "alle" =
     view === "open" ||
     view === "ingepland" ||
     view === "geen_interesse" ||
     view === "klanten" ||
+    view === "opvolging" ||
     view === "alle"
       ? view
       : "open";
@@ -106,7 +108,7 @@ export default async function PipelinePage({
     </form>
   );
 
-  function categoryHref(c: "alle" | LeadCategoryFilter) {
+  function categoryHref(c: "alle" | PipelineCategoryFilter) {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (requiresSelection) params.set("ownerId", selectedOwnerId);
@@ -185,6 +187,7 @@ export default async function PipelinePage({
             ["klanten", "Klanten"],
             ["ingepland", "Ingeplande leads"],
             ["geen_interesse", "Geen interesse"],
+            ["opvolging", "Opvolging"],
           ] as const
         ).map(([c, label]) => (
           <Link
