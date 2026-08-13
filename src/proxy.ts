@@ -29,10 +29,20 @@ export default auth((req) => {
       ? viewAsRole
       : realRole;
 
+  // Een Coach mag de Doelen-pagina (eigen medewerkers' doelen) gebruiken,
+  // maar niet de productiemaand-kalender daaronder (bedrijfsbrede instelling)
+  // of de rest van Beheerderstools.
+  const isCoachDoelenPath =
+    effectiveRole === "COACH" &&
+    (pathname === "/beheer/doelen" ||
+      (pathname.startsWith("/beheer/doelen/") &&
+        !pathname.startsWith("/beheer/doelen/productie")));
+
   if (
     pathname.startsWith("/beheer") &&
     effectiveRole !== "BEHEERDER" &&
-    effectiveRole !== "ADMIN"
+    effectiveRole !== "ADMIN" &&
+    !isCoachDoelenPath
   ) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }

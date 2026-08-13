@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canManageUsers } from "@/lib/permissions";
-import { KpiMetric } from "@/generated/prisma/client";
+import { canManageUsers, canAccessOwner } from "@/lib/permissions";
+import { KpiMetric, Role } from "@/generated/prisma/client";
 import { KPI_METRIC_ORDER, MANUAL_KPI_METRIC_ORDER } from "@/lib/goalLabels";
 import { getEventAttendancePercent } from "@/lib/actions/events";
 import { getMonthlyGoalAchievements } from "@/lib/actions/production";
@@ -14,6 +14,25 @@ async function requireGoalManager() {
   if (!viewer) throw new Error("Niet ingelogd");
   if (!canManageUsers(viewer)) {
     throw new Error("Je hebt geen rechten om doelen te beheren");
+  }
+  return viewer;
+}
+
+/** Beheerder/Admin mogen de doelen van iedereen beheren; een Coach enkel die van zijn eigen (sub)structuur. */
+async function requireEmployeeGoalManager() {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (!canManageUsers(viewer) && viewer.role !== Role.COACH) {
+    throw new Error("Je hebt geen rechten om doelen te beheren");
+  }
+  return viewer;
+}
+
+/** Zoals requireEmployeeGoalManager, maar controleert ook dat `userId` binnen de toegestane scope van de kijker valt (voor een Coach: zichzelf + zijn structuur). */
+async function requireEmployeeGoalAccess(userId: string) {
+  const viewer = await requireEmployeeGoalManager();
+  if (!(await canAccessOwner(viewer, userId))) {
+    throw new Error("Je mag de doelen van deze gebruiker niet beheren");
   }
   return viewer;
 }
@@ -32,7 +51,7 @@ export async function getGoalManagementUsers() {
 }
 
 export async function getUserForGoals(userId: string) {
-  await requireGoalManager();
+  await requireEmployeeGoalAccess(userId);
   return prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, name: true, role: true },
@@ -40,13 +59,13 @@ export async function getUserForGoals(userId: string) {
 }
 
 export async function getUserKpiGoals(userId: string) {
-  await requireGoalManager();
+  await requireEmployeeGoalAccess(userId);
   const kpiGoals = await prisma.userKpiGoal.findMany({ where: { userId } });
   return new Map(kpiGoals.map((g) => [`${g.metric}:${g.year}`, Number(g.target)]));
 }
 
 export async function getUserKpiMonthlyEntries(userId: string, year: number) {
-  await requireGoalManager();
+  await requireEmployeeGoalAccess(userId);
   const entries = await prisma.userKpiMonthlyEntry.findMany({
     where: { userId, year },
   });
@@ -62,7 +81,7 @@ export async function saveUserKpiGoalsAction(
   year: number,
   formData: FormData
 ) {
-  await requireGoalManager();
+  await requireEmployeeGoalAccess(userId);
 
   const kpiGoalUpserts = MANUAL_KPI_METRIC_ORDER.map((metric) => {
     const raw = String(formData.get(`kpiGoal_${metric}`) ?? "").trim();
@@ -86,7 +105,7 @@ export async function saveUserKpiMonthlyEntriesAction(
   year: number,
   formData: FormData
 ) {
-  await requireGoalManager();
+  await requireEmployeeGoalAccess(userId);
 
   const upserts = MANUAL_KPI_METRIC_ORDER.flatMap((metric) =>
     Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {

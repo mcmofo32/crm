@@ -69,6 +69,9 @@ export function ProfileMenu({
   const showUserManagement = canManageUsers(viewer);
   const showBeheerderTools = canViewBeheerderTools(viewer);
   const showSettingsManagement = canManageSettings(viewer);
+  // Een Coach mag de doelen van zijn eigen medewerkers aanpassen, ook zonder
+  // verder gebruikersbeheer te mogen (zie proxy.ts + requireEmployeeGoalManager).
+  const showEmployeeGoals = showUserManagement || viewer.role === Role.COACH;
   const canImpersonate = viewer.realRole === Role.BEHEERDER;
 
   const trigger = (
@@ -121,15 +124,20 @@ export function ProfileMenu({
           <MenuLink href="/beheer/teams" icon={Users2}>
             Teams
           </MenuLink>
+        </>
+      )}
+      {showEmployeeGoals && (
+        <>
+          {!showUserManagement && <SectionLabel>Beheer</SectionLabel>}
           <MenuLink href="/beheer/doelen" icon={Target}>
             Doelen
           </MenuLink>
-          {showSettingsManagement && (
-            <MenuLink href="/beheer/backup" icon={CloudUpload}>
-              Google Sheets back-up
-            </MenuLink>
-          )}
         </>
+      )}
+      {showUserManagement && showSettingsManagement && (
+        <MenuLink href="/beheer/backup" icon={CloudUpload}>
+          Google Sheets back-up
+        </MenuLink>
       )}
       {showBeheerderTools && (
         <>
@@ -151,7 +159,7 @@ export function ProfileMenu({
           </MenuLink>
         </>
       )}
-      {(showUserManagement || showBeheerderTools) && (
+      {(showUserManagement || showEmployeeGoals || showBeheerderTools) && (
         <hr className="my-1.5 border-slate-100" />
       )}
       <MenuLink href="/instellingen" icon={Settings}>

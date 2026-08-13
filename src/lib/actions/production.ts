@@ -4,7 +4,12 @@ import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canManageUsers, getDescendantUserIds } from "@/lib/permissions";
+import {
+  canManageUsers,
+  getDescendantUserIds,
+  getVisibleUserIds,
+  canAccessOwner,
+} from "@/lib/permissions";
 import { ActivityStatus, GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
 import {
   GOAL_METRIC_ORDER,
@@ -19,10 +24,29 @@ async function requireViewer() {
   return viewer;
 }
 
+/** Enkel Beheerder/Admin — voor bedrijfsbrede doelen-instellingen (bv. de productiemaand-kalender). */
 async function requireGoalManager() {
   const viewer = await requireViewer();
   if (!canManageUsers(viewer)) {
     throw new Error("Je hebt geen rechten om doelen te beheren");
+  }
+  return viewer;
+}
+
+/** Beheerder/Admin mogen de doelen van iedereen beheren; een Coach enkel die van zijn eigen (sub)structuur — voor de doelen van individuele medewerkers (Doelen-pagina), niet voor bedrijfsbrede instellingen. */
+async function requireEmployeeGoalManager() {
+  const viewer = await requireViewer();
+  if (!canManageUsers(viewer) && viewer.role !== Role.COACH) {
+    throw new Error("Je hebt geen rechten om doelen te beheren");
+  }
+  return viewer;
+}
+
+/** Zoals requireEmployeeGoalManager, maar controleert ook dat `userId` binnen de toegestane scope van de kijker valt (voor een Coach: zichzelf + zijn structuur). */
+async function requireEmployeeGoalAccess(userId: string) {
+  const viewer = await requireEmployeeGoalManager();
+  if (!(await canAccessOwner(viewer, userId))) {
+    throw new Error("Je mag de doelen van deze gebruiker niet beheren");
   }
   return viewer;
 }
@@ -1090,13 +1114,19 @@ export async function saveProductionMonthDatesAction(
 }
 
 // ---------------------------------------------------------------------------
-// Beheer: maandelijkse Klanten/Eenheden-doelen instellen (enkel Beheerder/Admin)
+// Beheer: maandelijkse Klanten/Eenheden-doelen instellen (Beheerder/Admin:
+// iedereen; Coach: enkel zijn eigen structuur — zie requireEmployeeGoalManager)
 // ---------------------------------------------------------------------------
 
 export async function getAllUserMonthlyGoalsForTable(year: number, month: number) {
-  await requireGoalManager();
+  const viewer = await requireEmployeeGoalManager();
+  // Beheerder/Admin: iedereen. Coach: enkel zichzelf + zijn eigen structuur.
+  const visibleUserIds = await getVisibleUserIds(viewer);
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: {
+      active: true,
+      ...(visibleUserIds ? { id: { in: visibleUserIds } } : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -1121,7 +1151,7 @@ export async function setUserMonthlyGoalAction(
   month: number,
   formData: FormData
 ) {
-  await requireGoalManager();
+  await requireEmployeeGoalAccess(userId);
 
   const raw = String(formData.get("target") ?? "").trim();
   const target = raw ? Number(raw) : 0;
@@ -1179,9 +1209,16 @@ export async function saveAllUserMonthlyGoalsAction(
   month: number,
   formData: FormData
 ) {
-  await requireGoalManager();
+  const viewer = await requireEmployeeGoalManager();
+  // Voor een Coach: enkel de meegegeven id's binnen zijn eigen structuur
+  // effectief opslaan — de rest (bv. door een geknoeide formulier-payload)
+  // wordt stilzwijgend genegeerd, net zoals canAccessOwner dat elders doet.
+  const visibleUserIds = await getVisibleUserIds(viewer);
+  const allowedUserIds = visibleUserIds
+    ? userIds.filter((id) => visibleUserIds.includes(id))
+    : userIds;
 
-  const upserts = userIds.flatMap((userId) =>
+  const upserts = allowedUserIds.flatMap((userId) =>
     MONTHLY_GOAL_METRICS.map((metric) => {
       const raw = String(
         formData.get(`monthlyGoal_${userId}_${metric}`) ?? ""
