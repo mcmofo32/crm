@@ -93,7 +93,7 @@ function PolicyTable({
         {policies.map((p) => (
           <tr key={p.id} className="hover:bg-slate-50">
             <td className="whitespace-nowrap px-3 py-2 text-slate-600">
-              {formatDate(p.createdAt)}
+              {formatDate(p.becameCustomerAt)}
             </td>
             <td className="px-3 py-2">
               <InlineSelect
@@ -259,14 +259,16 @@ export default async function SubagentPolissenPage({
   const policies = await getManagedPolicies({ userIds, search: q });
 
   // Per productiemaand groeperen — anders staan alle polissen door elkaar in
-  // één lange lijst. `createdAt` (wanneer de polis-lijn ontstond) bepaalt de
-  // productiemaand, net als "Klant sinds" op de Klanten-pagina.
+  // één lange lijst. `becameCustomerAt` (zelfde datum als "Klant sinds" op de
+  // Klanten-pagina) bepaalt de productiemaand — niet `createdAt`, want dat is
+  // enkel wanneer deze polis-lijn zelf in de database ontstond (bv. bij een
+  // backfill kregen zo alle bestaande polissen dezelfde, betekenisloze datum).
   const groupsByKey = new Map<
     string,
     { year: number; month: number; policies: typeof policies }
   >();
   for (const p of policies) {
-    const { year, month } = resolveProductionMonth(p.createdAt, productionMonthConfigs);
+    const { year, month } = resolveProductionMonth(p.becameCustomerAt, productionMonthConfigs);
     const key = `${year}-${month}`;
     const bucket = groupsByKey.get(key);
     if (bucket) bucket.policies.push(p);
