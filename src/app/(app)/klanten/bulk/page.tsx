@@ -26,7 +26,7 @@ export default async function BulkNewCustomerPage() {
           maar één tabblad, dan geldt gewoon de medewerker die je hieronder
           kiest. Herkende kolommen: Naam (of Voornaam/Achternaam apart),
           Nummer, Email, Datum, en de productkolommen (bv. PSP, LTS, BEL,
-          VAPZ, DELA, IPT).
+          NZP, UZP, VAPZ, IPT).
         </p>
       </div>
 
