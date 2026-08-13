@@ -96,7 +96,7 @@ export function canManageUser(actor: SessionUser, target: { role: Role }) {
  */
 const getAllTeamsWithMembers = cache(() =>
   prisma.team.findMany({
-    select: { coachId: true, members: { select: { id: true, role: true } } },
+    select: { coachId: true, members: { select: { id: true } } },
   })
 );
 
@@ -118,7 +118,13 @@ async function collectDescendantUserIds(
     for (const member of members) {
       if (seen.has(member.id)) continue;
       ids.push(member.id);
-      if (member.role === Role.COACH) {
+      // Wie zelf een team leidt telt mee om verder in te recurseren — niet
+      // enkel wie rol Coach heeft: een Admin/Beheerder die (nog) geen team
+      // had, behoudt bij "onder iemand plaatsen" zijn eigen rol i.p.v.
+      // gedegradeerd te worden naar Coach (zie addSubordinateAction), maar
+      // leidt dan wel degelijk een team. Op rol filteren liet die hele tak
+      // (en iedereen eronder) wegvallen uit elke structuurtelling.
+      if (membersByCoachId.has(member.id)) {
         ids.push(...walk(member.id));
       }
     }
