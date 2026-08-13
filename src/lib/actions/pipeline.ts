@@ -51,7 +51,11 @@ export async function getPipelineStats(
   }
 
   const leads = await prisma.lead.findMany({
-    where: { deletedAt: null, leadType, ownerId },
+    // status: "OPEN" — enkel nog actieve leads tellen mee. Een lead die al
+    // klant is (WON) of al als geen interesse gemarkeerd is (LOST) hoort
+    // niet meer thuis bij "te contacteren"/"voicemail"/"terugkoppelen",
+    // ongeacht hoe zijn call-geschiedenis eruitziet.
+    where: { deletedAt: null, leadType, ownerId, status: "OPEN" },
     select: {
       source: true,
       activities: {
