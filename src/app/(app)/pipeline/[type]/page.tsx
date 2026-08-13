@@ -44,10 +44,18 @@ export default async function PipelinePage({
   const { type } = await params;
   if (type !== "verkoop" && type !== "recrutering") notFound();
   const { q, ownerId, view } = await searchParams;
-  const category =
-    view === "open" || view === "ingepland" || view === "geen_interesse"
-      ? (view as LeadCategoryFilter)
-      : undefined;
+  // Standaard tonen we enkel open leads — "Alle leads" moet je bewust
+  // kiezen (view=alle), anders valt terug op "open" bij een lege/ongeldige
+  // waarde i.p.v. alles door elkaar te tonen.
+  const resolvedView: LeadCategoryFilter | "alle" =
+    view === "open" ||
+    view === "ingepland" ||
+    view === "geen_interesse" ||
+    view === "klanten" ||
+    view === "alle"
+      ? view
+      : "open";
+  const category = resolvedView === "alle" ? undefined : resolvedView;
 
   const leadType = TYPE_MAP[type];
   const isRecrutering = type === "recrutering";
@@ -88,7 +96,7 @@ export default async function PipelinePage({
         ))}
       </select>
       {q && <input type="hidden" name="q" value={q} />}
-      {category && <input type="hidden" name="view" value={category} />}
+      <input type="hidden" name="view" value={resolvedView} />
       <button
         type="submit"
         className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
@@ -98,13 +106,13 @@ export default async function PipelinePage({
     </form>
   );
 
-  function categoryHref(c: "ALLE" | LeadCategoryFilter) {
+  function categoryHref(c: "alle" | LeadCategoryFilter) {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (requiresSelection) params.set("ownerId", selectedOwnerId);
-    if (c !== "ALLE") params.set("view", c);
+    params.set("view", c);
     const qs = params.toString();
-    return qs ? `/pipeline/${type}?${qs}` : `/pipeline/${type}`;
+    return `/pipeline/${type}?${qs}`;
   }
 
   const [stats, leads, stages] = await Promise.all([
@@ -172,8 +180,9 @@ export default async function PipelinePage({
       <div className="flex gap-2 text-sm">
         {(
           [
-            ["ALLE", "Alle leads"],
             ["open", "Open leads"],
+            ["alle", "Alle leads"],
+            ["klanten", "Klanten"],
             ["ingepland", "Ingeplande leads"],
             ["geen_interesse", "Geen interesse"],
           ] as const
@@ -182,7 +191,7 @@ export default async function PipelinePage({
             key={c}
             href={categoryHref(c)}
             className={`rounded-full px-4 py-1.5 font-medium ${
-              (c === "ALLE" && !category) || c === category
+              c === resolvedView
                 ? "bg-slate-700 text-white"
                 : "bg-white text-slate-600 border border-slate-200"
             }`}
@@ -197,7 +206,7 @@ export default async function PipelinePage({
           {requiresSelection && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
-          {category && <input type="hidden" name="view" value={category} />}
+          <input type="hidden" name="view" value={resolvedView} />
           <div className="relative">
             <Search
               size={16}

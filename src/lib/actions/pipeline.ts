@@ -114,6 +114,7 @@ export async function getPipelineLeads(
       ownerId,
       ...(category === "open" ? { status: "OPEN" } : {}),
       ...(category === "geen_interesse" ? { status: "LOST" } : {}),
+      ...(category === "klanten" ? { status: "WON" } : {}),
       ...(category === "ingepland"
         ? { stage: { key: { in: mainFunnelStageKeys(leadType) } } }
         : {}),

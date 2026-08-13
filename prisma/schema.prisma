@@ -235,6 +235,7 @@ enum TaxDeclarationStatus {
   TODO
   SCHEDULED
   NVT
+  BOEKHOUDER
 }
 
 /// Configureerbare kolommen van de funnel-boards, per leadtype.

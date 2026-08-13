@@ -637,9 +637,9 @@ export type LeadSortOption = "recent" | "stale";
  * overzichtelijk blijft: "open" = nog niet gewonnen/verloren, "ingepland" =
  * staat in één van de 3 actieve funnel-fases (bv. Financiële
  * analyse/Adviesgesprek/Opvolggesprek voor FA — zie mainFunnelStageKeys),
- * "geen_interesse" = status LOST.
+ * "geen_interesse" = status LOST, "klanten" = status WON.
  */
-export type LeadCategoryFilter = "open" | "ingepland" | "geen_interesse";
+export type LeadCategoryFilter = "open" | "ingepland" | "geen_interesse" | "klanten";
 
 export async function getLeadsForCurrentUser(
   leadType?: LeadType,
@@ -678,6 +678,7 @@ export async function getLeadsForCurrentUser(
         : {}),
       ...(options?.category === "open" ? { status: "OPEN" } : {}),
       ...(options?.category === "geen_interesse" ? { status: "LOST" } : {}),
+      ...(options?.category === "klanten" ? { status: "WON" } : {}),
       ...(options?.category === "ingepland"
         ? {
             stage: {

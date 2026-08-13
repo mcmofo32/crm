@@ -166,12 +166,14 @@ export default async function SubagentKlantenPage({
     SCHEDULED: { background: "#fef08a", color: "#854d0e" },
     DONE: { background: "#bbf7d0", color: "#166534" },
     NVT: { background: "#e2e8f0", color: "#475569" },
+    BOEKHOUDER: { background: "#e9d5ff", color: "#6b21a8" },
   };
   const taxStatusOptions = [
     { value: "DONE", label: "Opvolging Gedaan", style: taxStatusColors.DONE },
     { value: "TODO", label: "Opvolging nog te doen", style: taxStatusColors.TODO },
     { value: "SCHEDULED", label: "Opvolging Ingepland", style: taxStatusColors.SCHEDULED },
     { value: "NVT", label: "NVT", style: taxStatusColors.NVT },
+    { value: "BOEKHOUDER", label: "Boekhouder", style: taxStatusColors.BOEKHOUDER },
   ];
   const taxStatusLabelByValue = new Map(
     taxStatusOptions.map((o) => [o.value, o.label])

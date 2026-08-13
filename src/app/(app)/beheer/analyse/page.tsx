@@ -43,6 +43,7 @@ const COLOR_WON = "#059669";
 const COLOR_LOST = "#dc2626";
 const COLOR_AMBER = "#d97706";
 const COLOR_TAX_TODO = "#e11d48";
+const COLOR_PURPLE = "#7e22ce";
 
 const SEASON_METRICS = [
   { key: "won", label: "Klanten" },
@@ -594,6 +595,8 @@ export default async function AnalysePage({
                   ? COLOR_AMBER
                   : t.status === "NVT"
                   ? "#94a3b8"
+                  : t.status === "BOEKHOUDER"
+                  ? COLOR_PURPLE
                   : COLOR_TAX_TODO,
             }))}
           />

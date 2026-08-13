@@ -184,11 +184,13 @@ export default async function KlantenPage({
     TODO: { background: "#fed7aa", color: "#9a3412" }, // oranje
     SCHEDULED: { background: "#fef08a", color: "#854d0e" }, // geel
     DONE: { background: "#bbf7d0", color: "#166534" }, // groen
+    BOEKHOUDER: { background: "#e9d5ff", color: "#6b21a8" }, // paars
   };
   const taxStatusOptions = [
     { value: "TODO", label: `${currentYear} nog te doen`, style: taxStatusColors.TODO },
     { value: "SCHEDULED", label: `${currentYear} ingepland`, style: taxStatusColors.SCHEDULED },
     { value: "DONE", label: `${currentYear} gedaan`, style: taxStatusColors.DONE },
+    { value: "BOEKHOUDER", label: "Boekhouder", style: taxStatusColors.BOEKHOUDER },
   ];
   const taxStatusLabelByValue = new Map(
     taxStatusOptions.map((o) => [o.value, o.label])
