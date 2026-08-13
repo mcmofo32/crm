@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Search, FileText } from "lucide-react";
+import { Users, Search, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getTeamsForCustomerFilter } from "@/lib/actions/leadProducts";
@@ -11,7 +11,10 @@ import {
   setPolicyChecklistFieldAction,
   setPolicyDateAction,
 } from "@/lib/actions/policies";
-import { getAllProductionMonthConfigs } from "@/lib/actions/production";
+import {
+  getAllProductionMonthConfigs,
+  getCurrentProductionMonth,
+} from "@/lib/actions/production";
 import { resolveProductionMonth } from "@/lib/productionMonth";
 import { canManageUsers, getDescendantUserIds } from "@/lib/permissions";
 import { MONTH_LABELS } from "@/lib/goalLabels";
@@ -171,16 +174,19 @@ function PolicyTable({
 export default async function PolissenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ownerId?: string; q?: string }>;
+  searchParams: Promise<{ ownerId?: string; q?: string; year?: string }>;
 }) {
-  const { ownerId, q } = await searchParams;
+  const { ownerId, q, year: yearParam } = await searchParams;
 
   const viewer = (await getEffectiveViewer())!;
-  const [assignableUsers, teams, productionMonthConfigs] = await Promise.all([
-    getAssignableUsers(),
-    getTeamsForCustomerFilter(),
-    getAllProductionMonthConfigs(),
-  ]);
+  const [assignableUsers, teams, productionMonthConfigs, currentProductionMonth] =
+    await Promise.all([
+      getAssignableUsers(),
+      getTeamsForCustomerFilter(),
+      getAllProductionMonthConfigs(),
+      getCurrentProductionMonth(),
+    ]);
+  const selectedYear = yearParam ? Number(yearParam) : currentProductionMonth.year;
 
   const canViewOthersCustomers = canManageUsers(viewer);
   const requiresSelection =
@@ -209,6 +215,7 @@ export default async function PolissenPage({
       className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
     >
       {q && <input type="hidden" name="q" value={q} />}
+      <input type="hidden" name="year" value={selectedYear} />
       <Users size={17} className="text-slate-400" />
       <label className="text-sm text-slate-600">Bekijk polissen van:</label>
       <select
@@ -242,8 +249,6 @@ export default async function PolissenPage({
     search: q,
   });
 
-  const totalUnits = policies.reduce((sum, p) => sum + p.units, 0);
-
   // Per productiemaand groeperen — anders staan alle polissen door elkaar in
   // één lange lijst. `createdAt` (wanneer de polis-lijn ontstond) bepaalt de
   // productiemaand, net als "Klant sinds" op de Klanten-pagina.
@@ -258,9 +263,21 @@ export default async function PolissenPage({
     if (bucket) bucket.policies.push(p);
     else groupsByKey.set(key, { year, month, policies: [p] });
   }
-  const groups = Array.from(groupsByKey.values()).sort((a, b) =>
-    a.year !== b.year ? b.year - a.year : b.month - a.month
-  );
+  // Enkel de gekozen productiejaar tonen — anders groeit deze lijst
+  // onbeperkt mee met elk jaar dat de zaak bestaat.
+  const groups = Array.from(groupsByKey.values())
+    .filter((g) => g.year === selectedYear)
+    .sort((a, b) => b.month - a.month);
+  const yearPolicies = groups.flatMap((g) => g.policies);
+  const totalUnits = yearPolicies.reduce((sum, p) => sum + p.units, 0);
+
+  function yearHref(y: number) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
+    params.set("year", String(y));
+    return `/klanten/polissen?${params.toString()}`;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -277,6 +294,25 @@ export default async function PolissenPage({
             klant een product krijgt toegewezen.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={yearHref(selectedYear - 1)}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            title="Vorig jaar"
+          >
+            <ChevronLeft size={16} />
+          </Link>
+          <span className="min-w-16 text-center text-base font-medium text-slate-900">
+            {selectedYear}
+          </span>
+          <Link
+            href={yearHref(selectedYear + 1)}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            title="Volgend jaar"
+          >
+            <ChevronRight size={16} />
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-3">
@@ -284,6 +320,7 @@ export default async function PolissenPage({
           {selectedOwnerId && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
+          <input type="hidden" name="year" value={selectedYear} />
           <div className="relative">
             <Search
               size={16}
@@ -304,7 +341,9 @@ export default async function PolissenPage({
 
       {groups.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400">
-          {q ? "Geen polissen gevonden voor deze zoekopdracht." : "Nog geen polissen."}
+          {q
+            ? "Geen polissen gevonden voor deze zoekopdracht."
+            : `Geen polissen in ${selectedYear}.`}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -333,9 +372,9 @@ export default async function PolissenPage({
         </div>
       )}
 
-      {policies.length > 0 && (
+      {yearPolicies.length > 0 && (
         <div className="flex items-center justify-between rounded-lg border-2 border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white">
-          <span>Totaal: {policies.length} polissen</span>
+          <span>Totaal {selectedYear}: {yearPolicies.length} polissen</span>
           <span>{totalUnits} eenheden</span>
         </div>
       )}

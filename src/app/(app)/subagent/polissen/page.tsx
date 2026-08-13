@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Search, FileText } from "lucide-react";
+import { Users, Search, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import {
@@ -17,6 +17,7 @@ import {
 import {
   getProductionStructureOptions,
   getAllProductionMonthConfigs,
+  getCurrentProductionMonth,
 } from "@/lib/actions/production";
 import { resolveProductionMonth } from "@/lib/productionMonth";
 import { canManageUsers } from "@/lib/permissions";
@@ -180,19 +181,26 @@ function PolicyTable({
 export default async function SubagentPolissenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scope?: string; q?: string }>;
+  searchParams: Promise<{ scope?: string; q?: string; year?: string }>;
 }) {
-  const { scope, q } = await searchParams;
+  const { scope, q, year: yearParam } = await searchParams;
 
   const viewer = (await getEffectiveViewer())!;
   const canPickScope = canManageUsers(viewer);
-  const [assignableUsers, structureOptions, personOptions, productionMonthConfigs] =
-    await Promise.all([
-      getAssignableUsers(),
-      canPickScope ? getProductionStructureOptions() : Promise.resolve([]),
-      canPickScope ? getManagedScopePersons() : Promise.resolve([]),
-      getAllProductionMonthConfigs(),
-    ]);
+  const [
+    assignableUsers,
+    structureOptions,
+    personOptions,
+    productionMonthConfigs,
+    currentProductionMonth,
+  ] = await Promise.all([
+    getAssignableUsers(),
+    canPickScope ? getProductionStructureOptions() : Promise.resolve([]),
+    canPickScope ? getManagedScopePersons() : Promise.resolve([]),
+    getAllProductionMonthConfigs(),
+    getCurrentProductionMonth(),
+  ]);
+  const selectedYear = yearParam ? Number(yearParam) : currentProductionMonth.year;
 
   const showAll = canPickScope && scope === ALL_OPTION;
   const structureId =
@@ -216,6 +224,7 @@ export default async function SubagentPolissenPage({
       className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
     >
       {q && <input type="hidden" name="q" value={q} />}
+      <input type="hidden" name="year" value={selectedYear} />
       <Users size={17} className="text-slate-400" />
       <label className="text-sm text-slate-600">Bekijk polissen van:</label>
       <select
@@ -248,7 +257,6 @@ export default async function SubagentPolissenPage({
   );
 
   const policies = await getManagedPolicies({ userIds, search: q });
-  const totalUnits = policies.reduce((sum, p) => sum + p.units, 0);
 
   // Per productiemaand groeperen — anders staan alle polissen door elkaar in
   // één lange lijst. `createdAt` (wanneer de polis-lijn ontstond) bepaalt de
@@ -264,9 +272,21 @@ export default async function SubagentPolissenPage({
     if (bucket) bucket.policies.push(p);
     else groupsByKey.set(key, { year, month, policies: [p] });
   }
-  const groups = Array.from(groupsByKey.values()).sort((a, b) =>
-    a.year !== b.year ? b.year - a.year : b.month - a.month
-  );
+  // Enkel de gekozen productiejaar tonen — anders groeit deze lijst
+  // onbeperkt mee met elk jaar dat de zaak bestaat.
+  const groups = Array.from(groupsByKey.values())
+    .filter((g) => g.year === selectedYear)
+    .sort((a, b) => b.month - a.month);
+  const yearPolicies = groups.flatMap((g) => g.policies);
+  const totalUnits = yearPolicies.reduce((sum, p) => sum + p.units, 0);
+
+  function yearHref(y: number) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (scope) params.set("scope", scope);
+    params.set("year", String(y));
+    return `/subagent/polissen?${params.toString()}`;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -282,6 +302,25 @@ export default async function SubagentPolissenPage({
             Eén lijn per product/contract van klanten onder beheer.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={yearHref(selectedYear - 1)}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            title="Vorig jaar"
+          >
+            <ChevronLeft size={16} />
+          </Link>
+          <span className="min-w-16 text-center text-base font-medium text-slate-900">
+            {selectedYear}
+          </span>
+          <Link
+            href={yearHref(selectedYear + 1)}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            title="Volgend jaar"
+          >
+            <ChevronRight size={16} />
+          </Link>
+        </div>
       </div>
 
       <SubagentTabs active="polissen" />
@@ -289,6 +328,7 @@ export default async function SubagentPolissenPage({
       <div className="flex flex-wrap items-center justify-end gap-3">
         <form method="GET" className="flex items-center gap-2">
           {scope && <input type="hidden" name="scope" value={scope} />}
+          <input type="hidden" name="year" value={selectedYear} />
           <div className="relative">
             <Search
               size={16}
@@ -311,7 +351,7 @@ export default async function SubagentPolissenPage({
         <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400">
           {q
             ? "Geen polissen gevonden voor deze zoekopdracht."
-            : "Geen polissen van klanten onder beheer."}
+            : `Geen polissen van klanten onder beheer in ${selectedYear}.`}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -340,9 +380,9 @@ export default async function SubagentPolissenPage({
         </div>
       )}
 
-      {policies.length > 0 && (
+      {yearPolicies.length > 0 && (
         <div className="flex items-center justify-between rounded-lg border-2 border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white">
-          <span>Totaal: {policies.length} polissen</span>
+          <span>Totaal {selectedYear}: {yearPolicies.length} polissen</span>
           <span>{totalUnits} eenheden</span>
         </div>
       )}
