@@ -36,11 +36,17 @@ export async function getManagedScopePersons(): Promise<ManagedScopeOption[]> {
 
 /**
  * Bepaalt welke gebruikers-id's meetellen voor "Klanten onder beheer":
- * - `showAll` (enkel Beheerder/Admin): geen filter — heel het bedrijf.
+ * - `showAll` (enkel Beheerder/Admin): geen filter — heel het bedrijf. De
+ *   pagina geeft dit standaard mee voor Beheerder/Admin (net als overal
+ *   elders in de app), zodat "Totaal klanten onder beheer" zonder gekozen
+ *   filter overeenkomt met "Totaal klanten" op de Klanten-pagina.
  * - `personId` (enkel Beheerder/Admin): exact één gekozen medewerker.
  * - `structureId` (enkel Beheerder/Admin): een hele substructuur — die
  *   persoon + iedereen rechtstreeks/onrechtstreeks eronder.
- * - Standaard (iedereen, ook Beheerder/Admin zonder keuze): enkel zichzelf.
+ * - Standaard (`showAll`/`personId`/`structureId` alle ontbrekend): enkel
+ *   zichzelf — voor een gewone gebruiker (geen keuzemogelijkheid) is dit
+ *   altijd het geval; voor Beheerder/Admin enkel als ze expliciet "Mezelf"
+ *   kiezen in de select.
  */
 export async function resolveManagedUserIds(
   structureId?: string,

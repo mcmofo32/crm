@@ -89,18 +89,24 @@ export default async function SubagentKlantenPage({
       getCurrentProductionYearRange(),
     ]);
 
-  const showAll = canPickScope && scope === ALL_OPTION;
+  // Beheerder/Admin zien overal in de app (Klanten, Leads, Pipeline, ...)
+  // standaard de gegevens van iedereen; zonder expliciete keuze in de
+  // "Bekijk klanten onder beheer van"-select geldt hier dus ook "Iedereen"
+  // i.p.v. enkel zichzelf — anders leek "Totaal klanten onder beheer" hier
+  // niet overeen te komen met "Totaal klanten" op de Klanten-pagina.
+  const effectiveScope = scope ?? (canPickScope ? ALL_OPTION : "");
+  const showAll = canPickScope && effectiveScope === ALL_OPTION;
   const structureId =
-    canPickScope && scope?.startsWith(TEAM_PREFIX)
-      ? scope.slice(TEAM_PREFIX.length)
+    canPickScope && effectiveScope.startsWith(TEAM_PREFIX)
+      ? effectiveScope.slice(TEAM_PREFIX.length)
       : undefined;
   const personId =
     canPickScope &&
-    scope &&
-    scope !== ALL_OPTION &&
-    !scope.startsWith(TEAM_PREFIX) &&
-    personOptions.some((p) => p.id === scope)
-      ? scope
+    effectiveScope &&
+    effectiveScope !== ALL_OPTION &&
+    !effectiveScope.startsWith(TEAM_PREFIX) &&
+    personOptions.some((p) => p.id === effectiveScope)
+      ? effectiveScope
       : undefined;
 
   const userIds = await resolveManagedUserIds(structureId, personId, showAll);
@@ -122,7 +128,7 @@ export default async function SubagentKlantenPage({
       </label>
       <select
         name="scope"
-        defaultValue={scope ?? ""}
+        defaultValue={effectiveScope}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
         <option value="">Mezelf</option>
