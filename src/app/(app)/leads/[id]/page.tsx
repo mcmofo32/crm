@@ -212,12 +212,14 @@ export default async function LeadDetailPage({
             currentUserId={user.id}
           />
 
-          <ScheduleActivityForm
-            leadId={lead.id}
-            assignableUsers={assignableUsers}
-            currentUserId={user.id}
-            subagents={subagents}
-          />
+          {canManageCustomerData(user) && (
+            <ScheduleActivityForm
+              leadId={lead.id}
+              assignableUsers={assignableUsers}
+              currentUserId={user.id}
+              subagents={subagents}
+            />
+          )}
 
           <div>
             <h2 className="mb-1 text-sm font-medium text-slate-900">
