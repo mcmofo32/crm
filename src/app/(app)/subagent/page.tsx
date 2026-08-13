@@ -13,7 +13,7 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { getSubagents } from "@/lib/actions/subagents";
 import {
   setCaseManagerAction,
-  setTaxDeclarationStatusAction,
+  setFollowUpStatusAction,
   type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
 import {
@@ -161,22 +161,20 @@ export default async function SubagentKlantenPage({
   ]);
 
   const monthlyPremiumTotal = customers.reduce((sum, c) => sum + c.totalAmount, 0);
-  const taxStatusColors: Record<string, { background: string; color: string }> = {
+  const followUpStatusColors: Record<string, { background: string; color: string }> = {
     TODO: { background: "#fecaca", color: "#991b1b" },
     SCHEDULED: { background: "#fef08a", color: "#854d0e" },
     DONE: { background: "#bbf7d0", color: "#166534" },
     NVT: { background: "#e2e8f0", color: "#475569" },
-    BOEKHOUDER: { background: "#e9d5ff", color: "#6b21a8" },
   };
-  const taxStatusOptions = [
-    { value: "DONE", label: "Opvolging Gedaan", style: taxStatusColors.DONE },
-    { value: "TODO", label: "Opvolging nog te doen", style: taxStatusColors.TODO },
-    { value: "SCHEDULED", label: "Opvolging Ingepland", style: taxStatusColors.SCHEDULED },
-    { value: "NVT", label: "NVT", style: taxStatusColors.NVT },
-    { value: "BOEKHOUDER", label: "Boekhouder", style: taxStatusColors.BOEKHOUDER },
+  const followUpStatusOptions = [
+    { value: "DONE", label: "Opvolging Gedaan", style: followUpStatusColors.DONE },
+    { value: "TODO", label: "Opvolging nog te doen", style: followUpStatusColors.TODO },
+    { value: "SCHEDULED", label: "Opvolging Ingepland", style: followUpStatusColors.SCHEDULED },
+    { value: "NVT", label: "NVT", style: followUpStatusColors.NVT },
   ];
-  const taxStatusLabelByValue = new Map(
-    taxStatusOptions.map((o) => [o.value, o.label])
+  const followUpStatusLabelByValue = new Map(
+    followUpStatusOptions.map((o) => [o.value, o.label])
   );
 
   const filtersActive = Boolean(product || sortBy || followUpMonthValue);
@@ -364,7 +362,7 @@ export default async function SubagentKlantenPage({
                 null,
                 customer.id
               );
-              const boundSetTaxStatus = setTaxDeclarationStatusAction.bind(
+              const boundSetFollowUpStatus = setFollowUpStatusAction.bind(
                 null,
                 customer.id
               );
@@ -425,20 +423,20 @@ export default async function SubagentKlantenPage({
                   <td className="px-6 py-4">
                     {canEditCustomerData ? (
                       <InlineSelect
-                        action={boundSetTaxStatus}
+                        action={boundSetFollowUpStatus}
                         name="status"
-                        value={customer.taxDeclarationStatus ?? "TODO"}
-                        options={taxStatusOptions}
+                        value={customer.followUpStatus ?? "TODO"}
+                        options={followUpStatusOptions}
                         className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
-                        style={taxStatusColors[customer.taxDeclarationStatus ?? "TODO"]}
+                        style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
                       />
                     ) : (
                       <span
                         className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
-                        style={taxStatusColors[customer.taxDeclarationStatus ?? "TODO"]}
+                        style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
                       >
-                        {taxStatusLabelByValue.get(
-                          customer.taxDeclarationStatus ?? "TODO"
+                        {followUpStatusLabelByValue.get(
+                          customer.followUpStatus ?? "TODO"
                         )}
                       </span>
                     )}

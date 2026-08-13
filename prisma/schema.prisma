@@ -301,6 +301,9 @@ model Lead {
   /// Status van de belastingsaangifte voor deze klant (enkel relevant voor klanten).
   taxDeclarationStatus TaxDeclarationStatus?
 
+  /// Status van de opvolging van deze klant op "Klanten onder beheer" (los van belastingsaangifte).
+  followUpStatus TaxDeclarationStatus?
+
   /// Pipeline: handmatig cijfer op 10 voor de inschatting van deze lead.
   qualityScore    Int?
   /// Pipeline: handmatig aan te vinken of de lead al op de hoogte is (bv. van de aanbeveling).

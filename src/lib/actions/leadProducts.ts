@@ -376,6 +376,38 @@ export async function setTaxDeclarationStatusAction(
   revalidatePath("/subagent");
 }
 
+/** Zet de opvolgingsstatus van een klant op "Klanten onder beheer" — volledig los van de belastingsaangifte. */
+export async function setFollowUpStatusAction(
+  leadId: string,
+  formData: FormData
+) {
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!(await canAccessOwner(user, lead.ownerId))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
+
+  const raw = String(formData.get("status") ?? "");
+  const status = (
+    Object.values(TaxDeclarationStatus) as string[]
+  ).includes(raw)
+    ? (raw as TaxDeclarationStatus)
+    : null;
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { followUpStatus: status },
+  });
+
+  revalidatePath("/subagent");
+}
+
 export type CustomerStats = {
   totalCustomers: number;
   newThisMonth: number;
