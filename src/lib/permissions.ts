@@ -56,11 +56,7 @@ export function canDeleteActivities(user: SessionUser) {
 
 /** Wie mag incentive-events aanmaken/verwijderen? Iedereen mag ze bekijken. */
 export function canManageIncentives(user: SessionUser) {
-  return (
-    user.role === Role.BEHEERDER ||
-    user.role === Role.ADMIN ||
-    user.role === Role.COACH
-  );
+  return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
 }
 
 /** Wie mag evenementen (vergaderingen/seminaries) aanmaken/verwijderen? Iedereen mag ze bekijken en zich aan-/afmelden. */
