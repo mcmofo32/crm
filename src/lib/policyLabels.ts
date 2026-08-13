@@ -5,6 +5,7 @@ export const INSURANCE_COMPANY_LABELS: Record<InsuranceCompany, string> = {
   AXA: "AXA",
   DELA: "Dela",
   CREDIMO: "Credimo",
+  ALLIANZ: "Allianz",
 };
 
 export const INSURANCE_COMPANY_ORDER: InsuranceCompany[] = [
@@ -12,6 +13,7 @@ export const INSURANCE_COMPANY_ORDER: InsuranceCompany[] = [
   "AXA",
   "DELA",
   "CREDIMO",
+  "ALLIANZ",
 ];
 
 export const POLICY_STATUS_LABELS: Record<PolicyStatus, string> = {

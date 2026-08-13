@@ -366,6 +366,7 @@ enum InsuranceCompany {
   AXA
   DELA
   CREDIMO
+  ALLIANZ
 }
 
 enum PolicyStatus {
