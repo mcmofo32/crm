@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogIn, Users, CalendarDays } from "lucide-react";
+import { LogIn, Users, CalendarDays, Clock, ArrowLeft } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools, getDescendantUserIds } from "@/lib/permissions";
-import { getLoginEvents, getLoginActivityByDay } from "@/lib/actions/sessions";
+import {
+  getLoginEvents,
+  getLoginActivityDetail,
+  getLoginActivitySummary,
+} from "@/lib/actions/sessions";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getProductionStructureOptions } from "@/lib/actions/production";
 import { Avatar } from "@/components/Avatar";
@@ -34,11 +38,6 @@ export default async function LoginSessiesPage({
   const userIds = teamId
     ? [teamId, ...(await getDescendantUserIds(teamId))]
     : undefined;
-
-  const [events, dailyActivity] = await Promise.all([
-    getLoginEvents({ userId: medewerkerId, userIds }),
-    medewerkerId ? getLoginActivityByDay(medewerkerId) : Promise.resolve(null),
-  ]);
   const selectedMedewerker = medewerkerId
     ? assignableUsers.find((u) => u.id === medewerkerId)
     : undefined;
@@ -59,9 +58,8 @@ export default async function LoginSessiesPage({
           Login-sessies
         </h1>
         <p className="mt-1 text-base text-slate-500">
-          Wanneer iedereen actief was in de CRM, per sessie (een nieuwe
-          sessie start na 30 minuten zonder activiteit). Enkel zichtbaar voor
-          Beheerder/Admin.
+          Wanneer iedereen actief was in de CRM (een nieuwe sessie start na
+          30 minuten zonder activiteit). Enkel zichtbaar voor Beheerder/Admin.
         </p>
       </div>
 
@@ -87,7 +85,7 @@ export default async function LoginSessiesPage({
           defaultValue={medewerkerId ?? ""}
           className="rounded-md border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="">Alle medewerkers</option>
+          <option value="">Overzicht (alle medewerkers)</option>
           {assignableUsers.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name}
@@ -110,97 +108,215 @@ export default async function LoginSessiesPage({
         )}
       </form>
 
-      {dailyActivity && (
+      {selectedMedewerker ? (
+        <PersonDetail
+          medewerkerId={selectedMedewerker.id}
+          medewerkerName={selectedMedewerker.name}
+          backHref={filterHref({ team: teamId })}
+        />
+      ) : (
+        <PersonSummary userIds={userIds} filterHref={filterHref} team={teamId} />
+      )}
+    </div>
+  );
+}
+
+/** Hoofdscherm: één rij per persoon i.p.v. per sessie, anders staat bv. Robin er zomaar 5 keer. */
+async function PersonSummary({
+  userIds,
+  filterHref,
+  team,
+}: {
+  userIds: string[] | undefined;
+  filterHref: (next: { team?: string; medewerker?: string }) => string;
+  team: string | undefined;
+}) {
+  const summary = await getLoginActivitySummary({ userIds });
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <table className="w-full text-base">
+        <thead className="bg-slate-50 text-left text-slate-500">
+          <tr>
+            <th className="px-6 py-3 font-medium">Gebruiker</th>
+            <th className="px-6 py-3 font-medium">Laatst actief</th>
+            <th className="px-6 py-3 font-medium">Sessies vandaag</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {summary.map((row) => (
+            <tr key={row.userId} className="hover:bg-slate-50">
+              <td className="px-6 py-4">
+                <Link
+                  href={filterHref({ team, medewerker: row.userId })}
+                  className="flex items-center gap-2"
+                >
+                  <Avatar name={row.userName} />
+                  <span className="font-medium text-slate-900 hover:underline">
+                    {row.userName}
+                  </span>
+                </Link>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-slate-500">
+                {row.lastSeenAt.toLocaleString("nl-BE", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </td>
+              <td className="px-6 py-4 text-slate-700">{row.sessionsToday}</td>
+            </tr>
+          ))}
+          {summary.length === 0 && (
+            <tr>
+              <td colSpan={3} className="px-6 py-8 text-center text-slate-400">
+                Nog geen activiteit geregistreerd.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Detailscherm voor één specifieke persoon: klik een rij in het overzicht hierboven aan om hier te komen. */
+async function PersonDetail({
+  medewerkerId,
+  medewerkerName,
+  backHref,
+}: {
+  medewerkerId: string;
+  medewerkerName: string;
+  backHref: string;
+}) {
+  const [detail, events] = await Promise.all([
+    getLoginActivityDetail(medewerkerId),
+    getLoginEvents({ userId: medewerkerId }),
+  ]);
+  const maxHourCount = Math.max(1, ...detail.byHour.map((h) => h.sessionCount));
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <Link
+          href={backHref}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700"
+        >
+          <ArrowLeft size={15} />
+          Terug naar overzicht
+        </Link>
+        <span className="text-sm text-slate-500">
+          {detail.totalSessions} sessies in de laatste 30 dagen
+        </span>
+      </div>
+
+      <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
+        <Avatar name={medewerkerName} />
+        {medewerkerName}
+      </h2>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
-          <h2 className="mb-1 flex items-center gap-1.5 text-lg font-medium text-slate-900">
-            <CalendarDays size={18} className="text-slate-400" />
-            Activiteit per dag — laatste 30 dagen
-            {selectedMedewerker && (
-              <span className="font-normal text-slate-500">
-                · {selectedMedewerker.name}
-              </span>
-            )}
-          </h2>
-          <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <table className="w-full text-base">
-              <thead className="bg-slate-50 text-left text-slate-500">
+          <h3 className="mb-2 flex items-center gap-1.5 text-base font-medium text-slate-900">
+            <CalendarDays size={17} className="text-slate-400" />
+            Per dag — laatste 30 dagen
+          </h3>
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Datum</th>
-                  <th className="px-6 py-3 font-medium">Actieve sessies</th>
+                  <th className="px-4 py-2 font-medium">Datum</th>
+                  <th className="px-4 py-2 font-medium">Sessies</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {dailyActivity.map((day) => (
+                {detail.byDay.map((day) => (
                   <tr
                     key={day.date.toISOString()}
                     className={day.sessionCount === 0 ? "text-slate-300" : undefined}
                   >
-                    <td className="px-6 py-2.5 whitespace-nowrap text-slate-600">
+                    <td className="px-4 py-1.5 whitespace-nowrap text-slate-600">
                       {day.date.toLocaleDateString("nl-BE", {
                         weekday: "short",
                         day: "2-digit",
                         month: "2-digit",
                       })}
                     </td>
-                    <td className="px-6 py-2.5 font-medium">
-                      {day.sessionCount}
-                    </td>
+                    <td className="px-4 py-1.5 font-medium">{day.sessionCount}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
-      )}
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-6 py-3 font-medium">Sessie gestart</th>
-              <th className="px-6 py-3 font-medium">Laatst actief</th>
-              <th className="px-6 py-3 font-medium">Gebruiker</th>
-              <th className="px-6 py-3 font-medium">E-mail</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {events.map((event) => (
-              <tr key={event.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 whitespace-nowrap text-slate-500">
-                  {event.createdAt.toLocaleString("nl-BE", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-slate-500">
-                  {event.lastSeenAt.toLocaleString("nl-BE", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={event.user.name} />
-                    <span className="text-slate-700">{event.user.name}</span>
+        <div>
+          <h3 className="mb-2 flex items-center gap-1.5 text-base font-medium text-slate-900">
+            <Clock size={17} className="text-slate-400" />
+            Per uur — laatste 30 dagen
+          </h3>
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex flex-col gap-1">
+              {detail.byHour.map((h) => (
+                <div key={h.hour} className="flex items-center gap-2 text-sm">
+                  <span className="w-9 shrink-0 text-slate-500">
+                    {String(h.hour).padStart(2, "0")}u
+                  </span>
+                  <div className="h-4 flex-1 rounded bg-slate-100">
+                    <div
+                      className="h-4 rounded bg-slate-700"
+                      style={{ width: `${(h.sessionCount / maxHourCount) * 100}%` }}
+                    />
                   </div>
-                </td>
-                <td className="px-6 py-4 text-slate-500">
-                  {event.user.email || "—"}
-                </td>
-              </tr>
-            ))}
-            {events.length === 0 && (
+                  <span className="w-6 shrink-0 text-right text-slate-600">
+                    {h.sessionCount}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-base font-medium text-slate-900">
+          Alle sessies (recentste 200)
+        </h3>
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-base">
+            <thead className="bg-slate-50 text-left text-slate-500">
               <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-8 text-center text-slate-400"
-                >
-                  Nog geen activiteit geregistreerd.
-                </td>
+                <th className="px-6 py-3 font-medium">Sessie gestart</th>
+                <th className="px-6 py-3 font-medium">Laatst actief</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {events.map((event) => (
+                <tr key={event.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-slate-500">
+                    {event.createdAt.toLocaleString("nl-BE", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-slate-500">
+                    {event.lastSeenAt.toLocaleString("nl-BE", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </td>
+                </tr>
+              ))}
+              {events.length === 0 && (
+                <tr>
+                  <td colSpan={2} className="px-6 py-8 text-center text-slate-400">
+                    Nog geen activiteit geregistreerd.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

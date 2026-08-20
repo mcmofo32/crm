@@ -82,6 +82,73 @@ export async function getLoginEvents(options?: {
   });
 }
 
+export type UserLoginSummary = {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  lastSeenAt: Date;
+  sessionsToday: number;
+};
+
+/**
+ * Eén rij per persoon (niet per sessie) — wie ooit een sessie had, wanneer
+ * die persoon voor het laatst actief was, en hoeveel sessies vandaag
+ * gestart zijn. Overzicht voor het hoofdscherm van Login-sessies, zodat
+ * iemand met veel sessies niet meerdere keren in de lijst verschijnt.
+ * Gebruikt groupBy (aggregatie in de database) i.p.v. elke rij zelf op te
+ * halen, want dit scherm belast anders zwaar mee bij elke paginalading.
+ */
+export async function getLoginActivitySummary(options?: {
+  userIds?: string[];
+}): Promise<UserLoginSummary[]> {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (!canViewBeheerderTools(viewer)) {
+    throw new Error("Je hebt geen toegang tot de login-sessies");
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const userWhere = options?.userIds ? { userId: { in: options.userIds } } : {};
+
+  const [lastSeenGroups, todayGroups] = await Promise.all([
+    prisma.loginEvent.groupBy({
+      by: ["userId"],
+      where: userWhere,
+      _max: { lastSeenAt: true },
+    }),
+    prisma.loginEvent.groupBy({
+      by: ["userId"],
+      where: { ...userWhere, createdAt: { gte: today, lt: tomorrow } },
+      _count: { _all: true },
+    }),
+  ]);
+  if (lastSeenGroups.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: lastSeenGroups.map((g) => g.userId) } },
+    select: { id: true, name: true, email: true },
+  });
+  const userById = new Map(users.map((u) => [u.id, u]));
+  const todayCountByUser = new Map(todayGroups.map((g) => [g.userId, g._count._all]));
+
+  return lastSeenGroups
+    .map((g) => {
+      const user = userById.get(g.userId);
+      return {
+        userId: g.userId,
+        userName: user?.name ?? "Onbekend",
+        userEmail: user?.email ?? "",
+        lastSeenAt: g._max.lastSeenAt!,
+        sessionsToday: todayCountByUser.get(g.userId) ?? 0,
+      };
+    })
+    .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
+}
+
 function dayKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
     date.getDate()
@@ -89,19 +156,26 @@ function dayKey(date: Date): string {
 }
 
 export type DailyLoginActivity = { date: Date; sessionCount: number };
+export type HourlyLoginActivity = { hour: number; sessionCount: number };
+export type LoginActivityDetail = {
+  byDay: DailyLoginActivity[];
+  byHour: HourlyLoginActivity[];
+  totalSessions: number;
+};
 
 /**
- * Aantal sessies per dag voor één gebruiker, de laatste `days` dagen
- * (standaard 30), nieuwste dag eerst — inclusief dagen zonder activiteit,
- * zodat een Beheerder/Admin ook gaten kan zien (bv. "20/08: 5 sessies",
- * "19/08: 0 sessies"). Geen `take`-limiet zoals getLoginEvents, want een
- * erg actieve gebruiker kan over 30 dagen makkelijk meer dan 200 sessies
- * hebben.
+ * Uitgebreide activiteit van één gebruiker over de laatste `days` dagen
+ * (standaard 30): aantal sessies per dag (nieuwste eerst, inclusief dagen
+ * zonder activiteit) én per uur van de dag (0-23, over alle dagen samen —
+ * toont dus patronen zoals "vooral 's ochtends actief"). Eén query voor
+ * beide, want ze draaien op dezelfde ruwe sessies. Geen `take`-limiet zoals
+ * getLoginEvents, want een erg actieve gebruiker kan over 30 dagen
+ * makkelijk meer dan 200 sessies hebben.
  */
-export async function getLoginActivityByDay(
+export async function getLoginActivityDetail(
   userId: string,
   days = 30
-): Promise<DailyLoginActivity[]> {
+): Promise<LoginActivityDetail> {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
   if (!canViewBeheerderTools(viewer)) {
@@ -119,16 +193,24 @@ export async function getLoginActivityByDay(
   });
 
   const countByDay = new Map<string, number>();
+  const countByHour = new Array(24).fill(0) as number[];
   for (const event of events) {
     const key = dayKey(event.createdAt);
     countByDay.set(key, (countByDay.get(key) ?? 0) + 1);
+    countByHour[event.createdAt.getHours()] += 1;
   }
 
-  const result: DailyLoginActivity[] = [];
+  const byDay: DailyLoginActivity[] = [];
   for (let i = 0; i < days; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    result.push({ date, sessionCount: countByDay.get(dayKey(date)) ?? 0 });
+    byDay.push({ date, sessionCount: countByDay.get(dayKey(date)) ?? 0 });
   }
-  return result;
+
+  const byHour: HourlyLoginActivity[] = countByHour.map((sessionCount, hour) => ({
+    hour,
+    sessionCount,
+  }));
+
+  return { byDay, byHour, totalSessions: events.length };
 }
