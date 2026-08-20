@@ -170,7 +170,15 @@ const leadsTab: SheetsBackupTab = {
 
 const productsTab: SheetsBackupTab = {
   name: "Producten",
-  headers: ["Klant", "Type", "Bedrag", "Eenheden", "Aangemaakt op"],
+  headers: [
+    "Klant",
+    "Type",
+    "Bedrag",
+    "Eenheden",
+    "Contractdatum",
+    "Vervolgcontract",
+    "Aangemaakt op",
+  ],
   fetchRows: async () => {
     const products = await prisma.leadProduct.findMany({
       include: { lead: { select: { firstName: true, lastName: true } } },
@@ -181,6 +189,8 @@ const productsTab: SheetsBackupTab = {
       PRODUCT_TYPE_LABELS[p.type],
       fmtAmount(p.amount),
       p.units,
+      fmtDate(p.contractDate),
+      fmtBool(p.isFollowUp),
       fmtDate(p.createdAt),
     ]);
   },

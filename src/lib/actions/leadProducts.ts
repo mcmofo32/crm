@@ -80,7 +80,12 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
     }
   }
 
-  const existing = await prisma.leadProduct.findMany({ where: { leadId } });
+  // isFollowUp: false — deze actie beheert enkel de "basis"-productenlijst
+  // (één rij per type, via de Producten-kaart); vervolgcontracten uit
+  // opvolging (addFollowUpContractAction hieronder) staan hier los van.
+  const existing = await prisma.leadProduct.findMany({
+    where: { leadId, isFollowUp: false },
+  });
   const existingByType = new Map(existing.map((p) => [p.type, p]));
   const desiredTypes = new Set(desired.map((d) => d.type));
   const toDelete = existing.filter((p) => !desiredTypes.has(p.type));
@@ -120,6 +125,104 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   revalidatePath("/klanten/polissen");
   revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${lead.leadType}`);
+}
+
+/**
+ * Voegt een vervolgcontract toe bij een bestaande klant (bv. een extra
+ * contract dat later uit opvolging komt) — los van de vaste, één-per-type
+ * productenlijst op de Producten-kaart: hetzelfde producttype kan hier dus
+ * meermaals voorkomen, elk met zijn eigen datum. Die datum bepaalt in welke
+ * productiemaand dit contract meetelt (zie production.ts), niet de datum
+ * waarop de klant oorspronkelijk klant werd.
+ */
+export async function addFollowUpContractAction(leadId: string, formData: FormData) {
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!(await canAccessLead(user, lead))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
+  if (lead.status !== "WON") {
+    throw new Error("Vervolgcontracten kunnen enkel bij klanten toegevoegd worden");
+  }
+
+  const type = String(formData.get("type") ?? "") as ProductType;
+  if (!PRODUCT_TYPE_ORDER.includes(type)) {
+    throw new Error("Kies een geldig producttype");
+  }
+
+  const amount = Number(String(formData.get("amount") ?? "").trim());
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Vul een geldig bedrag groter dan 0 in");
+  }
+
+  const unitsRaw = String(formData.get("units") ?? "").trim();
+  const units = unitsRaw ? Math.round(Number(unitsRaw)) : 0;
+
+  const dateRaw = String(formData.get("contractDate") ?? "").trim();
+  const contractDate = dateRaw ? new Date(`${dateRaw}T12:00:00`) : new Date();
+  if (Number.isNaN(contractDate.getTime())) {
+    throw new Error("Ongeldige datum");
+  }
+
+  await prisma.leadProduct.create({
+    data: {
+      leadId,
+      type,
+      amount,
+      units: Number.isFinite(units) ? units : 0,
+      contractDate,
+      isFollowUp: true,
+      policy: { create: { leadId, employeeId: lead.ownerId } },
+    },
+  });
+
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/leads");
+  revalidatePath("/klanten");
+  revalidatePath("/subagent");
+  revalidatePath("/klanten/polissen");
+  revalidatePath("/subagent/polissen");
+  revalidatePath("/productie");
+  revalidatePath("/dashboard");
+  revalidatePath(`/funnel/${lead.leadType}`);
+}
+
+/** Verwijdert één vervolgcontract (bv. na een vergissing) — raakt de basis-productenlijst niet aan. */
+export async function deleteFollowUpContractAction(leadProductId: string) {
+  const [user, product] = await Promise.all([
+    requireUser(),
+    prisma.leadProduct.findUnique({
+      where: { id: leadProductId },
+      include: { lead: true },
+    }),
+  ]);
+  if (!product || !product.isFollowUp) {
+    throw new Error("Vervolgcontract niet gevonden");
+  }
+  if (!(await canAccessLead(user, product.lead))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
+
+  await prisma.leadProduct.delete({ where: { id: leadProductId } });
+
+  revalidatePath(`/leads/${product.leadId}`);
+  revalidatePath("/leads");
+  revalidatePath("/klanten");
+  revalidatePath("/subagent");
+  revalidatePath("/klanten/polissen");
+  revalidatePath("/subagent/polissen");
+  revalidatePath("/productie");
+  revalidatePath("/dashboard");
+  revalidatePath(`/funnel/${product.lead.leadType}`);
 }
 
 export type CustomerSortOption = "recent" | "oldest" | "amount" | "units";

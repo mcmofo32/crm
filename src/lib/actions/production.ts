@@ -306,7 +306,7 @@ export async function getProductionLeaderboard(
   });
   const userIds = users.map((u) => u.id);
 
-  const [wonThisMonth, conversationsThisWeek] = await Promise.all([
+  const [wonThisMonth, unitsThisMonth, conversationsThisWeek] = await Promise.all([
     prisma.leadStageChange.findMany({
       where: {
         toStage: { isWon: true },
@@ -314,10 +314,20 @@ export async function getProductionLeaderboard(
         lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
       },
       select: {
-        lead: {
-          select: { id: true, ownerId: true, products: { select: { units: true } } },
-        },
+        lead: { select: { id: true, ownerId: true } },
       },
+    }),
+    // Eenheden tellen op datum van het contract (contractDate), los van
+    // wanneer de klant oorspronkelijk klant werd — zo tellen ook
+    // vervolgcontracten uit opvolging mee in de maand waarin ze zelf
+    // afgesloten zijn, i.p.v. enkel in de oorspronkelijke "klant
+    // geworden"-maand.
+    prisma.leadProduct.findMany({
+      where: {
+        contractDate: { gte: start, lt: end },
+        lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
+      },
+      select: { units: true, lead: { select: { ownerId: true } } },
     }),
     prisma.activity.groupBy({
       by: ["assigneeId"],
@@ -337,18 +347,15 @@ export async function getProductionLeaderboard(
   // lead, niet wie de fase-overgang zelf uitvoerde — een Beheerder/Admin die
   // een deal namens een medewerker afsluit, mag dat krediet niet naar
   // zichzelf toe trekken.
-  const wonByUser = new Map<string, { customers: Set<string>; units: number }>();
+  const customersByUser = new Map<string, Set<string>>();
   for (const change of wonThisMonth) {
-    const ownerId = change.lead.ownerId;
-    const entry = wonByUser.get(ownerId) ?? {
-      customers: new Set<string>(),
-      units: 0,
-    };
-    if (!entry.customers.has(change.lead.id)) {
-      entry.customers.add(change.lead.id);
-      entry.units += change.lead.products.reduce((s, p) => s + p.units, 0);
-    }
-    wonByUser.set(ownerId, entry);
+    const set = customersByUser.get(change.lead.ownerId) ?? new Set<string>();
+    set.add(change.lead.id);
+    customersByUser.set(change.lead.ownerId, set);
+  }
+  const unitsByUser = new Map<string, number>();
+  for (const p of unitsThisMonth) {
+    unitsByUser.set(p.lead.ownerId, (unitsByUser.get(p.lead.ownerId) ?? 0) + p.units);
   }
 
   const rows = users.map((u) => {
@@ -358,11 +365,12 @@ export async function getProductionLeaderboard(
     const actualOverrideByMetric = new Map(
       u.monthlyActuals.map((a) => [a.metric, Number(a.value)])
     );
-    const won = wonByUser.get(u.id);
     const actualCustomers =
-      actualOverrideByMetric.get(GoalMetric.CUSTOMERS) ?? won?.customers.size ?? 0;
+      actualOverrideByMetric.get(GoalMetric.CUSTOMERS) ??
+      customersByUser.get(u.id)?.size ??
+      0;
     const actualUnits =
-      actualOverrideByMetric.get(GoalMetric.UNITS) ?? won?.units ?? 0;
+      actualOverrideByMetric.get(GoalMetric.UNITS) ?? unitsByUser.get(u.id) ?? 0;
     const targetCustomers = goalByMetric.get(GoalMetric.CUSTOMERS) ?? 0;
     const targetUnits = goalByMetric.get(GoalMetric.UNITS) ?? 0;
 
@@ -593,7 +601,7 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
   const { year, month } = await getCurrentProductionMonth();
   const { start, end } = await getProductionMonthRange(year, month);
 
-  const [targets, wonThisMonth, conversationsThisMonth, newFaLeads, newRgLeads] =
+  const [targets, wonThisMonth, unitsThisMonth, conversationsThisMonth, newFaLeads, newRgLeads] =
     await Promise.all([
       prisma.userMonthlyGoal.findMany({ where: { userId, year, month } }),
       // Productie (Klanten/Eenheden) telt op eigenaar, niet op wie de
@@ -604,11 +612,16 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
           changedAt: { gte: start, lt: end },
           lead: { deletedAt: null, status: "WON", ownerId: userId },
         },
-        select: {
-          lead: {
-            select: { id: true, products: { select: { units: true } } },
-          },
+        select: { lead: { select: { id: true } } },
+      }),
+      // Eenheden tellen op contractDate, los van wanneer de klant
+      // oorspronkelijk klant werd — zie getProductionLeaderboard hierboven.
+      prisma.leadProduct.findMany({
+        where: {
+          contractDate: { gte: start, lt: end },
+          lead: { deletedAt: null, status: "WON", ownerId: userId },
         },
+        select: { units: true },
       }),
       prisma.activity.count({
         where: {
@@ -638,16 +651,8 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
     targets.map((t) => [t.metric, Number(t.target)])
   );
 
-  const seenLeadIds = new Set<string>();
-  const units = wonThisMonth
-    .map((c) => c.lead)
-    .filter((lead) => {
-      if (seenLeadIds.has(lead.id)) return false;
-      seenLeadIds.add(lead.id);
-      return true;
-    })
-    .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
-  const customers = seenLeadIds.size;
+  const customers = new Set(wonThisMonth.map((c) => c.lead.id)).size;
+  const units = unitsThisMonth.reduce((sum, p) => sum + p.units, 0);
 
   const actualByMetric: Record<GoalMetric, number> = {
     UNITS: units,
@@ -704,7 +709,7 @@ export async function getGroupProductionMonthGoalProgress(
   const { year, month } = await getCurrentProductionMonth();
   const { start, end } = await getProductionMonthRange(year, month);
 
-  const [targets, wonThisMonth, conversationsThisMonth, newFaLeads, newRgLeads] =
+  const [targets, wonThisMonth, unitsThisMonth, conversationsThisMonth, newFaLeads, newRgLeads] =
     await Promise.all([
       prisma.userMonthlyGoal.findMany({
         where: { userId: { in: userIds }, year, month },
@@ -717,9 +722,16 @@ export async function getGroupProductionMonthGoalProgress(
           changedAt: { gte: start, lt: end },
           lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
         },
-        select: {
-          lead: { select: { id: true, products: { select: { units: true } } } },
+        select: { lead: { select: { id: true } } },
+      }),
+      // Eenheden tellen op contractDate, los van wanneer de klant
+      // oorspronkelijk klant werd — zie getProductionLeaderboard hierboven.
+      prisma.leadProduct.findMany({
+        where: {
+          contractDate: { gte: start, lt: end },
+          lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
         },
+        select: { units: true },
       }),
       prisma.activity.count({
         where: {
@@ -753,16 +765,8 @@ export async function getGroupProductionMonthGoalProgress(
     );
   }
 
-  const seenLeadIds = new Set<string>();
-  const units = wonThisMonth
-    .map((c) => c.lead)
-    .filter((lead) => {
-      if (seenLeadIds.has(lead.id)) return false;
-      seenLeadIds.add(lead.id);
-      return true;
-    })
-    .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
-  const customers = seenLeadIds.size;
+  const customers = new Set(wonThisMonth.map((c) => c.lead.id)).size;
+  const units = unitsThisMonth.reduce((sum, p) => sum + p.units, 0);
 
   const actualByMetric: Record<GoalMetric, number> = {
     UNITS: units,
@@ -834,7 +838,7 @@ export async function getMonthlyGoalAchievements(
         };
       }
 
-      const [targets, unitsOverride, wonThisMonth, conversations] = await Promise.all([
+      const [targets, unitsOverride, unitsThisMonth, conversations] = await Promise.all([
         prisma.userMonthlyGoal.findMany({
           where: {
             userId,
@@ -853,17 +857,15 @@ export async function getMonthlyGoalAchievements(
             },
           },
         }),
-        // Productie (Eenheden) telt op eigenaar, niet op wie de
-        // fase-overgang uitvoerde — zie getProductionLeaderboard hierboven.
-        prisma.leadStageChange.findMany({
+        // Productie (Eenheden) telt op contractDate, los van wanneer de
+        // klant oorspronkelijk klant werd — zie getProductionLeaderboard
+        // hierboven.
+        prisma.leadProduct.findMany({
           where: {
-            toStage: { isWon: true },
-            changedAt: { gte: start, lt: end },
+            contractDate: { gte: start, lt: end },
             lead: { deletedAt: null, status: "WON", ownerId: userId },
           },
-          select: {
-            lead: { select: { id: true, products: { select: { units: true } } } },
-          },
+          select: { units: true },
         }),
         prisma.activity.count({
           where: {
@@ -879,15 +881,7 @@ export async function getMonthlyGoalAchievements(
       const unitsTarget = targetByMetric.get(GoalMetric.UNITS) ?? 0;
       const conversationsTarget = targetByMetric.get(GoalMetric.CONVERSATIONS) ?? 0;
 
-      const seenLeadIds = new Set<string>();
-      const computedUnits = wonThisMonth
-        .map((c) => c.lead)
-        .filter((lead) => {
-          if (seenLeadIds.has(lead.id)) return false;
-          seenLeadIds.add(lead.id);
-          return true;
-        })
-        .reduce((sum, lead) => sum + lead.products.reduce((s, p) => s + p.units, 0), 0);
+      const computedUnits = unitsThisMonth.reduce((sum, p) => sum + p.units, 0);
       const units = unitsOverride ? Number(unitsOverride.value) : computedUnits;
 
       return {
@@ -931,7 +925,7 @@ export async function getMonthlyGoalAchievementsForUsers(
     return null;
   }
 
-  const [targets, unitsOverrides, wonChanges, conversationActivities] =
+  const [targets, unitsOverrides, productsThisYear, conversationActivities] =
     await Promise.all([
       prisma.userMonthlyGoal.findMany({
         where: {
@@ -943,19 +937,17 @@ export async function getMonthlyGoalAchievementsForUsers(
       prisma.userMonthlyActual.findMany({
         where: { userId: { in: userIds }, year, metric: GoalMetric.UNITS },
       }),
-      // Productie (Eenheden) telt op eigenaar, niet op wie de fase-overgang
-      // uitvoerde — zie getProductionLeaderboard hierboven.
-      prisma.leadStageChange.findMany({
+      // Productie (Eenheden) telt op contractDate, los van wanneer de klant
+      // oorspronkelijk klant werd — zie getProductionLeaderboard hierboven.
+      prisma.leadProduct.findMany({
         where: {
-          toStage: { isWon: true },
-          changedAt: { gte: yearStart, lt: yearEnd },
+          contractDate: { gte: yearStart, lt: yearEnd },
           lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
         },
         select: {
-          changedAt: true,
-          lead: {
-            select: { id: true, ownerId: true, products: { select: { units: true } } },
-          },
+          contractDate: true,
+          units: true,
+          lead: { select: { ownerId: true } },
         },
       }),
       prisma.activity.findMany({
@@ -976,17 +968,12 @@ export async function getMonthlyGoalAchievementsForUsers(
     overrideByKey.set(`${o.userId}_${o.month}`, Number(o.value));
   }
 
-  const wonByKey = new Map<string, { leadId: string; units: number }[]>();
-  for (const change of wonChanges) {
-    const month = monthForDate(change.changedAt);
+  const unitsByKey = new Map<string, number>();
+  for (const p of productsThisYear) {
+    const month = monthForDate(p.contractDate);
     if (month === null) continue;
-    const key = `${change.lead.ownerId}_${month}`;
-    const entries = wonByKey.get(key) ?? [];
-    entries.push({
-      leadId: change.lead.id,
-      units: change.lead.products.reduce((s, p) => s + p.units, 0),
-    });
-    wonByKey.set(key, entries);
+    const key = `${p.lead.ownerId}_${month}`;
+    unitsByKey.set(key, (unitsByKey.get(key) ?? 0) + p.units);
   }
 
   const conversationsByKey = new Map<string, number>();
@@ -1018,13 +1005,7 @@ export async function getMonthlyGoalAchievementsForUsers(
       const conversationsTarget =
         targetByKey.get(`${userId}_${month}_${GoalMetric.CONVERSATIONS}`) ?? 0;
 
-      const seenLeadIds = new Set<string>();
-      let computedUnits = 0;
-      for (const entry of wonByKey.get(`${userId}_${month}`) ?? []) {
-        if (seenLeadIds.has(entry.leadId)) continue;
-        seenLeadIds.add(entry.leadId);
-        computedUnits += entry.units;
-      }
+      const computedUnits = unitsByKey.get(`${userId}_${month}`) ?? 0;
       const override = overrideByKey.get(`${userId}_${month}`);
       const units = override ?? computedUnits;
       const conversations = conversationsByKey.get(`${userId}_${month}`) ?? 0;

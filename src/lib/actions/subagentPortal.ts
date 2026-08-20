@@ -243,19 +243,9 @@ export async function getManagedPolicies(options: {
       createdAt: true,
       leadId: true,
       lead: {
-        select: {
-          firstName: true,
-          lastName: true,
-          updatedAt: true,
-          stageChanges: {
-            where: { toStage: { isWon: true } },
-            orderBy: { changedAt: "desc" },
-            take: 1,
-            select: { changedAt: true },
-          },
-        },
+        select: { firstName: true, lastName: true },
       },
-      leadProduct: { select: { type: true, units: true } },
+      leadProduct: { select: { type: true, units: true, contractDate: true } },
       employeeId: true,
       employee: { select: { name: true } },
       company: true,
@@ -274,7 +264,9 @@ export async function getManagedPolicies(options: {
   return policies.map((p) => ({
     id: p.id,
     createdAt: p.createdAt,
-    becameCustomerAt: p.lead.stageChanges[0]?.changedAt ?? p.lead.updatedAt,
+    // Contractdatum van het onderliggende product (LeadProduct.contractDate)
+    // — bepaalt de productiemaand-groepering hier, zie getPoliciesForCurrentUser.
+    becameCustomerAt: p.leadProduct.contractDate,
     leadId: p.leadId,
     customerFirstName: p.lead.firstName,
     customerLastName: p.lead.lastName,

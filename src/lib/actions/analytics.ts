@@ -726,7 +726,12 @@ async function resolveProductionMonthRanges(year: number) {
   });
 }
 
-/** Omzet en eenheden van nieuwe klanten per productiemaand van `year`. */
+/**
+ * Omzet en eenheden per productiemaand van `year`, geteld op contractDate
+ * van elk product (los van wanneer de klant oorspronkelijk klant werd) —
+ * zodat ook vervolgcontracten uit opvolging meetellen in de maand waarin
+ * ze zelf afgesloten zijn.
+ */
 export async function getRevenueByProductionMonth(
   year: number
 ): Promise<ProductionMonthRevenue[]> {
@@ -735,26 +740,15 @@ export async function getRevenueByProductionMonth(
 
   return Promise.all(
     ranges.map(async ({ month, start, end }) => {
-      const wins = await prisma.leadStageChange.findMany({
+      const products = await prisma.leadProduct.findMany({
         where: {
-          toStage: { isWon: true },
-          changedAt: { gte: start, lt: end },
-          lead: { deletedAt: null },
+          contractDate: { gte: start, lt: end },
+          lead: { deletedAt: null, status: "WON" },
         },
-        orderBy: { changedAt: "asc" },
-        distinct: ["leadId"],
-        select: {
-          lead: { select: { products: { select: { amount: true, units: true } } } },
-        },
+        select: { amount: true, units: true },
       });
-      const revenue = wins.reduce(
-        (sum, w) => sum + w.lead.products.reduce((s, p) => s + Number(p.amount), 0),
-        0
-      );
-      const units = wins.reduce(
-        (sum, w) => sum + w.lead.products.reduce((s, p) => s + p.units, 0),
-        0
-      );
+      const revenue = products.reduce((sum, p) => sum + Number(p.amount), 0);
+      const units = products.reduce((sum, p) => sum + p.units, 0);
       return { month, label: MONTH_LABELS[month - 1], revenue, units };
     })
   );

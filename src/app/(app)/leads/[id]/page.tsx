@@ -25,6 +25,7 @@ import { ScheduleActivityForm } from "@/components/ScheduleActivityForm";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { LeadDetailsCard } from "@/components/LeadDetailsCard";
 import { LeadProductsCard } from "@/components/LeadProductsCard";
+import { FollowUpContractsCard } from "@/components/FollowUpContractsCard";
 import { InlineSelect } from "@/components/InlineSelect";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
@@ -196,13 +197,31 @@ export default async function LeadDetailPage({
 
           <LeadProductsCard
             leadId={lead.id}
-            products={lead.products.map((p) => ({
-              type: p.type,
-              amount: Number(p.amount),
-              units: p.units,
-            }))}
+            products={lead.products
+              .filter((p) => !p.isFollowUp)
+              .map((p) => ({
+                type: p.type,
+                amount: Number(p.amount),
+                units: p.units,
+              }))}
             canEdit={canManageCustomerData(user)}
           />
+
+          {lead.status === "WON" && (
+            <FollowUpContractsCard
+              leadId={lead.id}
+              contracts={lead.products
+                .filter((p) => p.isFollowUp)
+                .map((p) => ({
+                  id: p.id,
+                  type: p.type,
+                  amount: Number(p.amount),
+                  units: p.units,
+                  contractDate: p.contractDate,
+                }))}
+              canEdit={canManageCustomerData(user)}
+            />
+          )}
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-6">

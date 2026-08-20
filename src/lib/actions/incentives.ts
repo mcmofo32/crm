@@ -190,26 +190,32 @@ async function computeMetricScores(
   const scores = new Map<string, number>();
   const add = (id: string, n: number) => scores.set(id, (scores.get(id) ?? 0) + n);
 
-  if (metric === IncentiveMetric.CLIENTS_WON || metric === IncentiveMetric.UNITS) {
+  if (metric === IncentiveMetric.CLIENTS_WON) {
     const wins = await prisma.leadStageChange.findMany({
       where: {
         changedAt: { gte: startDate, lte: endDate },
         toStage: { isWon: true },
         ...(leadTypeFilter ? { lead: { leadType: leadTypeFilter } } : {}),
       },
-      include: {
+      select: { lead: { select: { ownerId: true } } },
+    });
+    for (const win of wins) add(win.lead.ownerId, 1);
+  } else if (metric === IncentiveMetric.UNITS) {
+    // Eenheden tellen op contractDate, los van wanneer de klant
+    // oorspronkelijk klant werd — zo tellen ook vervolgcontracten uit
+    // opvolging mee die binnen de looptijd van de incentive vallen.
+    const products = await prisma.leadProduct.findMany({
+      where: {
+        contractDate: { gte: startDate, lte: endDate },
         lead: {
-          select: {
-            ownerId: true,
-            products: { select: { units: true } },
-          },
+          deletedAt: null,
+          status: "WON",
+          ...(leadTypeFilter ? { leadType: leadTypeFilter } : {}),
         },
       },
+      select: { units: true, lead: { select: { ownerId: true } } },
     });
-    for (const win of wins) {
-      const totalUnits = win.lead.products.reduce((sum, p) => sum + p.units, 0);
-      add(win.lead.ownerId, metric === IncentiveMetric.UNITS ? totalUnits : 1);
-    }
+    for (const product of products) add(product.lead.ownerId, product.units);
   } else {
     // RG_MEETINGS telt altijd enkel RG-leads, ongeacht een gekozen funnel-filter.
     const effectiveLeadType =

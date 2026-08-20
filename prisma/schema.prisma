@@ -339,8 +339,12 @@ enum ProductType {
   KINDERSPAREN
 }
 
-/// Eén product dat een klant genomen heeft (bedrag + aantal eenheden), ingevuld
-/// bij het rapporteren wanneer een lead klant wordt. Gebruikt voor het
+/// Eén product/contract dat een klant genomen heeft (bedrag + aantal eenheden).
+/// De "basis"-producten (isFollowUp false, één per type) worden ingevuld bij
+/// het rapporteren wanneer een lead klant wordt en beheerd via de
+/// Producten-kaart (saveLeadProductsAction). Vervolgcontracten die later
+/// uit opvolging komen (isFollowUp true, meerdere per type mogelijk) worden
+/// apart toegevoegd via "Contracten uit opvolging". Gebruikt voor het
 /// klantenoverzicht en voor de "aantal eenheden"-categorie bij incentives.
 model LeadProduct {
   id        String      @id @default(cuid())
@@ -349,6 +353,15 @@ model LeadProduct {
   type      ProductType
   amount    Decimal     @db.Decimal(10, 2)
   units     Int         @default(0)
+  /// Datum van dit contract — bepaalt in welke productiemaand het meetelt
+  /// (zie production.ts/analytics.ts/incentives.ts), los van `createdAt`
+  /// (wanneer het record zelf aangemaakt werd). Voor een basisproduct
+  /// standaard het moment dat de klant klant werd; voor een vervolgcontract
+  /// vrij in te vullen (standaard vandaag).
+  contractDate DateTime  @default(now())
+  /// true = vervolgcontract uit opvolging (los van de vaste productenlijst
+  /// per type op de Producten-kaart); false = basisproduct.
+  isFollowUp Boolean     @default(false)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
@@ -356,7 +369,6 @@ model LeadProduct {
   /// (zie Policy) zodra het toegevoegd wordt.
   policy Policy?
 
-  @@unique([leadId, type])
   @@index([leadId])
 }
 

@@ -170,6 +170,7 @@ export async function createWonLeadRecord(params: {
           type: p.type,
           amount: p.amount,
           units: p.units,
+          contractDate: params.occurredAt,
           policy: { create: { leadId: lead.id, employeeId: params.ownerId } },
         },
       })

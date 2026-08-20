@@ -62,7 +62,7 @@ function resolveCustomerOwnerWhere(
 export type PolicyRow = {
   id: string;
   createdAt: Date;
-  /** Wanneer de klant effectief klant werd (zelfde datum als "Klant sinds" op de Klanten-pagina) — bepaalt de productiemaand-groepering op Polissen, niet `createdAt` (dat is enkel wanneer deze polis-lijn zelf in de database ontstond). */
+  /** Contractdatum van het onderliggende product (LeadProduct.contractDate) — bepaalt de productiemaand-groepering op Polissen, niet `createdAt` (dat is enkel wanneer deze polis-lijn zelf in de database ontstond). Voor een basisproduct gelijk aan het moment dat de klant klant werd; voor een vervolgcontract uit opvolging zijn eigen datum. */
   becameCustomerAt: Date;
   leadId: string;
   customerFirstName: string;
@@ -114,19 +114,9 @@ export async function getPoliciesForCurrentUser(options?: {
       createdAt: true,
       leadId: true,
       lead: {
-        select: {
-          firstName: true,
-          lastName: true,
-          updatedAt: true,
-          stageChanges: {
-            where: { toStage: { isWon: true } },
-            orderBy: { changedAt: "desc" },
-            take: 1,
-            select: { changedAt: true },
-          },
-        },
+        select: { firstName: true, lastName: true },
       },
-      leadProduct: { select: { type: true, units: true } },
+      leadProduct: { select: { type: true, units: true, contractDate: true } },
       employeeId: true,
       employee: { select: { name: true } },
       company: true,
@@ -145,7 +135,7 @@ export async function getPoliciesForCurrentUser(options?: {
   return policies.map((p) => ({
     id: p.id,
     createdAt: p.createdAt,
-    becameCustomerAt: p.lead.stageChanges[0]?.changedAt ?? p.lead.updatedAt,
+    becameCustomerAt: p.leadProduct.contractDate,
     leadId: p.leadId,
     customerFirstName: p.lead.firstName,
     customerLastName: p.lead.lastName,
