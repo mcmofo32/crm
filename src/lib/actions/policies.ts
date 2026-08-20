@@ -25,10 +25,14 @@ async function requireUser() {
  * Zelfherstellend: producten die al bestonden vóór de Polissen-tab er was
  * (of die om een andere reden geen polis-lijn hebben) krijgen er hier alsnog
  * één, met de lead-eigenaar als standaard-medewerker — net zoals een nieuw
- * product er automatisch één krijgt via saveLeadProductsAction. Bijna altijd
- * een no-op (lege lijst), dus goedkoop om bij elke paginalading te draaien.
+ * product er automatisch één krijgt via saveLeadProductsAction/
+ * createWonLeadRecord/addFollowUpContractAction. Bijna altijd een no-op
+ * (lege lijst), dus goedkoop om bij elke paginalading te draaien. Ook
+ * gebruikt door getManagedPolicies (subagentPortal.ts) — dezelfde
+ * gegevens, andere scoping — zodat een ontbrekende polis-lijn hersteld
+ * wordt ongeacht via welke Polissen-pagina ze als eerste zichtbaar wordt.
  */
-async function backfillMissingPolicies() {
+export async function backfillMissingPolicies() {
   const missing = await prisma.leadProduct.findMany({
     where: { policy: null },
     select: { id: true, leadId: true, lead: { select: { ownerId: true } } },

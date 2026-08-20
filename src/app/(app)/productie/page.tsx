@@ -13,7 +13,7 @@ import {
 } from "@/lib/actions/production";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers } from "@/lib/permissions";
-import { GoalMetric, Role } from "@/generated/prisma/client";
+import { GoalMetric } from "@/generated/prisma/client";
 import { Position, PercentBadge } from "@/components/ProductionShared";
 import { ProductionTable } from "@/components/ProductionTable";
 import { ExportImageButton } from "@/components/ExportImageButton";
@@ -144,13 +144,6 @@ export default async function ProductiePage({
           Aanbevelingen
         </Link>
       </div>
-
-      {viewer?.role === Role.COACH && (
-        <p className="flex items-center gap-1.5 text-sm text-slate-500">
-          <Users size={15} className="text-slate-400" />
-          Je ziet jouw team en de volledige substructuur eronder.
-        </p>
-      )}
 
       {structureOptions.length > 0 && (
         <form

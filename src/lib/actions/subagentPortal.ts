@@ -9,6 +9,7 @@ import {
 } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import type { CustomerSortOption } from "@/lib/actions/leadProducts";
+import { backfillMissingPolicies } from "@/lib/actions/policies";
 
 async function requireSubagentPortalAccess() {
   const viewer = await getEffectiveViewer();
@@ -221,6 +222,7 @@ export async function getManagedPolicies(options: {
   search?: string;
 }) {
   await requireSubagentPortalAccess();
+  await backfillMissingPolicies();
   const trimmedSearch = options.search?.trim();
 
   const policies = await prisma.policy.findMany({

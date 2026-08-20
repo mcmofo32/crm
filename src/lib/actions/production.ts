@@ -55,15 +55,15 @@ export type ProductionStructureOption = { id: string; label: string };
 
 /**
  * Elke Coach is de wortel van een substructuur (zichzelf + iedereen die
- * rechtstreeks of onrechtstreeks aan hem rapporteert). Admin/Beheerder
- * kunnen op Cijfers/Productie zo'n substructuur kiezen om enkel die groep
- * te zien i.p.v. het hele bedrijf.
+ * rechtstreeks of onrechtstreeks aan hem rapporteert). Cijfers zijn
+ * bedrijfsbreed zichtbaar voor iedereen, dus iedereen kan op
+ * Cijfers/Productie zo'n substructuur kiezen om enkel die groep te zien
+ * i.p.v. het hele bedrijf — niet enkel Admin/Beheerder.
  */
 export async function getProductionStructureOptions(): Promise<
   ProductionStructureOption[]
 > {
-  const viewer = await requireViewer();
-  if (!canManageUsers(viewer)) return [];
+  await requireViewer();
 
   // Een team-"coach" kan om het even welke rol hebben — ook Admin/Beheerder
   // (bv. de eigenaar die zelf bovenaan de structuur staat) — dus filteren op
@@ -81,26 +81,18 @@ export async function getProductionStructureOptions(): Promise<
 }
 
 /**
- * Bepaalt welke gebruikers meetellen op Cijfers/Productie:
- * - Coach: altijd verplicht beperkt tot zichzelf + zijn hele substructuur
- *   (ook onderliggende teams van sub-coaches).
- * - Admin/Beheerder: standaard iedereen (`null`), tenzij ze een specifieke
- *   substructuur (`structureId`, het id van een Coach) kozen.
- * - Gewone User: geen beperking — de ranglijst is bedoeld als
- *   bedrijfsbreed, gedeeld overzicht.
+ * Bepaalt welke gebruikers meetellen op Cijfers/Productie: standaard
+ * iedereen (`null`, `structureId` leeg), tenzij een specifieke
+ * substructuur (`structureId`, het id van een Coach) gekozen is — voor
+ * elke rol, want de ranglijst is bedoeld als bedrijfsbreed, gedeeld
+ * overzicht, niet enkel voor Admin/Beheerder om te filteren.
  * `null` betekent: geen filter (iedereen).
  */
 export async function resolveProductionUserIds(
   structureId?: string
 ): Promise<string[] | null> {
-  const viewer = await requireViewer();
-
-  if (viewer.role === Role.COACH) {
-    const descendants = await getDescendantUserIds(viewer.id);
-    return [viewer.id, ...descendants];
-  }
-
-  if (!canManageUsers(viewer) || !structureId) return null;
+  await requireViewer();
+  if (!structureId) return null;
 
   const descendants = await getDescendantUserIds(structureId);
   return [structureId, ...descendants];
