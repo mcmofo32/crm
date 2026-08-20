@@ -186,7 +186,14 @@ export default async function PolissenPage({
       getAllProductionMonthConfigs(),
       getCurrentProductionMonth(),
     ]);
-  const selectedYear = yearParam ? Number(yearParam) : currentProductionMonth.year;
+  // "alle" toont elk jaar door elkaar — nodig omdat rechtstreeks toegevoegde
+  // klanten (Klant toevoegen/bulk-import) vaak een historische datum
+  // (van vóór dit CRM) als "klant sinds" hebben, en dus in een ander jaar
+  // dan het huidige productiejaar terechtkomen. Zonder deze optie leek hun
+  // polis-lijn dan "verdwenen", terwijl ze gewoon in dat oudere jaar zaten.
+  const showAllYears = yearParam === "alle";
+  const selectedYear =
+    !showAllYears && yearParam ? Number(yearParam) : currentProductionMonth.year;
 
   const canViewOthersCustomers = canManageUsers(viewer);
   const requiresSelection =
@@ -265,15 +272,16 @@ export default async function PolissenPage({
     if (bucket) bucket.policies.push(p);
     else groupsByKey.set(key, { year, month, policies: [p] });
   }
-  // Enkel de gekozen productiejaar tonen — anders groeit deze lijst
-  // onbeperkt mee met elk jaar dat de zaak bestaat.
+  // Standaard enkel het gekozen productiejaar tonen — anders groeit deze
+  // lijst onbeperkt mee met elk jaar dat de zaak bestaat — maar "Alle
+  // jaren" (showAllYears) toont alles door elkaar, nieuwste eerst.
   const groups = Array.from(groupsByKey.values())
-    .filter((g) => g.year === selectedYear)
-    .sort((a, b) => b.month - a.month);
+    .filter((g) => showAllYears || g.year === selectedYear)
+    .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
   const yearPolicies = groups.flatMap((g) => g.policies);
   const totalUnits = yearPolicies.reduce((sum, p) => sum + p.units, 0);
 
-  function yearHref(y: number) {
+  function yearHref(y: number | "alle") {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (selectedOwnerId) params.set("ownerId", selectedOwnerId);
@@ -297,22 +305,44 @@ export default async function PolissenPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {showAllYears ? (
+            <Link
+              href={yearHref(currentProductionMonth.year)}
+              className="text-sm text-slate-500 underline hover:text-slate-700"
+            >
+              Terug naar jaarweergave
+            </Link>
+          ) : (
+            <>
+              <Link
+                href={yearHref(selectedYear - 1)}
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+                title="Vorig jaar"
+              >
+                <ChevronLeft size={16} />
+              </Link>
+              <span className="min-w-16 text-center text-base font-medium text-slate-900">
+                {selectedYear}
+              </span>
+              <Link
+                href={yearHref(selectedYear + 1)}
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+                title="Volgend jaar"
+              >
+                <ChevronRight size={16} />
+              </Link>
+            </>
+          )}
           <Link
-            href={yearHref(selectedYear - 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
-            title="Vorig jaar"
+            href={yearHref("alle")}
+            title="Alle jaren tonen — handig om ook oudere/historische klanten (bv. rechtstreeks toegevoegd met een datum van vóór dit CRM) terug te vinden"
+            className={`rounded-md px-3 py-2 text-sm font-medium ${
+              showAllYears
+                ? "bg-slate-900 text-white"
+                : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+            }`}
           >
-            <ChevronLeft size={16} />
-          </Link>
-          <span className="min-w-16 text-center text-base font-medium text-slate-900">
-            {selectedYear}
-          </span>
-          <Link
-            href={yearHref(selectedYear + 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
-            title="Volgend jaar"
-          >
-            <ChevronRight size={16} />
+            Alle jaren
           </Link>
         </div>
       </div>
@@ -322,7 +352,7 @@ export default async function PolissenPage({
           {selectedOwnerId && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
-          <input type="hidden" name="year" value={selectedYear} />
+          <input type="hidden" name="year" value={showAllYears ? "alle" : selectedYear} />
           <div className="relative">
             <Search
               size={16}
@@ -345,6 +375,8 @@ export default async function PolissenPage({
         <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400">
           {q
             ? "Geen polissen gevonden voor deze zoekopdracht."
+            : showAllYears
+            ? "Nog geen polissen."
             : `Geen polissen in ${selectedYear}.`}
         </div>
       ) : (
@@ -376,7 +408,10 @@ export default async function PolissenPage({
 
       {yearPolicies.length > 0 && (
         <div className="flex items-center justify-between rounded-lg border-2 border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white">
-          <span>Totaal {selectedYear}: {yearPolicies.length} polissen</span>
+          <span>
+            Totaal {showAllYears ? "alle jaren" : selectedYear}:{" "}
+            {yearPolicies.length} polissen
+          </span>
           <span>{totalUnits} eenheden</span>
         </div>
       )}
