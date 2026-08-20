@@ -27,6 +27,7 @@ import {
 } from "@/lib/funnelStages";
 import { normalizePhone, findLeadsByContact } from "@/lib/actions/duplicates";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import { contactState } from "@/lib/contactState";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -311,12 +312,11 @@ export async function createLeadsBulkAction(formData: FormData) {
   const filledRows = rawRows.filter((row) => row.firstName || row.lastName);
 
   if (filledRows.length === 0) {
-    throw new Error("Vul minstens één rij in met voornaam en achternaam");
+    throw new Error("Vul minstens één rij in met een voornaam");
   }
-  if (filledRows.some((row) => !row.firstName || !row.lastName)) {
-    throw new Error(
-      "Elke ingevulde rij moet zowel een voornaam als achternaam hebben"
-    );
+  // Achternaam is niet verplicht: kan later nog aangevuld worden op de lead zelf.
+  if (filledRows.some((row) => !row.firstName)) {
+    throw new Error("Elke ingevulde rij moet minstens een voornaam hebben");
   }
 
   const errors: string[] = [];
@@ -630,7 +630,13 @@ export async function getDeletedLeads() {
   });
 }
 
-export type LeadContactFilter = "none" | "overdue";
+/**
+ * "te_contacteren"/"voicemail" gebruiken dezelfde contactState-definitie als
+ * de Pipeline-pagina (nog geen enkel gesprek gehad, resp. enkel voicemail
+ * gehad) — zie contactState() hieronder, ipv de simpelere lastContactedAt-
+ * check die "none" gebruikt.
+ */
+export type LeadContactFilter = "none" | "overdue" | "te_contacteren" | "voicemail";
 export type LeadSortOption = "recent" | "stale";
 /**
  * Categoriseert leads op het leadsoverzicht/Pipeline, zodat een lange lijst
@@ -659,7 +665,7 @@ export async function getLeadsForCurrentUser(
   const trimmedSearch = search?.trim();
   const now = new Date();
 
-  return prisma.lead.findMany({
+  const leads = await prisma.lead.findMany({
     where: {
       deletedAt: null,
       ...(ids ? { ownerId: { in: ids } } : {}),
@@ -705,11 +711,13 @@ export async function getLeadsForCurrentUser(
     include: {
       stage: true,
       owner: true,
+      // Volledige activiteiten-historiek (niet enkel de eerstvolgende
+      // geplande) opgehaald, want contactState() hieronder heeft alle
+      // gesprekken nodig om "te_contacteren"/"voicemail" te bepalen — de
+      // weergave van de eerstvolgende geplande activiteit wordt verderop uit
+      // diezelfde lijst afgeleid.
       activities: {
-        where: { status: "PLANNED", scheduledAt: { gte: now } },
-        orderBy: { scheduledAt: "asc" },
-        take: 1,
-        select: { scheduledAt: true },
+        select: { type: true, status: true, scheduledAt: true, wasVoicemail: true },
       },
     },
     orderBy:
@@ -717,6 +725,24 @@ export async function getLeadsForCurrentUser(
         ? { lastContactedAt: { sort: "asc", nulls: "first" } }
         : { createdAt: "desc" },
   });
+
+  // "Te contacteren"/"voicemail" zijn geen kolom op Lead maar afgeleid uit de
+  // volledige activiteiten-historiek, dus niet mogelijk in de Prisma `where`
+  // hierboven — hier pas na het ophalen filteren.
+  const contactStateFiltered =
+    options?.contactFilter === "te_contacteren"
+      ? leads.filter((lead) => contactState(lead.activities) === "TE_CONTACTEREN")
+      : options?.contactFilter === "voicemail"
+      ? leads.filter((lead) => contactState(lead.activities) === "VOICEMAIL")
+      : leads;
+
+  return contactStateFiltered.map((lead) => ({
+    ...lead,
+    activities: lead.activities
+      .filter((a) => a.status === "PLANNED" && a.scheduledAt && a.scheduledAt >= now)
+      .sort((a, b) => a.scheduledAt!.getTime() - b.scheduledAt!.getTime())
+      .slice(0, 1),
+  }));
 }
 
 /** Alle funnel-stages (beide leadtypes), gebruikt om op fase te filteren op de leadslijst. */

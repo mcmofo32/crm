@@ -42,7 +42,10 @@ export default async function LeadsPage({
   const leadType =
     type === "FA" || type === "RG" ? (type as LeadType) : undefined;
   const contactFilter =
-    contact === "none" || contact === "overdue"
+    contact === "none" ||
+    contact === "overdue" ||
+    contact === "te_contacteren" ||
+    contact === "voicemail"
       ? (contact as LeadContactFilter)
       : undefined;
   const sortBy = sort === "stale" ? ("stale" as LeadSortOption) : undefined;
@@ -294,6 +297,8 @@ export default async function LeadsPage({
                 <option value="">Alle</option>
                 <option value="none">Zonder contact</option>
                 <option value="overdue">Verlopen opvolging</option>
+                <option value="te_contacteren">Te contacteren</option>
+                <option value="voicemail">Voicemail</option>
               </select>
 
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">

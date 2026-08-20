@@ -25,7 +25,9 @@ const COLUMN_LABELS: Record<TextField, string> = {
   source: "Bron",
   type: "Type (FA/RG)",
 };
-const REQUIRED_COLUMNS = new Set<TextField>(["firstName", "lastName"]);
+const REQUIRED_COLUMNS = new Set<TextField>(["firstName"]);
+/** Achternaam is niet verplicht: mag later nog aangevuld worden op de lead zelf. */
+const OPTIONAL_COLUMNS = new Set<TextField>(["lastName"]);
 /** Optioneel: leeg = de standaard Funnel bovenaan het formulier. */
 const OPTIONAL_OVERRIDE_COLUMNS = new Set<TextField>(["type"]);
 
@@ -120,25 +122,27 @@ export function BulkLeadForm() {
             <option value="RG">{LEAD_TYPE_LABELS.RG}</option>
           </select>
         </div>
-        <p className="max-w-md text-xs text-slate-400">
+        <p className="max-w-md text-sm text-slate-500">
           Tip: plak gerust een selectie uit Excel/Sheets direct in de tabel.
-          Elke rij wordt automatisch aan jezelf toegewezen. De kolom Type is
-          optioneel per rij — leeg = de standaardwaarde hierboven.
+          Elke rij wordt automatisch aan jezelf toegewezen. De kolommen
+          Achternaam en Type zijn optioneel per rij — Achternaam kan later nog
+          aangevuld worden, en een lege Type-kolom gebruikt de standaardwaarde
+          hierboven.
         </p>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+        <table className="w-full text-base">
+          <thead className="bg-slate-50 text-left text-slate-700">
             <tr>
               {COLUMNS.map((col) => (
-                <th key={col} className="px-3 py-2 font-medium">
+                <th key={col} className="px-3 py-2 font-semibold">
                   {COLUMN_LABELS[col]}
                   {REQUIRED_COLUMNS.has(col) && (
                     <span className="text-red-500"> *</span>
                   )}
-                  {OPTIONAL_OVERRIDE_COLUMNS.has(col) && (
-                    <span className="font-normal text-slate-400"> (optioneel)</span>
+                  {(OPTIONAL_COLUMNS.has(col) || OPTIONAL_OVERRIDE_COLUMNS.has(col)) && (
+                    <span className="font-normal text-slate-500"> (optioneel)</span>
                   )}
                 </th>
               ))}
@@ -155,7 +159,7 @@ export function BulkLeadForm() {
                       value={row[col]}
                       onChange={(e) => updateCell(rowIndex, col, e.target.value)}
                       onPaste={(e) => handlePaste(rowIndex, colIndex, e)}
-                      className="w-full rounded border border-transparent px-2 py-1.5 hover:border-slate-200 focus:border-slate-400 focus:outline-none"
+                      className="w-full rounded border border-transparent px-2.5 py-2 text-slate-900 hover:border-slate-200 focus:border-slate-400 focus:outline-none"
                     />
                   </td>
                 ))}

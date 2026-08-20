@@ -6,6 +6,7 @@ import { LeadType } from "@/generated/prisma/client";
 import { canAccessOwner } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { mainFunnelStageKeys } from "@/lib/funnelStages";
+import { contactState } from "@/lib/contactState";
 import type { LeadCategoryFilter } from "@/lib/actions/leads";
 
 /** Zoals LeadCategoryFilter, maar met "opvolging" erbij — enkel relevant op de Pipeline-pagina, dus niet in het gedeelde type op /leads. */
@@ -15,26 +16,6 @@ async function requireUser() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
   return viewer;
-}
-
-type ContactState = "TE_CONTACTEREN" | "VOICEMAIL" | "TERUGKOPPELEN" | "OVERIG";
-
-function contactState(
-  activities: { type: string; status: string; scheduledAt: Date | null; wasVoicemail: boolean }[]
-): ContactState {
-  const now = new Date();
-  const hasPlannedCallback = activities.some(
-    (a) => a.type === "CALL" && a.status === "PLANNED" && a.scheduledAt && a.scheduledAt > now
-  );
-  if (hasPlannedCallback) return "TERUGKOPPELEN";
-
-  const completedCalls = activities.filter(
-    (a) => a.type === "CALL" && a.status === "COMPLETED"
-  );
-  const wasReached = completedCalls.some((a) => !a.wasVoicemail);
-  if (wasReached) return "OVERIG";
-
-  return completedCalls.some((a) => a.wasVoicemail) ? "VOICEMAIL" : "TE_CONTACTEREN";
 }
 
 export type PipelineStats = {
