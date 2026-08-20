@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { LeadType } from "@/generated/prisma/client";
 
+/** Stage-key van de "Nieuwe lead"-fase (defaultStage hieronder), voor beide leadtypes gelijk. */
+export const NEW_LEAD_STAGE_KEY = "nieuw";
+
 type StageSpec = {
   key: string;
   label: string;
@@ -19,7 +22,7 @@ type FunnelSpec = {
 };
 
 const FA_SPEC: FunnelSpec = {
-  defaultStage: { key: "nieuw", label: "Nieuwe lead", order: -1 },
+  defaultStage: { key: NEW_LEAD_STAGE_KEY, label: "Nieuwe lead", order: -1 },
   main: [
     { key: "financiele_analyse", label: "Financiële analyse", order: 0 },
     { key: "adviesgesprek", label: "Adviesgesprek", order: 1 },
@@ -34,7 +37,7 @@ const FA_SPEC: FunnelSpec = {
 };
 
 const RG_SPEC: FunnelSpec = {
-  defaultStage: { key: "nieuw", label: "Nieuwe lead", order: -1 },
+  defaultStage: { key: NEW_LEAD_STAGE_KEY, label: "Nieuwe lead", order: -1 },
   main: [
     { key: "behoefte", label: "Kennismakingsgesprek", order: 0 },
     { key: "offerte", label: "Carrièregesprek", order: 1 },

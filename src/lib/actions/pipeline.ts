@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { LeadType } from "@/generated/prisma/client";
 import { canAccessOwner } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { mainFunnelStageKeys } from "@/lib/funnelStages";
+import { mainFunnelStageKeys, NEW_LEAD_STAGE_KEY } from "@/lib/funnelStages";
 import { contactState } from "@/lib/contactState";
 import type { LeadCategoryFilter } from "@/lib/actions/leads";
 
@@ -151,7 +151,7 @@ export async function getPipelineLeads(
       lastContactedAt: true,
       characteristics: true,
       stageId: true,
-      stage: { select: { label: true } },
+      stage: { select: { key: true, label: true } },
       activities: {
         select: { type: true, status: true, scheduledAt: true, wasVoicemail: true },
       },
@@ -172,29 +172,39 @@ export async function getPipelineLeads(
       ? leads.filter((lead) => contactState(lead.activities) === "VOICEMAIL")
       : leads;
 
-  return filtered.map((lead) => ({
-    id: lead.id,
-    createdAt: lead.createdAt,
-    firstName: lead.firstName,
-    lastName: lead.lastName,
-    email: lead.email,
-    phone: lead.phone,
-    source: lead.source,
-    isInformed: lead.isInformed,
-    messageSent: lead.messageSent,
-    qualityScore: lead.qualityScore,
-    lastContactedAt: lead.lastContactedAt,
-    stageId: lead.stageId,
-    statusLabel: lead.stage.label,
-    characteristics: lead.characteristics,
-    // Telt elk telefoongesprek (bereikt of voicemail) én elke ingeplande
-    // afspraak — die laatste vereist immers ook een telefoongesprek om in
-    // te plannen, maar telt maar één keer mee (dus niet nog eens apart
-    // loggen als telefoongesprek voor diezelfde inplanning).
-    callCount: lead.activities.filter(
-      (a) => (a.type === "CALL" && a.status === "COMPLETED") || a.type === "MEETING"
-    ).length,
-  }));
+  return filtered.map((lead) => {
+    // Een lead die nog op "Nieuwe lead" staat maar al een contactpoging
+    // achter de rug heeft (dus meetelt bij Opvolging/Te contacteren/
+    // Voicemail hierboven) toont hier "Opvolging" i.p.v. de rauwe
+    // fase-naam — de fase zelf (stageId) verandert niet, dit is enkel de
+    // weergave in de Status-kolom.
+    const isUncontactedNewLead =
+      lead.stage.key === NEW_LEAD_STAGE_KEY && contactState(lead.activities) !== "OVERIG";
+
+    return {
+      id: lead.id,
+      createdAt: lead.createdAt,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      email: lead.email,
+      phone: lead.phone,
+      source: lead.source,
+      isInformed: lead.isInformed,
+      messageSent: lead.messageSent,
+      qualityScore: lead.qualityScore,
+      lastContactedAt: lead.lastContactedAt,
+      stageId: lead.stageId,
+      statusLabel: isUncontactedNewLead ? "Opvolging" : lead.stage.label,
+      characteristics: lead.characteristics,
+      // Telt elk telefoongesprek (bereikt of voicemail) én elke ingeplande
+      // afspraak — die laatste vereist immers ook een telefoongesprek om in
+      // te plannen, maar telt maar één keer mee (dus niet nog eens apart
+      // loggen als telefoongesprek voor diezelfde inplanning).
+      callCount: lead.activities.filter(
+        (a) => (a.type === "CALL" && a.status === "COMPLETED") || a.type === "MEETING"
+      ).length,
+    };
+  });
 }
 
 async function requireLeadAccessFor(leadId: string) {
