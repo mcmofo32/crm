@@ -84,6 +84,7 @@ export type PipelineLeadRow = {
   phone: string | null;
   source: string | null;
   isInformed: boolean;
+  messageSent: boolean;
   qualityScore: number | null;
   lastContactedAt: Date | null;
   stageId: string;
@@ -145,6 +146,7 @@ export async function getPipelineLeads(
       phone: true,
       source: true,
       isInformed: true,
+      messageSent: true,
       qualityScore: true,
       lastContactedAt: true,
       characteristics: true,
@@ -179,6 +181,7 @@ export async function getPipelineLeads(
     phone: lead.phone,
     source: lead.source,
     isInformed: lead.isInformed,
+    messageSent: lead.messageSent,
     qualityScore: lead.qualityScore,
     lastContactedAt: lead.lastContactedAt,
     stageId: lead.stageId,
@@ -230,6 +233,19 @@ export async function setLeadInformedAction(leadId: string, formData: FormData) 
   await prisma.lead.update({
     where: { id: leadId },
     data: { isInformed },
+  });
+
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
+}
+
+export async function setLeadMessageSentAction(leadId: string, formData: FormData) {
+  await requireLeadAccessFor(leadId);
+  const messageSent = formData.get("messageSent") === "true";
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { messageSent },
   });
 
   revalidatePath("/pipeline/verkoop");

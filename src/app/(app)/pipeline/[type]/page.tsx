@@ -7,6 +7,7 @@ import {
   getPipelineLeads,
   setLeadQualityScoreAction,
   setLeadInformedAction,
+  setLeadMessageSentAction,
   setLeadCharacteristicsAction,
   type PipelineCategoryFilter,
 } from "@/lib/actions/pipeline";
@@ -245,6 +246,7 @@ export default async function PipelinePage({
               ) : (
                 <>
                   <th className="px-4 py-3 text-center font-medium">Op de hoogte</th>
+                  <th className="px-4 py-3 text-center font-medium">Bericht verstuurd</th>
                   <th className="px-4 py-3 font-medium">Cijfer op 10</th>
                   <th className="px-4 py-3 font-medium">Laatste contact</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -285,6 +287,13 @@ export default async function PipelinePage({
                         checked={lead.isInformed}
                       />
                     </td>
+                    <td className="px-4 py-2.5 text-center">
+                      <InlineCheckbox
+                        action={setLeadMessageSentAction.bind(null, lead.id)}
+                        name="messageSent"
+                        checked={lead.messageSent}
+                      />
+                    </td>
                     <td className="px-4 py-2.5">
                       <InlineSelect
                         action={setLeadQualityScoreAction.bind(null, lead.id)}
@@ -322,7 +331,7 @@ export default async function PipelinePage({
             {leads.length === 0 && (
               <tr>
                 <td
-                  colSpan={isRecrutering ? 6 : 10}
+                  colSpan={isRecrutering ? 6 : 11}
                   className="px-4 py-8 text-center text-slate-400"
                 >
                   {q || category

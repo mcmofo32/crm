@@ -308,6 +308,8 @@ model Lead {
   qualityScore    Int?
   /// Pipeline: handmatig aan te vinken of de lead al op de hoogte is (bv. van de aanbeveling).
   isInformed      Boolean @default(false)
+  /// Pipeline: handmatig aan te vinken of er al een bericht (bv. sms/mail) naar de lead verstuurd is.
+  messageSent     Boolean @default(false)
   /// Pipeline recrutering: vrij in te vullen kenmerken van de kandidaat.
   characteristics String?
 
