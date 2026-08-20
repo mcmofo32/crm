@@ -173,13 +173,15 @@ export async function getPipelineLeads(
       : leads;
 
   return filtered.map((lead) => {
-    // Een lead die nog op "Nieuwe lead" staat maar al een contactpoging
-    // achter de rug heeft (dus meetelt bij Opvolging/Te contacteren/
-    // Voicemail hierboven) toont hier "Opvolging" i.p.v. de rauwe
-    // fase-naam — de fase zelf (stageId) verandert niet, dit is enkel de
-    // weergave in de Status-kolom.
-    const isUncontactedNewLead =
-      lead.stage.key === NEW_LEAD_STAGE_KEY && contactState(lead.activities) !== "OVERIG";
+    // Een lead die nog op "Nieuwe lead" staat maar al een toekomstig
+    // terugbelmoment heeft (TERUGKOPPELEN) toont hier "Opvolging" i.p.v.
+    // de rauwe fase-naam — de fase zelf (stageId) verandert niet, dit is
+    // enkel de weergave in de Status-kolom. Enkel TERUGKOPPELEN, niet
+    // TE_CONTACTEREN/VOICEMAIL: "Opvolging" betekent hier specifiek dat er
+    // een opvolggesprek ingepland staat, niet gewoon "nog niet bereikt".
+    const hasPlannedFollowUp =
+      lead.stage.key === NEW_LEAD_STAGE_KEY &&
+      contactState(lead.activities) === "TERUGKOPPELEN";
 
     return {
       id: lead.id,
@@ -194,7 +196,7 @@ export async function getPipelineLeads(
       qualityScore: lead.qualityScore,
       lastContactedAt: lead.lastContactedAt,
       stageId: lead.stageId,
-      statusLabel: isUncontactedNewLead ? "Opvolging" : lead.stage.label,
+      statusLabel: hasPlannedFollowUp ? "Opvolging" : lead.stage.label,
       characteristics: lead.characteristics,
       // Telt elk telefoongesprek (bereikt of voicemail) én elke ingeplande
       // afspraak — die laatste vereist immers ook een telefoongesprek om in
