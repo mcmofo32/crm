@@ -53,7 +53,9 @@ export default async function LoginSessiesPage({
           Login-sessies
         </h1>
         <p className="mt-1 text-base text-slate-500">
-          Elke keer dat iemand via Google inlogt. Enkel zichtbaar voor Beheerder/Admin.
+          Wanneer iedereen actief was in de CRM, per sessie (een nieuwe
+          sessie start na 30 minuten zonder activiteit). Enkel zichtbaar voor
+          Beheerder/Admin.
         </p>
       </div>
 
@@ -106,7 +108,8 @@ export default async function LoginSessiesPage({
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              <th className="px-6 py-3 font-medium">Datum</th>
+              <th className="px-6 py-3 font-medium">Sessie gestart</th>
+              <th className="px-6 py-3 font-medium">Laatst actief</th>
               <th className="px-6 py-3 font-medium">Gebruiker</th>
               <th className="px-6 py-3 font-medium">E-mail</th>
             </tr>
@@ -116,6 +119,12 @@ export default async function LoginSessiesPage({
               <tr key={event.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 whitespace-nowrap text-slate-500">
                   {event.createdAt.toLocaleString("nl-BE", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-slate-500">
+                  {event.lastSeenAt.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
                   })}
@@ -134,10 +143,10 @@ export default async function LoginSessiesPage({
             {events.length === 0 && (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={4}
                   className="px-6 py-8 text-center text-slate-400"
                 >
-                  Nog geen logins geregistreerd.
+                  Nog geen activiteit geregistreerd.
                 </td>
               </tr>
             )}

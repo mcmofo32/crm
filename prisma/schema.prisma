@@ -197,16 +197,19 @@ model AuditLog {
   @@index([actorId, createdAt])
 }
 
-/// Eén rij per keer dat een gebruiker effectief via Google inlogt (het
-/// moment dat de OAuth-sign-in-flow doorlopen wordt, niet elke
-/// paginabezoek binnen een al lopende sessie — zie de jwt-callback in
-/// auth.ts) — voor Beheerder/Admin om de login-sessies van iedereen op te
-/// kunnen volgen (zie /beheer/login-sessies).
+/// Eén rij per "sessie" van effectieve activiteit in de CRM (elk
+/// scherm-bezoek, niet enkel het moment van inloggen) — zie
+/// touchLoginActivity in sessions.ts, aangeroepen vanuit de layout bij elke
+/// paginanavigatie. `createdAt` is het begin van de sessie, `lastSeenAt`
+/// het laatste bezoek erbinnen; na 30 minuten zonder activiteit start een
+/// nieuwe sessie i.p.v. de bestaande bij te werken. Voor Beheerder/Admin om
+/// te zien wanneer iedereen actief was (zie /beheer/login-sessies).
 model LoginEvent {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation("UserLoginEvents", fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("UserLoginEvents", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([createdAt])

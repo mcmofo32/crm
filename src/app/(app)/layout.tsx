@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData, canViewBeheerderTools } from "@/lib/permissions";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
+import { touchLoginActivity } from "@/lib/actions/sessions";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { NavLinks } from "@/components/NavLinks";
@@ -19,6 +20,7 @@ export default async function AppLayout({
 }) {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
+  await touchLoginActivity(viewer.id);
 
   const viewerDetails = await prisma.user.findUnique({
     where: { id: viewer.id },
