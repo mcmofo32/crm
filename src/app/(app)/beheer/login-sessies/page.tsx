@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogIn, Users } from "lucide-react";
+import { LogIn, Users, CalendarDays } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools, getDescendantUserIds } from "@/lib/permissions";
-import { getLoginEvents } from "@/lib/actions/sessions";
+import { getLoginEvents, getLoginActivityByDay } from "@/lib/actions/sessions";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getProductionStructureOptions } from "@/lib/actions/production";
 import { Avatar } from "@/components/Avatar";
@@ -35,7 +35,13 @@ export default async function LoginSessiesPage({
     ? [teamId, ...(await getDescendantUserIds(teamId))]
     : undefined;
 
-  const events = await getLoginEvents({ userId: medewerkerId, userIds });
+  const [events, dailyActivity] = await Promise.all([
+    getLoginEvents({ userId: medewerkerId, userIds }),
+    medewerkerId ? getLoginActivityByDay(medewerkerId) : Promise.resolve(null),
+  ]);
+  const selectedMedewerker = medewerkerId
+    ? assignableUsers.find((u) => u.id === medewerkerId)
+    : undefined;
 
   function filterHref(next: { team?: string; medewerker?: string }) {
     const params = new URLSearchParams();
@@ -103,6 +109,49 @@ export default async function LoginSessiesPage({
           </Link>
         )}
       </form>
+
+      {dailyActivity && (
+        <div>
+          <h2 className="mb-1 flex items-center gap-1.5 text-lg font-medium text-slate-900">
+            <CalendarDays size={18} className="text-slate-400" />
+            Activiteit per dag — laatste 30 dagen
+            {selectedMedewerker && (
+              <span className="font-normal text-slate-500">
+                · {selectedMedewerker.name}
+              </span>
+            )}
+          </h2>
+          <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-base">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Datum</th>
+                  <th className="px-6 py-3 font-medium">Actieve sessies</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {dailyActivity.map((day) => (
+                  <tr
+                    key={day.date.toISOString()}
+                    className={day.sessionCount === 0 ? "text-slate-300" : undefined}
+                  >
+                    <td className="px-6 py-2.5 whitespace-nowrap text-slate-600">
+                      {day.date.toLocaleDateString("nl-BE", {
+                        weekday: "short",
+                        day: "2-digit",
+                        month: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-6 py-2.5 font-medium">
+                      {day.sessionCount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-base">
