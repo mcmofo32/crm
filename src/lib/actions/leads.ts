@@ -28,6 +28,7 @@ import {
 import { normalizePhone, findLeadsByContact } from "@/lib/actions/duplicates";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { contactState } from "@/lib/contactState";
+import { getSubagents } from "@/lib/actions/subagents";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -204,20 +205,20 @@ export async function createCustomerAction(formData: FormData) {
     ? requestedOwnerId
     : user.id;
 
-  // Enkel een geldige, actieve subagent aanvaarden — bij een leeg/ongeldige
-  // keuze valt dit terug op de standaard (dossierbeheerder = aanbrenger).
+  // Dossierbeheerder kan enkel een subagent zijn (nooit "gewoon" de
+  // aanbrenger) — dus enkel verplicht kiesbaar uit de subagenten die deze
+  // actor mag toewijzen (zelfde lijst als op het formulier). Is er geen
+  // enkele subagent beschikbaar om uit te kiezen, dan blijft de oude
+  // fallback (dossierbeheerder = aanbrenger) de enige mogelijke optie.
+  const availableSubagents = await getSubagents();
   const requestedCaseManagerSubagentId =
     String(formData.get("caseManagerSubagentId") ?? "").trim() || null;
   const caseManagerSubagentId = requestedCaseManagerSubagentId
-    ? (
-        await prisma.subagent.findUnique({
-          where: { id: requestedCaseManagerSubagentId },
-          select: { id: true, active: true },
-        })
-      )?.active
-      ? requestedCaseManagerSubagentId
-      : null
+    ? availableSubagents.find((s) => s.id === requestedCaseManagerSubagentId)?.id ?? null
     : null;
+  if (availableSubagents.length > 0 && !caseManagerSubagentId) {
+    throw new Error("Kies een dossierbeheerder (kan enkel een subagent zijn)");
+  }
 
   const phone = (formData.get("phone") as string) || null;
   const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);

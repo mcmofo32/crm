@@ -17,7 +17,6 @@ import {
 } from "@/lib/actions/production";
 import { resolveProductionMonth } from "@/lib/productionMonth";
 import { canManageUsers, getDescendantUserIds } from "@/lib/permissions";
-import { MONTH_LABELS } from "@/lib/goalLabels";
 import { PRODUCT_TYPE_LABELS } from "@/lib/productTypes";
 import {
   INSURANCE_COMPANY_LABELS,
@@ -278,6 +277,12 @@ export default async function PolissenPage({
   const groups = Array.from(groupsByKey.values())
     .filter((g) => showAllYears || g.year === selectedYear)
     .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+  // Binnen elke productiemaand: meest recente polis bovenaan, oudste
+  // onderaan — anders staan ze door elkaar (volgorde van `createdAt` van de
+  // polis-rij zelf, niet van de eigenlijke contractdatum).
+  for (const g of groups) {
+    g.policies.sort((a, b) => b.becameCustomerAt.getTime() - a.becameCustomerAt.getTime());
+  }
   const yearPolicies = groups.flatMap((g) => g.policies);
   const totalUnits = yearPolicies.reduce((sum, p) => sum + p.units, 0);
 
@@ -391,7 +396,7 @@ export default async function PolissenPage({
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-200">
                   <span>
-                    {MONTH_LABELS[group.month - 1]} {group.year}
+                    Productiemaand {String(group.month).padStart(2, "0")}/{group.year}
                   </span>
                   <span className="font-normal text-slate-500">
                     {group.policies.length} polissen · {groupUnits} eenheden

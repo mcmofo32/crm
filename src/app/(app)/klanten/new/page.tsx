@@ -83,10 +83,13 @@ export default async function NewCustomerPage() {
             </label>
             <select
               name="caseManagerSubagentId"
+              required
               defaultValue=""
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"
             >
-              <option value="">Zelfde als aanbrenger</option>
+              <option value="" disabled>
+                Kies een dossierbeheerder…
+              </option>
               {subagents.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -94,8 +97,9 @@ export default async function NewCustomerPage() {
               ))}
             </select>
             <p className="text-xs text-slate-400">
-              Wie dit dossier beheert (producten toevoegt, opvolgt). Standaard
-              dezelfde persoon als de aanbrenger hierboven.
+              Wie dit dossier beheert (producten toevoegt, opvolgt) — kan
+              enkel een subagent zijn, niet noodzakelijk dezelfde persoon als
+              de aanbrenger hierboven.
             </p>
           </div>
         )}
