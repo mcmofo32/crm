@@ -90,6 +90,20 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   const desiredTypes = new Set(desired.map((d) => d.type));
   const toDelete = existing.filter((p) => !desiredTypes.has(p.type));
 
+  // Rechtstreeks een product toevoegen aan een lead die de normale funnel
+  // nog niet (helemaal) doorlopen heeft, moet die lead net als de "Klant
+  // toevoegen"-flow en het verslepen naar de Klant-fase meteen als klant
+  // markeren — anders blijft die op bv. "Nieuwe lead" staan terwijl er al
+  // een polis is (zichtbaar bij Polissen/Klanten onder beheer), maar niet
+  // bij Klanten (die enkel status WON toont). Zelfde voorwaarde als bij
+  // "Klant toevoegen": enkel als er ook effectief een product is.
+  const wonStage =
+    lead.status !== "WON" && desired.length > 0
+      ? await prisma.funnelStage.findFirst({
+          where: { leadType: lead.leadType, isWon: true },
+        })
+      : null;
+
   await prisma.$transaction([
     ...(toDelete.length > 0
       ? [
@@ -116,6 +130,30 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
         },
       });
     }),
+    ...(wonStage
+      ? [
+          prisma.lead.update({
+            where: { id: leadId },
+            data: {
+              status: "WON",
+              stageId: wonStage.id,
+              // Zelfde standaard als het verslepen naar de Klant-fase:
+              // dossierbeheerder op wie dit deed, tenzij al eerder ingesteld.
+              ...(!lead.caseManagerUserId && !lead.caseManagerSubagentId
+                ? { caseManagerUserId: user.id }
+                : {}),
+            },
+          }),
+          prisma.leadStageChange.create({
+            data: {
+              leadId,
+              fromStageId: lead.stageId,
+              toStageId: wonStage.id,
+              changedById: user.id,
+            },
+          }),
+        ]
+      : []),
   ]);
 
   revalidatePath(`/leads/${leadId}`);
@@ -124,6 +162,8 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   revalidatePath("/subagent");
   revalidatePath("/klanten/polissen");
   revalidatePath("/subagent/polissen");
+  revalidatePath("/productie");
+  revalidatePath("/dashboard");
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
