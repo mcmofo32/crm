@@ -43,6 +43,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // eigen interne account (id/rol) opzoekt — de Google-profielvelden
     // (sub/naam/foto) zijn niet wat de rest van de app als identiteit
     // gebruikt.
+    // `user` staat hier enkel bij de effectieve sign-in-flow zelf (net na
+    // Google-login), niet bij elke navigatie binnen een al lopende sessie
+    // — dus precies het moment om een LoginEvent te loggen (zie
+    // /beheer/login-sessies, enkel zichtbaar voor Beheerder/Admin).
     jwt: async ({ token, user }) => {
       if (user?.email) {
         const dbUser = await findUserByEmail(user.email);
@@ -50,6 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.loginAt = Date.now();
+          await prisma.loginEvent.create({ data: { userId: dbUser.id } });
         }
       }
       return token;

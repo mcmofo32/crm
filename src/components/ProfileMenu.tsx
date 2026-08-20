@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Copy,
   ScrollText,
+  LogIn,
   Eye,
   Target,
   CloudUpload,
@@ -156,6 +157,9 @@ export function ProfileMenu({
           </MenuLink>
           <MenuLink href="/beheer/auditlog" icon={ScrollText}>
             Logboek
+          </MenuLink>
+          <MenuLink href="/beheer/login-sessies" icon={LogIn}>
+            Login-sessies
           </MenuLink>
         </>
       )}
