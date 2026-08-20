@@ -185,13 +185,13 @@ export default async function PipelinePage({
         {(
           [
             ["open", "Open leads"],
+            ["te_contacteren", "Te contacteren"],
+            ["voicemail", "Voicemail"],
             ["alle", "Alle leads"],
             ["klanten", "Klanten"],
             ["ingepland", "Ingeplande leads"],
             ["geen_interesse", "Geen interesse"],
             ["opvolging", "Opvolging"],
-            ["te_contacteren", "Te contacteren"],
-            ["voicemail", "Voicemail"],
           ] as const
         ).map(([c, label]) => (
           <Link
