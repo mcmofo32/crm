@@ -54,6 +54,8 @@ export default async function PipelinePage({
     view === "geen_interesse" ||
     view === "klanten" ||
     view === "opvolging" ||
+    view === "te_contacteren" ||
+    view === "voicemail" ||
     view === "alle"
       ? view
       : "open";
@@ -188,6 +190,8 @@ export default async function PipelinePage({
             ["ingepland", "Ingeplande leads"],
             ["geen_interesse", "Geen interesse"],
             ["opvolging", "Opvolging"],
+            ["te_contacteren", "Te contacteren"],
+            ["voicemail", "Voicemail"],
           ] as const
         ).map(([c, label]) => (
           <Link

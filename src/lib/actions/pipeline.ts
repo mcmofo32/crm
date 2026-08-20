@@ -9,8 +9,17 @@ import { mainFunnelStageKeys } from "@/lib/funnelStages";
 import { contactState } from "@/lib/contactState";
 import type { LeadCategoryFilter } from "@/lib/actions/leads";
 
-/** Zoals LeadCategoryFilter, maar met "opvolging" erbij — enkel relevant op de Pipeline-pagina, dus niet in het gedeelde type op /leads. */
-export type PipelineCategoryFilter = LeadCategoryFilter | "opvolging";
+/**
+ * Zoals LeadCategoryFilter, maar met "opvolging" erbij (nog niet succesvol
+ * bereikt, gelijk aan de 3 statistiekkaarten samen) en de twee individuele
+ * deelverzamelingen ervan, "te_contacteren" en "voicemail" — enkel relevant
+ * op de Pipeline-pagina, dus niet in het gedeelde type op /leads.
+ */
+export type PipelineCategoryFilter =
+  | LeadCategoryFilter
+  | "opvolging"
+  | "te_contacteren"
+  | "voicemail";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -100,10 +109,16 @@ export async function getPipelineLeads(
       deletedAt: null,
       leadType,
       ownerId,
-      // "Opvolging" heeft, net als de statistieken erboven, enkel zin voor
-      // nog actieve leads — een lead die al klant is of al geen interesse
-      // heeft hoeft niet meer opgevolgd te worden.
-      ...(category === "open" || category === "opvolging" ? { status: "OPEN" } : {}),
+      // "Opvolging"/"Te contacteren"/"Voicemail" hebben, net als de
+      // statistieken erboven, enkel zin voor nog actieve leads — een lead
+      // die al klant is of al geen interesse heeft hoeft niet meer
+      // opgevolgd te worden.
+      ...(category === "open" ||
+      category === "opvolging" ||
+      category === "te_contacteren" ||
+      category === "voicemail"
+        ? { status: "OPEN" }
+        : {}),
       ...(category === "geen_interesse" ? { status: "LOST" } : {}),
       ...(category === "klanten" ? { status: "WON" } : {}),
       ...(category === "ingepland"
@@ -144,10 +159,15 @@ export async function getPipelineLeads(
 
   // "Opvolging" = iedereen die nog niet succesvol bereikt is (nog te
   // contacteren, enkel voicemail gehad, of een toekomstig terugbelmoment
-  // heeft) — zelfde definitie als de 3 statistiekkaarten erboven.
+  // heeft); "Te contacteren"/"Voicemail" pikken daar elk hun eigen deel
+  // uit — zelfde definitie als de 3 statistiekkaarten erboven.
   const filtered =
     category === "opvolging"
       ? leads.filter((lead) => contactState(lead.activities) !== "OVERIG")
+      : category === "te_contacteren"
+      ? leads.filter((lead) => contactState(lead.activities) === "TE_CONTACTEREN")
+      : category === "voicemail"
+      ? leads.filter((lead) => contactState(lead.activities) === "VOICEMAIL")
       : leads;
 
   return filtered.map((lead) => ({
