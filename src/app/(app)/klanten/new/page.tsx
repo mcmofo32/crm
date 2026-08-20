@@ -3,13 +3,17 @@ import { notFound } from "next/navigation";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData } from "@/lib/permissions";
 import { createCustomerAction, getAssignableUsers } from "@/lib/actions/leads";
+import { getSubagents } from "@/lib/actions/subagents";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 
 export default async function NewCustomerPage() {
   const viewer = (await getEffectiveViewer())!;
   if (!canManageCustomerData(viewer)) notFound();
 
-  const assignableUsers = await getAssignableUsers();
+  const [assignableUsers, subagents] = await Promise.all([
+    getAssignableUsers(),
+    getSubagents(),
+  ]);
 
   return (
     <div className="max-w-xl">
@@ -56,7 +60,7 @@ export default async function NewCustomerPage() {
         {assignableUsers.length > 1 && (
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-slate-700">
-              Eigenaar
+              Aanbrenger
             </label>
             <select
               name="ownerId"
@@ -69,6 +73,30 @@ export default async function NewCustomerPage() {
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {subagents.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-700">
+              Dossierbeheerder
+            </label>
+            <select
+              name="caseManagerSubagentId"
+              defaultValue=""
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="">Zelfde als aanbrenger</option>
+              {subagents.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400">
+              Wie dit dossier beheert (producten toevoegt, opvolgt). Standaard
+              dezelfde persoon als de aanbrenger hierboven.
+            </p>
           </div>
         )}
 

@@ -127,6 +127,8 @@ export async function createWonLeadRecord(params: {
   source: string | null;
   products: { type: ProductType; amount: number; units: number }[];
   occurredAt: Date;
+  /** Expliciet gekozen dossierbeheerder (subagent) — anders standaard de aanbrenger (ownerId). */
+  caseManagerSubagentId?: string | null;
 }) {
   const lead = await prisma.lead.create({
     data: {
@@ -138,11 +140,14 @@ export async function createWonLeadRecord(params: {
       leadType: params.leadType,
       ownerId: params.ownerId,
       createdById: params.actorId,
-      // Dossierbeheerder standaard op de eigenaar, niet op wie de actie
-      // uitvoerde — zelfde reden als bij changedById hierboven: een
-      // Beheerder/Admin die een bulk-import doet namens medewerkers mag
-      // daardoor niet zelf dossierbeheerder van al die klanten worden.
-      caseManagerUserId: params.ownerId,
+      // Dossierbeheerder: de expliciet gekozen subagent, anders standaard de
+      // aanbrenger (ownerId) — niet wie de actie uitvoerde, zelfde reden als
+      // bij changedById hierboven: een Beheerder/Admin die een bulk-import
+      // doet namens medewerkers mag daardoor niet zelf dossierbeheerder van
+      // al die klanten worden.
+      ...(params.caseManagerSubagentId
+        ? { caseManagerSubagentId: params.caseManagerSubagentId }
+        : { caseManagerUserId: params.ownerId }),
       stageId: params.wonStageId,
       status: LeadStatus.WON,
       createdAt: params.occurredAt,
@@ -198,6 +203,21 @@ export async function createCustomerAction(formData: FormData) {
   const ownerId = (await canAccessOwner(user, requestedOwnerId))
     ? requestedOwnerId
     : user.id;
+
+  // Enkel een geldige, actieve subagent aanvaarden — bij een leeg/ongeldige
+  // keuze valt dit terug op de standaard (dossierbeheerder = aanbrenger).
+  const requestedCaseManagerSubagentId =
+    String(formData.get("caseManagerSubagentId") ?? "").trim() || null;
+  const caseManagerSubagentId = requestedCaseManagerSubagentId
+    ? (
+        await prisma.subagent.findUnique({
+          where: { id: requestedCaseManagerSubagentId },
+          select: { id: true, active: true },
+        })
+      )?.active
+      ? requestedCaseManagerSubagentId
+      : null
+    : null;
 
   const phone = (formData.get("phone") as string) || null;
   const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);
@@ -257,6 +277,7 @@ export async function createCustomerAction(formData: FormData) {
     source: (formData.get("source") as string) || null,
     products,
     occurredAt,
+    caseManagerSubagentId,
   });
 
   await logAudit({
