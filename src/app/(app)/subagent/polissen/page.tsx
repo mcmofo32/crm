@@ -404,7 +404,8 @@ export default async function SubagentPolissenPage({
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-200">
                   <span>
-                    Productiemaand {String(group.month).padStart(2, "0")}/{group.year}
+                    Productiemaand {String(group.month).padStart(2, "0")}
+                    {showAllYears ? `/${group.year}` : ""}
                   </span>
                   <span className="font-normal text-slate-500">
                     {group.policies.length} polissen · {groupUnits} eenheden
