@@ -39,7 +39,7 @@ export function LeadDetailsCard({
         >
           <div className="grid grid-cols-2 gap-3">
             <Field label="Voornaam" name="firstName" defaultValue={firstName} required />
-            <Field label="Achternaam" name="lastName" defaultValue={lastName} required />
+            <Field label="Achternaam" name="lastName" defaultValue={lastName} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="E-mail" name="email" type="email" defaultValue={email ?? ""} />

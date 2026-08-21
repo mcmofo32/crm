@@ -34,7 +34,7 @@ export default async function NewLeadPage({
         <input type="hidden" name="leadType" value={leadType} />
         <div className="grid grid-cols-2 gap-4">
           <Field label="Voornaam" name="firstName" required />
-          <Field label="Achternaam" name="lastName" required />
+          <Field label="Achternaam" name="lastName" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Field label="E-mail" name="email" type="email" />

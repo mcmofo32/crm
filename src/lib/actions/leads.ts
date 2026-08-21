@@ -515,8 +515,8 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
 
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
-  if (!firstName || !lastName) {
-    throw new Error("Voornaam en achternaam zijn verplicht");
+  if (!firstName) {
+    throw new Error("Voornaam is verplicht");
   }
 
   await prisma.lead.update({
