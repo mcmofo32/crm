@@ -83,6 +83,7 @@ export async function scheduleActivityAction(formData: FormData) {
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
+  const skipCalendarSync = formData.get("skipCalendarSync") === "on";
 
   const rawSubject = String(formData.get("subject") ?? "Telefoongesprek").trim();
   const richMeeting = Boolean(scheduledAt) && isRichMeetingType(rawSubject);
@@ -161,7 +162,7 @@ export async function scheduleActivityAction(formData: FormData) {
     data: { lastContactedAt: new Date() },
   });
 
-  if (scheduledAt) {
+  if (scheduledAt && !skipCalendarSync) {
     const assignee = await prisma.user.findUnique({
       where: { id: assigneeId },
       select: GOOGLE_CALENDAR_USER_SELECT,

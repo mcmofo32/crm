@@ -70,6 +70,7 @@ export function ScheduleActivityForm({
   const [assigneeId, setAssigneeId] = useState(currentUserId);
   const [subjectPreset, setSubjectPreset] = useState(OPVOLGING_SUBJECTS[0]);
   const [customSubject, setCustomSubject] = useState("");
+  const [skipCalendar, setSkipCalendar] = useState(false);
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("15");
@@ -85,12 +86,16 @@ export function ScheduleActivityForm({
     setCategory(next);
     const options = next === "AFSPRAAK" ? AFSPRAAK_SUBJECTS : OPVOLGING_SUBJECTS;
     setSubjectPreset(options[0]);
+    // Enkel bij Opvolging kiesbaar — een Afspraak nodigt altijd de klant uit
+    // en hoort dus altijd in de agenda te staan.
+    if (next === "AFSPRAAK") setSkipCalendar(false);
   }
 
   function reset() {
     setCategory("OPVOLGING");
     setSubjectPreset(OPVOLGING_SUBJECTS[0]);
     setCustomSubject("");
+    setSkipCalendar(false);
     setNotes("");
     setScheduledAt("");
     setDurationMinutes("15");
@@ -113,6 +118,9 @@ export function ScheduleActivityForm({
     formData.set("assigneeId", assigneeId);
     formData.set("subject", subject);
     formData.set("notes", notes);
+    if (category === "OPVOLGING" && skipCalendar) {
+      formData.set("skipCalendarSync", "on");
+    }
 
     startTransition(async () => {
       await scheduleActivityAction(formData);
@@ -138,6 +146,18 @@ export function ScheduleActivityForm({
           <option value="OPVOLGING">Opvolging (enkel voor jezelf)</option>
           <option value="AFSPRAAK">Afspraak (klant wordt uitgenodigd)</option>
         </select>
+
+        {category === "OPVOLGING" && (
+          <label className="col-span-2 flex items-center gap-2 text-slate-600">
+            <input
+              type="checkbox"
+              checked={skipCalendar}
+              onChange={(e) => setSkipCalendar(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            Niet in de Google Agenda, enkel als taak
+          </label>
+        )}
 
         <select
           value={assigneeId}

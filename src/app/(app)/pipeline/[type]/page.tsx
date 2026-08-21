@@ -31,9 +31,20 @@ function formatDate(date: Date | null) {
   return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
 }
 
+// Enkel deze cijfers krijgen een kleur (de rest — oneven cijfers en "—" —
+// blijft ongekleurd).
+const SCORE_COLORS: Record<string, { background: string; color: string }> = {
+  "2": { background: "#fecaca", color: "#991b1b" }, // rood
+  "4": { background: "#fed7aa", color: "#9a3412" }, // oranje
+  "6": { background: "#fef08a", color: "#854d0e" }, // geel
+  "8": { background: "#e9d5ff", color: "#6b21a8" }, // paars
+  "10": { background: "#bbf7d0", color: "#166534" }, // groen
+};
+
 const SCORE_OPTIONS = Array.from({ length: 11 }, (_, i) => ({
   value: String(i),
   label: String(i),
+  style: SCORE_COLORS[String(i)],
 }));
 
 export default async function PipelinePage({
@@ -301,6 +312,11 @@ export default async function PipelinePage({
                         value={lead.qualityScore != null ? String(lead.qualityScore) : ""}
                         options={[{ value: "", label: "—" }, ...SCORE_OPTIONS]}
                         className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                        style={
+                          lead.qualityScore != null
+                            ? SCORE_COLORS[String(lead.qualityScore)]
+                            : undefined
+                        }
                       />
                     </td>
                     <td className="px-4 py-2.5 text-slate-600">
