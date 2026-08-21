@@ -157,7 +157,6 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   ]);
 
   revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
   revalidatePath("/klanten");
   revalidatePath("/subagent");
   revalidatePath("/klanten/polissen");
@@ -223,7 +222,6 @@ export async function addFollowUpContractAction(leadId: string, formData: FormDa
   });
 
   revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
   revalidatePath("/klanten");
   revalidatePath("/subagent");
   revalidatePath("/klanten/polissen");
@@ -255,7 +253,6 @@ export async function deleteFollowUpContractAction(leadProductId: string) {
   await prisma.leadProduct.delete({ where: { id: leadProductId } });
 
   revalidatePath(`/leads/${product.leadId}`);
-  revalidatePath("/leads");
   revalidatePath("/klanten");
   revalidatePath("/subagent");
   revalidatePath("/klanten/polissen");
@@ -433,7 +430,6 @@ export async function setCustomerOwnerAction(leadId: string, formData: FormData)
   revalidatePath("/klanten");
   revalidatePath("/subagent");
   revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
   revalidatePath("/dashboard");
 }
 

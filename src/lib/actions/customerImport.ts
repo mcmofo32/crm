@@ -368,7 +368,6 @@ export async function importCustomersBulkAction(
     });
   }
 
-  revalidatePath("/leads");
   revalidatePath("/klanten");
   revalidatePath("/klanten/polissen");
   revalidatePath("/subagent");

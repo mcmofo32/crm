@@ -173,7 +173,7 @@ export default async function LeadDetailPage({
             subagents={subagents}
             canCloseDeals={canManageCustomerData(user)}
           />
-          {canDeleteLeads(user) && (
+          {canDeleteLeads(user, lead) && (
             <DeleteLeadButton
               leadId={lead.id}
               leadName={`${lead.firstName} ${lead.lastName}`}

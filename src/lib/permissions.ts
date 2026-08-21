@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { AgentType, Role } from "@/generated/prisma/client";
+import { AgentType, LeadStatus, Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -44,8 +44,18 @@ export function canViewBeheerderTools(user: SessionUser) {
   return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
 }
 
-/** Iedereen mag een lead (of klant, want dat is ook gewoon een lead) verwijderen — naar de prullenbak, niet definitief. */
-export function canDeleteLeads(_user: SessionUser) {
+/**
+ * Iedereen mag een open lead verwijderen (naar de prullenbak, niet
+ * definitief) — maar is die lead al klant (status WON), dan enkel Beheerder/
+ * Admin.
+ */
+export function canDeleteLeads(
+  user: SessionUser,
+  lead: { status: LeadStatus }
+) {
+  if (lead.status === LeadStatus.WON) {
+    return user.role === Role.BEHEERDER || user.role === Role.ADMIN;
+  }
   return true;
 }
 
