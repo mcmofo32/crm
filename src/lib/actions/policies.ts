@@ -2,17 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import {
-  InsuranceCompany,
-  PolicyStatus,
-  ProductType,
-  Role,
-} from "@/generated/prisma/client";
-import {
-  canAccessOwner,
-  canManageCustomerData,
-  canManageUsers,
-} from "@/lib/permissions";
+import { InsuranceCompany, PolicyStatus } from "@/generated/prisma/client";
+import { canAccessOwner, canManageCustomerData } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 
 async function requireUser() {
@@ -48,117 +39,6 @@ export async function backfillMissingPolicies() {
   );
 }
 
-/** Zelfde scope als de Klanten-pagina: Coach ziet enkel zichzelf, Beheerder/Admin iedereen. */
-function customerOwnerScope(user: { id: string; role: Role }): string[] | null {
-  return canManageUsers(user) ? null : [user.id];
-}
-
-function resolveCustomerOwnerWhere(
-  scope: string[] | null,
-  options?: { ownerId?: string; ownerIds?: string[] }
-) {
-  if (scope) return { ownerId: { in: scope } };
-  if (options?.ownerIds) return { ownerId: { in: options.ownerIds } };
-  if (options?.ownerId) return { ownerId: options.ownerId };
-  return {};
-}
-
-export type PolicyRow = {
-  id: string;
-  createdAt: Date;
-  /** Contractdatum van het onderliggende product (LeadProduct.contractDate) — bepaalt de productiemaand-groepering op Polissen, niet `createdAt` (dat is enkel wanneer deze polis-lijn zelf in de database ontstond). Voor een basisproduct gelijk aan het moment dat de klant klant werd; voor een vervolgcontract uit opvolging zijn eigen datum. */
-  becameCustomerAt: Date;
-  leadId: string;
-  customerFirstName: string;
-  customerLastName: string;
-  units: number;
-  productType: ProductType;
-  employeeId: string;
-  employeeName: string;
-  company: InsuranceCompany | null;
-  status: PolicyStatus;
-  easy: boolean;
-  tool: boolean;
-  rl: boolean;
-  saFile: boolean;
-  ccFile: boolean;
-  ingangsdatum: Date | null;
-  betaaldOp: Date | null;
-};
-
-/** Alle polis-lijnen binnen de toegestane klantenscope, met dezelfde eigenaar-/zoekfilters als de Klanten-pagina. */
-export async function getPoliciesForCurrentUser(options?: {
-  ownerId?: string;
-  ownerIds?: string[];
-  search?: string;
-}): Promise<PolicyRow[]> {
-  const user = await requireUser();
-  await backfillMissingPolicies();
-  const scope = customerOwnerScope(user);
-  const ownerWhere = resolveCustomerOwnerWhere(scope, options);
-  const trimmedSearch = options?.search?.trim();
-
-  const policies = await prisma.policy.findMany({
-    where: {
-      lead: {
-        deletedAt: null,
-        ...ownerWhere,
-        ...(trimmedSearch
-          ? {
-              OR: [
-                { firstName: { contains: trimmedSearch, mode: "insensitive" } },
-                { lastName: { contains: trimmedSearch, mode: "insensitive" } },
-              ],
-            }
-          : {}),
-      },
-    },
-    select: {
-      id: true,
-      createdAt: true,
-      leadId: true,
-      lead: {
-        select: { firstName: true, lastName: true },
-      },
-      leadProduct: { select: { type: true, units: true, contractDate: true } },
-      employeeId: true,
-      employee: { select: { name: true } },
-      company: true,
-      status: true,
-      easy: true,
-      tool: true,
-      rl: true,
-      saFile: true,
-      ccFile: true,
-      ingangsdatum: true,
-      betaaldOp: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return policies.map((p) => ({
-    id: p.id,
-    createdAt: p.createdAt,
-    becameCustomerAt: p.leadProduct.contractDate,
-    leadId: p.leadId,
-    customerFirstName: p.lead.firstName,
-    customerLastName: p.lead.lastName,
-    units: p.leadProduct.units,
-    productType: p.leadProduct.type,
-    employeeId: p.employeeId,
-    employeeName: p.employee.name,
-    company: p.company,
-    status: p.status,
-    easy: p.easy,
-    tool: p.tool,
-    rl: p.rl,
-    saFile: p.saFile,
-    ccFile: p.ccFile,
-    ingangsdatum: p.ingangsdatum,
-    betaaldOp: p.betaaldOp,
-  }));
-}
-
 async function requireEditablePolicy(policyId: string) {
   const [user, policy] = await Promise.all([
     requireUser(),
@@ -178,7 +58,6 @@ async function requireEditablePolicy(policyId: string) {
 }
 
 function revalidatePolicyPaths(leadId: string) {
-  revalidatePath("/klanten/polissen");
   revalidatePath("/subagent/polissen");
   revalidatePath(`/leads/${leadId}`);
 }

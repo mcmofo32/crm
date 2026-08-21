@@ -369,7 +369,6 @@ export async function importCustomersBulkAction(
   }
 
   revalidatePath("/klanten");
-  revalidatePath("/klanten/polissen");
   revalidatePath("/subagent");
   revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${leadType}`);

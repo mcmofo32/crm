@@ -159,7 +159,6 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/klanten");
   revalidatePath("/subagent");
-  revalidatePath("/klanten/polissen");
   revalidatePath("/subagent/polissen");
   revalidatePath("/productie");
   revalidatePath("/dashboard");
@@ -224,7 +223,6 @@ export async function addFollowUpContractAction(leadId: string, formData: FormDa
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/klanten");
   revalidatePath("/subagent");
-  revalidatePath("/klanten/polissen");
   revalidatePath("/subagent/polissen");
   revalidatePath("/productie");
   revalidatePath("/dashboard");
@@ -255,7 +253,6 @@ export async function deleteFollowUpContractAction(leadProductId: string) {
   revalidatePath(`/leads/${product.leadId}`);
   revalidatePath("/klanten");
   revalidatePath("/subagent");
-  revalidatePath("/klanten/polissen");
   revalidatePath("/subagent/polissen");
   revalidatePath("/productie");
   revalidatePath("/dashboard");
