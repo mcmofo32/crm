@@ -290,7 +290,7 @@ function TeamCard({
         <h4 className="mb-2 text-sm font-medium text-slate-900">Subagenten</h4>
         <p className="mb-2 text-xs text-slate-400">
           Kunnen bij een adviesgesprek mee uitgenodigd worden om te closen.
-          Zet iemands Type op "Subagent" op zijn gebruikersprofiel om hem
+          Zet iemands Type op &quot;Subagent&quot; op zijn gebruikersprofiel om hem
           hier te laten verschijnen.
         </p>
         <div className="flex flex-col gap-2">

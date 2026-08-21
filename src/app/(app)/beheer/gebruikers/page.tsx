@@ -65,7 +65,7 @@ export default async function UsersPage({
           {duplicateNameCount === 1
             ? "Er zijn 2 of meer accounts met exact dezelfde naam (zie ⚠ hieronder) — vermoedelijk per ongeluk dubbel aangemaakt."
             : `Er zijn ${duplicateNameCount} namen die bij meerdere accounts voorkomen (zie ⚠ hieronder) — vermoedelijk per ongeluk dubbel aangemaakt.`}
-          {" "}Vink "Toon inactieve gebruikers" aan om ze allemaal te zien.
+          {" "}Vink &quot;Toon inactieve gebruikers&quot; aan om ze allemaal te zien.
         </div>
       )}
 
