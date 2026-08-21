@@ -291,7 +291,6 @@ export async function createCustomerAction(formData: FormData) {
   });
 
   revalidatePath("/klanten");
-  revalidatePath("/klanten/polissen");
   revalidatePath("/subagent");
   revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${leadType}`);
