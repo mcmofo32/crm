@@ -31,8 +31,8 @@ function formatDate(date: Date | null) {
   return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
 }
 
-// Enkel deze cijfers krijgen een kleur (de rest — oneven cijfers en "—" —
-// blijft ongekleurd).
+// Enkel even cijfers zijn nog kiesbaar, elk met hun eigen kleur (0 = geen
+// kleur).
 const SCORE_COLORS: Record<string, { background: string; color: string }> = {
   "2": { background: "#fecaca", color: "#991b1b" }, // rood
   "4": { background: "#fed7aa", color: "#9a3412" }, // oranje
@@ -41,7 +41,7 @@ const SCORE_COLORS: Record<string, { background: string; color: string }> = {
   "10": { background: "#bbf7d0", color: "#166534" }, // groen
 };
 
-const SCORE_OPTIONS = Array.from({ length: 11 }, (_, i) => ({
+const SCORE_OPTIONS = [0, 2, 4, 6, 8, 10].map((i) => ({
   value: String(i),
   label: String(i),
   style: SCORE_COLORS[String(i)],

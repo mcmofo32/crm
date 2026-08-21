@@ -27,7 +27,9 @@ export function DeleteLeadButton({
     }
     startTransition(async () => {
       await deleteLeadAction(leadId);
-      router.push("/leads");
+      // Terug naar de pagina waar je vandaan kwam (bv. Klanten of Pipeline),
+      // i.p.v. een vast doel — behoudt ook de filters/query van die pagina.
+      router.back();
       router.refresh();
     });
   };

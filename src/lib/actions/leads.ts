@@ -93,7 +93,8 @@ export async function createLeadAction(formData: FormData) {
     description: `Lead "${lead.firstName} ${lead.lastName}" aangemaakt (${leadType})`,
   });
 
-  revalidatePath("/leads");
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
   revalidatePath(`/funnel/${leadType}`);
 
   const duplicate = contactMatches[0];
@@ -289,7 +290,6 @@ export async function createCustomerAction(formData: FormData) {
     description: `Klant "${lead.firstName} ${lead.lastName}" rechtstreeks aangemaakt (${leadType}, bv. overgezet vanuit een oud systeem)`,
   });
 
-  revalidatePath("/leads");
   revalidatePath("/klanten");
   revalidatePath("/klanten/polissen");
   revalidatePath("/subagent");
@@ -407,9 +407,15 @@ export async function createLeadsBulkAction(formData: FormData) {
     description: `${created.length} leads in bulk aangemaakt`,
   });
 
-  revalidatePath("/leads");
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
   for (const type of usedLeadTypes) revalidatePath(`/funnel/${type}`);
-  redirect("/leads");
+  // Bij één gebruikt type: rechtstreeks naar de bijhorende Pipeline. Bij een
+  // mix van FA/RG in dezelfde import: terug naar de Pipeline van het
+  // standaardtype dat bovenaan het formulier gekozen was.
+  const redirectType =
+    usedLeadTypes.length === 1 ? usedLeadTypes[0] : defaultLeadType;
+  redirect(`/pipeline/${redirectType === "RG" ? "recrutering" : "verkoop"}`);
 }
 
 export async function updateLeadStageAction(
@@ -541,7 +547,8 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
   });
 
   revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
@@ -577,19 +584,20 @@ export async function updateLeadEmailAction(leadId: string, email: string) {
   });
 
   revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
 /** Verwijdert een lead (soft delete): ze komt in de prullenbak i.p.v. definitief weg te zijn. */
 export async function deleteLeadAction(leadId: string) {
   const user = await requireUser();
-  if (!canDeleteLeads(user)) {
-    throw new Error("Je mag geen leads verwijderen");
-  }
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!canDeleteLeads(user, lead)) {
+    throw new Error("Enkel Beheerder/Admin mogen een klant verwijderen");
+  }
 
   await prisma.lead.update({
     where: { id: leadId },
@@ -604,8 +612,10 @@ export async function deleteLeadAction(leadId: string) {
     description: `Lead "${lead.firstName} ${lead.lastName}" verwijderd (naar prullenbak)`,
   });
 
-  revalidatePath("/leads");
   revalidatePath(`/funnel/${lead.leadType}`);
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/klanten");
   revalidatePath("/taken");
   revalidatePath("/dashboard");
   revalidatePath("/beheer/prullenbak");
@@ -634,7 +644,9 @@ export async function restoreLeadAction(leadId: string) {
     description: `Lead "${lead.firstName} ${lead.lastName}" hersteld uit de prullenbak`,
   });
 
-  revalidatePath("/leads");
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/klanten");
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/beheer/prullenbak");
 }
