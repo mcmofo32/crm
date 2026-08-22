@@ -288,6 +288,11 @@ model Lead {
   leadType        LeadType
   status          LeadStatus @default(OPEN)
   source          String?
+  /// Aangemaakt via "Leads in bulk toevoegen" (de Excel-achtige plak-tabel op
+  /// /leads/bulk) — kan historische/al bestaande leads bevatten i.p.v. nieuw
+  /// aangebrachte, dus telt niet mee in de Aanbevelingen/ABV-cijfers (zie
+  /// production.ts).
+  bulkImported    Boolean @default(false)
   notes           String?
   value           Decimal?   @db.Decimal(10, 2)
   createdAt       DateTime   @default(now())
