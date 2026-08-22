@@ -1,17 +1,26 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" rx="12" fill="#0f2a52" />
-  <path
-    d="M14 24 L20 14 L26 21 L32 12 L38 21 L44 14 L50 24 L50 29 L14 29 Z"
-    fill="#d9a94a"
-  />
+  <rect width="64" height="64" fill="#0f2a52" />
   <text
     x="32"
-    y="49"
+    y="28"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-weight="700"
+    font-size="7.5"
+    letter-spacing="1"
+    fill="#ffffff"
+  >
+    STRUCTUUR
+  </text>
+  <line x1="22" y1="34" x2="42" y2="34" stroke="#5b7fb5" stroke-width="0.75" />
+  <text
+    x="32"
+    y="53"
     text-anchor="middle"
     font-family="Arial, Helvetica, sans-serif"
     font-weight="800"
-    font-size="26"
-    fill="#ffffff"
+    font-size="20"
+    fill="#8ab4f8"
   >
     A
   </text>
