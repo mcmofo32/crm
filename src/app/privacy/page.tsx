@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-slate-50 px-4 py-12">
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
         <div className="flex items-center gap-3">
-          <Logo size={48} />
+          <Logo size={60} />
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">
               Privacybeleid
