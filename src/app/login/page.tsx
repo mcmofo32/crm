@@ -18,7 +18,7 @@ export default async function LoginPage({
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
         <div className="mb-6 flex flex-col items-center text-center">
           <span className="mb-3">
-            <Logo size={64} />
+            <Logo size={80} />
           </span>
           <h1 className="text-xl font-semibold text-slate-900">Structuur A</h1>
           <p className="mt-1 text-sm text-slate-500">
