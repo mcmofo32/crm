@@ -10,6 +10,7 @@ import { ensureFunnelStages } from "@/lib/funnelStages";
 import { createWonLeadRecord, getAssignableUsers } from "@/lib/actions/leads";
 import { normalizePhone } from "@/lib/actions/duplicates";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
 import type ExcelJS from "exceljs";
 
 async function requireUser() {
@@ -239,7 +240,7 @@ async function processSheet(
         lastName,
         email,
         phone,
-        source: "Bulk-import (Excel)",
+        source: BULK_EXCEL_IMPORT_SOURCE,
         products,
         occurredAt,
       });

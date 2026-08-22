@@ -17,6 +17,21 @@ import {
   MONTHLY_ACTUAL_METRICS,
 } from "@/lib/goalLabels";
 import type { ProductionMonthConfigRow } from "@/lib/productionMonth";
+import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
+
+/**
+ * Sluit leads uit die via de Excel-upload ("Klanten in bulk toevoegen")
+ * aangemaakt zijn: achteraf ingevoerde historische klanten, geen nieuw
+ * aangebrachte leads, dus geen "nieuwe aanbeveling" voor de Aanbevelingen/
+ * ABV-cijfers. `OR` met `source: null` i.p.v. enkel `source: { not: ... }`,
+ * zodat leads zonder ingevulde source (de meerderheid) gegarandeerd blijven
+ * meetellen, ongeacht hoe Prisma `not` op een nullable veld interpreteert.
+ */
+function excludingBulkExcelImport() {
+  return {
+    OR: [{ source: null }, { source: { not: BULK_EXCEL_IMPORT_SOURCE } }],
+  };
+}
 
 async function requireViewer() {
   const viewer = await getEffectiveViewer();
@@ -537,6 +552,7 @@ export async function getRecommendationsLeaderboard(
       ownerId: { in: userIds },
       deletedAt: null,
       createdAt: { gte: start, lt: end },
+      ...excludingBulkExcelImport(),
     },
     _count: { _all: true },
   });
@@ -627,6 +643,7 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
           deletedAt: null,
           leadType: "FA",
           createdAt: { gte: start, lt: end },
+          ...excludingBulkExcelImport(),
         },
       }),
       prisma.lead.count({
@@ -635,6 +652,7 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
           deletedAt: null,
           leadType: "RG",
           createdAt: { gte: start, lt: end },
+          ...excludingBulkExcelImport(),
         },
       }),
     ]);
@@ -737,6 +755,7 @@ export async function getGroupProductionMonthGoalProgress(
           deletedAt: null,
           leadType: "FA",
           createdAt: { gte: start, lt: end },
+          ...excludingBulkExcelImport(),
         },
       }),
       prisma.lead.count({
@@ -745,6 +764,7 @@ export async function getGroupProductionMonthGoalProgress(
           deletedAt: null,
           leadType: "RG",
           createdAt: { gte: start, lt: end },
+          ...excludingBulkExcelImport(),
         },
       }),
     ]);
