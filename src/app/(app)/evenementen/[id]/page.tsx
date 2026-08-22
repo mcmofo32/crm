@@ -78,10 +78,12 @@ export default async function EventDetailPage({
           {event.date.toLocaleString("nl-BE", {
             dateStyle: "full",
             timeStyle: "short",
+            timeZone: "Europe/Brussels",
           })}
           {event.endDate &&
             ` - ${event.endDate.toLocaleTimeString("nl-BE", {
               timeStyle: "short",
+              timeZone: "Europe/Brussels",
             })}`}
         </p>
         {event.location && (
@@ -146,6 +148,7 @@ export default async function EventDetailPage({
                 Bevestigd op{" "}
                 {event.verifiedAt.toLocaleDateString("nl-BE", {
                   dateStyle: "medium",
+                  timeZone: "Europe/Brussels",
                 })}{" "}
                 door <strong>{event.verifiedByName}</strong>. Pas hieronder aan
                 indien nodig en bevestig opnieuw.

@@ -161,6 +161,7 @@ export default async function AuditLogPage({
                   {entry.createdAt.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
+                    timeZone: "Europe/Brussels",
                   })}
                 </td>
                 <td className="px-6 py-4">

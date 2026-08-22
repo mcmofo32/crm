@@ -16,12 +16,19 @@ export type SheetsBackupTab = {
 
 function fmtDate(date: Date | null | undefined): string {
   if (!date) return "";
-  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+  return date.toLocaleDateString("nl-BE", {
+    dateStyle: "medium",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 function fmtDateTime(date: Date | null | undefined): string {
   if (!date) return "";
-  return date.toLocaleString("nl-BE", { dateStyle: "medium", timeStyle: "short" });
+  return date.toLocaleString("nl-BE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 function fmtAmount(value: unknown): string {

@@ -38,7 +38,10 @@ import { InlineTextField } from "@/components/InlineTextField";
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
-  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+  return date.toLocaleDateString("nl-BE", {
+    dateStyle: "medium",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 function toDateInputValue(date: Date) {

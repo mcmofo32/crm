@@ -161,6 +161,7 @@ async function PersonSummary({
                 {row.lastSeenAt.toLocaleString("nl-BE", {
                   dateStyle: "medium",
                   timeStyle: "short",
+                  timeZone: "Europe/Brussels",
                 })}
               </td>
               <td className="px-6 py-4 text-slate-700">{row.sessionsToday}</td>
@@ -240,6 +241,7 @@ async function PersonDetail({
                         weekday: "short",
                         day: "2-digit",
                         month: "2-digit",
+                        timeZone: "Europe/Brussels",
                       })}
                     </td>
                     <td className="px-4 py-1.5 font-medium">{day.sessionCount}</td>
@@ -297,12 +299,14 @@ async function PersonDetail({
                     {event.createdAt.toLocaleString("nl-BE", {
                       dateStyle: "medium",
                       timeStyle: "short",
+                      timeZone: "Europe/Brussels",
                     })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-slate-500">
                     {event.lastSeenAt.toLocaleString("nl-BE", {
                       dateStyle: "medium",
                       timeStyle: "short",
+                      timeZone: "Europe/Brussels",
                     })}
                   </td>
                 </tr>

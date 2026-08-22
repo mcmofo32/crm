@@ -41,7 +41,10 @@ const ALL_OPTION = "alles";
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
-  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+  return date.toLocaleDateString("nl-BE", {
+    dateStyle: "medium",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 function toDateInputValue(date: Date | null) {

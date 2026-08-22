@@ -331,7 +331,11 @@ export async function getAllTeamOverviews(): Promise<TeamOverview[]> {
 // ---------------------------------------------------------------------------
 
 function monthBucketLabel(date: Date) {
-  return date.toLocaleDateString("nl-BE", { month: "short", year: "2-digit" });
+  return date.toLocaleDateString("nl-BE", {
+    month: "short",
+    year: "2-digit",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 /** Laatste `months` kalendermaanden, oplopend, eindigend met de huidige maand. */

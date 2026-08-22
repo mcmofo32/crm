@@ -26,7 +26,10 @@ function formatAmount(amount: number) {
 }
 
 function formatDate(date: Date) {
-  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+  return date.toLocaleDateString("nl-BE", {
+    dateStyle: "medium",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 function todayInputValue() {

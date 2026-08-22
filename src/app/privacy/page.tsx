@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
         </div>
 
         <p className="text-sm text-slate-500">
-          Laatst bijgewerkt: {new Date().toLocaleDateString("nl-BE", { dateStyle: "long" })}
+          Laatst bijgewerkt: {new Date().toLocaleDateString("nl-BE", { dateStyle: "long", timeZone: "Europe/Brussels" })}
         </p>
 
         <Section title="Wie is verantwoordelijk">

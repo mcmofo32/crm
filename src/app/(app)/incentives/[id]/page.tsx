@@ -51,8 +51,14 @@ export default async function IncentiveDetailPage({
             {incentive.title}
           </h1>
           <p className="mt-1 text-base text-slate-500">
-            {incentive.startDate.toLocaleDateString("nl-BE")} —{" "}
-            {incentive.endDate.toLocaleDateString("nl-BE")} · Aangemaakt door{" "}
+            {incentive.startDate.toLocaleDateString("nl-BE", {
+              timeZone: "Europe/Brussels",
+            })}{" "}
+            —{" "}
+            {incentive.endDate.toLocaleDateString("nl-BE", {
+              timeZone: "Europe/Brussels",
+            })}{" "}
+            · Aangemaakt door{" "}
             {incentive.createdBy.name}
           </p>
         </div>

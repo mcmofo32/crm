@@ -97,10 +97,12 @@ function EventSection({
                   {event.date.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
+                    timeZone: "Europe/Brussels",
                   })}
                   {event.endDate &&
                     ` - ${event.endDate.toLocaleTimeString("nl-BE", {
                       timeStyle: "short",
+                      timeZone: "Europe/Brussels",
                     })}`}
                 </span>
                 {event.location && (

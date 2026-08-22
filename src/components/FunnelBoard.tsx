@@ -63,7 +63,11 @@ function stageAccent(
 
 function formatDate(date: Date | null) {
   if (!date) return null;
-  return date.toLocaleDateString("nl-BE", { day: "numeric", month: "short" });
+  return date.toLocaleDateString("nl-BE", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 function isSecondaryStage(stage: BoardStage) {
