@@ -81,8 +81,13 @@ export default async function IncentivesPage() {
                     </Badge>
                   </div>
                   <p className="text-sm text-slate-500">
-                    {incentive.startDate.toLocaleDateString("nl-BE")} —{" "}
-                    {incentive.endDate.toLocaleDateString("nl-BE")}
+                    {incentive.startDate.toLocaleDateString("nl-BE", {
+                      timeZone: "Europe/Brussels",
+                    })}{" "}
+                    —{" "}
+                    {incentive.endDate.toLocaleDateString("nl-BE", {
+                      timeZone: "Europe/Brussels",
+                    })}
                   </p>
                   <p className="line-clamp-2 text-base text-slate-600">
                     {incentive.description}

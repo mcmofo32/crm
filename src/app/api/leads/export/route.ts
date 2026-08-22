@@ -51,10 +51,12 @@ export async function GET(req: NextRequest) {
       telefoon: lead.phone ?? "",
       bedrijf: lead.company ?? "",
       laatsteContact: lead.lastContactedAt
-        ? lead.lastContactedAt.toLocaleString("nl-BE")
+        ? lead.lastContactedAt.toLocaleString("nl-BE", { timeZone: "Europe/Brussels" })
         : "",
       volgendContact: lead.activities[0]?.scheduledAt
-        ? lead.activities[0].scheduledAt.toLocaleString("nl-BE")
+        ? lead.activities[0].scheduledAt.toLocaleString("nl-BE", {
+            timeZone: "Europe/Brussels",
+          })
         : "",
     });
   }

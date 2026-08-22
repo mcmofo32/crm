@@ -68,6 +68,7 @@ export default async function PrullenbakPage() {
                   {lead.deletedAt?.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
+                    timeZone: "Europe/Brussels",
                   })}
                 </td>
                 <td className="px-6 py-4 text-right">

@@ -149,6 +149,7 @@ export default async function LeadDetailPage({
                 ? lead.lastContactedAt.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
+                    timeZone: "Europe/Brussels",
                   })
                 : "Nog geen contact"}
             </span>
@@ -159,6 +160,7 @@ export default async function LeadDetailPage({
                 ? nextContact.scheduledAt.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
+                    timeZone: "Europe/Brussels",
                   })
                 : "Niet ingepland"}
             </span>
@@ -297,6 +299,7 @@ export default async function LeadDetailPage({
                         {activity.scheduledAt.toLocaleString("nl-BE", {
                           dateStyle: "medium",
                           timeStyle: "short",
+                          timeZone: "Europe/Brussels",
                         })}
                       </p>
                     )}

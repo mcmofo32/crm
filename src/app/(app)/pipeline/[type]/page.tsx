@@ -28,7 +28,10 @@ const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline Rekrutering
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
-  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+  return date.toLocaleDateString("nl-BE", {
+    dateStyle: "medium",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 // Enkel even cijfers zijn nog kiesbaar, elk met hun eigen kleur (0 = geen

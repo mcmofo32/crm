@@ -232,7 +232,11 @@ export default async function TakenPage({
                               {task.lead.lastContactedAt
                                 ? task.lead.lastContactedAt.toLocaleString(
                                     "nl-BE",
-                                    { dateStyle: "medium", timeStyle: "short" }
+                                    {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                      timeZone: "Europe/Brussels",
+                                    }
                                   )
                                 : "nog geen contact"}
                               {task.scheduledAt && (
@@ -241,6 +245,7 @@ export default async function TakenPage({
                                   {task.scheduledAt.toLocaleString("nl-BE", {
                                     dateStyle: "medium",
                                     timeStyle: "short",
+                                    timeZone: "Europe/Brussels",
                                   })}
                                 </>
                               )}

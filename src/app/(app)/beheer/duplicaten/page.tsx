@@ -114,6 +114,7 @@ export default async function DuplicatenPage() {
                         {lead.createdByName} ·{" "}
                         {lead.createdAt.toLocaleDateString("nl-BE", {
                           dateStyle: "medium",
+                          timeZone: "Europe/Brussels",
                         })}
                       </td>
                     </tr>

@@ -24,7 +24,10 @@ function shiftMonth(year: number, month: number, delta: number) {
 }
 
 function formatDate(date: Date) {
-  return date.toLocaleDateString("nl-BE", { dateStyle: "medium" });
+  return date.toLocaleDateString("nl-BE", {
+    dateStyle: "medium",
+    timeZone: "Europe/Brussels",
+  });
 }
 
 export default async function ProductiePage({
