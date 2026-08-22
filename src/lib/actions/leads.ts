@@ -393,6 +393,7 @@ export async function createLeadsBulkAction(formData: FormData) {
           ownerId: user.id,
           createdById: user.id,
           stageId: stageIdByType.get(row.leadType)!,
+          bulkImported: true,
         },
       })
     )
