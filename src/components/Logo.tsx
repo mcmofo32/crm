@@ -1,7 +1,8 @@
 /**
- * Beeldmerk van "Structuur A": marineblauw vierkant met de wordmark
- * "STRUCTUUR" en een lichtblauwe "A" — nagetekend als SVG (i.p.v. een los
- * beeldbestand) zodat het op elk formaat scherp blijft.
+ * Beeldmerk van "Structuur A": marineblauwe wordmark "STRUCTUUR" met "A"
+ * eronder, zonder eigen achtergrond — bedoeld om op de witte pagina-
+ * achtergrond te staan (header, inlogpagina, ...). Nagetekend als SVG
+ * (i.p.v. een los beeldbestand) zodat het op elk formaat scherp blijft.
  */
 export function Logo({ size = 32 }: { size?: number }) {
   return (
@@ -13,7 +14,6 @@ export function Logo({ size = 32 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <rect width="64" height="64" rx="12" fill="#0f2a52" />
       <text
         x="32"
         y="28"
@@ -22,11 +22,11 @@ export function Logo({ size = 32 }: { size?: number }) {
         fontWeight="700"
         fontSize="7.5"
         letterSpacing="1"
-        fill="#ffffff"
+        fill="#0f2a52"
       >
         STRUCTUUR
       </text>
-      <line x1="22" y1="34" x2="42" y2="34" stroke="#5b7fb5" strokeWidth="0.75" />
+      <line x1="22" y1="34" x2="42" y2="34" stroke="#2f5fa8" strokeWidth="0.75" />
       <text
         x="32"
         y="53"
@@ -34,7 +34,7 @@ export function Logo({ size = 32 }: { size?: number }) {
         fontFamily="Arial, Helvetica, sans-serif"
         fontWeight="800"
         fontSize="20"
-        fill="#8ab4f8"
+        fill="#0f2a52"
       >
         A
       </text>
