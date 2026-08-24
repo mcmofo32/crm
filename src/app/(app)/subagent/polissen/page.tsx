@@ -22,6 +22,7 @@ import {
 import { resolveProductionMonth } from "@/lib/productionMonth";
 import { canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS } from "@/lib/productTypes";
+import type { ProductType } from "@/generated/prisma/client";
 import {
   INSURANCE_COMPANY_LABELS,
   INSURANCE_COMPANY_ORDER,
@@ -33,6 +34,22 @@ import { InlineSelect } from "@/components/InlineSelect";
 import { InlineCheckbox } from "@/components/InlineCheckbox";
 import { InlineTextField } from "@/components/InlineTextField";
 import { SubagentTabs } from "@/components/SubagentTabs";
+
+/** Vaste volgorde waarin de polissen van eenzelfde klant hier getoond worden. */
+const POLICY_PRODUCT_ORDER: ProductType[] = [
+  "PENSIOENSPAREN", // PSP
+  "LANGETERMIJNSPAREN", // LTS
+  "BELEGGEN", // BEL
+  "VAPZ",
+  "IPT",
+  "UZP",
+  "NZP",
+];
+
+function policyProductRank(type: ProductType): number {
+  const index = POLICY_PRODUCT_ORDER.indexOf(type);
+  return index === -1 ? POLICY_PRODUCT_ORDER.length : index;
+}
 
 /** Voorvoegsel om een structuur-optie te onderscheiden van een individuele gebruiker in de scope-select. */
 const TEAM_PREFIX = "team:";
@@ -289,12 +306,28 @@ export default async function SubagentPolissenPage({
   const groups = Array.from(groupsByKey.values())
     .filter((g) => showAllYears || g.year === selectedYear)
     .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
-  // Binnen elke productiemaand: meest recente polis bovenaan, oudste
-  // onderaan — anders staan ze door elkaar (volgorde van `createdAt` van de
-  // polis-rij zelf, niet van de eigenlijke contractdatum).
-  for (const g of groups) {
-    g.policies.sort((a, b) => b.becameCustomerAt.getTime() - a.becameCustomerAt.getTime());
-  }
+  // Binnen elke productiemaand: per klant gegroepeerd (meest recente klant
+  // bovenaan), en de polissen van diezelfde klant altijd in dezelfde vaste
+  // productvolgorde — anders staan de polislijnen van één klant door elkaar
+  // (volgorde van `createdAt` van de polis-rij zelf) zodra die klant
+  // meerdere producten heeft.
+  const latestByLeadPerGroup = groups.map((g) => {
+    const latest = new Map<string, number>();
+    for (const p of g.policies) {
+      const t = p.becameCustomerAt.getTime();
+      if ((latest.get(p.leadId) ?? -Infinity) < t) latest.set(p.leadId, t);
+    }
+    return latest;
+  });
+  groups.forEach((g, i) => {
+    const latest = latestByLeadPerGroup[i];
+    g.policies.sort((a, b) => {
+      const leadDiff = latest.get(b.leadId)! - latest.get(a.leadId)!;
+      if (leadDiff !== 0) return leadDiff;
+      if (a.leadId !== b.leadId) return a.leadId < b.leadId ? -1 : 1;
+      return policyProductRank(a.productType) - policyProductRank(b.productType);
+    });
+  });
   const yearPolicies = groups.flatMap((g) => g.policies);
   const totalUnits = yearPolicies.reduce((sum, p) => sum + p.units, 0);
 
