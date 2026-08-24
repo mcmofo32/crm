@@ -50,7 +50,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
         const link = (
           <Link
             href={item.href}
-            className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1 rounded-md px-2 py-3 text-sm font-medium transition-colors ${
               isActive
                 ? "bg-slate-900 text-white"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
