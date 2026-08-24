@@ -44,15 +44,25 @@ async function requireEditablePolicy(policyId: string) {
     requireUser(),
     prisma.policy.findUnique({
       where: { id: policyId },
-      include: { lead: true },
+      include: {
+        lead: { include: { caseManagerSubagent: { select: { userId: true } } } },
+      },
     }),
   ]);
   if (!policy) throw new Error("Polis niet gevonden");
-  if (!(await canAccessOwner(user, policy.lead.ownerId))) {
-    throw new Error("Geen toegang tot deze polis");
-  }
   if (!canManageCustomerData(user)) {
     throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
+  // Toegang: ofwel via de gewone eigenaar/coach-scope (canAccessOwner),
+  // ofwel als expliciet toegewezen dossierbeheerder van deze lead — zelfde
+  // afleiding als managedByWhere (subagentPortal.ts), want die lijst toont
+  // een subagent net deze polissen als "onder beheer" om te bewerken, ook
+  // als de lead-eigenaar buiten zijn gewone owner/coach-scope valt.
+  const isCaseManager =
+    policy.lead.caseManagerUserId === user.id ||
+    policy.lead.caseManagerSubagent?.userId === user.id;
+  if (!isCaseManager && !(await canAccessOwner(user, policy.lead.ownerId))) {
+    throw new Error("Geen toegang tot deze polis");
   }
   return policy;
 }
