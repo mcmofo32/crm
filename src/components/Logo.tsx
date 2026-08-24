@@ -3,13 +3,20 @@
  * eronder, zonder eigen achtergrond — bedoeld om op de witte pagina-
  * achtergrond te staan (header, inlogpagina, ...). Nagetekend als SVG
  * (i.p.v. een los beeldbestand) zodat het op elk formaat scherp blijft.
+ *
+ * viewBox is verticaal bijgeknipt tot net rond de tekst (i.p.v. het volle
+ * 64x64-vierkant) zodat er geen witruimte boven/onder overblijft — `size`
+ * bepaalt daardoor de breedte, met de hoogte proportioneel daaraan.
  */
+const VIEWBOX_HEIGHT = 42;
+const VIEWBOX_WIDTH = 64;
+
 export function Logo({ size = 32 }: { size?: number }) {
   return (
     <svg
       width={size}
-      height={size}
-      viewBox="0 0 64 64"
+      height={size * (VIEWBOX_HEIGHT / VIEWBOX_WIDTH)}
+      viewBox={`0 16 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
