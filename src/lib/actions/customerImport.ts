@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { LeadType, type ProductType } from "@/generated/prisma/client";
-import { canAccessOwner, canManageCustomerData } from "@/lib/permissions";
+import { canManageCustomerData } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { logAudit } from "@/lib/audit";
 import { ensureFunnelStages } from "@/lib/funnelStages";
-import { createWonLeadRecord, getAssignableUsers } from "@/lib/actions/leads";
+import { createWonLeadRecord, getOwnerCandidates } from "@/lib/actions/leads";
 import { getSubagents } from "@/lib/actions/subagents";
 import { normalizePhone } from "@/lib/actions/duplicates";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
@@ -291,8 +291,9 @@ export async function importCustomersBulkAction(
 
   const leadType: LeadType =
     String(formData.get("leadType") ?? "FA") === "RG" ? "RG" : "FA";
-  const requestedOwnerId = String(formData.get("ownerId") ?? user.id);
-  const fallbackOwnerId = (await canAccessOwner(user, requestedOwnerId))
+  const ownerCandidates = await getOwnerCandidates();
+  const requestedOwnerId = String(formData.get("ownerId") ?? user.id).trim();
+  const fallbackOwnerId = ownerCandidates.some((u) => u.id === requestedOwnerId)
     ? requestedOwnerId
     : user.id;
 
@@ -338,9 +339,10 @@ export async function importCustomersBulkAction(
   // Bij meerdere tabbladen wordt de eigenaar per tabblad afgeleid uit de
   // tabbladnaam i.p.v. steeds dezelfde (manueel gekozen) medewerker te
   // gebruiken — dat is precies waarom je dan in één keer het hele bestand
-  // (met alle medewerkers samen) kan uploaden.
+  // (met alle medewerkers samen) kan uploaden. Zelfde kandidatenlijst als
+  // hierboven (ownerCandidates): zo kan een tabbladnaam nooit naar iemand
+  // buiten de toegelaten kring matchen.
   const multiSheet = sheets.length > 1;
-  const assignableUsers = multiSheet ? await getAssignableUsers() : [];
 
   const skipped: { row: number; name: string; reason: string }[] = [];
   const skippedSheets: { sheet: string; reason: string }[] = [];
@@ -350,18 +352,11 @@ export async function importCustomersBulkAction(
     let ownerId = fallbackOwnerId;
     if (multiSheet) {
       const normalized = normalizeName(sheet.name);
-      const match = assignableUsers.find((u) => normalizeName(u.name) === normalized);
+      const match = ownerCandidates.find((u) => normalizeName(u.name) === normalized);
       if (!match) {
         skippedSheets.push({
           sheet: sheet.name,
           reason: "geen medewerker gevonden met deze naam — tabblad overgeslagen",
-        });
-        continue;
-      }
-      if (!(await canAccessOwner(user, match.id))) {
-        skippedSheets.push({
-          sheet: sheet.name,
-          reason: `geen toegang tot medewerker "${match.name}" — tabblad overgeslagen`,
         });
         continue;
       }

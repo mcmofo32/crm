@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData } from "@/lib/permissions";
-import { createCustomerAction, getAssignableUsers } from "@/lib/actions/leads";
+import { createCustomerAction, getOwnerCandidates } from "@/lib/actions/leads";
 import { getSubagents } from "@/lib/actions/subagents";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 
@@ -10,8 +10,8 @@ export default async function NewCustomerPage() {
   const viewer = (await getEffectiveViewer())!;
   if (!canManageCustomerData(viewer)) notFound();
 
-  const [assignableUsers, subagents] = await Promise.all([
-    getAssignableUsers(),
+  const [ownerCandidates, subagents] = await Promise.all([
+    getOwnerCandidates(),
     getSubagents(),
   ]);
   // Is de aanmaker zelf een subagent, dan is hij standaard ook de
@@ -61,24 +61,27 @@ export default async function NewCustomerPage() {
           <Field label="Telefoon" name="phone" type="tel" />
         </div>
 
-        {assignableUsers.length > 1 && (
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-700">
-              Aanbrenger
-            </label>
-            <select
-              name="ownerId"
-              defaultValue={viewer.id}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
-              {assignableUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-slate-700">
+            Aanbrenger
+          </label>
+          <select
+            name="ownerId"
+            required
+            defaultValue={viewer.id}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            {ownerCandidates.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-400">
+            Wie deze klant aangebracht heeft — bepaalt bij wie de klant in de
+            cijfers/eenheden op het leaderboard meetelt.
+          </p>
+        </div>
 
         {subagents.length > 0 && (
           <div className="flex flex-col gap-1">

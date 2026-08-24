@@ -8,6 +8,7 @@ import {
   ActivityType,
   LeadStatus,
   LeadType,
+  Role,
   type ProductType,
 } from "@/generated/prisma/client";
 import {
@@ -201,8 +202,9 @@ export async function createCustomerAction(formData: FormData) {
   }
 
   const leadType = formData.get("leadType") as LeadType;
-  const requestedOwnerId = String(formData.get("ownerId") ?? user.id);
-  const ownerId = (await canAccessOwner(user, requestedOwnerId))
+  const ownerCandidates = await getOwnerCandidates();
+  const requestedOwnerId = String(formData.get("ownerId") ?? user.id).trim();
+  const ownerId = ownerCandidates.some((u) => u.id === requestedOwnerId)
     ? requestedOwnerId
     : user.id;
 
@@ -807,6 +809,48 @@ export async function getAssignableUsers(options?: { includeInactive?: boolean }
       deletedAt: null,
       ...(options?.includeInactive ? {} : { active: true }),
       ...(ids ? { id: { in: ids } } : {}),
+    },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+/**
+ * Kandidaten voor "Aanbrenger" bij het manueel aanmaken van een klant (dus
+ * niet via de funnel, zie createCustomerAction/importCustomersBulkAction) —
+ * zelfde idee als getAssignableUsers hierboven, maar voor een gewone
+ * gebruiker (rol USER — het typische geval voor een subagent) team-scoped
+ * i.p.v. enkel zichzelf. getVisibleUserIds geeft een USER daar enkel zijn
+ * eigen id terug (bedoeld om lead-zichtbaarheid af te bakenen, niet om
+ * kandidaten te tonen), waardoor de aanbrenger-keuze anders altijd
+ * stilzwijgend naar hemzelf zou terugvallen — ook wanneer een teamgenoot de
+ * effectieve aanbrenger was. Coach/Beheerder/Admin zijn al voldoende breed
+ * via getAssignableUsers, dus enkel de USER-tak krijgt hier een eigen
+ * invulling.
+ */
+export async function getOwnerCandidates() {
+  const user = await requireUser();
+  if (user.role !== Role.USER) {
+    return getAssignableUsers();
+  }
+
+  const self = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { teamId: true },
+  });
+  const ownTeamId = self?.teamId ?? null;
+  if (!ownTeamId) return getAssignableUsers();
+
+  const team = await prisma.team.findUnique({
+    where: { id: ownTeamId },
+    select: { coachId: true },
+  });
+
+  return prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      active: true,
+      OR: [{ teamId: ownTeamId }, ...(team ? [{ id: team.coachId }] : [])],
     },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
