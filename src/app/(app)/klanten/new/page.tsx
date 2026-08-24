@@ -14,6 +14,10 @@ export default async function NewCustomerPage() {
     getAssignableUsers(),
     getSubagents(),
   ]);
+  // Is de aanmaker zelf een subagent, dan is hij standaard ook de
+  // dossierbeheerder van de klant die hij toevoegt.
+  const defaultCaseManagerSubagentId =
+    subagents.find((s) => s.userId === viewer.id)?.id ?? "";
 
   return (
     <div className="max-w-xl">
@@ -84,7 +88,7 @@ export default async function NewCustomerPage() {
             <select
               name="caseManagerSubagentId"
               required
-              defaultValue=""
+              defaultValue={defaultCaseManagerSubagentId}
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="" disabled>

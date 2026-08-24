@@ -9,9 +9,14 @@ import {
 export function BulkCustomerImportForm({
   assignableUsers,
   defaultOwnerId,
+  subagents,
+  defaultCaseManagerSubagentId,
 }: {
   assignableUsers: { id: string; name: string }[];
   defaultOwnerId: string;
+  subagents: { id: string; name: string }[];
+  /** Vooringevuld op de subagent zelf als de importeur er één is — leeg ("") laat de placeholder staan zodat een niet-subagent bewust moet kiezen. */
+  defaultCaseManagerSubagentId: string;
 }) {
   const [state, formAction, pending] = useActionState<CustomerImportState, FormData>(
     importCustomersBulkAction,
@@ -53,6 +58,34 @@ export function BulkCustomerImportForm({
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {subagents.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-slate-700">
+            Dossierbeheerder
+          </label>
+          <select
+            name="caseManagerSubagentId"
+            required
+            defaultValue={defaultCaseManagerSubagentId}
+            className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="" disabled>
+              Kies een dossierbeheerder…
+            </option>
+            {subagents.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-400">
+            Wie deze dossiers beheert (producten toevoegt, opvolgt) — geldt
+            voor alle klanten in deze import, ongeacht wie hierboven als
+            medewerker/eigenaar geldt.
+          </p>
         </div>
       )}
 

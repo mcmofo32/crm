@@ -2,13 +2,21 @@ import { notFound } from "next/navigation";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData } from "@/lib/permissions";
 import { getAssignableUsers } from "@/lib/actions/leads";
+import { getSubagents } from "@/lib/actions/subagents";
 import { BulkCustomerImportForm } from "@/components/BulkCustomerImportForm";
 
 export default async function BulkNewCustomerPage() {
   const viewer = (await getEffectiveViewer())!;
   if (!canManageCustomerData(viewer)) notFound();
 
-  const assignableUsers = await getAssignableUsers();
+  const [assignableUsers, subagents] = await Promise.all([
+    getAssignableUsers(),
+    getSubagents(),
+  ]);
+  // Is de importeur zelf een subagent, dan is hij standaard ook de
+  // dossierbeheerder van wat hij importeert — zie BulkCustomerImportForm.
+  const defaultCaseManagerSubagentId =
+    subagents.find((s) => s.userId === viewer.id)?.id ?? "";
 
   return (
     <div className="max-w-xl">
@@ -33,6 +41,8 @@ export default async function BulkNewCustomerPage() {
       <BulkCustomerImportForm
         assignableUsers={assignableUsers}
         defaultOwnerId={viewer.id}
+        subagents={subagents}
+        defaultCaseManagerSubagentId={defaultCaseManagerSubagentId}
       />
     </div>
   );

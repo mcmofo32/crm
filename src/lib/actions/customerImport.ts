@@ -8,6 +8,7 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { logAudit } from "@/lib/audit";
 import { ensureFunnelStages } from "@/lib/funnelStages";
 import { createWonLeadRecord, getAssignableUsers } from "@/lib/actions/leads";
+import { getSubagents } from "@/lib/actions/subagents";
 import { normalizePhone } from "@/lib/actions/duplicates";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
@@ -122,7 +123,8 @@ async function processSheet(
   ownerId: string,
   actorId: string,
   leadType: LeadType,
-  wonStageId: string
+  wonStageId: string,
+  caseManagerSubagentId: string | null
 ): Promise<{ created: number; skipped: { row: number; name: string; reason: string }[] }> {
   const headerRowNumber = findHeaderRowNumber(sheet);
   const columnByHeader = new Map<string, number>();
@@ -243,6 +245,7 @@ async function processSheet(
         source: BULK_EXCEL_IMPORT_SOURCE,
         products,
         occurredAt,
+        caseManagerSubagentId,
       });
       created++;
       if (normalizedPhone) ownPhoneMap.set(normalizedPhone, { firstName, lastName });
@@ -292,6 +295,21 @@ export async function importCustomersBulkAction(
   const fallbackOwnerId = (await canAccessOwner(user, requestedOwnerId))
     ? requestedOwnerId
     : user.id;
+
+  // Dossierbeheerder voor deze hele import — zelfde regel als "Klant
+  // rechtstreeks aanmaken": kan enkel een subagent zijn, en is verplicht
+  // zodra er subagenten bestaan (anders komen geïmporteerde klanten zonder
+  // dossierbeheerder te staan, terwijl net de subagent die importeert er
+  // meestal zelf één moet worden — zie het formulier voor de standaardkeuze).
+  const availableSubagents = await getSubagents();
+  const requestedCaseManagerSubagentId =
+    String(formData.get("caseManagerSubagentId") ?? "").trim() || null;
+  const caseManagerSubagentId = requestedCaseManagerSubagentId
+    ? availableSubagents.find((s) => s.id === requestedCaseManagerSubagentId)?.id ?? null
+    : null;
+  if (availableSubagents.length > 0 && !caseManagerSubagentId) {
+    return { error: "Kies een dossierbeheerder" };
+  }
 
   // exceljs is een vrij groot pakket — enkel dynamisch inladen wanneer deze
   // actie effectief draait, i.p.v. het altijd mee te bundelen zodra iets
@@ -350,7 +368,14 @@ export async function importCustomersBulkAction(
       ownerId = match.id;
     }
 
-    const result = await processSheet(sheet, ownerId, user.id, leadType, wonStage.id);
+    const result = await processSheet(
+      sheet,
+      ownerId,
+      user.id,
+      leadType,
+      wonStage.id,
+      caseManagerSubagentId
+    );
     createdCount += result.created;
     skipped.push(
       ...result.skipped.map((s) => (multiSheet ? { ...s, name: `${s.name} (${sheet.name})` } : s))
