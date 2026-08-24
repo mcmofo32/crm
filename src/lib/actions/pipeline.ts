@@ -159,13 +159,13 @@ export async function getPipelineLeads(
     orderBy: { createdAt: "desc" },
   });
 
-  // "Opvolging" = iedereen die nog niet succesvol bereikt is (nog te
-  // contacteren, enkel voicemail gehad, of een toekomstig terugbelmoment
-  // heeft); "Te contacteren"/"Voicemail" pikken daar elk hun eigen deel
-  // uit — zelfde definitie als de 3 statistiekkaarten erboven.
+  // "Opvolging" betekent specifiek dat er een uitgaand gesprek in de
+  // toekomst ingepland staat (TERUGKOPPELEN) — niet zomaar "nog niet
+  // succesvol bereikt", want dat overlapt dan met "Te contacteren"/
+  // "Voicemail", die elk hun eigen, exclusieve deel al apart tonen.
   const filtered =
     category === "opvolging"
-      ? leads.filter((lead) => contactState(lead.activities) !== "OVERIG")
+      ? leads.filter((lead) => contactState(lead.activities) === "TERUGKOPPELEN")
       : category === "te_contacteren"
       ? leads.filter((lead) => contactState(lead.activities) === "TE_CONTACTEREN")
       : category === "voicemail"
