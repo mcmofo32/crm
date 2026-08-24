@@ -139,3 +139,33 @@ export async function setPolicyDateAction(
   await prisma.policy.update({ where: { id: policyId }, data: { [field]: value } });
   revalidatePolicyPaths(policy.leadId);
 }
+
+/**
+ * Past de contractdatum van deze polislijn aan (LeadProduct.contractDate,
+ * getoond als "Datum" op de Polissen-tabel) — los van "Klant sinds" van de
+ * klant zelf: iemand kan klant geworden zijn op één dag, maar een
+ * afzonderlijke polis pas later (of eerder) geschreven zijn. Bepaalt in
+ * welke productiemaand deze specifieke polis meetelt, dus i.t.t.
+ * ingangsdatum/betaaldOp hierboven niet leeg te maken.
+ */
+export async function setPolicyContractDateAction(
+  policyId: string,
+  formData: FormData
+) {
+  const policy = await requireEditablePolicy(policyId);
+  const raw = String(formData.get("contractDate") ?? "").trim();
+  if (!raw) throw new Error("Kies een datum");
+  const value = new Date(`${raw}T00:00:00`);
+  if (Number.isNaN(value.getTime())) throw new Error("Ongeldige datum");
+
+  await prisma.leadProduct.update({
+    where: { id: policy.leadProductId },
+    data: { contractDate: value },
+  });
+  revalidatePolicyPaths(policy.leadId);
+  // I.t.t. de andere polisvelden hierboven bepaalt contractDate ook in welke
+  // productiemaand deze polis (Eenheden) meetelt — zie getProductionLeaderboard
+  // e.a. in production.ts — dus die overzichten moeten hier ook mee verversen.
+  revalidatePath("/productie");
+  revalidatePath("/dashboard");
+}

@@ -8,6 +8,7 @@ import {
   setPolicyStatusAction,
   setPolicyChecklistFieldAction,
   setPolicyDateAction,
+  setPolicyContractDateAction,
 } from "@/lib/actions/policies";
 import {
   getManagedPolicies,
@@ -56,14 +57,6 @@ const TEAM_PREFIX = "team:";
 /** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. */
 const ALL_OPTION = "alles";
 
-function formatDate(date: Date | null) {
-  if (!date) return "—";
-  return date.toLocaleDateString("nl-BE", {
-    dateStyle: "medium",
-    timeZone: "Europe/Brussels",
-  });
-}
-
 function toDateInputValue(date: Date | null) {
   if (!date) return "";
   return date.toISOString().slice(0, 10);
@@ -111,8 +104,14 @@ function PolicyTable({
       <tbody className="divide-y divide-slate-100">
         {policies.map((p) => (
           <tr key={p.id} className="hover:bg-slate-50">
-            <td className="whitespace-nowrap px-3 py-2 text-slate-600">
-              {formatDate(p.becameCustomerAt)}
+            <td className="px-3 py-2">
+              <InlineTextField
+                type="date"
+                action={setPolicyContractDateAction.bind(null, p.id)}
+                name="contractDate"
+                value={toDateInputValue(p.becameCustomerAt)}
+                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              />
             </td>
             <td className="px-3 py-2">
               <InlineSelect
