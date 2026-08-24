@@ -107,7 +107,7 @@ function PolicyTable({
           return (
           <tr
             key={p.id}
-            className={incomplete ? "bg-red-100 hover:bg-red-200" : "hover:bg-slate-50"}
+            className={incomplete ? "bg-red-300 hover:bg-red-400" : "hover:bg-slate-50"}
           >
             <td className="px-3 py-2">
               <PolicyDateCell
@@ -395,9 +395,8 @@ export default async function SubagentPolissenPage({
         </div>
       </div>
 
-      <SubagentTabs active="polissen" />
-
-      <div className="flex flex-wrap items-center justify-end gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SubagentTabs active="polissen" />
         <form method="GET" className="flex items-center gap-2">
           {scope && <input type="hidden" name="scope" value={scope} />}
           <input type="hidden" name="year" value={showAllYears ? "alle" : selectedYear} />
