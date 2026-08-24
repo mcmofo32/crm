@@ -7,10 +7,11 @@ import {
   setMyAttendanceAction,
   verifyEventAttendanceAction,
 } from "@/lib/actions/events";
-import { VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
+import { VERIFIABLE_EVENT_TYPES, ATTENDANCE_STATUS_LABELS } from "@/lib/eventTypes";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
+import { EventVerificationForm } from "@/components/EventVerificationForm";
 
 const TYPE_LABELS = {
   MEETING: "Vergadering",
@@ -27,11 +28,6 @@ const TYPE_BADGE_VARIANTS: Record<keyof typeof TYPE_LABELS, BadgeVariant> = {
   MANAGEMENTMEETING: "amber",
   STRUCTUURMEETING: "slate",
 };
-const STATUS_LABELS = {
-  PENDING: "Nog niet gereageerd",
-  GOING: "Aanwezig",
-  NOT_GOING: "Niet aanwezig",
-} as const;
 
 export default async function EventDetailPage({
   params,
@@ -104,7 +100,8 @@ export default async function EventDetailPage({
           Jouw aanwezigheid
         </h2>
         <p className="mb-3 text-sm text-slate-500">
-          Huidige status: <strong>{STATUS_LABELS[event.myStatus]}</strong>
+          Huidige status:{" "}
+          <strong>{ATTENDANCE_STATUS_LABELS[event.myStatus]}</strong>
         </p>
         <form action={boundSetAttendance} className="flex gap-2">
           <button
@@ -162,44 +159,14 @@ export default async function EventDetailPage({
               </>
             )}
           </p>
-          <form
-            key={event.verifiedAt ? event.verifiedAt.getTime() : "unverified"}
-            action={boundVerifyAttendance}
-            className="flex flex-col gap-3"
-          >
-            <ul className="flex flex-col gap-2">
-              {verificationRows.map((row) => (
-                <li
-                  key={row.userId}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <span className="flex items-center gap-2 text-sm text-slate-700">
-                    <Avatar name={row.name} />
-                    {row.name}
-                    <span className="text-xs text-slate-400">
-                      (gaf zelf op: {STATUS_LABELS[row.status]})
-                    </span>
-                  </span>
-                  <select
-                    name={`actual_${row.userId}`}
-                    defaultValue={row.actualStatus}
-                    className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                  >
-                    <option value="GOING">Aanwezig</option>
-                    <option value="NOT_GOING">Niet aanwezig</option>
-                  </select>
-                </li>
-              ))}
-            </ul>
-            <div>
-              <button
-                type="submit"
-                className="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-              >
-                {event.verifiedAt ? "Opnieuw bevestigen" : "Aanwezigheid bevestigen"}
-              </button>
-            </div>
-          </form>
+          <EventVerificationForm
+            rows={verificationRows}
+            verifyAction={boundVerifyAttendance}
+            formKey={event.verifiedAt ? event.verifiedAt.getTime() : "unverified"}
+            submitLabel={
+              event.verifiedAt ? "Opnieuw bevestigen" : "Aanwezigheid bevestigen"
+            }
+          />
         </div>
       )}
 
@@ -230,7 +197,7 @@ export default async function EventDetailPage({
                         : "slate"
                     }
                   >
-                    {STATUS_LABELS[a.status]}
+                    {ATTENDANCE_STATUS_LABELS[a.status]}
                   </Badge>
                 </li>
               ))}
