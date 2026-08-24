@@ -895,9 +895,9 @@ export type TaxStatusBreakdown = {
 };
 
 const TAX_STATUS_LABELS: Record<TaxStatusBreakdown["status"], string> = {
-  DONE: "Opvolging Gedaan",
-  TODO: "Opvolging nog te doen",
-  SCHEDULED: "Opvolging Ingepland",
+  DONE: "Belastingsaangifte Gedaan",
+  TODO: "Belastingsaangifte nog te doen",
+  SCHEDULED: "Belastingsaangifte Ingepland",
   NVT: "NVT",
   BOEKHOUDER: "Boekhouder",
 };

@@ -7,12 +7,12 @@ import {
 } from "@/lib/actions/customerImport";
 
 export function BulkCustomerImportForm({
-  assignableUsers,
+  ownerCandidates,
   defaultOwnerId,
   subagents,
   defaultCaseManagerSubagentId,
 }: {
-  assignableUsers: { id: string; name: string }[];
+  ownerCandidates: { id: string; name: string }[];
   defaultOwnerId: string;
   subagents: { id: string; name: string }[];
   /** Vooringevuld op de subagent zelf als de importeur er één is — leeg ("") laat de placeholder staan zodat een niet-subagent bewust moet kiezen. */
@@ -37,29 +37,28 @@ export function BulkCustomerImportForm({
         </select>
       </div>
 
-      {assignableUsers.length > 1 && (
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-slate-700">
-            Medewerker{" "}
-            <span className="font-normal text-slate-400">
-              (terugvalwaarde — heeft je bestand per medewerker een apart
-              tabblad, dan wordt de eigenaar automatisch uit de tabbladnaam
-              afgeleid en telt dit enkel nog mee als er geen match is)
-            </span>
-          </label>
-          <select
-            name="ownerId"
-            defaultValue={defaultOwnerId}
-            className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
-          >
-            {assignableUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-slate-700">
+          Aanbrenger{" "}
+          <span className="font-normal text-slate-400">
+            (terugvalwaarde — heeft je bestand per medewerker een apart
+            tabblad, dan wordt de aanbrenger automatisch uit de tabbladnaam
+            afgeleid en telt dit enkel nog mee als er geen match is)
+          </span>
+        </label>
+        <select
+          name="ownerId"
+          required
+          defaultValue={defaultOwnerId}
+          className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
+        >
+          {ownerCandidates.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {subagents.length > 0 && (
         <div className="flex flex-col gap-1">

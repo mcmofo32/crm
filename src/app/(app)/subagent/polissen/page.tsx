@@ -102,8 +102,18 @@ function PolicyTable({
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-100">
-        {policies.map((p) => (
-          <tr key={p.id} className="hover:bg-slate-50">
+        {policies.map((p) => {
+          // Nog actie nodig zodra één van deze velden leeg is — vandaar het
+          // hele rijtje rood i.p.v. enkel het individuele veld, zodat dit
+          // meteen opvalt tussen de vele polissen. Easy/Tool/RL tellen hier
+          // niet mee: die staan doelbewust standaard uit tot afgevinkt, i.t.t.
+          // maatschappij/ingangsdatum/betaald die gewoon leeg beginnen.
+          const incomplete = !p.company || !p.ingangsdatum || !p.betaaldOp;
+          return (
+          <tr
+            key={p.id}
+            className={incomplete ? "bg-red-50 hover:bg-red-100" : "hover:bg-slate-50"}
+          >
             <td className="px-3 py-2">
               <InlineTextField
                 type="date"
@@ -190,7 +200,8 @@ function PolicyTable({
               />
             </td>
           </tr>
-        ))}
+          );
+        })}
       </tbody>
     </table>
   );

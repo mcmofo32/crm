@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData } from "@/lib/permissions";
-import { getAssignableUsers } from "@/lib/actions/leads";
+import { getOwnerCandidates } from "@/lib/actions/leads";
 import { getSubagents } from "@/lib/actions/subagents";
 import { BulkCustomerImportForm } from "@/components/BulkCustomerImportForm";
 
@@ -9,8 +9,8 @@ export default async function BulkNewCustomerPage() {
   const viewer = (await getEffectiveViewer())!;
   if (!canManageCustomerData(viewer)) notFound();
 
-  const [assignableUsers, subagents] = await Promise.all([
-    getAssignableUsers(),
+  const [ownerCandidates, subagents] = await Promise.all([
+    getOwnerCandidates(),
     getSubagents(),
   ]);
   // Is de importeur zelf een subagent, dan is hij standaard ook de
@@ -39,7 +39,7 @@ export default async function BulkNewCustomerPage() {
       </div>
 
       <BulkCustomerImportForm
-        assignableUsers={assignableUsers}
+        ownerCandidates={ownerCandidates}
         defaultOwnerId={viewer.id}
         subagents={subagents}
         defaultCaseManagerSubagentId={defaultCaseManagerSubagentId}
