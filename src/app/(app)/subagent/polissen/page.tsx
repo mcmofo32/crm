@@ -33,7 +33,7 @@ import {
 } from "@/lib/policyLabels";
 import { InlineSelect } from "@/components/InlineSelect";
 import { InlineCheckbox } from "@/components/InlineCheckbox";
-import { InlineTextField } from "@/components/InlineTextField";
+import { PolicyDateEditToggle, PolicyDateCell } from "@/components/PolicyDateCell";
 import { SubagentTabs } from "@/components/SubagentTabs";
 
 /** Vaste volgorde waarin de polissen van eenzelfde klant hier getoond worden. */
@@ -56,11 +56,6 @@ function policyProductRank(type: ProductType): number {
 const TEAM_PREFIX = "team:";
 /** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. */
 const ALL_OPTION = "alles";
-
-function toDateInputValue(date: Date | null) {
-  if (!date) return "";
-  return date.toISOString().slice(0, 10);
-}
 
 const STATUS_OPTIONS = POLICY_STATUS_ORDER.map((status) => ({
   value: status,
@@ -112,15 +107,13 @@ function PolicyTable({
           return (
           <tr
             key={p.id}
-            className={incomplete ? "bg-red-50 hover:bg-red-100" : "hover:bg-slate-50"}
+            className={incomplete ? "bg-red-100 hover:bg-red-200" : "hover:bg-slate-50"}
           >
             <td className="px-3 py-2">
-              <InlineTextField
-                type="date"
+              <PolicyDateCell
                 action={setPolicyContractDateAction.bind(null, p.id)}
                 name="contractDate"
-                value={toDateInputValue(p.becameCustomerAt)}
-                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                date={p.becameCustomerAt}
               />
             </td>
             <td className="px-3 py-2">
@@ -182,21 +175,17 @@ function PolicyTable({
               />
             </td>
             <td className="px-3 py-2">
-              <InlineTextField
-                type="date"
+              <PolicyDateCell
                 action={setPolicyDateAction.bind(null, p.id, "ingangsdatum")}
                 name="ingangsdatum"
-                value={toDateInputValue(p.ingangsdatum)}
-                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                date={p.ingangsdatum}
               />
             </td>
             <td className="px-3 py-2">
-              <InlineTextField
-                type="date"
+              <PolicyDateCell
                 action={setPolicyDateAction.bind(null, p.id, "betaaldOp")}
                 name="betaaldOp"
-                value={toDateInputValue(p.betaaldOp)}
-                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                date={p.betaaldOp}
               />
             </td>
           </tr>
@@ -430,51 +419,53 @@ export default async function SubagentPolissenPage({
 
       {scopeSwitcher}
 
-      {groups.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400">
-          {q
-            ? "Geen polissen gevonden voor deze zoekopdracht."
-            : showAllYears
-            ? "Nog geen polissen van klanten onder beheer."
-            : `Geen polissen van klanten onder beheer in ${selectedYear}.`}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {groups.map((group, index) => {
-            const groupUnits = group.policies.reduce((sum, p) => sum + p.units, 0);
-            return (
-              <details
-                key={`${group.year}-${group.month}`}
-                open={index === 0}
-                className="overflow-hidden rounded-lg border border-slate-200 bg-white"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-200">
-                  <span>
-                    Productiemaand {String(group.month).padStart(2, "0")}
-                    {showAllYears ? `/${group.year}` : ""}
-                  </span>
-                  <span className="font-normal text-slate-500">
-                    {group.policies.length} polissen · {groupUnits} eenheden
-                  </span>
-                </summary>
-                <div className="overflow-x-auto">
-                  <PolicyTable policies={group.policies} assignableUsers={assignableUsers} />
-                </div>
-              </details>
-            );
-          })}
-        </div>
-      )}
+      <PolicyDateEditToggle>
+        {groups.length === 0 ? (
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400">
+            {q
+              ? "Geen polissen gevonden voor deze zoekopdracht."
+              : showAllYears
+              ? "Nog geen polissen van klanten onder beheer."
+              : `Geen polissen van klanten onder beheer in ${selectedYear}.`}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {groups.map((group, index) => {
+              const groupUnits = group.policies.reduce((sum, p) => sum + p.units, 0);
+              return (
+                <details
+                  key={`${group.year}-${group.month}`}
+                  open={index === 0}
+                  className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-200">
+                    <span>
+                      Productiemaand {String(group.month).padStart(2, "0")}
+                      {showAllYears ? `/${group.year}` : ""}
+                    </span>
+                    <span className="font-normal text-slate-500">
+                      {group.policies.length} polissen · {groupUnits} eenheden
+                    </span>
+                  </summary>
+                  <div className="overflow-x-auto">
+                    <PolicyTable policies={group.policies} assignableUsers={assignableUsers} />
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        )}
 
-      {yearPolicies.length > 0 && (
-        <div className="flex items-center justify-between rounded-lg border-2 border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white">
-          <span>
-            Totaal {showAllYears ? "alle jaren" : selectedYear}:{" "}
-            {yearPolicies.length} polissen
-          </span>
-          <span>{totalUnits} eenheden</span>
-        </div>
-      )}
+        {yearPolicies.length > 0 && (
+          <div className="flex items-center justify-between rounded-lg border-2 border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white">
+            <span>
+              Totaal {showAllYears ? "alle jaren" : selectedYear}:{" "}
+              {yearPolicies.length} polissen
+            </span>
+            <span>{totalUnits} eenheden</span>
+          </div>
+        )}
+      </PolicyDateEditToggle>
     </div>
   );
 }
