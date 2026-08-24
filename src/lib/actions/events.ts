@@ -164,7 +164,7 @@ export async function getEventsForCurrentUser(): Promise<EventWithMyStatus[]> {
     orderBy: { date: "asc" },
     include: {
       attendances: {
-        select: { userId: true, status: true },
+        select: { userId: true, status: true, actualStatus: true },
       },
     },
   });
@@ -179,7 +179,13 @@ export async function getEventsForCurrentUser(): Promise<EventWithMyStatus[]> {
     description: event.description,
     myStatus:
       event.attendances.find((a) => a.userId === user.id)?.status ?? "PENDING",
-    goingCount: event.attendances.filter((a) => a.status === "GOING").length,
+    // Na verificatie (event.verifiedAt) is actualStatus de correcte,
+    // door een Beheerder bevestigde aanwezigheid — vóór verificatie is dat
+    // nog niet ingevuld, dus dan valt dit terug op de zelf opgegeven status
+    // (RSVP).
+    goingCount: event.verifiedAt
+      ? event.attendances.filter((a) => a.actualStatus === "GOING").length
+      : event.attendances.filter((a) => a.status === "GOING").length,
   }));
 }
 
