@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { ensureFunnelStages } from "@/lib/funnelStages";
 import { createWonLeadRecord, getOwnerCandidates } from "@/lib/actions/leads";
 import { getSubagents } from "@/lib/actions/subagents";
-import { normalizePhone } from "@/lib/actions/duplicates";
+import { normalizePhone } from "@/lib/duplicateUtils";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
 import type ExcelJS from "exceljs";

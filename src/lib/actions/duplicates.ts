@@ -4,21 +4,19 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { canViewBeheerderTools } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import type { LeadType } from "@/generated/prisma/client";
+import {
+  normalizeEmail,
+  normalizePhone,
+  type DuplicateLead,
+  type DuplicateGroup,
+  type ContactDuplicateMatch,
+  type SimpleDuplicateLead,
+  type SimpleDuplicateGroup,
+} from "@/lib/duplicateUtils";
 
 /** Stabiele sleutel voor een duplicaten-groep, los van welke lead toevallig de union-find-root is. */
 function duplicateGroupSignature(leadIds: string[]): string {
   return [...leadIds].sort().join(",");
-}
-
-export function normalizeEmail(email: string | null) {
-  return email ? email.trim().toLowerCase() : null;
-}
-
-export function normalizePhone(phone: string | null) {
-  if (!phone) return null;
-  const digits = phone.replace(/[^\d+]/g, "");
-  return digits.length >= 6 ? digits : null;
 }
 
 class UnionFind {
@@ -51,29 +49,6 @@ class UnionFind {
     return groups;
   }
 }
-
-export type DuplicateLead = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string | null;
-  phone: string | null;
-  leadType: LeadType;
-  stageLabel: string;
-  ownerId: string;
-  ownerName: string;
-  createdByName: string;
-  createdAt: Date;
-};
-
-export type DuplicateGroup = {
-  key: string;
-  /** Stabiele sleutel (sorted lead-id's) — te gebruiken bij het negeren van deze groep. */
-  signature: string;
-  sharedEmails: string[];
-  sharedPhones: string[];
-  leads: DuplicateLead[];
-};
 
 /**
  * computeDuplicateGroupsUnsafe kan in theorie om eender welke reden falen
@@ -210,14 +185,6 @@ async function computeDuplicateGroupsUnsafe(): Promise<DuplicateGroup[]> {
   return result.sort((a, b) => b.leads.length - a.leads.length);
 }
 
-export type ContactDuplicateMatch = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  ownerName: string;
-  matchedOn: "email" | "phone";
-};
-
 /**
  * Bestaande (niet-verwijderde) leads van eender welke eigenaar die hetzelfde
  * e-mailadres of telefoonnummer hebben als opgegeven — voor de melding aan
@@ -271,20 +238,6 @@ export async function findLeadsByContact(
   }
   return matches;
 }
-
-export type SimpleDuplicateLead = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  ownerName: string;
-  createdAt: Date;
-};
-
-export type SimpleDuplicateGroup = {
-  key: string;
-  matchLabel: string;
-  leads: SimpleDuplicateLead[];
-};
 
 /**
  * Sterk vereenvoudigde herschrijving van de duplicaten-lijst voor de
