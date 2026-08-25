@@ -270,13 +270,96 @@ export async function findLeadsByContact(
   return matches;
 }
 
-export async function getDuplicateLeads(): Promise<DuplicateGroup[]> {
-  const viewer = await getEffectiveViewer();
-  if (!viewer) throw new Error("Niet ingelogd");
-  if (!canViewBeheerderTools(viewer)) {
-    throw new Error("Je hebt geen toegang tot dit overzicht");
+export type SimpleDuplicateLead = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  ownerName: string;
+  createdAt: Date;
+};
+
+export type SimpleDuplicateGroup = {
+  key: string;
+  matchLabel: string;
+  leads: SimpleDuplicateLead[];
+};
+
+/**
+ * Sterk vereenvoudigde herschrijving van de duplicaten-lijst voor de
+ * /beheer/duplicaten-pagina: geen union-find/transitieve groepen meer (enkel
+ * rechtstreeks e-mail- of telefoon-matches), geen extra relaties (fase) die
+ * niet strikt nodig zijn, en alles in één try/catch — bewust minimaal
+ * gehouden zodat er zo weinig mogelijk kan mislopen bij het opbouwen ervan.
+ */
+async function computeSimpleDuplicateGroups(): Promise<SimpleDuplicateGroup[]> {
+  try {
+    const [leads, dismissed] = await Promise.all([
+      prisma.lead.findMany({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          createdAt: true,
+          owner: { select: { name: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.dismissedDuplicateGroup.findMany({ select: { signature: true } }),
+    ]);
+    const dismissedSignatures = new Set(dismissed.map((d) => d.signature));
+
+    const byEmail = new Map<string, typeof leads>();
+    const byPhone = new Map<string, typeof leads>();
+    for (const lead of leads) {
+      const email = normalizeEmail(lead.email);
+      if (email) {
+        const arr = byEmail.get(email);
+        if (arr) arr.push(lead);
+        else byEmail.set(email, [lead]);
+      }
+      const phone = normalizePhone(lead.phone);
+      if (phone) {
+        const arr = byPhone.get(phone);
+        if (arr) arr.push(lead);
+        else byPhone.set(phone, [lead]);
+      }
+    }
+
+    const toLead = (l: (typeof leads)[number]): SimpleDuplicateLead => ({
+      id: l.id,
+      firstName: l.firstName,
+      lastName: l.lastName,
+      ownerName: l.owner?.name || "Onbekend",
+      createdAt: l.createdAt,
+    });
+
+    const groups: SimpleDuplicateGroup[] = [];
+    for (const [email, group] of byEmail) {
+      if (group.length < 2) continue;
+      const signature = `email:${email}`;
+      if (dismissedSignatures.has(signature)) continue;
+      groups.push({ key: signature, matchLabel: `E-mail: ${email}`, leads: group.map(toLead) });
+    }
+    for (const [phone, group] of byPhone) {
+      if (group.length < 2) continue;
+      const signature = `phone:${phone}`;
+      if (dismissedSignatures.has(signature)) continue;
+      groups.push({ key: signature, matchLabel: `Telefoon: ${phone}`, leads: group.map(toLead) });
+    }
+    return groups;
+  } catch (err) {
+    console.error("[duplicates] computeSimpleDuplicateGroups mislukt", err);
+    return [];
   }
-  return computeDuplicateGroups();
+}
+
+export async function getDuplicateLeads(): Promise<SimpleDuplicateGroup[]> {
+  const viewer = await getEffectiveViewer();
+  if (!viewer || !canViewBeheerderTools(viewer)) return [];
+  return computeSimpleDuplicateGroups();
 }
 
 /**
@@ -301,14 +384,13 @@ export async function getCrossOwnerDuplicateGroups(): Promise<DuplicateGroup[]> 
  * samenstelling van de groep verandert (bv. een nieuwe lead met dezelfde
  * contactgegevens komt erbij).
  */
-export async function dismissDuplicateGroupAction(leadIds: string[]) {
+export async function dismissDuplicateGroupAction(signature: string) {
   const viewer = await getEffectiveViewer();
   if (!viewer || !canViewBeheerderTools(viewer)) {
     throw new Error("Je hebt geen toegang tot dit overzicht");
   }
-  if (leadIds.length < 2) throw new Error("Ongeldige duplicaten-groep");
+  if (!signature) throw new Error("Ongeldige duplicaten-groep");
 
-  const signature = duplicateGroupSignature(leadIds);
   await prisma.dismissedDuplicateGroup.upsert({
     where: { signature },
     create: { signature, dismissedById: viewer.id },
