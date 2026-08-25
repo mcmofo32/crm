@@ -20,6 +20,7 @@ import { getSubagents } from "@/lib/actions/subagents";
 import { setCustomerOwnerAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
+import { QuickCallLogButton } from "@/components/QuickCallLogButton";
 import { ReportContactForm } from "@/components/ReportContactForm";
 import { ScheduleActivityForm } from "@/components/ScheduleActivityForm";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
@@ -227,12 +228,6 @@ export default async function LeadDetailPage({
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <ReportContactForm
-            leadId={lead.id}
-            assignableUsers={assignableUsers}
-            currentUserId={user.id}
-          />
-
           {canManageCustomerData(user) && (
             <ScheduleActivityForm
               leadId={lead.id}
@@ -243,9 +238,19 @@ export default async function LeadDetailPage({
           )}
 
           <div>
-            <h2 className="mb-1 text-sm font-medium text-slate-900">
-              Communicatiegeschiedenis
-            </h2>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-medium text-slate-900">
+                Communicatiegeschiedenis
+              </h2>
+              <div className="flex items-center gap-1.5">
+                <QuickCallLogButton leadId={lead.id} />
+                <ReportContactForm
+                  leadId={lead.id}
+                  assignableUsers={assignableUsers}
+                  currentUserId={user.id}
+                />
+              </div>
+            </div>
             <p className="mb-3 text-xs text-slate-400">
               Alle contactmomenten en geplande opvolging voor deze lead, nieuwste eerst.
             </p>
