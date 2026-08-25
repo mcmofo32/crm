@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import {
-  canManageUser,
+  canAssignRole,
+  canEditAccount,
+  canChangeRole,
   canManageUsers,
   wouldCreateCoachCycle,
 } from "@/lib/permissions";
@@ -70,7 +72,7 @@ export async function createUserAction(formData: FormData) {
   const actor = await requireUserManager();
 
   const role = formData.get("role") as Role;
-  if (!canManageUser(actor, { role })) {
+  if (!canAssignRole(actor, role)) {
     throw new Error("Je mag deze rol niet toekennen");
   }
 
@@ -96,7 +98,7 @@ export async function createUserAction(formData: FormData) {
       select: { id: true, role: true, name: true, coachedTeam: { select: { id: true } } },
     });
     if (!underPerson) throw new Error("Gebruiker niet gevonden");
-    if (!canManageUser(actor, underPerson)) {
+    if (!canEditAccount(actor, underPerson)) {
       throw new Error("Je mag deze gebruiker niet beheren");
     }
   }
@@ -171,7 +173,7 @@ export async function setUserActiveAction(userId: string, active: boolean) {
     select: { id: true, role: true, name: true },
   });
   if (!target) throw new Error("Gebruiker niet gevonden");
-  if (!canManageUser(actor, target)) {
+  if (!canEditAccount(actor, target)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
 
@@ -194,8 +196,9 @@ export async function setUserActiveAction(userId: string, active: boolean) {
 /**
  * Alle medewerkers, voor de Medewerkers-lijst — bekijken mag door eender
  * welke Beheerder/Admin (requireUserManager), ook van elkaar: enkel het
- * effectief *bewerken* van een Admin/Beheerder-account is beperkt tot de
- * Beheerder (zie canManageUser, gebruikt in de write-acties hieronder).
+ * effectief *bewerken* van een Beheerder-account (en het aanpassen van een
+ * bestaande Admin-rol) is beperkt (zie canEditAccount/canChangeRole,
+ * gebruikt in de write-acties hieronder).
  */
 export async function getManageableUsers() {
   await requireUserManager();
@@ -267,8 +270,8 @@ export async function getTeamsForAssignment() {
 
 /**
  * Bekijken mag door eender welke Beheerder/Admin (requireUserManager) —
- * of de kijker dit profiel ook mag *bewerken* (canManageUser) bepaalt de
- * pagina zelf, om een Admin een andere Admin/Beheerder wel te laten zien
+ * of de kijker dit profiel ook mag *bewerken* (canEditAccount) bepaalt de
+ * pagina zelf, om een Admin een Beheerder-profiel wel te laten zien
  * (read-only) i.p.v. daar volledig blind voor te zijn.
  */
 export async function getUserForEdit(userId: string) {
@@ -324,12 +327,12 @@ export async function updateUserAction(
       },
     });
     if (!target) throw new Error("Gebruiker niet gevonden");
-    if (!canManageUser(actor, target)) {
+    if (!canEditAccount(actor, target)) {
       throw new Error("Je mag deze gebruiker niet beheren");
     }
 
     const role = formData.get("role") as Role;
-    if (!canManageUser(actor, { role })) {
+    if (role !== target.role && !canChangeRole(actor, target, role)) {
       throw new Error("Je mag deze rol niet toekennen");
     }
     // Enkel USER heeft geen eigen zicht op een team (getVisibleUserIds geeft
@@ -471,7 +474,7 @@ export async function deleteUserAction(userId: string, newOwnerId: string | null
   });
   if (!target) throw new Error("Gebruiker niet gevonden");
   if (target.deletedAt) throw new Error("Deze gebruiker is al verwijderd");
-  if (!canManageUser(actor, target)) {
+  if (!canEditAccount(actor, target)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
   if (target.id === actor.id) {

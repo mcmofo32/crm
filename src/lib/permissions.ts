@@ -9,9 +9,13 @@ import { prisma } from "@/lib/prisma";
  *    funnels/instellingen, en alle leads/activiteiten van iedereen).
  *  - ADMIN: veel rechten. Ziet en beheert alle leads/activiteiten, kan
  *    gebruikers/teams beheren en heeft toegang tot de Beheerderstools
- *    (Analyse, Auditlog, Duplicaten, Prullenbak), maar mag geen
- *    Beheerder- of Admin-accounts aanmaken/wijzigen, en mag zelf geen
- *    leads verwijderen.
+ *    (Analyse, Auditlog, Duplicaten, Prullenbak), maar mag zelf geen leads
+ *    verwijderen. Mag elk account bewerken/deactiveren/verwijderen behalve
+ *    dat van de Beheerder, ook dat van een andere Admin — maar mag nooit
+ *    de rol Admin of Beheerder toekennen (rollen aanpassen kan tot
+ *    maximaal Coach), en mag de rol van een bestaande Admin/Beheerder
+ *    helemaal niet aanpassen: enkel de Beheerder mag de Admin-rol afnemen.
+ *    Zie canEditAccount/canChangeRole/canAssignRole hieronder.
  *  - COACH: toegang tot zichzelf + zijn team (de teamleden die aan hem/haar
  *    rapporteren).
  *  - USER: toegang enkel tot zichzelf.
@@ -78,17 +82,54 @@ export function canManageEvents(user: SessionUser) {
   );
 }
 
+const ROLE_RANK: Record<Role, number> = {
+  [Role.USER]: 0,
+  [Role.COACH]: 1,
+  [Role.ADMIN]: 2,
+  [Role.BEHEERDER]: 3,
+};
+
 /**
- * Mag `actor` het account `target` aanmaken/wijzigen/verwijderen? Ook gebruikt
- * om te bepalen of `actor` een bepaalde rol mag *toekennen* (dan is `target`
- * de nieuw gekozen rol). Enkel de Beheerder mag Admin-accounts aanmaken,
- * bewerken of de rol Admin toekennen — een Admin mag dat niet bij een andere
- * Admin (of bij zichzelf een collega-Admin maken), gezien de gevoelige data.
+ * Het maximale rol-niveau dat `actor` mag toekennen — bij het aanmaken van
+ * een nieuw account, of als nieuwe rol bij een rolwijziging (zie
+ * canChangeRole). De Beheerder kent geen bovengrens; een Admin mag nooit
+ * verder dan Coach toekennen (dus nooit de rol Admin of Beheerder).
  */
-export function canManageUser(actor: SessionUser, target: { role: Role }) {
+export function canAssignRole(actor: SessionUser, role: Role): boolean {
+  if (actor.role === Role.BEHEERDER) return true;
+  if (actor.role === Role.ADMIN) return ROLE_RANK[role] <= ROLE_RANK[Role.COACH];
+  return false;
+}
+
+/**
+ * Mag `actor` het account van `target` beheren — bewerken, activeren/
+ * deactiveren, verwijderen, in een team/structuur plaatsen — los van een
+ * eventuele rolwijziging zelf (zie canChangeRole hieronder). De Beheerder
+ * mag iedereen; een Admin mag iedereen behalve de Beheerder, dus ook een
+ * ander Admin-account.
+ */
+export function canEditAccount(actor: SessionUser, target: { role: Role }): boolean {
+  if (actor.role === Role.BEHEERDER) return true;
+  if (actor.role === Role.ADMIN) return target.role !== Role.BEHEERDER;
+  return false;
+}
+
+/**
+ * Mag `actor` de rol van `target` (huidige rol) veranderen naar
+ * `requestedRole`? Enkel de Beheerder mag de rol van een bestaande Admin of
+ * Beheerder aanpassen — dus ook: enkel de Beheerder mag de Admin-rol
+ * afnemen. Een Admin mag verder iedereens rol aanpassen tot maximaal Coach
+ * (canAssignRole), maar nooit die van een Admin- of Beheerder-account.
+ */
+export function canChangeRole(
+  actor: SessionUser,
+  target: { role: Role },
+  requestedRole: Role
+): boolean {
   if (actor.role === Role.BEHEERDER) return true;
   if (actor.role === Role.ADMIN) {
-    return target.role !== Role.BEHEERDER && target.role !== Role.ADMIN;
+    if (target.role === Role.BEHEERDER || target.role === Role.ADMIN) return false;
+    return canAssignRole(actor, requestedRole);
   }
   return false;
 }
