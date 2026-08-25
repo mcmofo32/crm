@@ -316,7 +316,7 @@ export default async function AnalysePage({
               Zonder team
             </Link>
           </div>
-          <form method="GET" className="flex items-center gap-2 text-sm">
+          <form method="GET" className="flex flex-wrap items-center gap-2 text-sm">
             <select
               name="person"
               defaultValue={personFilter ?? ""}
@@ -839,6 +839,7 @@ export default async function AnalysePage({
             Overzicht per medewerker
           </h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
@@ -898,6 +899,7 @@ export default async function AnalysePage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

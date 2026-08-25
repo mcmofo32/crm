@@ -186,6 +186,23 @@ export default async function SubagentKlantenPage({
     followUpStatusOptions.map((o) => [o.value, o.label])
   );
 
+  // Eén keer per klant berekenen (i.p.v. inline in de .map()) zodat zowel de
+  // kaartweergave (mobiel) als de tabel (desktop) dezelfde bindings/opties
+  // hergebruiken in plaats van dezelfde niet-triviale logica te dupliceren.
+  const customerRows = customers.map((customer) => ({
+    customer,
+    boundSetCaseManager: setCaseManagerAction.bind(null, customer.id),
+    boundSetFollowUpStatus: setFollowUpStatusAction.bind(null, customer.id),
+    caseManagerOptions: customer.caseManagerSubagentId
+      ? subagents.map((s) => ({ value: s.id, label: s.name }))
+      : [
+          { value: "", label: customer.caseManagerName },
+          ...subagents
+            .filter((s) => s.userId !== customer.caseManagerUserId)
+            .map((s) => ({ value: s.id, label: s.name })),
+        ],
+  }));
+
   const filtersActive = Boolean(product || sortBy || followUpMonthValue);
   function clearFiltersHref() {
     const params = new URLSearchParams();
@@ -245,9 +262,9 @@ export default async function SubagentKlantenPage({
       {scopeSwitcher}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <form method="GET" className="flex flex-wrap items-center gap-2">
+        <form method="GET" className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {scope && <input type="hidden" name="scope" value={scope} />}
-          <div className="relative">
+          <div className="relative w-full sm:w-72">
             <Search
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -257,7 +274,7 @@ export default async function SubagentKlantenPage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
-              className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
             />
           </div>
 
@@ -276,7 +293,7 @@ export default async function SubagentKlantenPage({
                 </span>
               )}
             </summary>
-            <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+            <div className="absolute right-0 top-full z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
                 Product
               </label>
@@ -349,137 +366,222 @@ export default async function SubagentKlantenPage({
         </form>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-6 py-3 font-medium">Klant sinds</th>
-              <th className="px-6 py-3 font-medium">Naam</th>
-              <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
-              <th className="px-4 py-3 font-medium">Aanbrenger</th>
-              <th className="px-6 py-3 font-medium">Telefoonnummer</th>
-              <th className="px-6 py-3 font-medium">E-mailadres</th>
-              <th className="px-6 py-3 font-medium">Opvolging</th>
-              <th className="px-6 py-3 font-medium text-right">Totale premies</th>
-              <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
-              <th className="px-6 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {customers.map((customer) => {
-              const boundSetCaseManager = setCaseManagerAction.bind(
-                null,
-                customer.id
-              );
-              const boundSetFollowUpStatus = setFollowUpStatusAction.bind(
-                null,
-                customer.id
-              );
-
-              return (
-                <tr key={customer.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 text-slate-600">
-                    {formatDate(customer.becameCustomerAt)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link
-                      href={`/leads/${customer.id}`}
-                      className="font-medium text-slate-900 hover:underline"
-                    >
-                      {customer.firstName} {customer.lastName}
-                    </Link>
-                    {customer.company && (
-                      <span className="ml-2 text-slate-400">{customer.company}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4">
-                    {canEditCustomerData ? (
-                      <InlineSelect
-                        action={boundSetCaseManager}
-                        name="subagentId"
-                        value={customer.caseManagerSubagentId ?? ""}
-                        options={
-                          customer.caseManagerSubagentId
-                            ? subagents.map((s) => ({ value: s.id, label: s.name }))
-                            : [
-                                { value: "", label: customer.caseManagerName },
-                                // Wie nu al dossierbeheerder is (via caseManagerUser) staat
-                                // hierboven al als eerste optie — zijn eigen
-                                // subagent-vermelding (indien hij er ook één heeft) mag dan
-                                // niet nog eens apart in de lijst staan.
-                                ...subagents
-                                  .filter((s) => s.userId !== customer.caseManagerUserId)
-                                  .map((s) => ({ value: s.id, label: s.name })),
-                              ]
-                        }
-                        className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
-                      />
-                    ) : (
-                      <span className="text-slate-600">
-                        {customer.caseManagerName}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 text-slate-600">
-                    {customer.owner.name}
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {customer.phone || "—"}
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {customer.email || "—"}
-                  </td>
-                  <td className="px-6 py-4">
-                    {canEditCustomerData ? (
-                      <InlineSelect
-                        action={boundSetFollowUpStatus}
-                        name="status"
-                        value={customer.followUpStatus ?? "TODO"}
-                        options={followUpStatusOptions}
-                        className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
-                        style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
-                      />
-                    ) : (
-                      <span
-                        className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
-                        style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+      {customerRows.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white px-6 py-8 text-center text-slate-400">
+          {filtersActive || q
+            ? "Geen klanten gevonden voor deze filters."
+            : "Geen klanten onder beheer."}
+        </div>
+      ) : (
+        <>
+          {/* Kaartweergave op smalle schermen — de brede tabel (hieronder,
+              vanaf sm: zichtbaar) heeft 10 kolommen en is op een gsm niet
+              leesbaar zonder veel zijwaarts scrollen. */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {customerRows.map(
+              ({ customer, boundSetCaseManager, boundSetFollowUpStatus, caseManagerOptions }) => (
+                <div
+                  key={customer.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <Link
+                        href={`/leads/${customer.id}`}
+                        className="font-medium text-slate-900 hover:underline"
                       >
-                        {followUpStatusLabelByValue.get(
-                          customer.followUpStatus ?? "TODO"
-                        )}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right font-medium text-slate-900">
-                    {formatAmount(customer.totalAmount)}
-                  </td>
-                  <td className="px-6 py-4 text-right text-slate-600">
-                    {customer.totalUnits}
-                  </td>
-                  <td className="px-6 py-4 text-right">
+                        {customer.firstName} {customer.lastName}
+                      </Link>
+                      {customer.company && (
+                        <p className="text-sm text-slate-400">{customer.company}</p>
+                      )}
+                    </div>
                     <Link
                       href={`/leads/${customer.id}`}
                       title="Wijzigingen doorvoeren"
-                      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      className="flex-shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                     >
                       <MoreVertical size={18} />
                     </Link>
-                  </td>
-                </tr>
-              );
-            })}
-            {customers.length === 0 && (
-              <tr>
-                <td colSpan={10} className="px-6 py-8 text-center text-slate-400">
-                  {filtersActive || q
-                    ? "Geen klanten gevonden voor deze filters."
-                    : "Geen klanten onder beheer."}
-                </td>
-              </tr>
+                  </div>
+
+                  {customer.phone && (
+                    <a
+                      href={`tel:${customer.phone}`}
+                      className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600"
+                    >
+                      {customer.phone}
+                    </a>
+                  )}
+                  {customer.email && (
+                    <p className="mt-1 text-sm text-slate-500">{customer.email}</p>
+                  )}
+
+                  <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Klant sinds</span>
+                      <span className="text-slate-700">
+                        {formatDate(customer.becameCustomerAt)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Dossierbeheerder</span>
+                      {canEditCustomerData ? (
+                        <InlineSelect
+                          action={boundSetCaseManager}
+                          name="subagentId"
+                          value={customer.caseManagerSubagentId ?? ""}
+                          options={caseManagerOptions}
+                          className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                        />
+                      ) : (
+                        <span className="text-slate-700">{customer.caseManagerName}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Aanbrenger</span>
+                      <span className="text-slate-700">{customer.owner.name}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Opvolging</span>
+                      {canEditCustomerData ? (
+                        <InlineSelect
+                          action={boundSetFollowUpStatus}
+                          name="status"
+                          value={customer.followUpStatus ?? "TODO"}
+                          options={followUpStatusOptions}
+                          className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                          style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                        />
+                      ) : (
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                          style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                        >
+                          {followUpStatusLabelByValue.get(
+                            customer.followUpStatus ?? "TODO"
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Totale premies</span>
+                      <span className="font-medium text-slate-900">
+                        {formatAmount(customer.totalAmount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Aantal eenheden</span>
+                      <span className="text-slate-700">{customer.totalUnits}</span>
+                    </div>
+                  </div>
+                </div>
+              )
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white sm:block">
+            <table className="w-full text-base">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Klant sinds</th>
+                  <th className="px-6 py-3 font-medium">Naam</th>
+                  <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
+                  <th className="px-4 py-3 font-medium">Aanbrenger</th>
+                  <th className="px-6 py-3 font-medium">Telefoonnummer</th>
+                  <th className="px-6 py-3 font-medium">E-mailadres</th>
+                  <th className="px-6 py-3 font-medium">Opvolging</th>
+                  <th className="px-6 py-3 font-medium text-right">Totale premies</th>
+                  <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
+                  <th className="px-6 py-3 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {customerRows.map(
+                  ({ customer, boundSetCaseManager, boundSetFollowUpStatus, caseManagerOptions }) => (
+                    <tr key={customer.id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4 text-slate-600">
+                        {formatDate(customer.becameCustomerAt)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/leads/${customer.id}`}
+                          className="font-medium text-slate-900 hover:underline"
+                        >
+                          {customer.firstName} {customer.lastName}
+                        </Link>
+                        {customer.company && (
+                          <span className="ml-2 text-slate-400">{customer.company}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        {canEditCustomerData ? (
+                          <InlineSelect
+                            action={boundSetCaseManager}
+                            name="subagentId"
+                            value={customer.caseManagerSubagentId ?? ""}
+                            options={caseManagerOptions}
+                            className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                          />
+                        ) : (
+                          <span className="text-slate-600">
+                            {customer.caseManagerName}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {customer.owner.name}
+                      </td>
+                      <td className="px-6 py-4 text-slate-600">
+                        {customer.phone || "—"}
+                      </td>
+                      <td className="px-6 py-4 text-slate-600">
+                        {customer.email || "—"}
+                      </td>
+                      <td className="px-6 py-4">
+                        {canEditCustomerData ? (
+                          <InlineSelect
+                            action={boundSetFollowUpStatus}
+                            name="status"
+                            value={customer.followUpStatus ?? "TODO"}
+                            options={followUpStatusOptions}
+                            className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                            style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                          />
+                        ) : (
+                          <span
+                            className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                            style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                          >
+                            {followUpStatusLabelByValue.get(
+                              customer.followUpStatus ?? "TODO"
+                            )}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-slate-900">
+                        {formatAmount(customer.totalAmount)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-slate-600">
+                        {customer.totalUnits}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/leads/${customer.id}`}
+                          title="Wijzigingen doorvoeren"
+                          className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        >
+                          <MoreVertical size={18} />
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

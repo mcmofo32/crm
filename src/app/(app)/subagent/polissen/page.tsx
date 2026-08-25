@@ -70,6 +70,123 @@ const COMPANY_OPTIONS = [
 
 type PolicyRow = Awaited<ReturnType<typeof getManagedPolicies>>[number];
 
+/** Kaartweergave van dezelfde polissen voor smalle schermen — de tabel heeft te veel kolommen om leesbaar te blijven op een telefoon. */
+function PolicyCards({
+  policies,
+  assignableUsers,
+}: {
+  policies: PolicyRow[];
+  assignableUsers: { id: string; name: string }[];
+}) {
+  return (
+    <div className="flex flex-col divide-y divide-slate-100">
+      {policies.map((p) => {
+        const incomplete = !p.company || !p.ingangsdatum || !p.betaaldOp;
+        return (
+          <div
+            key={p.id}
+            className={`flex flex-col gap-2 p-3 text-sm ${
+              incomplete ? "bg-red-300" : ""
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <Link
+                href={`/leads/${p.leadId}`}
+                className="font-medium text-slate-900 hover:underline"
+              >
+                {p.customerFirstName} {p.customerLastName}
+              </Link>
+              <InlineSelect
+                action={setPolicyStatusAction.bind(null, p.id)}
+                name="status"
+                value={p.status}
+                options={STATUS_OPTIONS}
+                className="w-40 flex-shrink-0 rounded-md border-0 px-2 py-1.5 text-right text-sm font-medium"
+                style={POLICY_STATUS_COLORS[p.status]}
+              />
+            </div>
+            <div className="text-slate-600">
+              {PRODUCT_TYPE_LABELS[p.productType]} · {p.units} eenheden
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+              <div>
+                <div className="text-xs text-slate-400">Datum</div>
+                <PolicyDateCell
+                  action={setPolicyContractDateAction.bind(null, p.id)}
+                  name="contractDate"
+                  date={p.becameCustomerAt}
+                />
+              </div>
+              <div>
+                <div className="text-xs text-slate-400">Medewerker</div>
+                <InlineSelect
+                  action={setPolicyEmployeeAction.bind(null, p.id)}
+                  name="employeeId"
+                  value={p.employeeId}
+                  options={assignableUsers.map((u) => ({ value: u.id, label: u.name }))}
+                  className="w-full truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <div className="text-xs text-slate-400">Maatschappij</div>
+                <InlineSelect
+                  action={setPolicyCompanyAction.bind(null, p.id)}
+                  name="company"
+                  value={p.company ?? ""}
+                  options={COMPANY_OPTIONS}
+                  className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <div className="text-xs text-slate-400">Ingangsdatum</div>
+                <PolicyDateCell
+                  action={setPolicyDateAction.bind(null, p.id, "ingangsdatum")}
+                  name="ingangsdatum"
+                  date={p.ingangsdatum}
+                />
+              </div>
+              <div>
+                <div className="text-xs text-slate-400">Betaald</div>
+                <PolicyDateCell
+                  action={setPolicyDateAction.bind(null, p.id, "betaaldOp")}
+                  name="betaaldOp"
+                  date={p.betaaldOp}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4 pt-1 text-xs text-slate-500">
+              <label className="flex items-center gap-1.5">
+                <InlineCheckbox
+                  action={setPolicyChecklistFieldAction.bind(null, p.id, "easy")}
+                  name="easy"
+                  checked={p.easy}
+                />
+                Easy
+              </label>
+              <label className="flex items-center gap-1.5">
+                <InlineCheckbox
+                  action={setPolicyChecklistFieldAction.bind(null, p.id, "tool")}
+                  name="tool"
+                  checked={p.tool}
+                />
+                Tool
+              </label>
+              <label className="flex items-center gap-1.5">
+                <InlineCheckbox
+                  action={setPolicyChecklistFieldAction.bind(null, p.id, "rl")}
+                  name="rl"
+                  checked={p.rl}
+                />
+                RL
+              </label>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Eén polissentabel — herbruikt per productiemaand-groep, zodat er niet één lange lijst met alle polissen door elkaar staat. */
 function PolicyTable({
   policies,
@@ -246,7 +363,7 @@ export default async function SubagentPolissenPage({
   const scopeSwitcher = canPickScope && (
     <form
       method="GET"
-      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+      className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
     >
       {q && <input type="hidden" name="q" value={q} />}
       <input type="hidden" name="year" value={showAllYears ? "alle" : selectedYear} />
@@ -331,7 +448,7 @@ export default async function SubagentPolissenPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600">
@@ -388,10 +505,10 @@ export default async function SubagentPolissenPage({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SubagentTabs active="polissen" />
-        <form method="GET" className="flex items-center gap-2">
+        <form method="GET" className="flex w-full items-center gap-2 sm:w-auto">
           {scope && <input type="hidden" name="scope" value={scope} />}
           <input type="hidden" name="year" value={showAllYears ? "alle" : selectedYear} />
-          <div className="relative">
+          <div className="relative w-full sm:w-72">
             <Search
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -401,7 +518,7 @@ export default async function SubagentPolissenPage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op klantnaam..."
-              className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
             />
           </div>
         </form>
@@ -437,7 +554,10 @@ export default async function SubagentPolissenPage({
                       {group.policies.length} polissen · {groupUnits} eenheden
                     </span>
                   </summary>
-                  <div className="overflow-x-auto">
+                  <div className="sm:hidden">
+                    <PolicyCards policies={group.policies} assignableUsers={assignableUsers} />
+                  </div>
+                  <div className="hidden overflow-x-auto sm:block">
                     <PolicyTable policies={group.policies} assignableUsers={assignableUsers} />
                   </div>
                 </details>

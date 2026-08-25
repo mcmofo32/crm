@@ -58,7 +58,7 @@ export default async function EventDetailPage({
           <ArrowLeft size={15} />
           Terug naar overzicht
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-3xl font-semibold text-slate-900">
             {event.title}
           </h1>
@@ -103,7 +103,7 @@ export default async function EventDetailPage({
           Huidige status:{" "}
           <strong>{ATTENDANCE_STATUS_LABELS[event.myStatus]}</strong>
         </p>
-        <form action={boundSetAttendance} className="flex gap-2">
+        <form action={boundSetAttendance} className="flex flex-wrap gap-2">
           <button
             type="submit"
             name="status"
@@ -182,7 +182,7 @@ export default async function EventDetailPage({
               {event.attendances.map((a) => (
                 <li
                   key={a.userId}
-                  className="flex items-center justify-between gap-3"
+                  className="flex flex-wrap items-center justify-between gap-3"
                 >
                   <span className="flex items-center gap-2 text-sm text-slate-700">
                     <Avatar name={a.name} />

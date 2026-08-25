@@ -31,7 +31,7 @@ export default async function EvenementenPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
@@ -134,7 +134,7 @@ function AttendanceButtons({
 }) {
   const boundSetAttendance = setMyAttendanceAction.bind(null, eventId);
   return (
-    <form action={boundSetAttendance} className="flex gap-2">
+    <form action={boundSetAttendance} className="flex flex-wrap gap-2">
       <button
         type="submit"
         name="status"

@@ -19,7 +19,7 @@ export default async function NewLeadPage({
 
   return (
     <div className="max-w-xl">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold text-slate-900">
           Nieuwe lead
         </h1>
@@ -32,11 +32,11 @@ export default async function NewLeadPage({
       </div>
       <form action={createLeadAction} className="flex flex-col gap-4">
         <input type="hidden" name="leadType" value={leadType} />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Voornaam" name="firstName" required />
           <Field label="Achternaam" name="lastName" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="E-mail" name="email" type="email" />
           <Field label="Telefoon" name="phone" type="tel" />
         </div>

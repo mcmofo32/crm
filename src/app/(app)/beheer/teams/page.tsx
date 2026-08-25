@@ -53,7 +53,7 @@ function TeamCard({
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-medium text-slate-900">{team.name}</h3>
           <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
@@ -68,7 +68,7 @@ function TeamCard({
           >
             <MoreVertical size={18} />
           </summary>
-          <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+          <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
             <details className="group">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
                 <UserPlus size={14} />
@@ -190,7 +190,7 @@ function TeamCard({
                 >
                   <MoreVertical size={16} />
                 </summary>
-                <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+                <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
                   <details className="group">
                     <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
                       <UserPlus size={14} />

@@ -15,7 +15,7 @@ export default async function IncentivesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
@@ -72,7 +72,7 @@ export default async function IncentivesPage() {
                   )}
                 </div>
                 <div className="flex flex-1 flex-col gap-2 p-5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="text-lg font-medium text-slate-900">
                       {incentive.title}
                     </h2>

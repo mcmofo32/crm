@@ -97,7 +97,7 @@ export default async function SettingsPage({
         </p>
 
         {user?.googleCalendarConnected ? (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-green-700">
               Gekoppeld{user.googleCalendarEmail ? ` — ${user.googleCalendarEmail}` : ""}
             </span>

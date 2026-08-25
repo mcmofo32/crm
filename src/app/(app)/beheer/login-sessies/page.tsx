@@ -134,7 +134,7 @@ async function PersonSummary({
   const summary = await getLoginActivitySummary({ userIds });
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="w-full text-base">
         <thead className="bg-slate-50 text-left text-slate-500">
           <tr>
@@ -198,7 +198,7 @@ async function PersonDetail({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href={backHref}
           className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700"
@@ -284,7 +284,7 @@ async function PersonDetail({
         <h3 className="mb-2 text-base font-medium text-slate-900">
           Alle sessies (recentste 200)
         </h3>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-base">
             <thead className="bg-slate-50 text-left text-slate-500">
               <tr>

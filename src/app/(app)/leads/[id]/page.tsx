@@ -113,7 +113,7 @@ export default async function LeadDetailPage({
           neem contact op met {duplicateOwner} om dubbel werk te vermijden.
         </div>
       )}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">
             {lead.firstName} {lead.lastName}
@@ -167,7 +167,7 @@ export default async function LeadDetailPage({
             </span>
           </p>
         </div>
-        <div className="flex items-start gap-3">
+        <div className="flex flex-wrap items-start gap-3">
           <StageSelect
             leadId={lead.id}
             currentStageId={lead.stageId}
@@ -238,7 +238,7 @@ export default async function LeadDetailPage({
           )}
 
           <div>
-            <div className="mb-1 flex items-center justify-between gap-3">
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-medium text-slate-900">
                 Communicatiegeschiedenis
               </h2>
@@ -262,7 +262,7 @@ export default async function LeadDetailPage({
                     key={activity.id}
                     className="rounded-lg border border-slate-200 bg-white p-3 text-sm"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex items-start gap-2.5">
                         <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
                           <Icon size={15} />

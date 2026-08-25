@@ -41,7 +41,7 @@ export default async function NewEventPage() {
           </select>
         </label>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-slate-700">Datum</span>
             <input
