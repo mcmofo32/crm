@@ -4,6 +4,20 @@ import { Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools } from "@/lib/permissions";
 import { getDailyStageReport, type DailyStageFlow } from "@/lib/actions/dailyReport";
+import { BarList, type BarListItem } from "@/components/analytics/BarList";
+
+// Zelfde categorische kleuren als STAGE_COLORS op Analyse (al gevalideerd
+// met de dataviz-skill) — hier lokaal herhaald i.p.v. geïmporteerd, zelfde
+// conventie als de rest van deze codebase (elke pagina definieert die zelf).
+const STAGE_COLORS = [
+  "#2563eb",
+  "#4f46e5",
+  "#7c3aed",
+  "#a21caf",
+  "#c026d3",
+  "#059669",
+  "#d97706",
+];
 
 function toDateOnly(value: string | undefined): Date {
   if (value) {
@@ -70,8 +84,8 @@ export default async function DagrapportPage({
           Dagrapport
         </h1>
         <p className="mt-1 text-base text-slate-500">
-          Hoeveel leads per team naar elke funnel-fase verhuisden op de
-          gekozen dag. Enkel zichtbaar voor Beheerder/Admin.
+          Hoeveel leads naar elke funnel-fase verhuisden op de gekozen dag —
+          per team en per medewerker. Enkel zichtbaar voor Beheerder/Admin.
         </p>
       </div>
 
@@ -113,64 +127,130 @@ function StageFlowSection({
 }) {
   const grandTotal = flow.rows.reduce((sum, r) => sum + r.total, 0);
 
+  const stageTotals: BarListItem[] = flow.columns.map((col, i) => {
+    const value = flow.rows.reduce((s, r) => s + (r.counts[col.key] ?? 0), 0);
+    return {
+      key: col.key,
+      label: col.label,
+      value,
+      displayValue: String(value),
+      color: STAGE_COLORS[i % STAGE_COLORS.length],
+    };
+  });
+
   return (
-    <div>
-      <h2 className="mb-3 text-xl font-medium text-slate-900">{title}</h2>
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Team</th>
-              {flow.columns.map((col) => (
-                <th key={col.key} className="px-3 py-3 text-center font-medium">
-                  {col.label}
-                </th>
-              ))}
-              <th className="px-3 py-3 text-center font-medium">Totaal</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {flow.rows.map((row) => (
-              <tr key={row.teamName} className="hover:bg-slate-50">
-                <td className="px-4 py-2.5 font-medium text-slate-900">
-                  {row.teamName}
-                </td>
-                {flow.columns.map((col) => (
-                  <td key={col.key} className="px-3 py-2.5 text-center text-slate-700">
-                    {row.counts[col.key] ?? 0}
-                  </td>
-                ))}
-                <td className="px-3 py-2.5 text-center font-semibold text-slate-900">
-                  {row.total}
-                </td>
-              </tr>
-            ))}
-            {flow.rows.length === 0 && (
+    <div className="flex flex-col gap-4">
+      <h2 className="text-xl font-medium text-slate-900">{title}</h2>
+
+      {grandTotal > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <p className="mb-3 text-sm font-medium text-slate-700">
+            Totaal per fase vandaag
+          </p>
+          <BarList items={stageTotals} />
+        </div>
+      )}
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-slate-500">Per team</p>
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-left text-slate-500">
               <tr>
-                <td
-                  colSpan={flow.columns.length + 2}
-                  className="px-4 py-8 text-center text-slate-400"
-                >
-                  Geen fase-wijzigingen op deze dag.
-                </td>
-              </tr>
-            )}
-          </tbody>
-          {flow.rows.length > 0 && (
-            <tfoot>
-              <tr className="border-t-2 border-slate-900 bg-slate-900 font-semibold text-white">
-                <td className="px-4 py-2.5">Totaal</td>
+                <th className="px-4 py-3 font-medium">Team</th>
                 {flow.columns.map((col) => (
-                  <td key={col.key} className="px-3 py-2.5 text-center">
-                    {flow.rows.reduce((s, r) => s + (r.counts[col.key] ?? 0), 0)}
-                  </td>
+                  <th key={col.key} className="px-3 py-3 text-center font-medium">
+                    {col.label}
+                  </th>
                 ))}
-                <td className="px-3 py-2.5 text-center">{grandTotal}</td>
+                <th className="px-3 py-3 text-center font-medium">Totaal</th>
               </tr>
-            </tfoot>
-          )}
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {flow.rows.map((row) => (
+                <tr key={row.teamName} className="hover:bg-slate-50">
+                  <td className="px-4 py-2.5 font-medium text-slate-900">
+                    {row.teamName}
+                  </td>
+                  {flow.columns.map((col) => (
+                    <td key={col.key} className="px-3 py-2.5 text-center text-slate-700">
+                      {row.counts[col.key] ?? 0}
+                    </td>
+                  ))}
+                  <td className="px-3 py-2.5 text-center font-semibold text-slate-900">
+                    {row.total}
+                  </td>
+                </tr>
+              ))}
+              {flow.rows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={flow.columns.length + 2}
+                    className="px-4 py-8 text-center text-slate-400"
+                  >
+                    Geen fase-wijzigingen op deze dag.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            {flow.rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-900 bg-slate-900 font-semibold text-white">
+                  <td className="px-4 py-2.5">Totaal</td>
+                  {flow.columns.map((col) => (
+                    <td key={col.key} className="px-3 py-2.5 text-center">
+                      {flow.rows.reduce((s, r) => s + (r.counts[col.key] ?? 0), 0)}
+                    </td>
+                  ))}
+                  <td className="px-3 py-2.5 text-center">{grandTotal}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
       </div>
+
+      {flow.byPerson.length > 0 && (
+        <div>
+          <p className="mb-2 text-sm font-medium text-slate-500">
+            Per medewerker — iedereen die zelf een fase-wijziging deed
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Medewerker</th>
+                  <th className="px-4 py-3 font-medium">Team</th>
+                  {flow.columns.map((col) => (
+                    <th key={col.key} className="px-3 py-3 text-center font-medium">
+                      {col.label}
+                    </th>
+                  ))}
+                  <th className="px-3 py-3 text-center font-medium">Totaal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {flow.byPerson.map((row) => (
+                  <tr key={row.userId} className="hover:bg-slate-50">
+                    <td className="px-4 py-2.5 font-medium text-slate-900">
+                      {row.name}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-500">{row.teamName}</td>
+                    {flow.columns.map((col) => (
+                      <td key={col.key} className="px-3 py-2.5 text-center text-slate-700">
+                        {row.counts[col.key] ?? 0}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2.5 text-center font-semibold text-slate-900">
+                      {row.total}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
