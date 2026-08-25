@@ -3,11 +3,8 @@ import Link from "next/link";
 import { Copy, X } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools } from "@/lib/permissions";
-import {
-  getDuplicateLeads,
-  dismissDuplicateGroupAction,
-  type SimpleDuplicateGroup,
-} from "@/lib/actions/duplicates";
+import { getDuplicateLeads, dismissDuplicateGroupAction } from "@/lib/actions/duplicates";
+import type { SimpleDuplicateGroup } from "@/lib/duplicateUtils";
 
 // Nooit cachen/statisch renderen — dit overzicht moet elke keer vers zijn.
 export const dynamic = "force-dynamic";

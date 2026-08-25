@@ -26,7 +26,8 @@ import {
   ensureFunnelStages,
   mainFunnelStageKeys,
 } from "@/lib/funnelStages";
-import { normalizePhone, findLeadsByContact } from "@/lib/actions/duplicates";
+import { findLeadsByContact } from "@/lib/actions/duplicates";
+import { normalizePhone } from "@/lib/duplicateUtils";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { contactState } from "@/lib/contactState";
 import { getSubagents } from "@/lib/actions/subagents";
