@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { InlineTextField } from "@/components/InlineTextField";
 import { Position, PercentBadge } from "@/components/ProductionShared";
+import { CijfersPosterHeader } from "@/components/CijfersPosterHeader";
 import type { ProductionRow } from "@/lib/actions/production";
 
 export type ProductionTableRow = ProductionRow & {
@@ -16,9 +17,11 @@ export type ProductionTableRow = ProductionRow & {
 export function ProductionTable({
   rows,
   canEditGoals,
+  periodLabel,
 }: {
   rows: ProductionTableRow[];
   canEditGoals: boolean;
+  periodLabel: string;
 }) {
   const [editing, setEditing] = useState(false);
   const showInputs = canEditGoals && editing;
@@ -62,8 +65,10 @@ export function ProductionTable({
 
       <div
         id="cijfers-export-tabel"
-        className="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+        className="overflow-hidden rounded-lg border border-slate-200 bg-white"
       >
+        <CijfersPosterHeader title="Cijfers — Productie" subtitle={periodLabel} />
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
@@ -190,6 +195,7 @@ export function ProductionTable({
             </tfoot>
           )}
         </table>
+        </div>
       </div>
     </div>
   );

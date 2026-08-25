@@ -17,6 +17,7 @@ import { GoalMetric } from "@/generated/prisma/client";
 import { Position, PercentBadge } from "@/components/ProductionShared";
 import { ProductionTable } from "@/components/ProductionTable";
 import { ExportImageButton } from "@/components/ExportImageButton";
+import { CijfersPosterHeader } from "@/components/CijfersPosterHeader";
 
 function shiftMonth(year: number, month: number, delta: number) {
   const d = new Date(year, month - 1 + delta, 1);
@@ -204,6 +205,9 @@ export default async function ProductiePage({
 
           <ProductionTable
             key={`${year}-${month}`}
+            periodLabel={`Productiemaand ${String(month).padStart(2, "0")}/${year}${
+              isCurrentMonth ? " (huidige)" : ""
+            }`}
             rows={productionRows.map((row) => ({
               ...row,
               setCustomersGoal: setUserMonthlyGoalAction.bind(
@@ -259,8 +263,13 @@ export default async function ProductiePage({
 
           <div
             id="cijfers-export-tabel"
-            className="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+            className="overflow-hidden rounded-lg border border-slate-200 bg-white"
           >
+            <CijfersPosterHeader
+              title="Cijfers — Gesprekken"
+              subtitle={`Deze week: ${formatDate(conversationsContext.weekStart)} – ${formatDate(conversationsContext.weekEnd)}`}
+            />
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-500">
                 <tr>
@@ -348,6 +357,7 @@ export default async function ProductiePage({
                 </tfoot>
               )}
             </table>
+            </div>
           </div>
         </>
       )}
@@ -361,8 +371,13 @@ export default async function ProductiePage({
 
           <div
             id="cijfers-export-tabel"
-            className="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+            className="overflow-hidden rounded-lg border border-slate-200 bg-white"
           >
+            <CijfersPosterHeader
+              title="Cijfers — Aanbevelingen"
+              subtitle={`Productiemaand ${String(current.month).padStart(2, "0")}/${current.year} (huidige)`}
+            />
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-500">
                 <tr>
@@ -457,6 +472,7 @@ export default async function ProductiePage({
                 </tfoot>
               )}
             </table>
+            </div>
           </div>
         </>
       )}
