@@ -305,34 +305,15 @@ export default async function SubagentPolissenPage({
   const groups = Array.from(groupsByKey.values())
     .filter((g) => showAllYears || g.year === selectedYear)
     .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
-  // Binnen elke productiemaand: per klant gegroepeerd (meest recente klant
-  // bovenaan), en de polissen van diezelfde klant altijd in dezelfde vaste
-  // productvolgorde — anders staan de polislijnen van één klant door elkaar
-  // (volgorde van `createdAt` van de polis-rij zelf) zodra die klant
-  // meerdere producten heeft.
-  // Meest recente van Datum/Ingangsdatum/Betaald — zo verschuift een klant
-  // meteen naar boven zodra één van deze 3 velden aangepast wordt, niet enkel
-  // bij een wijziging van de contractdatum ("Datum").
-  function latestPolicyDate(p: (typeof policies)[number]): number {
-    return Math.max(
-      p.becameCustomerAt.getTime(),
-      p.ingangsdatum?.getTime() ?? -Infinity,
-      p.betaaldOp?.getTime() ?? -Infinity
-    );
-  }
-  const latestByLeadPerGroup = groups.map((g) => {
-    const latest = new Map<string, number>();
-    for (const p of g.policies) {
-      const t = latestPolicyDate(p);
-      if ((latest.get(p.leadId) ?? -Infinity) < t) latest.set(p.leadId, t);
-    }
-    return latest;
-  });
-  groups.forEach((g, i) => {
-    const latest = latestByLeadPerGroup[i];
+  // Binnen elke productiemaand: primair op Datum, nieuwste bovenaan. Enkel
+  // bij een exact gelijke datum (typisch meerdere producten van dezelfde
+  // klant op dezelfde dag toegevoegd) valt dit terug op klant-groepering +
+  // vaste productvolgorde, zodat die rijen niet door elkaar staan — maar
+  // de datum zelf blijft altijd de doorslaggevende sortering.
+  groups.forEach((g) => {
     g.policies.sort((a, b) => {
-      const leadDiff = latest.get(b.leadId)! - latest.get(a.leadId)!;
-      if (leadDiff !== 0) return leadDiff;
+      const dateDiff = b.becameCustomerAt.getTime() - a.becameCustomerAt.getTime();
+      if (dateDiff !== 0) return dateDiff;
       if (a.leadId !== b.leadId) return a.leadId < b.leadId ? -1 : 1;
       return policyProductRank(a.productType) - policyProductRank(b.productType);
     });
