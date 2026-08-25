@@ -13,6 +13,7 @@ import { logAudit } from "@/lib/audit";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { syncSubagentForUser } from "@/lib/actions/subagents";
+import { formatBelgianPhone } from "@/lib/duplicateUtils";
 
 /**
  * Vaste lijst i.p.v. Object.values(JobFunction): zo hangt validatie niet af
@@ -75,7 +76,7 @@ export async function createUserAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim() || null;
-  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const phone = formatBelgianPhone(String(formData.get("phone") ?? "").trim() || null);
   const jobFunction = parseJobFunction(formData.get("jobFunction"));
   const agentType = parseAgentType(formData.get("agentType"));
   // Komt deze aanmaak vanuit "Nieuwe gebruiker toevoegen" naast iemands naam
@@ -213,6 +214,49 @@ export async function getManageableUsers() {
   });
 }
 
+/**
+ * Eenmalige opkuisactie: herschrijft alle bestaande telefoonnummers (Lead
+ * en User — Subagent volgt via syncSubagentForUser hieronder, want dat
+ * veld is toch al steeds een kopie van User.phone) naar het vaste
+ * "32 4xx xx xx xx"-formaat waar herkenbaar als Belgisch mobiel nummer;
+ * al de rest (bv. +31, of een vast lijn-nummer) blijft ongewijzigd. Idempotent:
+ * een tweede keer klikken verandert niets meer aan al genormaliseerde nummers.
+ */
+export async function normalizePhoneNumbersAction() {
+  await requireUserManager();
+
+  const [leads, users] = await Promise.all([
+    prisma.lead.findMany({
+      where: { phone: { not: null } },
+      select: { id: true, phone: true },
+    }),
+    prisma.user.findMany({
+      where: { phone: { not: null } },
+      select: { id: true, phone: true },
+    }),
+  ]);
+
+  const leadUpdates = leads
+    .map((l) => ({ id: l.id, original: l.phone, formatted: formatBelgianPhone(l.phone) }))
+    .filter((l) => l.formatted !== l.original);
+  const userUpdates = users
+    .map((u) => ({ id: u.id, original: u.phone, formatted: formatBelgianPhone(u.phone) }))
+    .filter((u) => u.formatted !== u.original);
+
+  await prisma.$transaction([
+    ...leadUpdates.map((l) =>
+      prisma.lead.update({ where: { id: l.id }, data: { phone: l.formatted } })
+    ),
+    ...userUpdates.map((u) =>
+      prisma.user.update({ where: { id: u.id }, data: { phone: u.formatted } })
+    ),
+  ]);
+  await Promise.all(userUpdates.map((u) => syncSubagentForUser(u.id)));
+
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/klanten");
+}
+
 export async function getTeamsForAssignment() {
   await requireUserManager();
   return prisma.team.findMany({
@@ -299,7 +343,7 @@ export async function updateUserAction(
 
     const name = String(formData.get("name") ?? "");
     const email = String(formData.get("email") ?? "");
-    const phone = String(formData.get("phone") ?? "").trim() || null;
+    const phone = formatBelgianPhone(String(formData.get("phone") ?? "").trim() || null);
     const teamId = (formData.get("teamId") as string) || null;
     const jobFunction = parseJobFunction(formData.get("jobFunction"));
     const agentType = parseAgentType(formData.get("agentType"));

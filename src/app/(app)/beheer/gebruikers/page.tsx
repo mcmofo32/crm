@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Plus, MoreVertical, Eye, EyeOff, TriangleAlert, RefreshCw } from "lucide-react";
-import { getManageableUsers } from "@/lib/actions/users";
+import { Plus, MoreVertical, Eye, EyeOff, TriangleAlert, RefreshCw, Phone } from "lucide-react";
+import { getManageableUsers, normalizePhoneNumbersAction } from "@/lib/actions/users";
 import { syncAllSubagentsAction } from "@/lib/actions/subagents";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
@@ -69,16 +69,29 @@ export default async function UsersPage({
         </div>
       )}
 
-      <form action={syncAllSubagentsAction} className="w-fit">
-        <button
-          type="submit"
-          title='Voor iedereen met Type "Subagent" opnieuw controleren of ze kiesbaar zijn bij het inplannen van een adviesgesprek'
-          className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-        >
-          <RefreshCw size={15} />
-          Subagenten synchroniseren
-        </button>
-      </form>
+      <div className="flex flex-wrap gap-2">
+        <form action={syncAllSubagentsAction} className="w-fit">
+          <button
+            type="submit"
+            title='Voor iedereen met Type "Subagent" opnieuw controleren of ze kiesbaar zijn bij het inplannen van een adviesgesprek'
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            <RefreshCw size={15} />
+            Subagenten synchroniseren
+          </button>
+        </form>
+
+        <form action={normalizePhoneNumbersAction} className="w-fit">
+          <button
+            type="submit"
+            title="Herschrijft alle Belgische mobiele nummers (04xx, +324xx, 324xx, in eender welke schrijfwijze) van leads en medewerkers naar het vaste formaat 32 4xx xx xx xx. Andere nummers (bv. +31) blijven ongewijzigd."
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            <Phone size={15} />
+            Telefoonnummers normaliseren
+          </button>
+        </form>
+      </div>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-base">
