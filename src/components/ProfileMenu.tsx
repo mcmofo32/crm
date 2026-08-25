@@ -120,7 +120,7 @@ export function ProfileMenu({
         <>
           <SectionLabel>Beheer</SectionLabel>
           <MenuLink href="/beheer/gebruikers" icon={UserCog}>
-            Gebruikers
+            Medewerkers
           </MenuLink>
           <MenuLink href="/beheer/teams" icon={Users2}>
             Teams

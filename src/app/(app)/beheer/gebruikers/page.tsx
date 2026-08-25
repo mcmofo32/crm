@@ -37,13 +37,13 @@ export default async function UsersPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-slate-900">Gebruikers</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">Medewerkers</h1>
         <Link
           href="/beheer/gebruikers/new"
           className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
         >
           <Plus size={17} />
-          Nieuwe gebruiker
+          Nieuwe medewerker
         </Link>
       </div>
 
@@ -54,8 +54,8 @@ export default async function UsersPage({
         >
           {showInactive ? <EyeOff size={15} /> : <Eye size={15} />}
           {showInactive
-            ? "Verberg inactieve gebruikers"
-            : `Toon ${inactiveCount} inactieve gebruiker${inactiveCount === 1 ? "" : "s"}`}
+            ? "Verberg inactieve medewerkers"
+            : `Toon ${inactiveCount} inactieve medewerker${inactiveCount === 1 ? "" : "s"}`}
         </Link>
       )}
 
@@ -65,7 +65,7 @@ export default async function UsersPage({
           {duplicateNameCount === 1
             ? "Er zijn 2 of meer accounts met exact dezelfde naam (zie ⚠ hieronder) — vermoedelijk per ongeluk dubbel aangemaakt."
             : `Er zijn ${duplicateNameCount} namen die bij meerdere accounts voorkomen (zie ⚠ hieronder) — vermoedelijk per ongeluk dubbel aangemaakt.`}
-          {" "}Vink &quot;Toon inactieve gebruikers&quot; aan om ze allemaal te zien.
+          {" "}Vink &quot;Toon inactieve medewerkers&quot; aan om ze allemaal te zien.
         </div>
       )}
 

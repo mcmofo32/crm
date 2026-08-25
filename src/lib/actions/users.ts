@@ -234,6 +234,11 @@ export async function getUserForEdit(userId: string) {
       active: true,
       deletedAt: true,
       updatedAt: true,
+      referralNumber: true,
+      ovbNumber: true,
+      companyName: true,
+      companyRegistrationNumber: true,
+      registeredOffice: true,
     },
   });
   if (!target || target.deletedAt || !canManageUser(actor, target)) return null;
@@ -289,6 +294,12 @@ export async function updateUserAction(
     const teamId = (formData.get("teamId") as string) || null;
     const jobFunction = parseJobFunction(formData.get("jobFunction"));
     const agentType = parseAgentType(formData.get("agentType"));
+    const referralNumber = String(formData.get("referralNumber") ?? "").trim() || null;
+    const ovbNumber = String(formData.get("ovbNumber") ?? "").trim() || null;
+    const companyName = String(formData.get("companyName") ?? "").trim() || null;
+    const companyRegistrationNumber =
+      String(formData.get("companyRegistrationNumber") ?? "").trim() || null;
+    const registeredOffice = String(formData.get("registeredOffice") ?? "").trim() || null;
 
     if (!name || !email) {
       throw new Error("Naam en e-mail zijn verplicht");
@@ -315,6 +326,11 @@ export async function updateUserAction(
         // Elke rol kan lid zijn van een team (ook Beheerder/Admin), zodat
         // iedereen ergens in de organigram-structuur kan hangen.
         teamId,
+        referralNumber,
+        ovbNumber,
+        companyName,
+        companyRegistrationNumber,
+        registeredOffice,
       },
     });
 
