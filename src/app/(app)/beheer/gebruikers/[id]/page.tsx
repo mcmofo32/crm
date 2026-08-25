@@ -71,7 +71,7 @@ export default async function EditUserPage({
   const boundForceLogout = forceLogoutUserAction.bind(null, id);
 
   return (
-    <div className="max-w-lg flex flex-col gap-8">
+    <div className="max-w-3xl flex flex-col gap-8">
       <div>
         <h1 className="text-3xl font-semibold text-slate-900">
           Medewerker bewerken
@@ -259,7 +259,7 @@ export default async function EditUserPage({
           {fsmaModules.map((row) => (
             <div
               key={row.module}
-              className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+              className="grid grid-cols-[1fr_auto] items-center gap-4 py-2.5"
             >
               <span className="text-slate-700">{FSMA_MODULE_LABELS[row.module]}</span>
               <InlineSelect
@@ -267,7 +267,7 @@ export default async function EditUserPage({
                 name="status"
                 value={row.status}
                 options={FSMA_STATUS_OPTIONS}
-                className="w-56 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                className="w-56 flex-shrink-0 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
                 style={FSMA_STATUS_COLORS[row.status]}
               />
             </div>
