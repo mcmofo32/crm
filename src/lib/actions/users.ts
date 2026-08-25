@@ -190,9 +190,15 @@ export async function setUserActiveAction(userId: string, active: boolean) {
   revalidatePath("/beheer/teams");
 }
 
+/**
+ * Alle medewerkers, voor de Medewerkers-lijst — bekijken mag door eender
+ * welke Beheerder/Admin (requireUserManager), ook van elkaar: enkel het
+ * effectief *bewerken* van een Admin/Beheerder-account is beperkt tot de
+ * Beheerder (zie canManageUser, gebruikt in de write-acties hieronder).
+ */
 export async function getManageableUsers() {
-  const actor = await requireUserManager();
-  const users = await prisma.user.findMany({
+  await requireUserManager();
+  return prisma.user.findMany({
     where: { deletedAt: null },
     select: {
       id: true,
@@ -205,9 +211,6 @@ export async function getManageableUsers() {
     },
     orderBy: { createdAt: "asc" },
   });
-  return actor.role === Role.BEHEERDER
-    ? users
-    : users.filter((u) => u.role !== Role.BEHEERDER && u.role !== Role.ADMIN);
 }
 
 export async function getTeamsForAssignment() {
@@ -218,8 +221,14 @@ export async function getTeamsForAssignment() {
   });
 }
 
+/**
+ * Bekijken mag door eender welke Beheerder/Admin (requireUserManager) —
+ * of de kijker dit profiel ook mag *bewerken* (canManageUser) bepaalt de
+ * pagina zelf, om een Admin een andere Admin/Beheerder wel te laten zien
+ * (read-only) i.p.v. daar volledig blind voor te zijn.
+ */
 export async function getUserForEdit(userId: string) {
-  const actor = await requireUserManager();
+  await requireUserManager();
   const target = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -241,7 +250,7 @@ export async function getUserForEdit(userId: string) {
       registeredOffice: true,
     },
   });
-  if (!target || target.deletedAt || !canManageUser(actor, target)) return null;
+  if (!target || target.deletedAt) return null;
   return target;
 }
 

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { isBeheerder } from "@/lib/permissions";
+import { isBeheerder, canManageUser } from "@/lib/permissions";
 import {
   getUserForEdit,
   getTeamsForAssignment,
@@ -52,6 +52,12 @@ export default async function EditUserPage({
   ]);
   if (!target) notFound();
 
+  // Enkel de Beheerder mag een Admin/Beheerder-account bewerken (gevoelige
+  // data) — een Admin mag zo'n collega hier wel zien (naam, team, FSMA, ...),
+  // enkel het formulier/de acties hieronder worden dan read-only. De
+  // write-acties zelf (updateUserAction, setUserActiveAction,
+  // deleteUserAction) controleren dit ook zelf nog eens server-side.
+  const canEdit = canManageUser(viewer, target);
   const isSelf = target.id === viewer.id;
   const [deletionImpact, reassignableUsers, fsmaModules] = await Promise.all([
     isSelf ? null : getUserDeletionImpact(id),
@@ -74,12 +80,19 @@ export default async function EditUserPage({
     <div className="max-w-3xl flex flex-col gap-8">
       <div>
         <h1 className="text-3xl font-semibold text-slate-900">
-          Medewerker bewerken
+          {canEdit ? "Medewerker bewerken" : "Medewerker bekijken"}
         </h1>
         <p className="text-sm text-slate-500">
           {target.email || <span className="text-slate-300">Geen e-mailadres</span>}
         </p>
       </div>
+
+      {!canEdit && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Enkel de Beheerder mag een Admin- of Beheerder-account bewerken. Je
+          kan dit profiel wel bekijken.
+        </div>
+      )}
 
       {/* key op updatedAt: dwingt een volledige remount af na een geslaagde
           opslag, zodat de defaultValue-velden (Rol/Functie/Type/Team) de
@@ -92,7 +105,8 @@ export default async function EditUserPage({
             name="name"
             defaultValue={target.name}
             required
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -102,7 +116,8 @@ export default async function EditUserPage({
             type="email"
             defaultValue={target.email ?? ""}
             required
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -113,7 +128,8 @@ export default async function EditUserPage({
             name="phone"
             type="tel"
             defaultValue={target.phone ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -122,7 +138,8 @@ export default async function EditUserPage({
             name="role"
             defaultValue={target.role}
             required
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           >
             {assignableRoles.map((role) => (
               <option key={role} value={role}>
@@ -138,7 +155,8 @@ export default async function EditUserPage({
           <select
             name="jobFunction"
             defaultValue={target.jobFunction ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           >
             <option value="">Geen</option>
             {JOB_FUNCTIONS.map((jf) => (
@@ -153,7 +171,8 @@ export default async function EditUserPage({
           <select
             name="agentType"
             defaultValue={target.agentType}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           >
             {Object.values(AgentType).map((type) => (
               <option key={type} value={type}>
@@ -169,7 +188,8 @@ export default async function EditUserPage({
           <select
             name="teamId"
             defaultValue={target.teamId ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           >
             <option value="">Geen team</option>
             {teams
@@ -198,7 +218,8 @@ export default async function EditUserPage({
           <input
             name="referralNumber"
             defaultValue={target.referralNumber ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -208,7 +229,8 @@ export default async function EditUserPage({
           <input
             name="ovbNumber"
             defaultValue={target.ovbNumber ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -218,7 +240,8 @@ export default async function EditUserPage({
           <input
             name="companyName"
             defaultValue={target.companyName ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -228,7 +251,8 @@ export default async function EditUserPage({
           <input
             name="companyRegistrationNumber"
             defaultValue={target.companyRegistrationNumber ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -238,16 +262,19 @@ export default async function EditUserPage({
           <input
             name="registeredOffice"
             defaultValue={target.registeredOffice ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            disabled={!canEdit}
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
 
-        <button
-          type="submit"
-          className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
-        >
-          Wijzigingen opslaan
-        </button>
+        {canEdit && (
+          <button
+            type="submit"
+            className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+          >
+            Wijzigingen opslaan
+          </button>
+        )}
       </EditUserForm>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -282,18 +309,20 @@ export default async function EditUserPage({
             ? "Deze gebruiker is actief en kan inloggen."
             : "Deze gebruiker is inactief en kan niet meer inloggen."}
         </p>
-        <form action={boundToggleActive}>
-          <button
-            type="submit"
-            className={
-              target.active
-                ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-                : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
-            }
-          >
-            {target.active ? "Account inactief zetten" : "Account activeren"}
-          </button>
-        </form>
+        {canEdit && (
+          <form action={boundToggleActive}>
+            <button
+              type="submit"
+              className={
+                target.active
+                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
+              }
+            >
+              {target.active ? "Account inactief zetten" : "Account activeren"}
+            </button>
+          </form>
+        )}
       </div>
 
       {isBeheerder(viewer) && (
@@ -317,7 +346,7 @@ export default async function EditUserPage({
         </div>
       )}
 
-      {!isSelf && deletionImpact && (
+      {canEdit && !isSelf && deletionImpact && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <h2 className="mb-2 text-sm font-medium text-red-900">
             Gevarenzone — profiel verwijderen
