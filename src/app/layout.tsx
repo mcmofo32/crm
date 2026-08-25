@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -17,6 +17,22 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Structuur A",
   description: "Leadopvolging en funnel management",
+  // Maakt "Toevoegen aan beginscherm" op de gsm mogelijk (Android leest
+  // manifest.json, iOS leest vooral appleWebApp/icons.apple hieronder) —
+  // icon.svg in deze map blijft apart de gewone browser-tab-favicon regelen.
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Structuur A",
+  },
+  icons: {
+    apple: "/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f2a52",
 };
 
 export default function RootLayout({

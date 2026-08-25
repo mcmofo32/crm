@@ -146,7 +146,7 @@ export default async function PipelinePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
@@ -196,7 +196,7 @@ export default async function PipelinePage({
         />
       </div>
 
-      <div className="flex gap-2 text-sm">
+      <div className="flex flex-wrap gap-2 text-sm">
         {(
           [
             ["open", "Open leads"],
@@ -224,12 +224,12 @@ export default async function PipelinePage({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <form method="GET" className="flex items-center gap-2">
+        <form method="GET" className="flex w-full items-center gap-2 sm:w-auto">
           {requiresSelection && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
           <input type="hidden" name="view" value={resolvedView} />
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -239,7 +239,7 @@ export default async function PipelinePage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
-              className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base sm:w-72"
             />
           </div>
         </form>
@@ -247,7 +247,121 @@ export default async function PipelinePage({
         {ownerSwitcher}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      {/* Kaartweergave op smalle schermen — de brede tabel (hieronder, vanaf
+          sm: zichtbaar) is op een gsm niet leesbaar zonder veel zijwaarts
+          scrollen. */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {leads.map((lead) => (
+          <div
+            key={lead.id}
+            className="rounded-lg border border-slate-200 bg-white p-4"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <Link
+                  href={`/leads/${lead.id}`}
+                  className="font-medium text-slate-900 hover:underline"
+                >
+                  {lead.firstName} {lead.lastName}
+                </Link>
+                <p className="text-sm text-slate-500">{formatDate(lead.createdAt)}</p>
+              </div>
+              <div className="flex flex-shrink-0 items-center gap-1.5">
+                <QuickCallLogButton leadId={lead.id} />
+                <StageSelect
+                  leadId={lead.id}
+                  currentStageId={lead.stageId}
+                  leadEmail={lead.email}
+                  stages={stages}
+                  subagents={subagents}
+                  canCloseDeals={canManageCustomerData(user)}
+                  variant="icon"
+                />
+              </div>
+            </div>
+
+            {lead.phone && (
+              <a
+                href={`tel:${lead.phone}`}
+                className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600"
+              >
+                <Phone size={14} />
+                {lead.phone}
+              </a>
+            )}
+            <p className="mt-1 text-sm text-slate-500">
+              Aanbevolen door: {lead.source || "—"}
+            </p>
+
+            {isRecrutering ? (
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Kenmerken
+                </p>
+                <InlineTextField
+                  action={setLeadCharacteristicsAction.bind(null, lead.id)}
+                  name="characteristics"
+                  value={lead.characteristics ?? ""}
+                  placeholder="Vrij in te vullen…"
+                />
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Status</span>
+                  <span className="font-medium text-slate-700">{lead.statusLabel}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Cijfer op 10</span>
+                  <InlineSelect
+                    action={setLeadQualityScoreAction.bind(null, lead.id)}
+                    name="qualityScore"
+                    value={lead.qualityScore != null ? String(lead.qualityScore) : ""}
+                    options={[{ value: "", label: "—" }, ...SCORE_OPTIONS]}
+                    className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                    style={
+                      lead.qualityScore != null
+                        ? SCORE_COLORS[String(lead.qualityScore)]
+                        : undefined
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Laatste contact</span>
+                  <span className="text-slate-700">{formatDate(lead.lastContactedAt)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Aantal keer gebeld</span>
+                  <span className="text-slate-700">{lead.callCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <InlineCheckbox
+                    action={setLeadInformedAction.bind(null, lead.id)}
+                    name="isInformed"
+                    checked={lead.isInformed}
+                  />
+                  <span className="text-slate-500">Op de hoogte</span>
+                  <InlineCheckbox
+                    action={setLeadMessageSentAction.bind(null, lead.id)}
+                    name="messageSent"
+                    checked={lead.messageSent}
+                  />
+                  <span className="text-slate-500">Bericht verstuurd</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        {leads.length === 0 && (
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400">
+            {q || category
+              ? "Geen leads gevonden voor deze filters."
+              : "Nog geen leads."}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white sm:block">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
