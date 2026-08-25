@@ -203,9 +203,31 @@ export default async function KlantenPage({
   // hij zelf subagent is.
   const canEditCustomerData = canManageCustomerData(viewer);
 
+  // Eén keer per klant berekend en hergebruikt door zowel de kaartweergave
+  // (mobiel) als de tabel (vanaf sm:) hieronder, i.p.v. deze niet-triviale
+  // afleiding (vooral caseManagerOptions) in 2 aparte .map()'s te herhalen.
+  const customerRows = customers.map((customer) => ({
+    customer,
+    boundSetCaseManager: setCaseManagerAction.bind(null, customer.id),
+    boundSetTaxStatus: setTaxDeclarationStatusAction.bind(null, customer.id),
+    boundSetBecameCustomerAt: setBecameCustomerAtAction.bind(null, customer.id),
+    caseManagerOptions: customer.caseManagerSubagentId
+      ? subagents.map((s) => ({ value: s.id, label: s.name }))
+      : [
+          { value: "", label: customer.caseManagerName },
+          // Wie nu al dossierbeheerder is (via caseManagerUser) staat
+          // hierboven al als eerste optie — zijn eigen subagent-vermelding
+          // (indien hij er ook één heeft) mag dan niet nog eens apart in de
+          // lijst staan.
+          ...subagents
+            .filter((s) => s.userId !== customer.caseManagerUserId)
+            .map((s) => ({ value: s.id, label: s.name })),
+        ],
+  }));
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600">
@@ -269,11 +291,11 @@ export default async function KlantenPage({
       {ownerSwitcher}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <form method="GET" className="flex flex-wrap items-center gap-2">
+        <form method="GET" className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {selectedOwnerId && (
             <input type="hidden" name="ownerId" value={selectedOwnerId} />
           )}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -283,7 +305,7 @@ export default async function KlantenPage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
-              className="w-72 rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base sm:w-72"
             />
           </div>
 
@@ -373,7 +395,130 @@ export default async function KlantenPage({
         </form>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      {/* Kaartweergave op smalle schermen — de brede tabel (hieronder, vanaf
+          sm: zichtbaar) heeft 9 kolommen en is op een gsm niet leesbaar
+          zonder veel zijwaarts scrollen. */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {customerRows.map(
+          ({
+            customer,
+            boundSetCaseManager,
+            boundSetTaxStatus,
+            boundSetBecameCustomerAt,
+            caseManagerOptions,
+          }) => (
+            <div
+              key={customer.id}
+              className="rounded-lg border border-slate-200 bg-white p-4"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <Link
+                    href={`/leads/${customer.id}`}
+                    className="font-medium text-slate-900 hover:underline"
+                  >
+                    {customer.firstName} {customer.lastName}
+                  </Link>
+                  {customer.company && (
+                    <p className="text-sm text-slate-400">{customer.company}</p>
+                  )}
+                </div>
+                <Link
+                  href={`/leads/${customer.id}`}
+                  title="Wijzigingen doorvoeren"
+                  className="flex-shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <MoreVertical size={18} />
+                </Link>
+              </div>
+
+              {customer.phone && (
+                <a
+                  href={`tel:${customer.phone}`}
+                  className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600"
+                >
+                  {customer.phone}
+                </a>
+              )}
+              {customer.email && (
+                <p className="mt-1 text-sm text-slate-500">{customer.email}</p>
+              )}
+
+              <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Klant sinds</span>
+                  {canEditCustomerData ? (
+                    <InlineTextField
+                      type="date"
+                      action={boundSetBecameCustomerAt}
+                      name="becameCustomerAt"
+                      value={toDateInputValue(customer.becameCustomerAt)}
+                      className="w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:opacity-60"
+                    />
+                  ) : (
+                    <span className="text-slate-700">
+                      {formatDate(customer.becameCustomerAt)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Dossierbeheerder</span>
+                  {canEditCustomerData ? (
+                    <InlineSelect
+                      action={boundSetCaseManager}
+                      name="subagentId"
+                      value={customer.caseManagerSubagentId ?? ""}
+                      options={caseManagerOptions}
+                      className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                    />
+                  ) : (
+                    <span className="text-slate-700">{customer.caseManagerName}</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Belastingsaangifte</span>
+                  {canEditCustomerData ? (
+                    <InlineSelect
+                      action={boundSetTaxStatus}
+                      name="status"
+                      value={customer.taxDeclarationStatus ?? "TODO"}
+                      options={taxStatusOptions}
+                      className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                      style={taxStatusColors[customer.taxDeclarationStatus ?? "TODO"]}
+                    />
+                  ) : (
+                    <span
+                      className="rounded-full px-2.5 py-1 text-sm font-medium"
+                      style={taxStatusColors[customer.taxDeclarationStatus ?? "TODO"]}
+                    >
+                      {taxStatusLabelByValue.get(customer.taxDeclarationStatus ?? "TODO")}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Totale premies</span>
+                  <span className="font-medium text-slate-900">
+                    {formatAmount(customer.totalAmount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Aantal eenheden</span>
+                  <span className="text-slate-700">{customer.totalUnits}</span>
+                </div>
+              </div>
+            </div>
+          )
+        )}
+        {customers.length === 0 && (
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400">
+            {filtersActive || q
+              ? "Geen klanten gevonden voor deze filters."
+              : "Nog geen klanten."}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white sm:block">
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
@@ -389,20 +534,14 @@ export default async function KlantenPage({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {customers.map((customer) => {
-              const boundSetCaseManager = setCaseManagerAction.bind(
-                null,
-                customer.id
-              );
-              const boundSetTaxStatus = setTaxDeclarationStatusAction.bind(
-                null,
-                customer.id
-              );
-              const boundSetBecameCustomerAt = setBecameCustomerAtAction.bind(
-                null,
-                customer.id
-              );
-              return (
+            {customerRows.map(
+              ({
+                customer,
+                boundSetCaseManager,
+                boundSetTaxStatus,
+                boundSetBecameCustomerAt,
+                caseManagerOptions,
+              }) => (
                 <tr key={customer.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4 text-slate-600">
                     {canEditCustomerData ? (
@@ -434,20 +573,7 @@ export default async function KlantenPage({
                         action={boundSetCaseManager}
                         name="subagentId"
                         value={customer.caseManagerSubagentId ?? ""}
-                        options={
-                          customer.caseManagerSubagentId
-                            ? subagents.map((s) => ({ value: s.id, label: s.name }))
-                            : [
-                                { value: "", label: customer.caseManagerName },
-                                // Wie nu al dossierbeheerder is (via caseManagerUser) staat
-                                // hierboven al als eerste optie — zijn eigen
-                                // subagent-vermelding (indien hij er ook één heeft) mag dan
-                                // niet nog eens apart in de lijst staan.
-                                ...subagents
-                                  .filter((s) => s.userId !== customer.caseManagerUserId)
-                                  .map((s) => ({ value: s.id, label: s.name })),
-                              ]
-                        }
+                        options={caseManagerOptions}
                         className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
                       />
                     ) : (
@@ -499,8 +625,8 @@ export default async function KlantenPage({
                     </Link>
                   </td>
                 </tr>
-              );
-            })}
+              )
+            )}
             {customers.length === 0 && (
               <tr>
                 <td
