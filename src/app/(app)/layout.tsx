@@ -42,9 +42,18 @@ export default async function AppLayout({
     },
   });
 
-  const duplicateLeadCount = canViewBeheerderTools(viewer)
-    ? (await getCrossOwnerDuplicateGroups()).length
-    : 0;
+  // Deze meldingsteller staat op elke pagina (via deze gedeelde layout) —
+  // mag dus zeker nooit de hele app onderuit halen als hij faalt, vandaar
+  // hier ook nog eens opgevangen bovenop de eigen foutafhandeling van
+  // getCrossOwnerDuplicateGroups zelf.
+  let duplicateLeadCount = 0;
+  if (canViewBeheerderTools(viewer)) {
+    try {
+      duplicateLeadCount = (await getCrossOwnerDuplicateGroups()).length;
+    } catch (err) {
+      console.error("[layout] kon duplicateLeadCount niet berekenen", err);
+    }
+  }
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },

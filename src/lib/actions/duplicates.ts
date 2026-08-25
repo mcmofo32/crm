@@ -73,7 +73,24 @@ export type DuplicateGroup = {
   leads: DuplicateLead[];
 };
 
+/**
+ * computeDuplicateGroupsUnsafe kan in theorie om eender welke reden falen
+ * (een onverwachte datavorm, een db-hik, ...) — deze wrapper zorgt ervoor
+ * dat zo'n fout nooit verder omhoog kan: elke aanroeper (de dubbele-leads
+ * pagina, én de meldingsteller in de layout) krijgt in het slechtste geval
+ * gewoon een lege lijst i.p.v. een crash, met een duidelijke console.error
+ * voor in de Vercel-logs.
+ */
 async function computeDuplicateGroups(): Promise<DuplicateGroup[]> {
+  try {
+    return await computeDuplicateGroupsUnsafe();
+  } catch (err) {
+    console.error("[duplicates] computeDuplicateGroups volledig mislukt", err);
+    return [];
+  }
+}
+
+async function computeDuplicateGroupsUnsafe(): Promise<DuplicateGroup[]> {
   const [leads, dismissed] = await Promise.all([
     prisma.lead.findMany({
       where: { deletedAt: null },
