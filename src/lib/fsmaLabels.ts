@@ -12,6 +12,19 @@ export const FSMA_MODULE_ORDER: FsmaModule[] = [
   "M4",
 ];
 
+/** Korte kolomkop voor het overzicht met alle medewerkers naast elkaar — de volledige naam staat als title-tooltip op de kolomkop. */
+export const FSMA_MODULE_SHORT_LABELS: Record<FsmaModule, string> = {
+  M1_1: "1.1",
+  M1_2: "1.2",
+  M2_1: "2.1",
+  M2_2: "2.2",
+  M2_3: "2.3",
+  M2_4: "2.4",
+  M3_1: "3.1",
+  M3_2: "3.2",
+  M4: "4",
+};
+
 export const FSMA_MODULE_LABELS: Record<FsmaModule, string> = {
   M1_1: "Module 1.1 — De verzekeringsmarkt en regelgeving van het contract",
   M1_2: "Module 1.2 — Diverse wetgevingen",
