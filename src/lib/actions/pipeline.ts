@@ -221,6 +221,29 @@ async function requireLeadAccessFor(leadId: string) {
   return lead;
 }
 
+/**
+ * Laat de Datum-kolom (createdAt) van een lead aanpassen — nodig om oude
+ * leads (van vóór dit CRM, of laattijdig ingevoerd) onder hun eigenlijke
+ * datum te kunnen zetten i.p.v. de dag waarop ze hier ingevoerd werden. Dit
+ * bepaalt mee in welke productiemaand ze meetellen voor de
+ * Aanbevelingen-KPI (zie production.ts).
+ */
+export async function setLeadCreatedAtAction(leadId: string, formData: FormData) {
+  await requireLeadAccessFor(leadId);
+  const raw = String(formData.get("createdAt") ?? "").trim();
+  if (!raw) throw new Error("Kies een datum");
+  const value = new Date(`${raw}T00:00:00`);
+  if (Number.isNaN(value.getTime())) throw new Error("Ongeldige datum");
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { createdAt: value },
+  });
+
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
+}
+
 export async function setLeadQualityScoreAction(
   leadId: string,
   formData: FormData
