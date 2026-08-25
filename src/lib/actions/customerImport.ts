@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { ensureFunnelStages } from "@/lib/funnelStages";
 import { createWonLeadRecord, getOwnerCandidates } from "@/lib/actions/leads";
 import { getSubagents } from "@/lib/actions/subagents";
-import { normalizePhone } from "@/lib/duplicateUtils";
+import { normalizePhone, formatBelgianPhone } from "@/lib/duplicateUtils";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
 import type ExcelJS from "exceljs";
@@ -206,7 +206,9 @@ async function processSheet(
     if (!firstName) continue; // lege rij
 
     const displayName = `${firstName} ${lastName}`.trim();
-    const phone = phoneCol ? cellToString(row.getCell(phoneCol).value) || null : null;
+    const phone = formatBelgianPhone(
+      phoneCol ? cellToString(row.getCell(phoneCol).value) || null : null
+    );
     const email = emailCol ? cellToString(row.getCell(emailCol).value) || null : null;
     const occurredAt =
       (dateCol && cellToDate(row.getCell(dateCol).value)) || new Date();

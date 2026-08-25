@@ -17,6 +17,32 @@ export function normalizePhone(phone: string | null) {
   return digits.length >= 6 ? digits : null;
 }
 
+/**
+ * Herschrijft een Belgisch mobiel nummer — geschreven als 04xx xx xx xx,
+ * +324xx xx xx xx of 324xx xx xx xx, in eender welke spatiëring — naar het
+ * vaste formaat "32 4xx xx xx xx". Alles wat niet als zo'n nummer herkend
+ * wordt (bv. een nummer dat met +31 begint, of een vast lijn-nummer) blijft
+ * exact zoals het is: enkel dit ene, expliciet gevraagde formaat wordt
+ * afgedwongen, niets anders.
+ */
+export function formatBelgianPhone(phone: string | null): string | null {
+  if (!phone) return phone;
+  const digits = phone.replace(/\D/g, "");
+
+  let subscriber: string;
+  if (digits.startsWith("32") && digits.length === 11) {
+    subscriber = digits.slice(2);
+  } else if (digits.startsWith("0") && digits.length === 10) {
+    subscriber = digits.slice(1);
+  } else {
+    return phone;
+  }
+
+  if (!/^4\d{8}$/.test(subscriber)) return phone;
+
+  return `32 ${subscriber.slice(0, 3)} ${subscriber.slice(3, 5)} ${subscriber.slice(5, 7)} ${subscriber.slice(7, 9)}`;
+}
+
 export type DuplicateLead = {
   id: string;
   firstName: string;

@@ -27,7 +27,7 @@ import {
   mainFunnelStageKeys,
 } from "@/lib/funnelStages";
 import { findLeadsByContact } from "@/lib/actions/duplicates";
-import { normalizePhone } from "@/lib/duplicateUtils";
+import { normalizePhone, formatBelgianPhone } from "@/lib/duplicateUtils";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { contactState } from "@/lib/contactState";
 import { getSubagents } from "@/lib/actions/subagents";
@@ -59,7 +59,7 @@ export async function createLeadAction(formData: FormData) {
     ? requestedOwnerId
     : user.id;
 
-  const phone = (formData.get("phone") as string) || null;
+  const phone = formatBelgianPhone((formData.get("phone") as string) || null);
   const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);
   if (existingOwnLead) {
     throw new Error(
@@ -224,7 +224,7 @@ export async function createCustomerAction(formData: FormData) {
     throw new Error("Kies een dossierbeheerder (kan enkel een subagent zijn)");
   }
 
-  const phone = (formData.get("phone") as string) || null;
+  const phone = formatBelgianPhone((formData.get("phone") as string) || null);
   const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);
   if (existingOwnLead) {
     throw new Error(
@@ -329,7 +329,7 @@ export async function createLeadsBulkAction(formData: FormData) {
     firstName: String(firstNames[i] ?? "").trim(),
     lastName: String(lastNames[i] ?? "").trim(),
     email: String(emails[i] ?? "").trim() || null,
-    phone: String(phones[i] ?? "").trim() || null,
+    phone: formatBelgianPhone(String(phones[i] ?? "").trim() || null),
     source: String(sources[i] ?? "").trim() || null,
     typeRaw: String(types[i] ?? "").trim(),
   }));
@@ -534,7 +534,7 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
       firstName,
       lastName,
       email: (formData.get("email") as string)?.trim() || null,
-      phone: (formData.get("phone") as string)?.trim() || null,
+      phone: formatBelgianPhone((formData.get("phone") as string)?.trim() || null),
       company: (formData.get("company") as string)?.trim() || null,
       source: (formData.get("source") as string)?.trim() || null,
       notes: (formData.get("notes") as string) || null,
