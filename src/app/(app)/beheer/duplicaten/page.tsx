@@ -19,34 +19,16 @@ export default async function DuplicatenPage() {
   if (!viewer) redirect("/login");
   if (!canViewBeheerderTools(viewer)) redirect("/dashboard");
 
-  let groups: Awaited<ReturnType<typeof getDuplicateLeads>> = [];
-  let loadError = false;
+  // Alles wat van `groups` afhangt — zowel het ophalen als het opbouwen van
+  // de JSX eronder — in dezelfde try/catch: een eerdere versie ving enkel
+  // de fetch zelf op, maar een fout tijdens het renderen (bv. een
+  // onverwachte waarde in een van de velden van een specifieke lead) liep
+  // daar gewoon voorbij en liet de hele pagina alsnog crashen.
+  let content: React.ReactNode;
   try {
-    groups = await getDuplicateLeads();
-  } catch (err) {
-    console.error("[duplicaten-pagina] kon duplicaten niet laden", err);
-    loadError = true;
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
-          <Copy size={26} />
-          Dubbele leads
-        </h1>
-        <p className="mt-1 text-base text-slate-500">
-          Leads met hetzelfde e-mailadres of telefoonnummer, zodat niet
-          meerdere mensen dezelfde persoon contacteren.
-        </p>
-      </div>
-
-      {loadError ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          Kon de duplicaten niet laden. Probeer de pagina te herladen; blijft
-          dit gebeuren, meld het aan Robin.
-        </p>
-      ) : groups.length === 0 ? (
+    const groups = await getDuplicateLeads();
+    content =
+      groups.length === 0 ? (
         <p className="text-base text-slate-500">
           Geen dubbele leads gevonden.
         </p>
@@ -142,7 +124,31 @@ export default async function DuplicatenPage() {
             </div>
           ))}
         </div>
-      )}
+      );
+  } catch (err) {
+    console.error("[duplicaten-pagina] kon duplicaten niet laden/renderen", err);
+    content = (
+      <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        Kon de duplicaten niet laden. Probeer de pagina te herladen; blijft
+        dit gebeuren, meld het aan Robin.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+          <Copy size={26} />
+          Dubbele leads
+        </h1>
+        <p className="mt-1 text-base text-slate-500">
+          Leads met hetzelfde e-mailadres of telefoonnummer, zodat niet
+          meerdere mensen dezelfde persoon contacteren.
+        </p>
+      </div>
+
+      {content}
     </div>
   );
 }
