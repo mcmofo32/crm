@@ -9,6 +9,7 @@ import {
   setLeadInformedAction,
   setLeadMessageSentAction,
   setLeadCharacteristicsAction,
+  setLeadCreatedAtAction,
   type PipelineCategoryFilter,
 } from "@/lib/actions/pipeline";
 import { getAssignableUsers } from "@/lib/actions/leads";
@@ -32,6 +33,10 @@ function formatDate(date: Date | null) {
     dateStyle: "medium",
     timeZone: "Europe/Brussels",
   });
+}
+
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
 
 // Enkel even cijfers zijn nog kiesbaar, elk met hun eigen kleur (0 = geen
@@ -264,7 +269,13 @@ export default async function PipelinePage({
                 >
                   {lead.firstName} {lead.lastName}
                 </Link>
-                <p className="text-sm text-slate-500">{formatDate(lead.createdAt)}</p>
+                <InlineTextField
+                  type="date"
+                  action={setLeadCreatedAtAction.bind(null, lead.id)}
+                  name="createdAt"
+                  value={toDateInputValue(lead.createdAt)}
+                  className="mt-0.5 w-36 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-600"
+                />
               </div>
               <div className="flex flex-shrink-0 items-center gap-1.5">
                 <QuickCallLogButton leadId={lead.id} />
@@ -387,8 +398,14 @@ export default async function PipelinePage({
           <tbody className="divide-y divide-slate-100">
             {leads.map((lead) => (
               <tr key={lead.id} className="hover:bg-slate-50">
-                <td className="px-4 py-2.5 whitespace-nowrap text-slate-600">
-                  {formatDate(lead.createdAt)}
+                <td className="px-4 py-2.5 whitespace-nowrap">
+                  <InlineTextField
+                    type="date"
+                    action={setLeadCreatedAtAction.bind(null, lead.id)}
+                    name="createdAt"
+                    value={toDateInputValue(lead.createdAt)}
+                    className="w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-600"
+                  />
                 </td>
                 <td className="px-4 py-2.5 font-medium text-slate-900">
                   <Link href={`/leads/${lead.id}`} className="hover:underline">
