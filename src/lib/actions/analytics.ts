@@ -8,7 +8,11 @@ import {
   Role,
 } from "@/generated/prisma/client";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { getMonthlyGoalAchievementsForUsers } from "@/lib/actions/production";
+import {
+  getMonthlyGoalAchievementsForUsers,
+  getWeeklyGoalAchievementsForUsers,
+} from "@/lib/actions/production";
+import { isoWeeksOfYear } from "@/lib/productionMonth";
 import { computeIncentiveLeaderboard, type LeaderboardEntry } from "@/lib/actions/incentives";
 import { MONTH_LABELS } from "@/lib/goalLabels";
 
@@ -1075,6 +1079,122 @@ export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
         metric: KpiMetric.SEMINAR,
         month,
         percent: notYetOver ? null : seminarMonths.has(month) ? 100 : 0,
+      });
+    }
+
+    return { userId: u.id, name: u.name, cells };
+  });
+}
+
+export type KpiHeatmapWeekCell = {
+  metric: KpiMetric;
+  weekIndex: number;
+  weekStart: Date;
+  percent: number | null;
+};
+
+export type KpiHeatmapWeekRow = {
+  userId: string;
+  name: string;
+  cells: KpiHeatmapWeekCell[];
+};
+
+/** Zoals `getKpiHeatmap`, maar per ISO-week i.p.v. per maand van `year`. */
+export async function getKpiHeatmapWeekly(year: number): Promise<KpiHeatmapWeekRow[]> {
+  await requireBeheerder();
+
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  const userIds = users.map((u) => u.id);
+  const now = new Date();
+  const weeks = isoWeeksOfYear(year);
+
+  function weekIndexForDate(date: Date): number | null {
+    for (const w of weeks) {
+      if (date >= w.start && date < w.end) return w.weekIndex;
+    }
+    return null;
+  }
+
+  const [achievementsByUser, callingSessionAttendances, seminarAttendances] =
+    await Promise.all([
+      getWeeklyGoalAchievementsForUsers(userIds, year),
+      prisma.eventAttendance.findMany({
+        where: {
+          userId: { in: userIds },
+          actualStatus: "GOING",
+          event: {
+            type: EventType.BELSESSIE,
+            date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+          },
+        },
+        select: { userId: true, event: { select: { date: true } } },
+      }),
+      prisma.eventAttendance.findMany({
+        where: {
+          userId: { in: userIds },
+          actualStatus: "GOING",
+          event: {
+            type: EventType.SEMINAR,
+            date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+          },
+        },
+        select: { userId: true, event: { select: { date: true } } },
+      }),
+    ]);
+
+  const callingSessionWeeksByUser = new Map<string, Set<number>>();
+  for (const a of callingSessionAttendances) {
+    const weekIndex = weekIndexForDate(a.event.date);
+    if (weekIndex === null) continue;
+    const set = callingSessionWeeksByUser.get(a.userId) ?? new Set<number>();
+    set.add(weekIndex);
+    callingSessionWeeksByUser.set(a.userId, set);
+  }
+  const seminarWeeksByUser = new Map<string, Set<number>>();
+  for (const a of seminarAttendances) {
+    const weekIndex = weekIndexForDate(a.event.date);
+    if (weekIndex === null) continue;
+    const set = seminarWeeksByUser.get(a.userId) ?? new Set<number>();
+    set.add(weekIndex);
+    seminarWeeksByUser.set(a.userId, set);
+  }
+
+  return users.map((u) => {
+    const weeklyAchievements = achievementsByUser.get(u.id) ?? [];
+    const callingSessionWeeks = callingSessionWeeksByUser.get(u.id) ?? new Set<number>();
+    const seminarWeeks = seminarWeeksByUser.get(u.id) ?? new Set<number>();
+
+    const cells: KpiHeatmapWeekCell[] = [];
+    for (const week of weeks) {
+      const notYetOver = now < week.end;
+      const production = weeklyAchievements.find((w) => w.weekIndex === week.weekIndex);
+      cells.push({
+        metric: KpiMetric.PRODUCTION,
+        weekIndex: week.weekIndex,
+        weekStart: week.start,
+        percent: production?.unitsPercent ?? null,
+      });
+      cells.push({
+        metric: KpiMetric.CONVERSATIONS,
+        weekIndex: week.weekIndex,
+        weekStart: week.start,
+        percent: production?.conversationsPercent ?? null,
+      });
+      cells.push({
+        metric: KpiMetric.CALLING_SESSION,
+        weekIndex: week.weekIndex,
+        weekStart: week.start,
+        percent: notYetOver ? null : callingSessionWeeks.has(week.weekIndex) ? 100 : 0,
+      });
+      cells.push({
+        metric: KpiMetric.SEMINAR,
+        weekIndex: week.weekIndex,
+        weekStart: week.start,
+        percent: notYetOver ? null : seminarWeeks.has(week.weekIndex) ? 100 : 0,
       });
     }
 
