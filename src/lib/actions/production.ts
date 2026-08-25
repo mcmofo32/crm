@@ -16,7 +16,7 @@ import {
   MONTHLY_GOAL_METRICS,
   MONTHLY_ACTUAL_METRICS,
 } from "@/lib/goalLabels";
-import type { ProductionMonthConfigRow } from "@/lib/productionMonth";
+import { isoWeeksOfYear, type ProductionMonthConfigRow } from "@/lib/productionMonth";
 import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
 
 /**
@@ -1036,6 +1036,134 @@ export async function getMonthlyGoalAchievementsForUsers(
           conversationsTarget > 0
             ? Math.round((conversations / conversationsTarget) * 100)
             : null,
+      });
+    }
+    result.set(userId, achievements);
+  }
+  return result;
+}
+
+export type WeeklyGoalAchievement = {
+  weekIndex: number;
+  weekStart: Date;
+  month: number;
+  unitsPercent: number | null;
+  conversationsPercent: number | null;
+};
+
+/**
+ * Zoals `getMonthlyGoalAchievementsForUsers`, maar per ISO-week i.p.v. per
+ * productiemaand — voor de "per week"-weergave van de KPI-heatmap. Er bestaat
+ * geen apart weekdoel: het maanddoel wordt gelijk verdeeld over alle weken
+ * van die kalendermaand (zie isoWeeksOfYear). De manuele Eenheden-override
+ * (userMonthlyActual) geldt voor de hele maand en kan niet zinvol over
+ * losse weken verdeeld worden, dus die telt hier — i.t.t. de maandweergave
+ * hierboven — bewust niet mee; altijd de berekende (contractDate-)eenheden.
+ */
+export async function getWeeklyGoalAchievementsForUsers(
+  userIds: string[],
+  year: number
+): Promise<Map<string, WeeklyGoalAchievement[]>> {
+  await requireViewer();
+  const now = new Date();
+  const weeks = isoWeeksOfYear(year);
+  const weeksPerMonth = new Map<number, number>();
+  for (const w of weeks) {
+    weeksPerMonth.set(w.month, (weeksPerMonth.get(w.month) ?? 0) + 1);
+  }
+  const yearStart = weeks[0].start;
+  const yearEnd = weeks[weeks.length - 1].end;
+
+  function weekIndexForDate(date: Date): number | null {
+    for (const w of weeks) {
+      if (date >= w.start && date < w.end) return w.weekIndex;
+    }
+    return null;
+  }
+
+  const [targets, productsThisYear, conversationActivities] = await Promise.all([
+    prisma.userMonthlyGoal.findMany({
+      where: {
+        userId: { in: userIds },
+        year,
+        metric: { in: [GoalMetric.UNITS, GoalMetric.CONVERSATIONS] },
+      },
+    }),
+    // Productie (Eenheden) telt op contractDate — zie getProductionLeaderboard.
+    prisma.leadProduct.findMany({
+      where: {
+        contractDate: { gte: yearStart, lt: yearEnd },
+        lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
+      },
+      select: {
+        contractDate: true,
+        units: true,
+        lead: { select: { ownerId: true } },
+      },
+    }),
+    prisma.activity.findMany({
+      where: {
+        assigneeId: { in: userIds },
+        ...financieleAnalyseActivityWhere({ gte: yearStart, lt: yearEnd }),
+      },
+      select: { assigneeId: true, scheduledAt: true },
+    }),
+  ]);
+
+  const targetByKey = new Map<string, number>();
+  for (const t of targets) {
+    targetByKey.set(`${t.userId}_${t.month}_${t.metric}`, Number(t.target));
+  }
+
+  const unitsByKey = new Map<string, number>();
+  for (const p of productsThisYear) {
+    const weekIndex = weekIndexForDate(p.contractDate);
+    if (weekIndex === null) continue;
+    const key = `${p.lead.ownerId}_${weekIndex}`;
+    unitsByKey.set(key, (unitsByKey.get(key) ?? 0) + p.units);
+  }
+
+  const conversationsByKey = new Map<string, number>();
+  for (const activity of conversationActivities) {
+    if (!activity.scheduledAt) continue;
+    const weekIndex = weekIndexForDate(activity.scheduledAt);
+    if (weekIndex === null) continue;
+    const key = `${activity.assigneeId}_${weekIndex}`;
+    conversationsByKey.set(key, (conversationsByKey.get(key) ?? 0) + 1);
+  }
+
+  const result = new Map<string, WeeklyGoalAchievement[]>();
+  for (const userId of userIds) {
+    const achievements: WeeklyGoalAchievement[] = [];
+    for (const week of weeks) {
+      if (now < week.end) {
+        achievements.push({
+          weekIndex: week.weekIndex,
+          weekStart: week.start,
+          month: week.month,
+          unitsPercent: null,
+          conversationsPercent: null,
+        });
+        continue;
+      }
+
+      const weeksInMonth = weeksPerMonth.get(week.month)!;
+      const unitsTarget =
+        (targetByKey.get(`${userId}_${week.month}_${GoalMetric.UNITS}`) ?? 0) / weeksInMonth;
+      const conversationsTarget =
+        (targetByKey.get(`${userId}_${week.month}_${GoalMetric.CONVERSATIONS}`) ?? 0) /
+        weeksInMonth;
+
+      const units = unitsByKey.get(`${userId}_${week.weekIndex}`) ?? 0;
+      const conversations = conversationsByKey.get(`${userId}_${week.weekIndex}`) ?? 0;
+
+      achievements.push({
+        weekIndex: week.weekIndex,
+        weekStart: week.start,
+        month: week.month,
+        unitsPercent: unitsTarget > 0 ? Math.round((units / unitsTarget) * 100) : null,
+        conversationsPercent:
+          conversationsTarget > 0 ? Math.round((conversations / conversationsTarget) * 100) : null,
       });
     }
     result.set(userId, achievements);

@@ -13,10 +13,18 @@ const MONTH_SHORT = [
   "dec",
 ];
 
+export type HeatmapColumn = { key: string; label: string; title?: string };
+
+/** Standaard 12-koloms kolomdefinitie (per maand), voor de bestaande maandweergave. */
+export const MONTH_HEATMAP_COLUMNS: HeatmapColumn[] = MONTH_SHORT.map((label) => ({
+  key: label,
+  label,
+}));
+
 export type HeatmapRow = {
   key: string;
   label: string;
-  /** Index 0 = januari t.e.m. index 11 = december. `null` = nog geen data/te vroeg. */
+  /** Zelfde lengte en volgorde als de meegegeven `columns`. `null` = nog geen data/te vroeg. */
   cells: (number | null)[];
 };
 
@@ -27,8 +35,14 @@ function cellColor(percent: number | null) {
   return "bg-red-400";
 }
 
-/** Compacte 12-koloms heatmap (per maand): rood <75%, oranje 75-99%, groen 100%+, leeg = nog geen data. */
-export function Heatmap({ rows }: { rows: HeatmapRow[] }) {
+/** Compacte heatmap, kolommen vrij te bepalen (per maand of per week): rood <75%, oranje 75-99%, groen 100%+, leeg = nog geen data. */
+export function Heatmap({
+  rows,
+  columns = MONTH_HEATMAP_COLUMNS,
+}: {
+  rows: HeatmapRow[];
+  columns?: HeatmapColumn[];
+}) {
   if (rows.length === 0) {
     return <p className="text-sm text-slate-400">Geen gebruikers gevonden.</p>;
   }
@@ -39,9 +53,9 @@ export function Heatmap({ rows }: { rows: HeatmapRow[] }) {
         <thead>
           <tr className="text-left text-slate-500">
             <th className="py-1.5 pr-3 font-medium">Naam</th>
-            {MONTH_SHORT.map((m) => (
-              <th key={m} className="px-1 py-1.5 text-center font-medium">
-                {m}
+            {columns.map((c) => (
+              <th key={c.key} title={c.title} className="px-1 py-1.5 text-center font-medium">
+                {c.label}
               </th>
             ))}
           </tr>
@@ -53,7 +67,7 @@ export function Heatmap({ rows }: { rows: HeatmapRow[] }) {
                 {row.label}
               </td>
               {row.cells.map((cell, i) => (
-                <td key={i} className="px-1 py-1.5 text-center">
+                <td key={columns[i]?.key ?? i} className="px-1 py-1.5 text-center">
                   <span
                     title={cell === null ? "Nog geen data" : `${cell}%`}
                     className={`mx-auto flex h-4 w-4 rounded-sm ${cellColor(cell)}`}

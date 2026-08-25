@@ -16,8 +16,11 @@ import {
   getTaxStatusBreakdown,
   getIncentiveOverview,
   getKpiHeatmap,
+  getKpiHeatmapWeekly,
   getEventAttendanceStats,
   type SeasonalBucket,
+  type KpiHeatmapRow,
+  type KpiHeatmapWeekRow,
 } from "@/lib/actions/analytics";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import {
@@ -27,11 +30,12 @@ import {
   conversionBadgeVariant,
 } from "@/lib/roleLabels";
 import { KPI_METRIC_LABELS } from "@/lib/goalLabels";
+import { isoWeeksOfYear } from "@/lib/productionMonth";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { LineChart } from "@/components/analytics/LineChart";
 import { BarList, type BarListItem } from "@/components/analytics/BarList";
-import { Heatmap } from "@/components/analytics/Heatmap";
+import { Heatmap, MONTH_HEATMAP_COLUMNS, type HeatmapColumn } from "@/components/analytics/Heatmap";
 
 const STAGE_COLORS = ["#2563eb", "#4f46e5", "#7c3aed", "#a21caf", "#c026d3"];
 // Categorische kleuren gevalideerd met de dataviz-skill (validate_palette.js):
@@ -133,6 +137,7 @@ export default async function AnalysePage({
     trendMonths?: string;
     year?: string;
     seasonMetric?: string;
+    kpiView?: string;
   }>;
 }) {
   const viewer = await getEffectiveViewer();
@@ -146,6 +151,7 @@ export default async function AnalysePage({
     trendMonths: trendMonthsRaw,
     year: yearRaw,
     seasonMetric: seasonMetricRaw,
+    kpiView: kpiViewRaw,
   } = await searchParams;
 
   const trendType = trendTypeRaw === "FA" || trendTypeRaw === "RG" ? trendTypeRaw : null;
@@ -156,6 +162,7 @@ export default async function AnalysePage({
   const seasonMetric = SEASON_METRICS.some((m) => m.key === seasonMetricRaw)
     ? seasonMetricRaw!
     : "won";
+  const kpiView = kpiViewRaw === "week" ? "week" : "month";
 
   const [
     { byType, stageDistribution, perEmployee, teams },
@@ -170,7 +177,7 @@ export default async function AnalysePage({
     customerGrowth,
     taxStatusBreakdown,
     incentiveOverview,
-    kpiHeatmap,
+    kpiHeatmapRaw,
     eventAttendance,
   ] = await Promise.all([
     getAnalytics(teamFilter, personFilter),
@@ -185,7 +192,7 @@ export default async function AnalysePage({
     getCustomerGrowthCurve(trendMonths),
     getTaxStatusBreakdown(),
     getIncentiveOverview(),
-    getKpiHeatmap(year),
+    kpiView === "week" ? getKpiHeatmapWeekly(year) : getKpiHeatmap(year),
     getEventAttendanceStats(),
   ]);
 
@@ -215,6 +222,50 @@ export default async function AnalysePage({
   );
 
   const heatmapMetrics = ["PRODUCTION", "CONVERSATIONS", "CALLING_SESSION", "SEMINAR"] as const;
+
+  function formatWeekRange(start: Date, end: Date) {
+    const last = new Date(end.getTime() - 1);
+    const fmt = (d: Date) => d.toLocaleDateString("nl-BE", { day: "numeric", month: "short" });
+    return `${fmt(start)} – ${fmt(last)}`;
+  }
+
+  const kpiColumns: HeatmapColumn[] =
+    kpiView === "week"
+      ? isoWeeksOfYear(year).map((w) => ({
+          key: String(w.weekIndex),
+          label: String(w.weekIndex + 1),
+          title: `Week ${w.weekIndex + 1}: ${formatWeekRange(w.start, w.end)}`,
+        }))
+      : MONTH_HEATMAP_COLUMNS;
+
+  // Beide weergaves (per maand/per week) genormaliseerd naar dezelfde vorm
+  // (percent-cellen per metric, in kolomvolgorde), zodat de JSX hieronder
+  // niet zelf met de 2 verschillende brontypes moet omgaan.
+  const kpiHeatmapRows = (kpiHeatmapRaw as (KpiHeatmapRow | KpiHeatmapWeekRow)[]).map((row) => {
+    const cellsByMetric = new Map<string, (number | null)[]>();
+    for (const metric of heatmapMetrics) {
+      const cells =
+        kpiView === "week"
+          ? (row as KpiHeatmapWeekRow).cells
+              .filter((c) => c.metric === metric)
+              .sort((a, b) => a.weekIndex - b.weekIndex)
+              .map((c) => c.percent)
+          : (row as KpiHeatmapRow).cells
+              .filter((c) => c.metric === metric)
+              .sort((a, b) => a.month - b.month)
+              .map((c) => c.percent);
+      cellsByMetric.set(metric, cells);
+    }
+    return { userId: row.userId, name: row.name, cellsByMetric };
+  });
+
+  function kpiHref(overrides: { year?: number; kpiView?: "month" | "week" }) {
+    const params = new URLSearchParams();
+    params.set("year", String(overrides.year ?? year));
+    const view = overrides.kpiView ?? kpiView;
+    if (view !== "month") params.set("kpiView", view);
+    return `/beheer/analyse?${params.toString()}#kpi`;
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -698,18 +749,35 @@ export default async function AnalysePage({
 
       <Section
         title="KPI-heatmap per medewerker"
-        hint={`Rood <75%, oranje 75-99%, groen 100%+, leeg = nog geen data — per maand van ${year}.`}
+        hint={`Rood <75%, oranje 75-99%, groen 100%+, leeg = nog geen data — per ${
+          kpiView === "week" ? "week" : "maand"
+        } van ${year}.`}
         action={
           <div className="flex items-center gap-2 text-sm">
+            <div className="flex gap-1">
+              {(["month", "week"] as const).map((v) => (
+                <Link
+                  key={v}
+                  href={kpiHref({ kpiView: v })}
+                  className={`rounded-full px-3 py-1.5 ${
+                    kpiView === v
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white text-slate-600"
+                  }`}
+                >
+                  {v === "month" ? "Maand" : "Week"}
+                </Link>
+              ))}
+            </div>
             <Link
-              href={`/beheer/analyse?year=${year - 1}#kpi`}
+              href={kpiHref({ year: year - 1 })}
               className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
             >
               <ChevronLeft size={15} />
             </Link>
             <span className="font-medium text-slate-900">{year}</span>
             <Link
-              href={`/beheer/analyse?year=${year + 1}#kpi`}
+              href={kpiHref({ year: year + 1 })}
               className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
             >
               <ChevronRight size={15} />
@@ -724,13 +792,11 @@ export default async function AnalysePage({
                 {KPI_METRIC_LABELS[metric]}
               </p>
               <Heatmap
-                rows={kpiHeatmap.map((row) => ({
+                columns={kpiColumns}
+                rows={kpiHeatmapRows.map((row) => ({
                   key: row.userId,
                   label: row.name,
-                  cells: row.cells
-                    .filter((c) => c.metric === metric)
-                    .sort((a, b) => a.month - b.month)
-                    .map((c) => c.percent),
+                  cells: row.cellsByMetric.get(metric) ?? [],
                 }))}
               />
             </div>
