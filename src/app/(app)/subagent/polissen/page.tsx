@@ -310,10 +310,20 @@ export default async function SubagentPolissenPage({
   // productvolgorde — anders staan de polislijnen van één klant door elkaar
   // (volgorde van `createdAt` van de polis-rij zelf) zodra die klant
   // meerdere producten heeft.
+  // Meest recente van Datum/Ingangsdatum/Betaald — zo verschuift een klant
+  // meteen naar boven zodra één van deze 3 velden aangepast wordt, niet enkel
+  // bij een wijziging van de contractdatum ("Datum").
+  function latestPolicyDate(p: (typeof policies)[number]): number {
+    return Math.max(
+      p.becameCustomerAt.getTime(),
+      p.ingangsdatum?.getTime() ?? -Infinity,
+      p.betaaldOp?.getTime() ?? -Infinity
+    );
+  }
   const latestByLeadPerGroup = groups.map((g) => {
     const latest = new Map<string, number>();
     for (const p of g.policies) {
-      const t = p.becameCustomerAt.getTime();
+      const t = latestPolicyDate(p);
       if ((latest.get(p.leadId) ?? -Infinity) < t) latest.set(p.leadId, t);
     }
     return latest;
