@@ -8,6 +8,12 @@ import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 
+// Expliciet nooit cachen/statisch renderen: dezelfde foutmelding (met
+// identieke digest-referentie) bleef verschijnen ondanks meerdere
+// opeenvolgende code-fixes, wat op een gecachete/statische render wijst
+// i.p.v. telkens een verse render die de nieuwe code effectief uitvoert.
+export const dynamic = "force-dynamic";
+
 export default async function DuplicatenPage() {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
