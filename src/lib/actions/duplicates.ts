@@ -143,38 +143,49 @@ async function computeDuplicateGroups(): Promise<DuplicateGroup[]> {
     const signature = duplicateGroupSignature(ids);
     if (dismissedSignatures.has(signature)) continue;
 
-    const groupLeads = ids
-      .map((id) => leadById.get(id)!)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    // Eén groep met een onverwacht datagat (bv. een lead waarvan de
+    // gekoppelde fase/eigenaar intussen weg is) mag niet de hele pagina
+    // laten crashen voor alle andere, wél-correcte groepen — vandaar per
+    // groep opgevangen i.p.v. één keer rond de hele functie.
+    try {
+      const groupLeads = ids
+        .map((id) => leadById.get(id)!)
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
-    const sharedEmails = new Set<string>();
-    const sharedPhones = new Set<string>();
-    for (const id of ids) {
-      const email = emailsByLead.get(id);
-      if (email && (emailMap.get(email)?.length ?? 0) > 1) sharedEmails.add(email);
-      const phone = phonesByLead.get(id);
-      if (phone && (phoneMap.get(phone)?.length ?? 0) > 1) sharedPhones.add(phone);
+      const sharedEmails = new Set<string>();
+      const sharedPhones = new Set<string>();
+      for (const id of ids) {
+        const email = emailsByLead.get(id);
+        if (email && (emailMap.get(email)?.length ?? 0) > 1) sharedEmails.add(email);
+        const phone = phonesByLead.get(id);
+        if (phone && (phoneMap.get(phone)?.length ?? 0) > 1) sharedPhones.add(phone);
+      }
+
+      result.push({
+        key: root,
+        signature,
+        sharedEmails: Array.from(sharedEmails),
+        sharedPhones: Array.from(sharedPhones),
+        leads: groupLeads.map((l) => ({
+          id: l.id,
+          firstName: l.firstName,
+          lastName: l.lastName,
+          email: l.email,
+          phone: l.phone,
+          leadType: l.leadType,
+          stageLabel: l.stage?.label ?? "—",
+          ownerId: l.ownerId,
+          ownerName: l.owner?.name ?? "—",
+          createdByName: l.createdBy?.name ?? "—",
+          createdAt: l.createdAt,
+        })),
+      });
+    } catch (err) {
+      console.error("[duplicates] kon groep niet opbouwen, overgeslagen", {
+        leadIds: ids,
+        err,
+      });
     }
-
-    result.push({
-      key: root,
-      signature,
-      sharedEmails: Array.from(sharedEmails),
-      sharedPhones: Array.from(sharedPhones),
-      leads: groupLeads.map((l) => ({
-        id: l.id,
-        firstName: l.firstName,
-        lastName: l.lastName,
-        email: l.email,
-        phone: l.phone,
-        leadType: l.leadType,
-        stageLabel: l.stage.label,
-        ownerId: l.ownerId,
-        ownerName: l.owner.name,
-        createdByName: l.createdBy.name,
-        createdAt: l.createdAt,
-      })),
-    });
   }
 
   return result.sort((a, b) => b.leads.length - a.leads.length);

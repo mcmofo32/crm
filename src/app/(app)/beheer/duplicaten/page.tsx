@@ -13,7 +13,14 @@ export default async function DuplicatenPage() {
   if (!viewer) redirect("/login");
   if (!canViewBeheerderTools(viewer)) redirect("/dashboard");
 
-  const groups = await getDuplicateLeads();
+  let groups: Awaited<ReturnType<typeof getDuplicateLeads>> = [];
+  let loadError = false;
+  try {
+    groups = await getDuplicateLeads();
+  } catch (err) {
+    console.error("[duplicaten-pagina] kon duplicaten niet laden", err);
+    loadError = true;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -28,7 +35,12 @@ export default async function DuplicatenPage() {
         </p>
       </div>
 
-      {groups.length === 0 ? (
+      {loadError ? (
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          Kon de duplicaten niet laden. Probeer de pagina te herladen; blijft
+          dit gebeuren, meld het aan Robin.
+        </p>
+      ) : groups.length === 0 ? (
         <p className="text-base text-slate-500">
           Geen dubbele leads gevonden.
         </p>
