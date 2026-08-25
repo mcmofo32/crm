@@ -100,7 +100,7 @@ export default async function ProductiePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
             <TrendingUp size={24} />
@@ -116,7 +116,7 @@ export default async function ProductiePage({
         />
       </div>
 
-      <div className="flex gap-2 text-base">
+      <div className="flex flex-wrap gap-2 text-base">
         <Link
           href={`/productie?tab=productie${structureSuffix}`}
           className={`rounded-full px-4 py-1.5 ${
@@ -152,7 +152,7 @@ export default async function ProductiePage({
       {structureOptions.length > 0 && (
         <form
           method="GET"
-          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
         >
           <input type="hidden" name="tab" value={activeTab} />
           <Users size={17} className="text-slate-400" />

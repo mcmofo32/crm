@@ -21,7 +21,7 @@ export default async function NewCustomerPage() {
 
   return (
     <div className="max-w-xl">
-      <div className="mb-1 flex items-start justify-between gap-4">
+      <div className="mb-1 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">
             Klant toevoegen
@@ -52,11 +52,11 @@ export default async function NewCustomerPage() {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Voornaam" name="firstName" required />
           <Field label="Achternaam" name="lastName" required />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="E-mail" name="email" type="email" />
           <Field label="Telefoon" name="phone" type="tel" />
         </div>

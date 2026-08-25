@@ -59,7 +59,7 @@ export default async function UserDoelenPage({
       </p>
 
       <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-medium text-slate-900">
               Maandelijkse stand — {year}

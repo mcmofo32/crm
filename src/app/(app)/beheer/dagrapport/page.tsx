@@ -89,7 +89,7 @@ export default async function DagrapportPage({
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link
           href={`/beheer/dagrapport?date=${toDateParam(prev)}`}
           className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"

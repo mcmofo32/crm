@@ -89,7 +89,7 @@ export default async function AuditLogPage({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 text-base">
+        <div className="flex flex-wrap gap-2 text-base">
           {ENTITY_FILTERS.map((filter) => (
             <Link
               key={filter.label}
@@ -107,7 +107,7 @@ export default async function AuditLogPage({
 
         <form
           method="GET"
-          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
         >
           {type && <input type="hidden" name="type" value={type} />}
           <Users size={17} className="text-slate-400" />
@@ -144,7 +144,7 @@ export default async function AuditLogPage({
         </form>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>

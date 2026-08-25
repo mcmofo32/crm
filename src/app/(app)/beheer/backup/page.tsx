@@ -65,7 +65,7 @@ export default async function BackupPage({
       <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
         {status.connected ? (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-green-700">
                 Gekoppeld{status.email ? ` — ${status.email}` : ""}
               </span>

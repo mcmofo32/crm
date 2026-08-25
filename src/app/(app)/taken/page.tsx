@@ -122,7 +122,7 @@ export default async function TakenPage({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 text-base">
+        <div className="flex flex-wrap gap-2 text-base">
           {(["ALLE", "FA", "RG"] as const).map((t) => {
             const params = new URLSearchParams();
             if (t !== "ALLE") params.set("type", t);
@@ -147,7 +147,7 @@ export default async function TakenPage({
         {canFilterScope && (
           <form
             method="GET"
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm"
           >
             {leadType && <input type="hidden" name="type" value={leadType} />}
             <Users size={17} className="text-slate-400" />
@@ -208,7 +208,7 @@ export default async function TakenPage({
                     return (
                       <li
                         key={task.id}
-                        className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 text-base"
+                        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 text-base"
                       >
                         <div className="flex items-start gap-3">
                           <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">

@@ -45,7 +45,7 @@ export default async function IncentiveDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">
             {incentive.title}
@@ -139,7 +139,7 @@ export default async function IncentiveDetailPage({
                   : "border-slate-200 bg-white"
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <span className="flex w-6 items-center justify-center">
                     {index < 3 ? (

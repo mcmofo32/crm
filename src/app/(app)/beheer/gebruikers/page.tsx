@@ -36,7 +36,7 @@ export default async function UsersPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold text-slate-900">Medewerkers</h1>
         <Link
           href="/beheer/gebruikers/new"
@@ -93,7 +93,49 @@ export default async function UsersPage({
         </form>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      {/* Kaartweergave op smalle schermen — de tabel (hieronder, vanaf sm:
+          zichtbaar) heeft 6 kolommen en is op een gsm niet leesbaar zonder
+          veel zijwaarts scrollen. */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {users.map((u) => {
+          const isDuplicateName = (nameCounts.get(normalizedName(u.name)) ?? 0) > 1;
+          return (
+            <Link
+              key={u.id}
+              href={`/beheer/gebruikers/${u.id}`}
+              className="rounded-lg border border-slate-200 bg-white p-4"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 font-medium text-slate-900">
+                  <Avatar name={u.name} />
+                  {u.name}
+                </div>
+                <MoreVertical size={18} className="flex-shrink-0 text-slate-400" />
+              </div>
+              {isDuplicateName && (
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                  <TriangleAlert size={12} />
+                  Dubbel?
+                </span>
+              )}
+              <p className="mt-2 text-sm text-slate-500">{u.email || "—"}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                <Badge variant={ROLE_BADGE_VARIANT[u.role]}>
+                  {ROLE_LABELS[u.role]}
+                </Badge>
+                <Badge variant={u.active ? "green" : "slate"}>
+                  {u.active ? "Actief" : "Inactief"}
+                </Badge>
+                <span className="text-sm text-slate-500">
+                  {u.coachedTeam?.name ?? u.team?.name ?? "—"}
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white sm:block">
         <table className="w-full text-base">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
