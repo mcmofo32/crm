@@ -30,9 +30,23 @@ export type DailyStageFlowRow = {
   counts: Record<string, number>;
   total: number;
 };
+export type DailyPersonStageFlowRow = {
+  userId: string;
+  name: string;
+  teamName: string;
+  counts: Record<string, number>;
+  total: number;
+};
 export type DailyStageFlow = {
   columns: DailyStageColumn[];
+  /** Per team van de lead-eigenaar (zelfde indeling als Analyse/Productie elders in de app). */
   rows: DailyStageFlowRow[];
+  /**
+   * Per persoon die de wijziging effectief uitvoerde (`changedBy`) — dat kan
+   * afwijken van de lead-eigenaar (bv. een coach die voor een teamlid een
+   * fase wijzigt), en is dus een ander overzicht dan `rows` hierboven.
+   */
+  byPerson: DailyPersonStageFlowRow[];
 };
 
 export type DailyReport = {
@@ -47,6 +61,7 @@ async function buildStageFlow(
   changes: {
     toStage: { key: string };
     lead: { owner: { name: string; teamName: string | null } };
+    changedBy: { id: string; name: string; teamName: string | null };
   }[]
 ): Promise<DailyStageFlow> {
   const stages = await prisma.funnelStage.findMany({
@@ -72,7 +87,31 @@ async function buildStageFlow(
     }))
     .sort((a, b) => b.total - a.total || a.teamName.localeCompare(b.teamName));
 
-  return { columns, rows };
+  const byPersonMap = new Map<
+    string,
+    { name: string; teamName: string; counts: Record<string, number> }
+  >();
+  for (const c of changes) {
+    const entry = byPersonMap.get(c.changedBy.id) ?? {
+      name: c.changedBy.name,
+      teamName: c.changedBy.teamName ?? "Geen team",
+      counts: {},
+    };
+    entry.counts[c.toStage.key] = (entry.counts[c.toStage.key] ?? 0) + 1;
+    byPersonMap.set(c.changedBy.id, entry);
+  }
+
+  const byPerson = Array.from(byPersonMap.entries())
+    .map(([userId, entry]) => ({
+      userId,
+      name: entry.name,
+      teamName: entry.teamName,
+      counts: entry.counts,
+      total: Object.values(entry.counts).reduce((s, n) => s + n, 0),
+    }))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+
+  return { columns, rows, byPerson };
 }
 
 /**
@@ -101,6 +140,14 @@ export async function getDailyStageReport(date: Date): Promise<DailyReport> {
           },
         },
       },
+      changedBy: {
+        select: {
+          id: true,
+          name: true,
+          team: { select: { name: true } },
+          coachedTeam: { select: { name: true } },
+        },
+      },
     },
   });
 
@@ -112,6 +159,11 @@ export async function getDailyStageReport(date: Date): Promise<DailyReport> {
         name: c.lead.owner.name,
         teamName: c.lead.owner.team?.name ?? c.lead.owner.coachedTeam?.name ?? null,
       },
+    },
+    changedBy: {
+      id: c.changedBy.id,
+      name: c.changedBy.name,
+      teamName: c.changedBy.team?.name ?? c.changedBy.coachedTeam?.name ?? null,
     },
   }));
 
