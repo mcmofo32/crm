@@ -13,6 +13,7 @@ import {
   Target,
   CloudUpload,
   Newspaper,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -124,6 +125,9 @@ export function ProfileMenu({
           </MenuLink>
           <MenuLink href="/beheer/teams" icon={Users2}>
             Teams
+          </MenuLink>
+          <MenuLink href="/beheer/fsma" icon={GraduationCap}>
+            FSMA
           </MenuLink>
         </>
       )}
