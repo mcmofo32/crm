@@ -97,12 +97,19 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
+      {/* relative: laat het mobiele uitklappaneel van NavLinks zich exact
+          onder deze header positioneren (top-full), ongeacht headerhoogte. */}
+      <header className="relative border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-2.5 lg:px-10">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="flex flex-shrink-0 items-center">
               <span className="sr-only">Structuur A</span>
-              <Logo size={112} />
+              <span className="sm:hidden">
+                <Logo size={64} />
+              </span>
+              <span className="hidden sm:block">
+                <Logo size={112} />
+              </span>
             </span>
             <NavLinks items={navItems} />
           </div>

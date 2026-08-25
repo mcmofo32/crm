@@ -79,7 +79,10 @@ export function ProfileMenu({
   const trigger = (
     <>
       <Avatar name={name} size="md" photoUrl={photoUrl} />
-      <div className="flex flex-col leading-tight">
+      {/* Naam/functie/rolbadge verbergen op een smal scherm — samen met het
+          hamburgermenu, de bel en de uitlogknop past dit anders niet naast
+          elkaar. De avatar blijft op elk schermformaat zichtbaar. */}
+      <div className="hidden flex-col leading-tight sm:flex">
         <span className="flex items-center gap-1.5 text-base font-medium text-slate-800">
           {name}
           {jobFunction && (
