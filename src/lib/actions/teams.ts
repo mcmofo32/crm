@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/client";
 import {
   canManageUsers,
-  canManageUser,
+  canEditAccount,
+  canChangeRole,
   wouldCreateCoachCycle,
   getDescendantUserIds,
 } from "@/lib/permissions";
@@ -66,7 +67,7 @@ export async function createTeamAction(formData: FormData) {
     select: { role: true, name: true, coachedTeam: { select: { id: true } } },
   });
   if (!coach) throw new Error("Coach niet gevonden");
-  if (!canManageUser(actor, coach)) {
+  if (!canChangeRole(actor, coach, Role.COACH)) {
     throw new Error("Je mag deze gebruiker niet als coach aanduiden");
   }
   if (coach.coachedTeam) {
@@ -107,7 +108,7 @@ export async function addTeamMemberAction(teamId: string, formData: FormData) {
     select: { role: true, name: true },
   });
   if (!user) throw new Error("Gebruiker niet gevonden");
-  if (!canManageUser(actor, user)) {
+  if (!canEditAccount(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
   if (user.role === Role.COACH && (await wouldCreateCoachCycle(userId, team.coachId))) {
@@ -153,7 +154,7 @@ export async function addSubordinateAction(personId: string, formData: FormData)
     select: { role: true, name: true, coachedTeam: { select: { id: true } } },
   });
   if (!person) throw new Error("Gebruiker niet gevonden");
-  if (!canManageUser(actor, person)) {
+  if (!canEditAccount(actor, person)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
 
@@ -162,7 +163,7 @@ export async function addSubordinateAction(personId: string, formData: FormData)
     select: { role: true, name: true },
   });
   if (!user) throw new Error("Gebruiker niet gevonden");
-  if (!canManageUser(actor, user)) {
+  if (!canEditAccount(actor, user)) {
     throw new Error("Je mag deze gebruiker niet beheren");
   }
   if (user.role === Role.COACH && (await wouldCreateCoachCycle(userId, personId))) {
@@ -175,7 +176,7 @@ export async function addSubordinateAction(personId: string, formData: FormData)
   if (!team) {
     // Enkel een gewone USER wordt hier automatisch Coach; een Admin/Beheerder
     // die nog geen eigen team had, behoudt zijn rol (kan ook een team hebben,
-    // zie ook canManageUser) i.p.v. gedegradeerd te worden naar Coach.
+    // zie ook canEditAccount) i.p.v. gedegradeerd te worden naar Coach.
     if (person.role === Role.USER) {
       const [newTeam] = await prisma.$transaction([
         prisma.team.create({ data: { name: `Team ${person.name}`, coachId: personId } }),
@@ -229,7 +230,7 @@ export async function changeTeamCoachAction(teamId: string, formData: FormData) 
     },
   });
   if (!newCoach) throw new Error("Gebruiker niet gevonden");
-  if (!canManageUser(actor, newCoach)) {
+  if (!canChangeRole(actor, newCoach, Role.COACH)) {
     throw new Error("Je mag deze gebruiker niet als coach aanduiden");
   }
   // Een kandidaat die zelf al coach is van een eigen team mag enkel gekozen

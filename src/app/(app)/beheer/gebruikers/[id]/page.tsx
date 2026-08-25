@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { isBeheerder, canManageUser } from "@/lib/permissions";
+import { isBeheerder, canEditAccount, canChangeRole } from "@/lib/permissions";
 import {
   getUserForEdit,
   getTeamsForAssignment,
@@ -52,12 +52,15 @@ export default async function EditUserPage({
   ]);
   if (!target) notFound();
 
-  // Enkel de Beheerder mag een Admin/Beheerder-account bewerken (gevoelige
-  // data) — een Admin mag zo'n collega hier wel zien (naam, team, FSMA, ...),
-  // enkel het formulier/de acties hieronder worden dan read-only. De
-  // write-acties zelf (updateUserAction, setUserActiveAction,
-  // deleteUserAction) controleren dit ook zelf nog eens server-side.
-  const canEdit = canManageUser(viewer, target);
+  // Enkel de Beheerder mag een Beheerder-account bewerken — een Admin mag
+  // verder iedereen, ook een andere Admin (canEditAccount). De rol zelf is
+  // een aparte, strengere regel (canChangeRole hieronder): enkel de
+  // Beheerder mag de rol van een bestaande Admin/Beheerder aanpassen, dus
+  // ook enkel de Beheerder mag de Admin-rol afnemen. De write-acties zelf
+  // (updateUserAction, setUserActiveAction, deleteUserAction) controleren
+  // dit ook zelf nog eens server-side.
+  const canEdit = canEditAccount(viewer, target);
+  const canEditRole = canChangeRole(viewer, target, target.role);
   const isSelf = target.id === viewer.id;
   const [deletionImpact, reassignableUsers, fsmaModules] = await Promise.all([
     isSelf ? null : getUserDeletionImpact(id),
@@ -65,12 +68,15 @@ export default async function EditUserPage({
     getFsmaModulesForUser(id),
   ]);
 
-  // Enkel de Beheerder mag iemand Admin maken (gevoelige data, bewust beperkt tot 1 persoon).
-  const assignableRoles = (
-    actorRole === Role.BEHEERDER
-      ? [Role.BEHEERDER, Role.ADMIN, Role.COACH, Role.USER]
-      : [Role.COACH, Role.USER]
-  ) as Role[];
+  // Een Admin mag rollen aanpassen tot maximaal Coach (nooit Admin/Beheerder
+  // toekennen) — maar enkel als de rol van dit profiel zelf al aanpasbaar is
+  // (canEditRole); is dat niet zo (bv. dit profiel is zelf een Admin), dan
+  // toont de select enkel de huidige rol, vast en niet aanpasbaar.
+  const assignableRoles: Role[] = !canEditRole
+    ? [target.role]
+    : actorRole === Role.BEHEERDER
+    ? [Role.BEHEERDER, Role.ADMIN, Role.COACH, Role.USER]
+    : [Role.COACH, Role.USER];
 
   const boundUpdate = updateUserAction.bind(null, id);
   const boundToggleActive = setUserActiveAction.bind(null, id, !target.active);
@@ -89,8 +95,7 @@ export default async function EditUserPage({
 
       {!canEdit && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Enkel de Beheerder mag een Admin- of Beheerder-account bewerken. Je
-          kan dit profiel wel bekijken.
+          Enkel de Beheerder mag dit profiel bewerken. Je kan het wel bekijken.
         </div>
       )}
 
@@ -138,7 +143,7 @@ export default async function EditUserPage({
             name="role"
             defaultValue={target.role}
             required
-            disabled={!canEdit}
+            disabled={!canEditRole}
             className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
           >
             {assignableRoles.map((role) => (
@@ -147,6 +152,15 @@ export default async function EditUserPage({
               </option>
             ))}
           </select>
+          {/* Een disabled <select> wordt niet mee opgestuurd bij een submit
+              — zonder dit zou de rol als leeg binnenkomen (en de update laten
+              crashen) zodra enkel andere velden bewerkt worden. */}
+          {!canEditRole && <input type="hidden" name="role" value={target.role} />}
+          {canEdit && !canEditRole && (
+            <p className="text-xs text-slate-400">
+              Enkel de Beheerder mag de rol van dit profiel aanpassen.
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-700">
