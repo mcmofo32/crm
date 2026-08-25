@@ -37,7 +37,7 @@ export default async function NewUserPage({
   return (
     <div className="max-w-lg">
       <h1 className="mb-4 text-3xl font-semibold text-slate-900">
-        Nieuwe gebruiker
+        Nieuwe medewerker
       </h1>
       <RoleConfirmForm action={createUserAction} className="flex flex-col gap-4 text-sm">
         {underPerson && <input type="hidden" name="underId" value={underPerson.id} />}

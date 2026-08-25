@@ -11,11 +11,25 @@ import {
   getReassignableUsers,
 } from "@/lib/actions/users";
 import { forceLogoutUserAction } from "@/lib/actions/sessions";
+import { getFsmaModulesForUser, setFsmaModuleStatusAction } from "@/lib/actions/fsmaModules";
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { JOB_FUNCTION_LABELS } from "@/lib/jobFunctionLabels";
+import {
+  FSMA_MODULE_LABELS,
+  FSMA_STATUS_ORDER,
+  FSMA_STATUS_LABELS,
+  FSMA_STATUS_COLORS,
+} from "@/lib/fsmaLabels";
 import { EditUserForm } from "@/components/EditUserForm";
 import { DeleteUserButton } from "@/components/DeleteUserButton";
+import { InlineSelect } from "@/components/InlineSelect";
+
+const FSMA_STATUS_OPTIONS = FSMA_STATUS_ORDER.map((status) => ({
+  value: status,
+  label: FSMA_STATUS_LABELS[status],
+  style: FSMA_STATUS_COLORS[status],
+}));
 
 const JOB_FUNCTIONS = Object.values(JobFunction);
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
@@ -39,9 +53,10 @@ export default async function EditUserPage({
   if (!target) notFound();
 
   const isSelf = target.id === viewer.id;
-  const [deletionImpact, reassignableUsers] = await Promise.all([
+  const [deletionImpact, reassignableUsers, fsmaModules] = await Promise.all([
     isSelf ? null : getUserDeletionImpact(id),
     isSelf ? [] : getReassignableUsers(id),
+    getFsmaModulesForUser(id),
   ]);
 
   // Enkel de Beheerder mag iemand Admin maken (gevoelige data, bewust beperkt tot 1 persoon).
@@ -59,7 +74,7 @@ export default async function EditUserPage({
     <div className="max-w-lg flex flex-col gap-8">
       <div>
         <h1 className="text-3xl font-semibold text-slate-900">
-          Gebruiker bewerken
+          Medewerker bewerken
         </h1>
         <p className="text-sm text-slate-500">
           {target.email || <span className="text-slate-300">Geen e-mailadres</span>}
@@ -170,6 +185,63 @@ export default async function EditUserPage({
             rapporteert aan de coach van dit team (meerlaagse structuur).
           </p>
         </div>
+
+        <hr className="my-1 border-slate-100" />
+        <p className="-mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          Makelaarskantoor
+        </p>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">
+            Aanbrengnummer <span className="font-normal text-slate-400">(optioneel)</span>
+          </label>
+          <input
+            name="referralNumber"
+            defaultValue={target.referralNumber ?? ""}
+            className="rounded-md border border-slate-300 px-3 py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">
+            OVB-nummer <span className="font-normal text-slate-400">(optioneel)</span>
+          </label>
+          <input
+            name="ovbNumber"
+            defaultValue={target.ovbNumber ?? ""}
+            className="rounded-md border border-slate-300 px-3 py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">
+            Naam onderneming <span className="font-normal text-slate-400">(optioneel)</span>
+          </label>
+          <input
+            name="companyName"
+            defaultValue={target.companyName ?? ""}
+            className="rounded-md border border-slate-300 px-3 py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">
+            Ondernemingsnummer <span className="font-normal text-slate-400">(optioneel)</span>
+          </label>
+          <input
+            name="companyRegistrationNumber"
+            defaultValue={target.companyRegistrationNumber ?? ""}
+            className="rounded-md border border-slate-300 px-3 py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-700">
+            Maatschappelijke zetel <span className="font-normal text-slate-400">(optioneel)</span>
+          </label>
+          <input
+            name="registeredOffice"
+            defaultValue={target.registeredOffice ?? ""}
+            className="rounded-md border border-slate-300 px-3 py-2"
+          />
+        </div>
+
         <button
           type="submit"
           className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
@@ -177,6 +249,31 @@ export default async function EditUserPage({
           Wijzigingen opslaan
         </button>
       </EditUserForm>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="mb-1 text-sm font-medium text-slate-900">FSMA-modules</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Status van de verplichte vakbekwaamheidsmodules voor deze medewerker.
+        </p>
+        <div className="flex flex-col divide-y divide-slate-100">
+          {fsmaModules.map((row) => (
+            <div
+              key={row.module}
+              className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+            >
+              <span className="text-slate-700">{FSMA_MODULE_LABELS[row.module]}</span>
+              <InlineSelect
+                action={setFsmaModuleStatusAction.bind(null, target.id, row.module)}
+                name="status"
+                value={row.status}
+                options={FSMA_STATUS_OPTIONS}
+                className="w-56 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                style={FSMA_STATUS_COLORS[row.status]}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="mb-2 text-sm font-medium text-slate-900">Status</h2>

@@ -142,6 +142,14 @@ model User {
   /// Functie/graad, getoond op het organigram.
   jobFunction JobFunction?
 
+  /// Makelaarskantoor-gegevens (compliance), getoond/bewerkbaar op het
+  /// gebruikersprofiel — enkel de Beheerder/Admin vult dit in.
+  referralNumber            String?
+  ovbNumber                 String?
+  companyName               String?
+  companyRegistrationNumber String?
+  registeredOffice          String?
+
   // Profielfoto, als binaire data in de database bewaard (zelfde aanpak als
   // de Incentive-poster), zodat er geen aparte bestandsopslag nodig is.
   avatarData      Bytes?
@@ -176,8 +184,49 @@ model User {
 
   googleSheetsBackupConnections GoogleSheetsBackup[] @relation("GoogleSheetsBackupConnectedBy")
 
+  fsmaModules UserFsmaModule[] @relation("UserFsmaModules")
+
   @@index([teamId])
   @@index([deletedAt])
+}
+
+enum FsmaModule {
+  M1_1
+  M1_2
+  M2_1
+  M2_2
+  M2_3
+  M2_4
+  M3_1
+  M3_2
+  M4
+}
+
+enum FsmaModuleStatus {
+  OPLEIDING_TE_PLANNEN
+  OPLEIDING_INGEPLAND
+  OPLEIDING_AFGEROND
+  EXAMEN_TE_PLANNEN
+  EXAMEN_INGEPLAND
+  AFGEROND
+}
+
+/// Status van de verplichte FSMA-vakbekwaamheidsmodules, per medewerker per
+/// module — enkel een rij per (medewerker, module) die al minstens 1 keer
+/// gewijzigd is; ontbrekende combinaties tellen in de applicatie als
+/// "Opleiding nog in te plannen" (zie fsmaLabels.ts), zonder dat daar een
+/// rij per medewerker per module voor moet bestaan.
+model UserFsmaModule {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserFsmaModules", fields: [userId], references: [id], onDelete: Cascade)
+
+  module FsmaModule
+  status FsmaModuleStatus @default(OPLEIDING_TE_PLANNEN)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, module])
 }
 
 /// Logboek van belangrijke beheersacties, enkel zichtbaar voor de Beheerder.
