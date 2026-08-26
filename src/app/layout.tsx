@@ -18,8 +18,11 @@ export const metadata: Metadata = {
   title: "Structuur A",
   description: "Leadopvolging en funnel management",
   // Maakt "Toevoegen aan beginscherm" op de gsm mogelijk (Android leest
-  // manifest.json, iOS leest vooral appleWebApp/icons.apple hieronder) —
-  // icon.svg in deze map blijft apart de gewone browser-tab-favicon regelen.
+  // manifest.json, iOS leest vooral appleWebApp/icons.apple hieronder).
+  // icon.svg moet hier expliciet mee opgegeven worden: zodra je `icons`
+  // zelf instelt, negeert Next.js de automatische bestandsconventie
+  // (icon.svg) volledig i.p.v. ermee te combineren — zonder deze regel
+  // verdwijnt de gewone browser-tab-favicon.
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -27,6 +30,7 @@ export const metadata: Metadata = {
     title: "Structuur A",
   },
   icons: {
+    icon: "/icon.svg",
     apple: "/icon-192.png",
   },
 };
