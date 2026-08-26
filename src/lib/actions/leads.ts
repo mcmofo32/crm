@@ -133,6 +133,8 @@ export async function createWonLeadRecord(params: {
   occurredAt: Date;
   /** Expliciet gekozen dossierbeheerder (subagent) — anders standaard de aanbrenger (ownerId). */
   caseManagerSubagentId?: string | null;
+  /** Vrije notities voor in het profiel, bv. dat de klant zelf ook belegt en in wat. */
+  notes?: string | null;
 }) {
   const lead = await prisma.lead.create({
     data: {
@@ -141,6 +143,7 @@ export async function createWonLeadRecord(params: {
       email: params.email,
       phone: params.phone,
       source: params.source,
+      notes: params.notes ?? null,
       leadType: params.leadType,
       ownerId: params.ownerId,
       createdById: params.actorId,
@@ -283,6 +286,7 @@ export async function createCustomerAction(formData: FormData) {
     products,
     occurredAt,
     caseManagerSubagentId,
+    notes: String(formData.get("notes") ?? "").trim() || null,
   });
 
   await logAudit({
