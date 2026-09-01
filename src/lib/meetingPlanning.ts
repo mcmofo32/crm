@@ -83,6 +83,15 @@ export function subjectInvitesLead(subject: string) {
   );
 }
 
+/**
+ * Bepaalt of dit onderwerp een Financiële analyse is — werkt net als
+ * `subjectInvitesLead` op het volledige, opgemaakte onderwerp (bv. "18:00 -
+ * Financiële analyse Jan Janssens"), niet enkel op het kale type.
+ */
+export function isFinancieleAnalyseSubject(subject: string) {
+  return subject.toLowerCase().includes("financiële analyse");
+}
+
 /** Bouwt de afspraaknaam op in het vaste formaat "Uur - Type Voornaam Achternaam". */
 export function buildMeetingSubject(
   scheduledAt: Date,

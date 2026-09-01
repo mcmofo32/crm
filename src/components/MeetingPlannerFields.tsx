@@ -2,6 +2,7 @@
 
 import { Video, MapPin } from "lucide-react";
 import { isAdviesgesprekType, type MeetingPlannerValue } from "@/lib/meetingPlanning";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 type SubagentOption = { id: string; name: string; teamName: string };
 
@@ -72,13 +73,18 @@ export function MeetingPlannerFields({
       </div>
 
       {value.mode === "ONSITE" ? (
-        <input
-          type="text"
-          value={value.location}
-          onChange={(e) => onChange({ ...value, location: e.target.value })}
-          placeholder="Adres van de afspraak"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
+        <div className="flex flex-col gap-1">
+          <AddressAutocomplete
+            value={value.location}
+            onChange={(location) => onChange({ ...value, location })}
+            placeholder="Adres van de afspraak (leeg = kantooradres)"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-slate-400">
+            Leeg laten gebruikt automatisch het kantooradres (zie &quot;Kantoor&quot;
+            in het profielmenu).
+          </p>
+        </div>
       ) : (
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input
