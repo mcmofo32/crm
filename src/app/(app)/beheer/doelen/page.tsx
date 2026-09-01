@@ -8,6 +8,7 @@ import {
 import { GOAL_METRIC_LABELS, MONTHLY_GOAL_METRICS } from "@/lib/goalLabels";
 import { ROLE_LABELS } from "@/lib/roleLabels";
 import { Avatar } from "@/components/Avatar";
+import { FormToast } from "@/components/toast/FormToast";
 
 function shiftMonth(year: number, month: number, delta: number) {
   const d = new Date(year, month - 1 + delta, 1);
@@ -78,6 +79,7 @@ export default async function DoelenPage({
         action={boundSaveGoals}
         className="flex flex-col gap-3"
       >
+        <FormToast message="Doelen opgeslagen" />
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-slate-500">

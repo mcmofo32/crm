@@ -11,6 +11,7 @@ import { METRIC_LABELS } from "@/lib/incentiveMetrics";
 import { IncentiveMode } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 const MEDAL_COLORS = ["#eab308", "#94a3b8", "#b45309"];
 
@@ -45,6 +46,7 @@ export default async function IncentiveDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
+      <ToastOnParam param="created" message="Incentive aangemaakt" />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">

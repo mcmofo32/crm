@@ -30,6 +30,7 @@ import { FollowUpContractsCard } from "@/components/FollowUpContractsCard";
 import { InlineSelect } from "@/components/InlineSelect";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 const ACTIVITY_TYPE_ICONS: Record<string, LucideIcon> = {
   CALL: Phone,
@@ -105,6 +106,7 @@ export default async function LeadDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
+      <ToastOnParam param="created" message="Aangemaakt" />
       {duplicateName && duplicateOwner && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Let op: <strong>{duplicateName}</strong> staat al als lead

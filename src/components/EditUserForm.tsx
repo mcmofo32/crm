@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import type { UpdateUserState } from "@/lib/actions/users";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export function EditUserForm({
   action,
@@ -13,7 +14,16 @@ export function EditUserForm({
   ) => Promise<UpdateUserState>;
   children: React.ReactNode;
 }) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction, pending] = useActionState(action, null);
+  const wasPending = useRef(false);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (wasPending.current && !pending && !state?.error) {
+      showToast("Opgeslagen");
+    }
+    wasPending.current = pending;
+  }, [pending, state, showToast]);
 
   return (
     <form

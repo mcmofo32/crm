@@ -163,7 +163,7 @@ export async function createUserAction(formData: FormData) {
   revalidatePath("/beheer/gebruikers");
   revalidatePath("/beheer/teams");
   revalidatePath("/organigram");
-  redirect(underPerson ? "/beheer/teams" : "/beheer/gebruikers");
+  redirect(underPerson ? "/beheer/teams?created=1" : "/beheer/gebruikers?created=1");
 }
 
 export async function setUserActiveAction(userId: string, active: boolean) {

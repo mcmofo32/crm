@@ -12,6 +12,7 @@ import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { EventVerificationForm } from "@/components/EventVerificationForm";
+import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 const TYPE_LABELS = {
   MEETING: "Vergadering",
@@ -50,6 +51,7 @@ export default async function EventDetailPage({
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
+      <ToastOnParam param="created" message="Evenement aangemaakt" />
       <div>
         <Link
           href="/evenementen"

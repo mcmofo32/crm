@@ -100,11 +100,12 @@ export async function createLeadAction(formData: FormData) {
   revalidatePath(`/funnel/${leadType}`);
 
   const duplicate = contactMatches[0];
-  const duplicateQuery = duplicate
-    ? `?duplicateName=${encodeURIComponent(
-        `${duplicate.firstName} ${duplicate.lastName}`
-      )}&duplicateOwner=${encodeURIComponent(duplicate.ownerName)}`
-    : "";
+  const redirectParams = new URLSearchParams({ created: "1" });
+  if (duplicate) {
+    redirectParams.set("duplicateName", `${duplicate.firstName} ${duplicate.lastName}`);
+    redirectParams.set("duplicateOwner", duplicate.ownerName);
+  }
+  const duplicateQuery = `?${redirectParams.toString()}`;
   redirect(`/leads/${lead.id}${duplicateQuery}`);
 }
 
@@ -302,7 +303,7 @@ export async function createCustomerAction(formData: FormData) {
   revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${leadType}`);
 
-  redirect(`/leads/${lead.id}`);
+  redirect(`/leads/${lead.id}?created=1`);
 }
 
 /**
@@ -422,7 +423,7 @@ export async function createLeadsBulkAction(formData: FormData) {
   // standaardtype dat bovenaan het formulier gekozen was.
   const redirectType =
     usedLeadTypes.length === 1 ? usedLeadTypes[0] : defaultLeadType;
-  redirect(`/pipeline/${redirectType === "RG" ? "recrutering" : "verkoop"}`);
+  redirect(`/pipeline/${redirectType === "RG" ? "recrutering" : "verkoop"}?created=1`);
 }
 
 export async function updateLeadStageAction(

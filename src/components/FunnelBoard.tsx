@@ -30,6 +30,7 @@ import {
   type FollowUpCallValue,
 } from "@/lib/meetingPlanning";
 import type { LeadType } from "@/generated/prisma/client";
+import { useToastAction } from "@/components/toast/useToastAction";
 
 type SubagentRecord = {
   id: string;
@@ -251,6 +252,7 @@ export function FunnelBoard({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { runWithToast } = useToastAction();
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [onlyNoContact, setOnlyNoContact] = useState(false);
@@ -366,19 +368,21 @@ export function FunnelBoard({
     const meetingFormData = buildMeetingFormData(meeting);
     const followUpFormData = buildFollowUpCallFormData(followUpCall);
     startTransition(async () => {
-      await updateLeadStageAction(leadId, toStageId, trimmedNotes);
-      if (trimmedEmail) {
-        await updateLeadEmailAction(leadId, trimmedEmail);
-      }
-      if (meetingFormData) {
-        await planStageMeetingAction(leadId, meetingFormData);
-      }
-      if (followUpFormData) {
-        await planFollowUpCallAction(leadId, followUpFormData);
-      }
-      if (toStageIsWon && hasAnyProduct(products)) {
-        await saveLeadProductsAction(leadId, buildProductsFormData(products));
-      }
+      await runWithToast(async () => {
+        await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+        if (trimmedEmail) {
+          await updateLeadEmailAction(leadId, trimmedEmail);
+        }
+        if (meetingFormData) {
+          await planStageMeetingAction(leadId, meetingFormData);
+        }
+        if (followUpFormData) {
+          await planFollowUpCallAction(leadId, followUpFormData);
+        }
+        if (toStageIsWon && hasAnyProduct(products)) {
+          await saveLeadProductsAction(leadId, buildProductsFormData(products));
+        }
+      }, "Opgeslagen");
       setPendingMove(null);
       setNotes("");
       setMeeting(EMPTY_MEETING_PLANNER_VALUE);

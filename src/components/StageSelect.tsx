@@ -27,6 +27,7 @@ import {
   type MeetingPlannerValue,
   type FollowUpCallValue,
 } from "@/lib/meetingPlanning";
+import { useToastAction } from "@/components/toast/useToastAction";
 
 type SubagentRecord = { id: string; name: string; team: { name: string } };
 
@@ -51,6 +52,7 @@ export function StageSelect({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { runWithToast } = useToastAction();
   const [open, setOpen] = useState(false);
   const [targetStageId, setTargetStageId] = useState("");
   const [notes, setNotes] = useState("");
@@ -137,19 +139,21 @@ export function StageSelect({
                 const meetingFormData = buildMeetingFormData(meeting);
                 const followUpFormData = buildFollowUpCallFormData(followUpCall);
                 const trimmedEmail = emailInput.trim();
-                await updateLeadStageAction(leadId, targetStageId, notes);
-                if (trimmedEmail) {
-                  await updateLeadEmailAction(leadId, trimmedEmail);
-                }
-                if (meetingFormData) {
-                  await planStageMeetingAction(leadId, meetingFormData);
-                }
-                if (followUpFormData) {
-                  await planFollowUpCallAction(leadId, followUpFormData);
-                }
-                if (targetStage?.isWon && hasAnyProduct(products)) {
-                  await saveLeadProductsAction(leadId, buildProductsFormData(products));
-                }
+                await runWithToast(async () => {
+                  await updateLeadStageAction(leadId, targetStageId, notes);
+                  if (trimmedEmail) {
+                    await updateLeadEmailAction(leadId, trimmedEmail);
+                  }
+                  if (meetingFormData) {
+                    await planStageMeetingAction(leadId, meetingFormData);
+                  }
+                  if (followUpFormData) {
+                    await planFollowUpCallAction(leadId, followUpFormData);
+                  }
+                  if (targetStage?.isWon && hasAnyProduct(products)) {
+                    await saveLeadProductsAction(leadId, buildProductsFormData(products));
+                  }
+                }, "Opgeslagen");
                 setOpen(false);
                 setTargetStageId("");
                 setNotes("");

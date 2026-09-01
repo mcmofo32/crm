@@ -6,6 +6,7 @@ import {
   removeMyAvatarAction,
 } from "@/lib/actions/profile";
 import { Avatar } from "@/components/Avatar";
+import { FormToast } from "@/components/toast/FormToast";
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   not_configured:
@@ -62,6 +63,7 @@ export default async function SettingsPage({
             action={updateMyAvatarAction}
             className="flex flex-1 flex-wrap items-center gap-2"
           >
+            <FormToast message="Profielfoto opgeslagen" />
             <input
               type="file"
               name="photo"
@@ -129,6 +131,7 @@ export default async function SettingsPage({
           Google Meet).
         </p>
         <form action={updateMyZoomLinkAction} className="flex gap-2">
+          <FormToast message="Zoom-link opgeslagen" />
           <input
             type="url"
             name="zoomLink"

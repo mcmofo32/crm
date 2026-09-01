@@ -144,7 +144,7 @@ export async function createIncentiveAction(formData: FormData) {
   });
 
   revalidatePath("/incentives");
-  redirect(`/incentives/${incentive.id}`);
+  redirect(`/incentives/${incentive.id}?created=1`);
 }
 
 export async function deleteIncentiveAction(incentiveId: string) {

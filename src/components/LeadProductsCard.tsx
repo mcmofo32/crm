@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Pencil } from "lucide-react";
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
+import { useToastAction } from "@/components/toast/useToastAction";
 import {
   ProductFields,
   buildProductsFormData,
@@ -40,6 +41,7 @@ export function LeadProductsCard({
   canEdit?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const { runWithToast } = useToastAction();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<ProductsState>(() => stateFromProducts(products));
 
@@ -60,7 +62,10 @@ export function LeadProductsCard({
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                await saveLeadProductsAction(leadId, buildProductsFormData(value));
+                await runWithToast(
+                  () => saveLeadProductsAction(leadId, buildProductsFormData(value)),
+                  "Producten opgeslagen"
+                );
                 setEditing(false);
               })
             }

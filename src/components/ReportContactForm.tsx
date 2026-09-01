@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { logCompletedActivityAction } from "@/lib/actions/activities";
+import { FormToast } from "@/components/toast/FormToast";
 
 const TYPE_OPTIONS = [
   { value: "CALL", label: "Telefoongesprek" },
@@ -53,6 +54,7 @@ export function ReportContactForm({
         }
         className="flex w-full max-w-md flex-col gap-3 rounded-lg bg-white p-4 shadow-xl"
       >
+        <FormToast message="Contact gerapporteerd" />
         <input type="hidden" name="leadId" value={leadId} />
         <label className="text-sm font-medium text-slate-700">
           Contact rapporteren

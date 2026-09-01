@@ -14,6 +14,8 @@ import { getSubagents, deleteSubagentAction } from "@/lib/actions/subagents";
 import { TeamPlanningContext } from "@/lib/teamPlanning";
 import { Avatar } from "@/components/Avatar";
 import { DeleteTeamButton } from "@/components/DeleteTeamButton";
+import { FormToast } from "@/components/toast/FormToast";
+import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 type TeamWithMembers = Awaited<ReturnType<typeof getTeamsWithMembers>>[number];
 type SubagentRecord = Awaited<ReturnType<typeof getSubagents>>[number];
@@ -80,6 +82,7 @@ function TeamCard({
                 action={boundAddMember}
                 className="mt-2 flex flex-col gap-2 px-2 pb-2"
               >
+                <FormToast message="Toegevoegd" />
                 <select
                   name="userId"
                   required
@@ -126,6 +129,7 @@ function TeamCard({
                 action={boundRenameTeam}
                 className="mt-2 flex flex-col gap-2 px-2 pb-2"
               >
+                <FormToast message="Naam opgeslagen" />
                 <input
                   name="name"
                   defaultValue={team.name}
@@ -150,6 +154,7 @@ function TeamCard({
                 action={boundChangeCoach}
                 className="mt-2 flex flex-col gap-2 px-2 pb-2"
               >
+                <FormToast message="Coach gewijzigd" />
                 <select
                   name="coachId"
                   required
@@ -226,6 +231,7 @@ function TeamCard({
                       action={boundAddSubordinate}
                       className="mt-2 flex flex-col gap-2 px-2 pb-2"
                     >
+                      <FormToast message="Toegevoegd" />
                       <select
                         name="userId"
                         required
@@ -286,6 +292,7 @@ function TeamCard({
         action={boundAddMember}
         className="flex items-center gap-2 border-t border-slate-100 pt-3"
       >
+        <FormToast message="Toegevoegd" />
         <select
           name="userId"
           required
@@ -443,6 +450,7 @@ export default async function TeamsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ToastOnParam param="created" message="Gebruiker aangemaakt" />
       <div>
         <h1 className="text-3xl font-semibold text-slate-900">Teams</h1>
         <p className="text-base text-slate-500">
@@ -461,6 +469,7 @@ export default async function TeamsPage() {
           action={createTeamAction}
           className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]"
         >
+          <FormToast message="Team aangemaakt" />
           <input
             name="name"
             placeholder="Teamnaam"
