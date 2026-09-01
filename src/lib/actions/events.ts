@@ -7,6 +7,7 @@ import { AttendanceStatus, EventType } from "@/generated/prisma/client";
 import { canManageEvents } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
+import { parseLocalDateTime } from "@/lib/datetime";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -36,7 +37,7 @@ function parseEventType(raw: FormDataEntryValue | null | undefined): EventType {
 
 function parseEndDate(dateRaw: string, endTimeRaw: string, startDate: Date): Date | null {
   if (!endTimeRaw) return null;
-  const endDate = new Date(`${dateRaw}T${endTimeRaw}:00`);
+  const endDate = parseLocalDateTime(`${dateRaw}T${endTimeRaw}`);
   if (Number.isNaN(endDate.getTime())) {
     throw new Error("Ongeldig einduur");
   }
@@ -61,7 +62,7 @@ export async function createEventAction(formData: FormData) {
     throw new Error("Titel en datum zijn verplicht");
   }
 
-  const date = new Date(`${dateRaw}T${timeRaw || "00:00"}:00`);
+  const date = parseLocalDateTime(`${dateRaw}T${timeRaw || "00:00"}`);
   if (Number.isNaN(date.getTime())) {
     throw new Error("Ongeldige datum/tijd");
   }
@@ -99,7 +100,7 @@ export async function updateEventAction(eventId: string, formData: FormData) {
     throw new Error("Titel en datum zijn verplicht");
   }
 
-  const date = new Date(`${dateRaw}T${timeRaw || "00:00"}:00`);
+  const date = parseLocalDateTime(`${dateRaw}T${timeRaw || "00:00"}`);
   if (Number.isNaN(date.getTime())) {
     throw new Error("Ongeldige datum/tijd");
   }

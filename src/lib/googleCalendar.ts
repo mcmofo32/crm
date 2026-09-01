@@ -10,8 +10,8 @@ function withPlusPrefix(phone: string) {
   return phone.startsWith("+") || !phone.startsWith("32") ? phone : `+${phone}`;
 }
 
-/** Formatteert één contactregel voor de omschrijving (bv. "Subagent: Jan Peeters — Telefoon: ... — E-mail: ..."). */
-function formatContactLine(label: string, person?: ContactInfo | null) {
+/** Formatteert één contactregel voor de omschrijving (bv. "Jan Peeters — Telefoon: ... — E-mail: ..."), zonder rol-label — enkel naam en contactgegevens. */
+function formatContactLine(person?: ContactInfo | null) {
   if (!person) return null;
   const details = [
     person.phone ? `Telefoon: ${withPlusPrefix(person.phone)}` : null,
@@ -20,7 +20,7 @@ function formatContactLine(label: string, person?: ContactInfo | null) {
     .filter(Boolean)
     .join(" — ");
   if (!details) return null;
-  return `${label}: ${person.name} — ${details}`;
+  return `${person.name} — ${details}`;
 }
 
 const SCOPES = [
@@ -184,9 +184,9 @@ function buildEventBody(
   // notities. Bij een gewoon uitgaand contactmoment (geen klant
   // uitgenodigd) is de beschrijving enkel voor onszelf, dus daar mogen de
   // notities wel in staan.
-  const subagentLine = formatContactLine("Subagent", subagent);
+  const subagentLine = formatContactLine(subagent);
   const aanbrengerLine = isFinancieleAnalyseSubject(activity.subject)
-    ? formatContactLine("Aanbrenger", owner)
+    ? formatContactLine(owner)
     : null;
   // De naamloze regel hieronder toont exact dezelfde persoon zodra die ook
   // als subagent/aanbrenger vermeld staat (bv. een subagent die zijn eigen
