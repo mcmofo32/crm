@@ -878,3 +878,20 @@ model GoogleSheetsBackup {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Kantoorinstellingen
+// ---------------------------------------------------------------------------
+
+/// Eén globale rij (niet per gebruiker): het standaardadres dat voorgesteld
+/// wordt bij een fysieke afspraak, en een vaste notitie die daarbij
+/// automatisch aan de notities toegevoegd wordt (bv. parkeer-/
+/// bereikbaarheidsinfo). Enkel aanpasbaar door de Beheerder (zie
+/// canManageSettings).
+model OfficeSettings {
+  id      String  @id @default(cuid())
+  address String?
+  note    String?
+
+  updatedAt DateTime @updatedAt
+}

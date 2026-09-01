@@ -29,6 +29,14 @@ import {
   buildMeetingSubject,
 } from "@/lib/meetingPlanning";
 import { parseLocalDateTime, combineWithTimeOnSameLocalDay } from "@/lib/datetime";
+import { getOfficeSettings } from "@/lib/actions/officeSettings";
+
+/** ONSITE-locatie: getypt adres, anders het kantooradres (zie "Kantoor" in het profielmenu) als dat ingesteld is. */
+async function resolveOnsiteLocation(typedLocation: string) {
+  if (typedLocation) return typedLocation;
+  const officeSettings = await getOfficeSettings();
+  return officeSettings?.address ?? null;
+}
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -110,7 +118,7 @@ export async function scheduleActivityAction(formData: FormData) {
       formData.get("mode") === "ONLINE" ? MeetingMode.ONLINE : MeetingMode.ONSITE;
     location =
       meetingMode === MeetingMode.ONSITE
-        ? String(formData.get("location") ?? "").trim() || null
+        ? await resolveOnsiteLocation(String(formData.get("location") ?? "").trim())
         : null;
     const useGoogleMeet =
       meetingMode === MeetingMode.ONLINE && formData.get("useGoogleMeet") === "on";
@@ -335,7 +343,12 @@ export async function updateActivityAction(
     select: GOOGLE_CALENDAR_USER_SELECT,
   });
   if (assignee && scheduledAt) {
-    await syncActivityToGoogleCalendar(assignee, updated, lead);
+    // Anders valt bv. de subagent-contactregel (zie buildEventBody) weg uit
+    // de omschrijving zodra een afspraak nadien gewijzigd wordt.
+    const subagent = activity.subagentId
+      ? await prisma.subagent.findUnique({ where: { id: activity.subagentId } })
+      : null;
+    await syncActivityToGoogleCalendar(assignee, updated, lead, subagent);
   }
 
   revalidatePath(`/leads/${activity.leadId}`);
@@ -446,7 +459,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
     formData.get("mode") === "ONLINE" ? MeetingMode.ONLINE : MeetingMode.ONSITE;
   const location =
     mode === MeetingMode.ONSITE
-      ? String(formData.get("location") ?? "").trim() || null
+      ? await resolveOnsiteLocation(String(formData.get("location") ?? "").trim())
       : null;
   const useGoogleMeet =
     mode === MeetingMode.ONLINE && formData.get("useGoogleMeet") === "on";

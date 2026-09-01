@@ -12,6 +12,7 @@ import {
   Eye,
   Target,
   CloudUpload,
+  Building2,
   Newspaper,
   GraduationCap,
   type LucideIcon,
@@ -143,9 +144,14 @@ export function ProfileMenu({
         </>
       )}
       {showUserManagement && showSettingsManagement && (
-        <MenuLink href="/beheer/backup" icon={CloudUpload}>
-          Google Sheets back-up
-        </MenuLink>
+        <>
+          <MenuLink href="/beheer/kantoor" icon={Building2}>
+            Kantoor
+          </MenuLink>
+          <MenuLink href="/beheer/backup" icon={CloudUpload}>
+            Google Sheets back-up
+          </MenuLink>
+        </>
       )}
       {showBeheerderTools && (
         <>
