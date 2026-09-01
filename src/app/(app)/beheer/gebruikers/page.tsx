@@ -128,6 +128,7 @@ export default async function UsersPage({
                 <Badge variant={u.active ? "green" : "slate"}>
                   {u.active ? "Actief" : "Inactief"}
                 </Badge>
+                {u.inTraining && <Badge variant="amber">In opleiding</Badge>}
                 <span className="text-sm text-slate-500">
                   {u.coachedTeam?.name ?? u.team?.name ?? "—"}
                 </span>
@@ -182,9 +183,12 @@ export default async function UsersPage({
                   {u.coachedTeam?.name ?? u.team?.name ?? "—"}
                 </td>
                 <td className="px-6 py-4">
-                  <Badge variant={u.active ? "green" : "slate"}>
-                    {u.active ? "Actief" : "Inactief"}
-                  </Badge>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge variant={u.active ? "green" : "slate"}>
+                      {u.active ? "Actief" : "Inactief"}
+                    </Badge>
+                    {u.inTraining && <Badge variant="amber">In opleiding</Badge>}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <Link

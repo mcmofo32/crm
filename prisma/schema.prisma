@@ -102,6 +102,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// In opleiding: telt niet mee in de productiecijfers/leaderboards/KPI-
+  /// heatmap (zie getProductionLeaderboard, getConversationsLeaderboard,
+  /// getRecommendationsLeaderboard, getKpiHeatmap(Weekly)), maar blijft
+  /// verder een gewone, actieve gebruiker (kan inloggen, krijgt leads, komt
+  /// voor op Medewerkers/Teams/Organigram).
+  inTraining Boolean @default(false)
+
   /// Soft delete: het account zelf (en alle historiek die ernaar verwijst —
   /// activiteiten, audit log, ...) blijft bestaan, maar de gebruiker kan niet
   /// meer inloggen en verdwijnt uit alle keuzelijsten. Klanten/leads die deze

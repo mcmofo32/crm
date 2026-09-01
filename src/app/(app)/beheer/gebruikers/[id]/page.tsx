@@ -7,9 +7,11 @@ import {
   getTeamsForAssignment,
   updateUserAction,
   setUserActiveAction,
+  setUserInTrainingAction,
   getUserDeletionImpact,
   getReassignableUsers,
 } from "@/lib/actions/users";
+import { FormToast } from "@/components/toast/FormToast";
 import { forceLogoutUserAction } from "@/lib/actions/sessions";
 import { getFsmaModulesForUser, setFsmaModuleStatusAction } from "@/lib/actions/fsmaModules";
 import { AgentType, JobFunction, Role } from "@/generated/prisma/client";
@@ -80,6 +82,7 @@ export default async function EditUserPage({
 
   const boundUpdate = updateUserAction.bind(null, id);
   const boundToggleActive = setUserActiveAction.bind(null, id, !target.active);
+  const boundToggleInTraining = setUserInTrainingAction.bind(null, id, !target.inTraining);
   const boundForceLogout = forceLogoutUserAction.bind(null, id);
 
   return (
@@ -325,6 +328,7 @@ export default async function EditUserPage({
         </p>
         {canEdit && (
           <form action={boundToggleActive}>
+            <FormToast message="Status opgeslagen" />
             <button
               type="submit"
               className={
@@ -334,6 +338,32 @@ export default async function EditUserPage({
               }
             >
               {target.active ? "Account inactief zetten" : "Account activeren"}
+            </button>
+          </form>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="mb-2 text-sm font-medium text-slate-900">
+          Opleiding
+        </h2>
+        <p className="mb-3 text-sm text-slate-500">
+          {target.inTraining
+            ? "Deze gebruiker is in opleiding en telt niet mee in de productiecijfers/leaderboards/KPI-heatmap."
+            : "Deze gebruiker telt mee in de productiecijfers/leaderboards/KPI-heatmap."}
+        </p>
+        {canEdit && (
+          <form action={boundToggleInTraining}>
+            <FormToast message="Status opgeslagen" />
+            <button
+              type="submit"
+              className={
+                target.inTraining
+                  ? "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
+                  : "rounded-md border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50"
+              }
+            >
+              {target.inTraining ? "Telt weer mee in cijfers" : "Op in opleiding zetten"}
             </button>
           </form>
         )}

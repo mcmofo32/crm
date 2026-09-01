@@ -297,7 +297,11 @@ export async function getProductionLeaderboard(
   const week = currentWeekRange();
 
   const users = await prisma.user.findMany({
-    where: { active: true, ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}) },
+    where: {
+      active: true,
+      inTraining: false,
+      ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -462,7 +466,11 @@ export async function getConversationsLeaderboard(
   const weeks = weeksInRange(monthStart, monthEnd);
 
   const users = await prisma.user.findMany({
-    where: { active: true, ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}) },
+    where: {
+      active: true,
+      inTraining: false,
+      ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -532,7 +540,11 @@ export async function getRecommendationsLeaderboard(
   const { start, end } = await getProductionMonthRange(year, month);
 
   const users = await prisma.user.findMany({
-    where: { active: true, ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}) },
+    where: {
+      active: true,
+      inTraining: false,
+      ...(scopeUserIds ? { id: { in: scopeUserIds } } : {}),
+    },
     select: {
       id: true,
       name: true,

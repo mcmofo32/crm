@@ -193,6 +193,35 @@ export async function setUserActiveAction(userId: string, active: boolean) {
   revalidatePath("/beheer/teams");
 }
 
+/** In opleiding: telt niet mee in de productiecijfers/leaderboards/KPI-heatmap, blijft verder een gewone actieve gebruiker. */
+export async function setUserInTrainingAction(userId: string, inTraining: boolean) {
+  const actor = await requireUserManager();
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, name: true },
+  });
+  if (!target) throw new Error("Gebruiker niet gevonden");
+  if (!canEditAccount(actor, target)) {
+    throw new Error("Je mag deze gebruiker niet beheren");
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { inTraining } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: inTraining ? "user.training_started" : "user.training_ended",
+    entityType: "User",
+    entityId: target.id,
+    description: `Gebruiker "${target.name}" ${
+      inTraining ? "op in opleiding gezet (telt niet mee in cijfers)" : "niet meer in opleiding (telt weer mee in cijfers)"
+    }`,
+  });
+
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/productie");
+  revalidatePath("/beheer/analyse");
+}
+
 /**
  * Alle medewerkers, voor de Medewerkers-lijst — bekijken mag door eender
  * welke Beheerder/Admin (requireUserManager), ook van elkaar: enkel het
@@ -210,6 +239,7 @@ export async function getManageableUsers() {
       email: true,
       role: true,
       active: true,
+      inTraining: true,
       team: { select: { name: true } },
       coachedTeam: { select: { name: true } },
     },
@@ -288,6 +318,7 @@ export async function getUserForEdit(userId: string) {
       agentType: true,
       teamId: true,
       active: true,
+      inTraining: true,
       deletedAt: true,
       updatedAt: true,
       referralNumber: true,
