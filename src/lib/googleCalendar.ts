@@ -5,11 +5,16 @@ import { subjectInvitesLead, isFinancieleAnalyseSubject } from "@/lib/meetingPla
 
 type ContactInfo = { name: string; email: string | null; phone: string | null };
 
+/** "32 4xx xx xx xx" (het vaste opslagformaat voor herkende Belgische mobiele nummers, zie formatBelgianPhone) toon je in een omschrijving als "+32 4xx xx xx xx". Nummers in een ander formaat (al een "+", een vast lijnnummer, ...) laat dit ongemoeid. */
+function withPlusPrefix(phone: string) {
+  return phone.startsWith("+") || !phone.startsWith("32") ? phone : `+${phone}`;
+}
+
 /** Formatteert één contactregel voor de omschrijving (bv. "Subagent: Jan Peeters — Telefoon: ... — E-mail: ..."). */
 function formatContactLine(label: string, person?: ContactInfo | null) {
   if (!person) return null;
   const details = [
-    person.phone ? `Telefoon: ${person.phone}` : null,
+    person.phone ? `Telefoon: ${withPlusPrefix(person.phone)}` : null,
     person.email ? `E-mail: ${person.email}` : null,
   ]
     .filter(Boolean)
@@ -174,18 +179,29 @@ function buildEventBody(
 
   // Wordt de klant mee uitgenodigd, dan ziet hij deze beschrijving ook —
   // daar komen dus enkel de contactgegevens van wie de afspraak inplande
-  // (en een eventuele subagent/aanbrenger) in te staan (zodat de klant weet
-  // bij wie hij terechtkan), nooit de interne notities. Bij een gewoon
-  // uitgaand contactmoment (geen klant uitgenodigd) is de beschrijving
-  // enkel voor onszelf, dus daar mogen de notities wel in staan.
+  // (of een eventuele subagent/aanbrenger, als die er is) in te staan
+  // (zodat de klant weet bij wie hij terechtkan), nooit de interne
+  // notities. Bij een gewoon uitgaand contactmoment (geen klant
+  // uitgenodigd) is de beschrijving enkel voor onszelf, dus daar mogen de
+  // notities wel in staan.
+  const subagentLine = formatContactLine("Subagent", subagent);
+  const aanbrengerLine = isFinancieleAnalyseSubject(activity.subject)
+    ? formatContactLine("Aanbrenger", owner)
+    : null;
+  // De naamloze regel hieronder toont exact dezelfde persoon zodra die ook
+  // als subagent/aanbrenger vermeld staat (bv. een subagent die zijn eigen
+  // adviesgesprek inplant) — dan volstaat die ene, genoemde regel.
+  const namedContactLine = subagentLine ?? aanbrengerLine;
   const description = invitesLead
     ? [
-        scheduledBy?.phone ? `Telefoon: ${scheduledBy.phone}` : null,
-        scheduledBy?.email ? `E-mail: ${scheduledBy.email}` : null,
-        formatContactLine("Subagent", subagent),
-        isFinancieleAnalyseSubject(activity.subject)
-          ? formatContactLine("Aanbrenger", owner)
+        namedContactLine
+          ? null
+          : scheduledBy?.phone
+          ? `Telefoon: ${withPlusPrefix(scheduledBy.phone)}`
           : null,
+        namedContactLine ? null : scheduledBy?.email ? `E-mail: ${scheduledBy.email}` : null,
+        subagentLine,
+        aanbrengerLine,
         activity.meetingMode === "ONLINE" && activity.meetingLink
           ? `Online via: ${activity.meetingLink}`
           : null,
