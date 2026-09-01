@@ -290,6 +290,13 @@ export async function syncActivityToGoogleCalendar(
       : null,
   ]);
 
+  // De kantoornotitie (parkeer-/bereikbaarheidsinfo) is enkel relevant als
+  // de afspraak ook effectief op het kantooradres plaatsvindt — niet bij een
+  // fysieke afspraak "ter plaatse" op een zelf ingetypt (ander) adres.
+  const isAtOffice = Boolean(
+    officeSettings?.address && activity.location === officeSettings.address
+  );
+
   const auth = await getClientForUser(user);
   const google = await getGoogle();
   const calendar = google.calendar({ version: "v3", auth });
@@ -300,7 +307,7 @@ export async function syncActivityToGoogleCalendar(
     subagent,
     scheduledBy,
     owner,
-    officeSettings?.note,
+    isAtOffice ? officeSettings?.note : null,
     assigneeForNote?.name
   );
   const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
