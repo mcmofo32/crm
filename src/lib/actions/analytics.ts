@@ -1004,7 +1004,7 @@ export async function getKpiHeatmap(year: number): Promise<KpiHeatmapRow[]> {
   await requireBeheerder();
 
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: { active: true, inTraining: false },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
@@ -1104,7 +1104,7 @@ export async function getKpiHeatmapWeekly(year: number): Promise<KpiHeatmapWeekR
   await requireBeheerder();
 
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: { active: true, inTraining: false },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
