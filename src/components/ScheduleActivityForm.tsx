@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { scheduleActivityAction } from "@/lib/actions/activities";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import { useToastAction } from "@/components/toast/useToastAction";
 import {
   isRichMeetingType,
   buildMeetingFormData,
@@ -66,6 +67,7 @@ export function ScheduleActivityForm({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { runWithToast } = useToastAction();
   const [category, setCategory] = useState<Category>("OPVOLGING");
   const [assigneeId, setAssigneeId] = useState(currentUserId);
   const [subjectPreset, setSubjectPreset] = useState(OPVOLGING_SUBJECTS[0]);
@@ -123,7 +125,7 @@ export function ScheduleActivityForm({
     }
 
     startTransition(async () => {
-      await scheduleActivityAction(formData);
+      await runWithToast(() => scheduleActivityAction(formData), "Ingepland");
       reset();
       router.refresh();
     });

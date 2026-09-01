@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { ATTENDANCE_STATUS_LABELS } from "@/lib/eventTypes";
 import type { EventVerificationRow } from "@/lib/actions/events";
+import { FormToast } from "@/components/toast/FormToast";
 
 type ActualStatus = "GOING" | "NOT_GOING";
 
@@ -39,6 +40,7 @@ export function EventVerificationForm({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
       <form key={formKey} action={verifyAction} className="flex flex-col gap-3">
+        <FormToast message="Aanwezigheid opgeslagen" />
         <ul className="flex flex-col gap-2">
           {rows.map((row) => (
             <li

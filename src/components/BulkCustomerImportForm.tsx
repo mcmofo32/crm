@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   importCustomersBulkAction,
   type CustomerImportState,
 } from "@/lib/actions/customerImport";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export function BulkCustomerImportForm({
   ownerCandidates,
@@ -22,6 +23,15 @@ export function BulkCustomerImportForm({
     importCustomersBulkAction,
     null
   );
+  const wasPending = useRef(false);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (wasPending.current && !pending && state?.createdCount !== undefined) {
+      showToast(`${state.createdCount} klanten geïmporteerd`);
+    }
+    wasPending.current = pending;
+  }, [pending, state, showToast]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">

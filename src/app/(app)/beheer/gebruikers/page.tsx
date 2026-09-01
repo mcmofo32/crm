@@ -5,6 +5,7 @@ import { syncAllSubagentsAction } from "@/lib/actions/subagents";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 function normalizedName(name: string) {
   return name.trim().toLowerCase();
@@ -36,6 +37,7 @@ export default async function UsersPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <ToastOnParam param="created" message="Gebruiker aangemaakt" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold text-slate-900">Medewerkers</h1>
         <Link

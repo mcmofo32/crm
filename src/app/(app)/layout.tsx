@@ -12,6 +12,7 @@ import { NavLinks } from "@/components/NavLinks";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { ViewAsControls } from "@/components/ViewAsControls";
 import { Logo } from "@/components/Logo";
+import { ToastProvider } from "@/components/toast/ToastProvider";
 
 export default async function AppLayout({
   children,
@@ -96,78 +97,80 @@ export default async function AppLayout({
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      {/* relative: laat het mobiele uitklappaneel van NavLinks zich exact
-          onder deze header positioneren (top-full), ongeacht headerhoogte. */}
-      <header className="relative border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-2.5 lg:px-10">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="flex flex-shrink-0 items-center">
-              <span className="sr-only">Structuur A</span>
-              <span className="sm:hidden">
-                <Logo size={64} />
+    <ToastProvider>
+      <div className="flex min-h-screen flex-col bg-slate-50">
+        {/* relative: laat het mobiele uitklappaneel van NavLinks zich exact
+            onder deze header positioneren (top-full), ongeacht headerhoogte. */}
+        <header className="relative border-b border-slate-200 bg-white">
+          <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-2.5 lg:px-10">
+            <div className="flex min-w-0 items-center gap-4">
+              <span className="flex flex-shrink-0 items-center">
+                <span className="sr-only">Structuur A</span>
+                <span className="sm:hidden">
+                  <Logo size={64} />
+                </span>
+                <span className="hidden sm:block">
+                  <Logo size={112} />
+                </span>
               </span>
-              <span className="hidden sm:block">
-                <Logo size={112} />
+              <NavLinks items={navItems} />
+            </div>
+            <div className="flex items-center gap-3">
+              {canViewBeheerderTools(viewer) && (
+                <Link
+                  href="/beheer/duplicaten"
+                  title={
+                    duplicateLeadCount > 0
+                      ? `${duplicateLeadCount} dubbele lead${duplicateLeadCount === 1 ? "" : "s"} gevonden`
+                      : "Geen dubbele leads"
+                  }
+                  className="relative flex h-9 w-9 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <Bell size={18} />
+                  {duplicateLeadCount > 0 && (
+                    <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
+                      {duplicateLeadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
+              <ProfileMenu
+                name={viewer.name}
+                viewer={viewer}
+                jobFunction={viewerDetails?.jobFunction ?? null}
+                photoUrl={photoUrl}
+              />
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  title="Uitloggen"
+                  className="ml-2 flex items-center gap-1.5 rounded-md px-2 py-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <LogOut size={18} />
+                </button>
+              </form>
+            </div>
+          </div>
+        </header>
+
+        {viewer.isImpersonating && (
+          <div className="border-b border-amber-200 bg-amber-50">
+            <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-6 py-2.5 text-sm text-amber-800 lg:px-10">
+              <span className="flex items-center gap-2">
+                <Eye size={16} />
+                Testomgeving: je bekijkt de CRM als{" "}
+                <strong>{ROLE_LABELS[viewer.role]}</strong> — dit is enkel een
+                voorbeeldweergave, je bent nog steeds ingelogd als jezelf.
               </span>
-            </span>
-            <NavLinks items={navItems} />
+              <ViewAsControls currentRole={viewer.role} isImpersonating inline />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {canViewBeheerderTools(viewer) && (
-              <Link
-                href="/beheer/duplicaten"
-                title={
-                  duplicateLeadCount > 0
-                    ? `${duplicateLeadCount} dubbele lead${duplicateLeadCount === 1 ? "" : "s"} gevonden`
-                    : "Geen dubbele leads"
-                }
-                className="relative flex h-9 w-9 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              >
-                <Bell size={18} />
-                {duplicateLeadCount > 0 && (
-                  <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
-                    {duplicateLeadCount}
-                  </span>
-                )}
-              </Link>
-            )}
-            <ProfileMenu
-              name={viewer.name}
-              viewer={viewer}
-              jobFunction={viewerDetails?.jobFunction ?? null}
-              photoUrl={photoUrl}
-            />
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                title="Uitloggen"
-                className="ml-2 flex items-center gap-1.5 rounded-md px-2 py-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              >
-                <LogOut size={18} />
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+        )}
 
-      {viewer.isImpersonating && (
-        <div className="border-b border-amber-200 bg-amber-50">
-          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-6 py-2.5 text-sm text-amber-800 lg:px-10">
-            <span className="flex items-center gap-2">
-              <Eye size={16} />
-              Testomgeving: je bekijkt de CRM als{" "}
-              <strong>{ROLE_LABELS[viewer.role]}</strong> — dit is enkel een
-              voorbeeldweergave, je bent nog steeds ingelogd als jezelf.
-            </span>
-            <ViewAsControls currentRole={viewer.role} isImpersonating inline />
-          </div>
-        </div>
-      )}
-
-      <main className="mx-auto w-full max-w-[1600px] flex-1 px-6 py-8 lg:px-10">
-        {children}
-      </main>
-    </div>
+        <main className="mx-auto w-full max-w-[1600px] flex-1 px-6 py-8 lg:px-10">
+          {children}
+        </main>
+      </div>
+    </ToastProvider>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Mail, Phone, Pencil } from "lucide-react";
 import { updateLeadDetailsAction } from "@/lib/actions/leads";
+import { FormToast } from "@/components/toast/FormToast";
 
 export function LeadDetailsCard({
   leadId,
@@ -37,6 +38,7 @@ export function LeadDetailsCard({
           }
           className="flex flex-col gap-3"
         >
+          <FormToast message="Contactgegevens opgeslagen" />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Voornaam" name="firstName" defaultValue={firstName} required />
             <Field label="Achternaam" name="lastName" defaultValue={lastName} />

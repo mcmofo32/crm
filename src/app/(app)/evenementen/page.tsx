@@ -5,6 +5,7 @@ import { getEventsForCurrentUser } from "@/lib/actions/events";
 import { setMyAttendanceAction } from "@/lib/actions/events";
 import { canManageEvents } from "@/lib/permissions";
 import { Badge, type BadgeVariant } from "@/components/Badge";
+import { FormToast } from "@/components/toast/FormToast";
 
 const TYPE_LABELS = {
   MEETING: "Vergadering",
@@ -135,6 +136,7 @@ function AttendanceButtons({
   const boundSetAttendance = setMyAttendanceAction.bind(null, eventId);
   return (
     <form action={boundSetAttendance} className="flex flex-wrap gap-2">
+      <FormToast message="Aanwezigheid doorgegeven" />
       <button
         type="submit"
         name="status"

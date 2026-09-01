@@ -4,6 +4,7 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageSettings } from "@/lib/permissions";
 import { getOfficeSettings, updateOfficeSettingsAction } from "@/lib/actions/officeSettings";
 import { OfficeAddressField } from "@/components/OfficeAddressField";
+import { FormToast } from "@/components/toast/FormToast";
 
 export default async function KantoorPage() {
   const viewer = await getEffectiveViewer();
@@ -31,6 +32,7 @@ export default async function KantoorPage() {
         action={updateOfficeSettingsAction}
         className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm"
       >
+        <FormToast message="Kantoorinstellingen opgeslagen" />
         <div className="flex flex-col gap-1">
           <label className="font-medium text-slate-900">Kantooradres</label>
           <OfficeAddressField defaultValue={settings?.address ?? ""} />

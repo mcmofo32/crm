@@ -4,11 +4,13 @@ import { useState, useTransition } from "react";
 import { Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logCompletedActivityAction } from "@/lib/actions/activities";
+import { useToastAction } from "@/components/toast/useToastAction";
 
 /** Compacte knop (bv. in een Pipeline-rij) om snel een uitgaand telefoongesprek te loggen, inclusief voicemail. */
 export function QuickCallLogButton({ leadId }: { leadId: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { runWithToast } = useToastAction();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [wasVoicemail, setWasVoicemail] = useState(false);
@@ -54,7 +56,10 @@ export function QuickCallLogButton({ leadId }: { leadId: string }) {
                   formData.set("subject", "Telefoongesprek");
                   formData.set("notes", notes);
                   if (wasVoicemail) formData.set("wasVoicemail", "on");
-                  await logCompletedActivityAction(formData);
+                  await runWithToast(
+                    () => logCompletedActivityAction(formData),
+                    "Telefoongesprek gelogd"
+                  );
                   reset();
                   router.refresh();
                 })

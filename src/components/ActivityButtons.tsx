@@ -9,6 +9,8 @@ import {
   deleteActivityAction,
 } from "@/lib/actions/activities";
 import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
+import { FormToast } from "@/components/toast/FormToast";
+import { useToastAction } from "@/components/toast/useToastAction";
 
 const ACTIVITY_TYPE_OPTIONS = [
   { value: "CALL", label: "Telefoongesprek" },
@@ -45,6 +47,7 @@ export function ActivityButtons({
   canDelete: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const { runWithToast } = useToastAction();
   const [mode, setMode] = useState<"idle" | "reporting" | "editing">("idle");
   const [reportNotes, setReportNotes] = useState("");
   const [wasVoicemail, setWasVoicemail] = useState(false);
@@ -108,7 +111,10 @@ export function ActivityButtons({
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                await completeActivityAction(activityId, reportNotes, wasVoicemail);
+                await runWithToast(
+                  () => completeActivityAction(activityId, reportNotes, wasVoicemail),
+                  "Afgerond"
+                );
                 setMode("idle");
               })
             }
@@ -140,6 +146,7 @@ export function ActivityButtons({
         }
         className="mt-2 grid w-64 grid-cols-2 gap-2 text-xs"
       >
+        <FormToast message="Afspraak opgeslagen" />
         <select
           name="type"
           defaultValue={type}

@@ -81,7 +81,7 @@ export async function createEventAction(formData: FormData) {
   });
 
   revalidatePath("/evenementen");
-  redirect(`/evenementen/${event.id}`);
+  redirect(`/evenementen/${event.id}?created=1`);
 }
 
 export async function updateEventAction(eventId: string, formData: FormData) {

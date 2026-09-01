@@ -6,6 +6,7 @@ import {
   addFollowUpContractAction,
   deleteFollowUpContractAction,
 } from "@/lib/actions/leadProducts";
+import { useToastAction } from "@/components/toast/useToastAction";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import type { ProductType } from "@/generated/prisma/client";
 
@@ -56,6 +57,7 @@ export function FollowUpContractsCard({
   canEdit?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const { runWithToast } = useToastAction();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [type, setType] = useState<ProductType>(PRODUCT_TYPE_ORDER[0]);
@@ -84,7 +86,10 @@ export function FollowUpContractsCard({
     formData.set("units", units);
     formData.set("contractDate", contractDate);
     startTransition(async () => {
-      await addFollowUpContractAction(leadId, formData);
+      await runWithToast(
+        () => addFollowUpContractAction(leadId, formData),
+        "Contract toegevoegd"
+      );
       resetForm();
     });
   }

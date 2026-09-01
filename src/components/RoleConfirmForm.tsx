@@ -1,5 +1,7 @@
 "use client";
 
+import { FormToast } from "@/components/toast/FormToast";
+
 export function RoleConfirmForm({
   action,
   className,
@@ -25,6 +27,7 @@ export function RoleConfirmForm({
       }}
       className={className}
     >
+      <FormToast message="Opgeslagen" />
       {children}
     </form>
   );

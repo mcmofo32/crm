@@ -23,6 +23,7 @@ import { InlineCheckbox } from "@/components/InlineCheckbox";
 import { InlineTextField } from "@/components/InlineTextField";
 import { StageSelect } from "@/components/StageSelect";
 import { QuickCallLogButton } from "@/components/QuickCallLogButton";
+import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 const TYPE_MAP = { verkoop: "FA", recrutering: "RG" } as const;
 const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline Rekrutering" } as const;
@@ -151,6 +152,7 @@ export default async function PipelinePage({
 
   return (
     <div className="flex flex-col gap-6">
+      <ToastOnParam param="created" message="Leads aangemaakt" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
