@@ -1,3 +1,5 @@
+import { formatLocalTime } from "@/lib/datetime";
+
 /**
  * Fases die een afspraak vertegenwoordigen — ofwel via de huidige fase-namen
  * ("Financiële analyse", "Adviesgesprek", "Kennismakingsgesprek",
@@ -88,10 +90,8 @@ export function buildMeetingSubject(
   firstName: string,
   lastName: string
 ) {
-  const hours = String(scheduledAt.getHours()).padStart(2, "0");
-  const minutes = String(scheduledAt.getMinutes()).padStart(2, "0");
   const type = meetingTypeFromStageLabel(meetingType);
-  return `${hours}:${minutes} - ${type} ${firstName} ${lastName}`;
+  return `${formatLocalTime(scheduledAt)} - ${type} ${firstName} ${lastName}`;
 }
 
 export type MeetingPlannerValue = {

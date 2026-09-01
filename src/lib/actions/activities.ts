@@ -28,6 +28,7 @@ import {
   isFollowUpStage,
   buildMeetingSubject,
 } from "@/lib/meetingPlanning";
+import { parseLocalDateTime, combineWithTimeOnSameLocalDay } from "@/lib/datetime";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -82,7 +83,7 @@ export async function scheduleActivityAction(formData: FormData) {
   }
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
-  const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
+  const scheduledAt = scheduledAtRaw ? parseLocalDateTime(scheduledAtRaw) : null;
   const skipCalendarSync = formData.get("skipCalendarSync") === "on";
 
   const rawSubject = String(formData.get("subject") ?? "Telefoongesprek").trim();
@@ -99,9 +100,7 @@ export async function scheduleActivityAction(formData: FormData) {
   if (richMeeting && scheduledAt) {
     const endTimeRaw = String(formData.get("endTime") ?? "");
     if (!endTimeRaw) throw new Error("Kies een einduur voor de afspraak");
-    const [endHours, endMinutes] = endTimeRaw.split(":").map(Number);
-    const endAt = new Date(scheduledAt);
-    endAt.setHours(endHours, endMinutes, 0, 0);
+    const endAt = combineWithTimeOnSameLocalDay(scheduledAt, endTimeRaw);
     durationMinutes = Math.round((endAt.getTime() - scheduledAt.getTime()) / 60_000);
     if (durationMinutes <= 0) {
       throw new Error("Het einduur moet na het startuur liggen");
@@ -210,7 +209,7 @@ export async function logCompletedActivityAction(formData: FormData) {
   }
 
   const occurredAtRaw = String(formData.get("occurredAt") ?? "");
-  const occurredAt = occurredAtRaw ? new Date(occurredAtRaw) : new Date();
+  const occurredAt = occurredAtRaw ? parseLocalDateTime(occurredAtRaw) : new Date();
   const type = (formData.get("type") as ActivityType) ?? ActivityType.CALL;
 
   await prisma.activity.create({
@@ -308,7 +307,7 @@ export async function updateActivityAction(
   }
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
-  const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : activity.scheduledAt;
+  const scheduledAt = scheduledAtRaw ? parseLocalDateTime(scheduledAtRaw) : activity.scheduledAt;
 
   const updated = await prisma.activity.update({
     where: { id: activityId },
@@ -433,13 +432,11 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
   if (!scheduledAtRaw) throw new Error("Kies een datum en uur voor de afspraak");
-  const scheduledAt = new Date(scheduledAtRaw);
+  const scheduledAt = parseLocalDateTime(scheduledAtRaw);
 
   const endTimeRaw = String(formData.get("endTime") ?? "");
   if (!endTimeRaw) throw new Error("Kies een einduur voor de afspraak");
-  const [endHours, endMinutes] = endTimeRaw.split(":").map(Number);
-  const endAt = new Date(scheduledAt);
-  endAt.setHours(endHours, endMinutes, 0, 0);
+  const endAt = combineWithTimeOnSameLocalDay(scheduledAt, endTimeRaw);
   const durationMinutes = Math.round((endAt.getTime() - scheduledAt.getTime()) / 60_000);
   if (durationMinutes <= 0) {
     throw new Error("Het einduur moet na het startuur liggen");
@@ -538,7 +535,7 @@ export async function planFollowUpCallAction(leadId: string, formData: FormData)
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
   if (!scheduledAtRaw) throw new Error("Kies een datum en uur voor het terugbelmoment");
-  const scheduledAt = new Date(scheduledAtRaw);
+  const scheduledAt = parseLocalDateTime(scheduledAtRaw);
 
   const subject = buildMeetingSubject(
     scheduledAt,
