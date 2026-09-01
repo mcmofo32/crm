@@ -4,6 +4,7 @@ import {
   getTeamsWithMembers,
   getAllActiveUsersForPlanning,
   createTeamAction,
+  renameTeamAction,
   changeTeamCoachAction,
   addTeamMemberAction,
   addSubordinateAction,
@@ -37,6 +38,7 @@ function TeamCard({
   const structureMembers = ctx.structureMembers(team);
   const coachSubordinateCandidates = ctx.subordinateCandidates(team.coachId);
   const boundAddMember = addTeamMemberAction.bind(null, team.id);
+  const boundRenameTeam = renameTeamAction.bind(null, team.id);
   const boundChangeCoach = changeTeamCoachAction.bind(null, team.id);
   const availableMembers = ctx
     .memberCandidates()
@@ -114,6 +116,30 @@ function TeamCard({
               <UserRoundPlus size={14} />
               Nieuwe gebruiker toevoegen
             </Link>
+            <hr className="my-1 border-slate-100" />
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                <Pencil size={14} />
+                Naam wijzigen
+              </summary>
+              <form
+                action={boundRenameTeam}
+                className="mt-2 flex flex-col gap-2 px-2 pb-2"
+              >
+                <input
+                  name="name"
+                  defaultValue={team.name}
+                  required
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                />
+                <button
+                  type="submit"
+                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  Opslaan
+                </button>
+              </form>
+            </details>
             <hr className="my-1 border-slate-100" />
             <details className="group">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">

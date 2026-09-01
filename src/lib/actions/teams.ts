@@ -205,6 +205,32 @@ export async function addSubordinateAction(personId: string, formData: FormData)
   revalidatePath("/organigram");
 }
 
+/** Hernoemt een bestaand team. */
+export async function renameTeamAction(teamId: string, formData: FormData) {
+  const actor = await requireUserManager();
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("Naam is verplicht");
+
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  if (!team) throw new Error("Team niet gevonden");
+  if (name === team.name) return;
+
+  await prisma.team.update({ where: { id: teamId }, data: { name } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: "team.renamed",
+    entityType: "Team",
+    entityId: teamId,
+    description: `Team "${team.name}" hernoemd naar "${name}"`,
+  });
+
+  revalidatePath("/beheer/teams");
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/organigram");
+}
+
 /** Vervangt de coach van een bestaand team door een andere gebruiker. */
 export async function changeTeamCoachAction(teamId: string, formData: FormData) {
   const actor = await requireUserManager();
