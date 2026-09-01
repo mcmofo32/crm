@@ -2,7 +2,27 @@
 
 import { useRef, useState } from "react";
 
-type Suggestion = { display_name: string };
+type NominatimAddress = {
+  house_number?: string;
+  road?: string;
+  postcode?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  municipality?: string;
+};
+
+type Suggestion = { display_name: string; address?: NominatimAddress };
+
+/** Bouwt "Straat nummer, postcode Stad" op uit Nominatims structured address — Nominatims eigen `display_name` bevat te veel (wijk, provincie, land) om als adres bruikbaar te zijn. */
+function formatShortAddress(suggestion: Suggestion): string {
+  const address = suggestion.address;
+  if (!address) return suggestion.display_name;
+  const street = [address.road, address.house_number].filter(Boolean).join(" ");
+  const city = address.city ?? address.town ?? address.village ?? address.municipality;
+  const cityLine = [address.postcode, city].filter(Boolean).join(" ");
+  return [street, cityLine].filter(Boolean).join(", ") || suggestion.display_name;
+}
 
 /**
  * Tekstveld voor een adres met suggesties uit OpenStreetMap/Nominatim (gratis,
@@ -43,7 +63,7 @@ export function AddressAutocomplete({
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=5&countrycodes=be&q=${encodeURIComponent(query)}`
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=be&q=${encodeURIComponent(query)}`
         );
         if (!res.ok || requestId !== requestIdRef.current) return;
         const data: Suggestion[] = await res.json();
@@ -80,13 +100,13 @@ export function AddressAutocomplete({
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
-                  onChange(s.display_name);
+                  onChange(formatShortAddress(s));
                   setSuggestions([]);
                   setOpen(false);
                 }}
                 className="block w-full px-3 py-2 text-left hover:bg-slate-100"
               >
-                {s.display_name}
+                {formatShortAddress(s)}
               </button>
             </li>
           ))}
