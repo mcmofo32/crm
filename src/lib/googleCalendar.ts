@@ -115,7 +115,8 @@ function buildEventBody(
   subagent?: Subagent | null,
   scheduledBy?: { name: string; email: string | null; phone: string | null } | null,
   owner?: ContactInfo | null,
-  officeNote?: string | null
+  officeNote?: string | null,
+  assigneeName?: string | null
 ) {
   const start = activity.scheduledAt ?? new Date();
   const durationMinutes = activity.durationMinutes ?? 15;
@@ -157,8 +158,19 @@ function buildEventBody(
   // Bij een fysieke afspraak op het kantooradres komt de vaste
   // bereikbaarheidsnotitie ("Kantoor" in het profielmenu) altijd mee in de
   // omschrijving, ongeacht of de klant mee uitgenodigd is — die moet het
-  // kantoor immers ook kunnen vinden.
-  const officeNoteLine = activity.meetingMode === "ONSITE" ? officeNote : null;
+  // kantoor immers ook kunnen vinden. "{naam}" daarin wordt vervangen door
+  // wie de klant aan de balie moet vragen: de aanbrenger bij een Financiële
+  // analyse, de subagent bij een Adviesgesprek, anders de toegewezen
+  // medewerker.
+  const advisorName = isFinancieleAnalyseSubject(activity.subject)
+    ? owner?.name ?? null
+    : subagent?.name ?? assigneeName ?? null;
+  const officeNoteLine =
+    activity.meetingMode === "ONSITE" && officeNote
+      ? advisorName
+        ? officeNote.replace(/\{naam\}/gi, advisorName)
+        : officeNote
+      : null;
 
   // Wordt de klant mee uitgenodigd, dan ziet hij deze beschrijving ook —
   // daar komen dus enkel de contactgegevens van wie de afspraak inplande
@@ -242,14 +254,22 @@ export async function syncActivityToGoogleCalendar(
   }
 
   // Kantoornotitie (bv. parkeerinfo) enkel nodig bij een fysieke afspraak;
-  // aanbrenger-contactgegevens enkel bij een Financiële analyse — beide
-  // worden hier zelf opgehaald zodat callers deze niet hoeven mee te geven.
-  const [officeSettings, owner] = await Promise.all([
+  // aanbrenger-contactgegevens enkel bij een Financiële analyse; de naam van
+  // de toegewezen medewerker enkel als terugval voor "{naam}" in de
+  // kantoornotitie als er geen subagent/aanbrenger van toepassing is — alle
+  // drie worden hier zelf opgehaald zodat callers deze niet hoeven mee te geven.
+  const [officeSettings, owner, assigneeForNote] = await Promise.all([
     activity.meetingMode === "ONSITE" ? prisma.officeSettings.findFirst() : null,
     isFinancieleAnalyseSubject(activity.subject)
       ? prisma.user.findUnique({
           where: { id: lead.ownerId },
           select: { name: true, email: true, phone: true },
+        })
+      : null,
+    activity.meetingMode === "ONSITE"
+      ? prisma.user.findUnique({
+          where: { id: activity.assigneeId },
+          select: { name: true },
         })
       : null,
   ]);
@@ -264,7 +284,8 @@ export async function syncActivityToGoogleCalendar(
     subagent,
     scheduledBy,
     owner,
-    officeSettings?.note
+    officeSettings?.note,
+    assigneeForNote?.name
   );
   const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
   // Stuurt automatisch een uitnodigingsmail naar de lead (en eventuele

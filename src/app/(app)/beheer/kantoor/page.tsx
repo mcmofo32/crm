@@ -44,9 +44,15 @@ export default async function KantoorPage() {
             name="note"
             defaultValue={settings?.note ?? ""}
             rows={4}
-            placeholder="Bv. Parking achteraan, bel aan bij De Meester. Wifi: gast / welkom2026."
+            placeholder="Bv. Meld je aan bij het onthaal en zeg dat je een afspraak hebt met {naam}."
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
+          <p className="text-xs text-slate-400">
+            Gebruik <code className="rounded bg-slate-100 px-1">{"{naam}"}</code>{" "}
+            ergens in de tekst om automatisch de juiste naam in te vullen: de
+            aanbrenger/eigenaar bij een Financiële analyse, de subagent bij
+            een Adviesgesprek, en anders de toegewezen medewerker.
+          </p>
         </div>
 
         <button
