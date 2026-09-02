@@ -47,8 +47,17 @@ export async function getPipelineStats(
     // status: "OPEN" — enkel nog actieve leads tellen mee. Een lead die al
     // klant is (WON) of al als geen interesse gemarkeerd is (LOST) hoort
     // niet meer thuis bij "te contacteren"/"voicemail"/"terugkoppelen",
-    // ongeacht hoe zijn call-geschiedenis eruitziet.
-    where: { deletedAt: null, leadType, ownerId, status: "OPEN" },
+    // ongeacht hoe zijn call-geschiedenis eruitziet. Een lead die al op een
+    // "ingepland"-fase staat (Financiële analyse/Adviesgesprek/
+    // Opvolggesprek) evenmin — die telt al mee bij "Ingepland", en zou hier
+    // anders dubbel meetellen.
+    where: {
+      deletedAt: null,
+      leadType,
+      ownerId,
+      status: "OPEN",
+      stage: { key: { notIn: mainFunnelStageKeys(leadType) } },
+    },
     select: {
       source: true,
       activities: {
@@ -113,12 +122,15 @@ export async function getPipelineLeads(
       // "Opvolging"/"Te contacteren"/"Voicemail" hebben, net als de
       // statistieken erboven, enkel zin voor nog actieve leads — een lead
       // die al klant is of al geen interesse heeft hoeft niet meer
-      // opgevolgd te worden.
+      // opgevolgd te worden. Een lead die al op een "ingepland"-fase staat
+      // (Financiële analyse/Adviesgesprek/Opvolggesprek) hoort daar niet
+      // meer bij: die heeft al een lopend/gepland consult, dus die hoort
+      // enkel nog onder "Ingepland" thuis, niet ook nog onder "Open".
       ...(category === "open" ||
       category === "opvolging" ||
       category === "te_contacteren" ||
       category === "voicemail"
-        ? { status: "OPEN" }
+        ? { status: "OPEN", stage: { key: { notIn: mainFunnelStageKeys(leadType) } } }
         : {}),
       ...(category === "geen_interesse" ? { status: "LOST" } : {}),
       ...(category === "klanten" ? { status: "WON" } : {}),
