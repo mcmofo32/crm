@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Phone, Voicemail, PhoneCall, Megaphone, Search, Plus, Users } from "lucide-react";
+import {
+  Phone,
+  Voicemail,
+  PhoneCall,
+  Megaphone,
+  Search,
+  Plus,
+  Users,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
   getPipelineStats,
@@ -11,6 +21,7 @@ import {
   setLeadCharacteristicsAction,
   setLeadCreatedAtAction,
   type PipelineCategoryFilter,
+  type PipelineLeadRow,
 } from "@/lib/actions/pipeline";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -40,6 +51,87 @@ function toDateInputValue(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Sorteerbare kolommen van de leads-tabel. Elke kolom heeft een "natuurlijke"
+ * standaardrichting bij de eerste klik (bv. naam alfabetisch A-Z, cijfer
+ * hoogste eerst) — een tweede klik op dezelfde kolom draait die om.
+ */
+const SORT_KEYS = [
+  "datum",
+  "naam",
+  "nummer",
+  "aanbevolen",
+  "opDeHoogte",
+  "berichtVerstuurd",
+  "cijfer",
+  "laatsteContact",
+  "status",
+  "aantalGebeld",
+  "kenmerken",
+] as const;
+type SortKey = (typeof SORT_KEYS)[number];
+type SortDir = "asc" | "desc";
+
+const SORT_DEFAULT_DIR: Record<SortKey, SortDir> = {
+  datum: "desc",
+  naam: "asc",
+  nummer: "asc",
+  aanbevolen: "asc",
+  opDeHoogte: "desc",
+  berichtVerstuurd: "desc",
+  cijfer: "desc",
+  laatsteContact: "desc",
+  status: "asc",
+  aantalGebeld: "desc",
+  kenmerken: "asc",
+};
+
+function sortValue(lead: PipelineLeadRow, key: SortKey): string | number | boolean | null {
+  switch (key) {
+    case "datum":
+      return lead.createdAt.getTime();
+    case "naam":
+      return `${lead.firstName} ${lead.lastName}`.trim().toLowerCase();
+    case "nummer":
+      return lead.phone;
+    case "aanbevolen":
+      return lead.source;
+    case "opDeHoogte":
+      return lead.isInformed;
+    case "berichtVerstuurd":
+      return lead.messageSent;
+    case "cijfer":
+      return lead.qualityScore;
+    case "laatsteContact":
+      return lead.lastContactedAt ? lead.lastContactedAt.getTime() : null;
+    case "status":
+      return lead.statusLabel.toLowerCase();
+    case "aantalGebeld":
+      return lead.callCount;
+    case "kenmerken":
+      return lead.characteristics;
+  }
+}
+
+// Ontbrekende waarden (null) komen altijd laatste te staan, ongeacht de
+// sorteerrichting — anders springen lege velden storend naar boven bij
+// aflopend sorteren.
+function compareValues(a: string | number | boolean | null, b: string | number | boolean | null) {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  if (typeof a === "boolean" || typeof b === "boolean") return Number(a) - Number(b);
+  return String(a).localeCompare(String(b), "nl", { sensitivity: "base" });
+}
+
+function sortLeads(leads: PipelineLeadRow[], sort: SortKey, dir: SortDir) {
+  return [...leads].sort((a, b) => {
+    const cmp = compareValues(sortValue(a, sort), sortValue(b, sort));
+    return dir === "asc" ? cmp : -cmp;
+  });
+}
+
 // Enkel even cijfers zijn nog kiesbaar, elk met hun eigen kleur (0 = geen
 // kleur).
 const SCORE_COLORS: Record<string, { background: string; color: string }> = {
@@ -61,11 +153,21 @@ export default async function PipelinePage({
   searchParams,
 }: {
   params: Promise<{ type: string }>;
-  searchParams: Promise<{ q?: string; ownerId?: string; view?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    ownerId?: string;
+    view?: string;
+    sort?: string;
+    dir?: string;
+  }>;
 }) {
   const { type } = await params;
   if (type !== "verkoop" && type !== "recrutering") notFound();
-  const { q, ownerId, view } = await searchParams;
+  const { q, ownerId, view, sort, dir } = await searchParams;
+  const sortKey: SortKey = (SORT_KEYS as readonly string[]).includes(sort ?? "")
+    ? (sort as SortKey)
+    : "datum";
+  const sortDir: SortDir = dir === "asc" || dir === "desc" ? dir : SORT_DEFAULT_DIR[sortKey];
   // Standaard tonen we enkel open leads — "Alle leads" moet je bewust
   // kiezen (view=alle), anders valt terug op "open" bij een lege/ongeldige
   // waarde i.p.v. alles door elkaar te tonen.
@@ -140,6 +242,19 @@ export default async function PipelinePage({
     return `/pipeline/${type}?${qs}`;
   }
 
+  function sortHref(key: SortKey) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (requiresSelection) params.set("ownerId", selectedOwnerId);
+    params.set("view", resolvedView);
+    params.set("sort", key);
+    params.set(
+      "dir",
+      sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]
+    );
+    return `/pipeline/${type}?${params.toString()}`;
+  }
+
   const [stats, leads, stages] = await Promise.all([
     getPipelineStats(leadType, selectedOwnerId),
     getPipelineLeads(leadType, selectedOwnerId, q, category),
@@ -149,6 +264,7 @@ export default async function PipelinePage({
       select: { id: true, label: true, isWon: true },
     }),
   ]);
+  const sortedLeads = sortLeads(leads, sortKey, sortDir);
 
   return (
     <div className="flex flex-col gap-6">
@@ -258,7 +374,7 @@ export default async function PipelinePage({
           sm: zichtbaar) is op een gsm niet leesbaar zonder veel zijwaarts
           scrollen. */}
       <div className="flex flex-col gap-3 sm:hidden">
-        {leads.map((lead) => (
+        {sortedLeads.map((lead) => (
           <div
             key={lead.id}
             className="rounded-lg border border-slate-200 bg-white p-4"
@@ -365,7 +481,7 @@ export default async function PipelinePage({
             )}
           </div>
         ))}
-        {leads.length === 0 && (
+        {sortedLeads.length === 0 && (
           <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400">
             {q || category
               ? "Geen leads gevonden voor deze filters."
@@ -378,27 +494,85 @@ export default async function PipelinePage({
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">Datum</th>
-              <th className="px-4 py-3 font-medium">Naam</th>
-              <th className="px-4 py-3 font-medium">Nummer</th>
-              <th className="px-4 py-3 font-medium">Aanbevolen door</th>
+              <SortableHeader
+                label="Datum"
+                href={sortHref("datum")}
+                isActive={sortKey === "datum"}
+                dir={sortDir}
+              />
+              <SortableHeader
+                label="Naam"
+                href={sortHref("naam")}
+                isActive={sortKey === "naam"}
+                dir={sortDir}
+              />
+              <SortableHeader
+                label="Nummer"
+                href={sortHref("nummer")}
+                isActive={sortKey === "nummer"}
+                dir={sortDir}
+              />
+              <SortableHeader
+                label="Aanbevolen door"
+                href={sortHref("aanbevolen")}
+                isActive={sortKey === "aanbevolen"}
+                dir={sortDir}
+              />
               {isRecrutering ? (
-                <th className="px-4 py-3 font-medium">Kenmerken</th>
+                <SortableHeader
+                  label="Kenmerken"
+                  href={sortHref("kenmerken")}
+                  isActive={sortKey === "kenmerken"}
+                  dir={sortDir}
+                />
               ) : (
                 <>
-                  <th className="px-4 py-3 text-center font-medium">Op de hoogte</th>
-                  <th className="px-4 py-3 text-center font-medium">Bericht verstuurd</th>
-                  <th className="px-4 py-3 font-medium">Cijfer op 10</th>
-                  <th className="px-4 py-3 font-medium">Laatste contact</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 text-center font-medium">Aantal keer gebeld</th>
+                  <SortableHeader
+                    label="Op de hoogte"
+                    href={sortHref("opDeHoogte")}
+                    isActive={sortKey === "opDeHoogte"}
+                    dir={sortDir}
+                    className="text-center"
+                  />
+                  <SortableHeader
+                    label="Bericht verstuurd"
+                    href={sortHref("berichtVerstuurd")}
+                    isActive={sortKey === "berichtVerstuurd"}
+                    dir={sortDir}
+                    className="text-center"
+                  />
+                  <SortableHeader
+                    label="Cijfer op 10"
+                    href={sortHref("cijfer")}
+                    isActive={sortKey === "cijfer"}
+                    dir={sortDir}
+                  />
+                  <SortableHeader
+                    label="Laatste contact"
+                    href={sortHref("laatsteContact")}
+                    isActive={sortKey === "laatsteContact"}
+                    dir={sortDir}
+                  />
+                  <SortableHeader
+                    label="Status"
+                    href={sortHref("status")}
+                    isActive={sortKey === "status"}
+                    dir={sortDir}
+                  />
+                  <SortableHeader
+                    label="Aantal keer gebeld"
+                    href={sortHref("aantalGebeld")}
+                    isActive={sortKey === "aantalGebeld"}
+                    dir={sortDir}
+                    className="text-center"
+                  />
                 </>
               )}
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {leads.map((lead) => (
+            {sortedLeads.map((lead) => (
               <tr key={lead.id} className="hover:bg-slate-50">
                 <td className="px-4 py-2.5 whitespace-nowrap">
                   <InlineTextField
@@ -480,7 +654,7 @@ export default async function PipelinePage({
                 </td>
               </tr>
             ))}
-            {leads.length === 0 && (
+            {sortedLeads.length === 0 && (
               <tr>
                 <td
                   colSpan={isRecrutering ? 6 : 11}
@@ -496,6 +670,29 @@ export default async function PipelinePage({
         </table>
       </div>
     </div>
+  );
+}
+
+function SortableHeader({
+  label,
+  href,
+  isActive,
+  dir,
+  className,
+}: {
+  label: string;
+  href: string;
+  isActive: boolean;
+  dir: SortDir;
+  className?: string;
+}) {
+  return (
+    <th className={`px-4 py-3 font-medium ${className ?? ""}`}>
+      <Link href={href} className="inline-flex items-center gap-1 hover:text-slate-900">
+        {label}
+        {isActive && (dir === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+      </Link>
+    </th>
   );
 }
 
