@@ -725,7 +725,22 @@ export async function getLeadsForCurrentUser(
       ...(options?.contactFilter === "overdue"
         ? { activities: { some: { status: "PLANNED", scheduledAt: { lt: now } } } }
         : {}),
-      ...(options?.category === "open" ? { status: "OPEN" } : {}),
+      ...(options?.category === "open"
+        ? {
+            status: "OPEN",
+            // Een lead die al op een "ingepland"-fase staat (Financiële
+            // analyse/Adviesgesprek/Opvolggesprek) heeft al een lopend/
+            // gepland consult — die hoort dan enkel nog bij "ingepland"
+            // thuis, niet ook nog bij "open".
+            stage: {
+              key: {
+                notIn: leadType
+                  ? mainFunnelStageKeys(leadType)
+                  : [...mainFunnelStageKeys("FA"), ...mainFunnelStageKeys("RG")],
+              },
+            },
+          }
+        : {}),
       ...(options?.category === "geen_interesse" ? { status: "LOST" } : {}),
       ...(options?.category === "klanten" ? { status: "WON" } : {}),
       ...(options?.category === "ingepland"
