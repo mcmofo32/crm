@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Copy, X } from "lucide-react";
+import { Copy, X, Trash2 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools } from "@/lib/permissions";
 import { getDuplicateLeads, dismissDuplicateGroupAction } from "@/lib/actions/duplicates";
+import { deleteLeadAction } from "@/lib/actions/leads";
 import type { SimpleDuplicateGroup } from "@/lib/duplicateUtils";
 
 // Nooit cachen/statisch renderen — dit overzicht moet elke keer vers zijn.
@@ -49,8 +50,20 @@ function DuplicateGroupCard({ group }: { group: SimpleDuplicateGroup }) {
                 </span>
               )}
             </span>
-            <span className="text-sm text-slate-500">
-              {lead.ownerName} · {formatDate(lead.createdAt)}
+            <span className="flex items-center gap-3">
+              <span className="text-sm text-slate-500">
+                {lead.ownerName} · {formatDate(lead.createdAt)}
+              </span>
+              <form action={deleteLeadAction.bind(null, lead.id)}>
+                <button
+                  type="submit"
+                  title="Lead verwijderen (naar prullenbak)"
+                  className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={13} />
+                  Verwijderen
+                </button>
+              </form>
             </span>
           </li>
         ))}

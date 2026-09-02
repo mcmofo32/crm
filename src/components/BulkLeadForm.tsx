@@ -3,6 +3,7 @@
 import { useState, type ClipboardEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { createLeadsBulkAction } from "@/lib/actions/leads";
+import { SubmitButton } from "@/components/SubmitButton";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import type { LeadType } from "@/generated/prisma/client";
 
@@ -189,13 +190,12 @@ export function BulkLeadForm() {
           <Plus size={15} />
           Rij toevoegen
         </button>
-        <button
-          type="submit"
+        <SubmitButton
           disabled={filledCount === 0}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
         >
           {filledCount > 0 ? `${filledCount} leads aanmaken` : "Leads aanmaken"}
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
