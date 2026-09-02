@@ -112,7 +112,7 @@ export default async function LeadDetailPage({
           Let op: <strong>{duplicateName}</strong> staat al als lead
           geregistreerd bij <strong>{duplicateOwner}</strong> (zelfde
           e-mailadres of telefoonnummer). Deze nieuwe lead is wel aangemaakt —
-          neem contact op met {duplicateOwner} om dubbel werk te vermijden.
+          neem contact op met een beheerder om dit na te kijken.
         </div>
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">
