@@ -10,15 +10,27 @@ export function contactState(
   activities: { type: string; status: string; scheduledAt: Date | null; wasVoicemail: boolean }[]
 ): ContactState {
   const now = new Date();
+  // Een geplande afspraak (Financiële analyse, Adviesgesprek, Opvolggesprek,
+  // ...) is net zo goed een toekomstig contactmoment als een teruggepland
+  // telefoongesprek — anders bleef een lead met een afspraak op de kalender
+  // toch als "te contacteren" gelden, enkel omdat er nooit een CALL-activiteit
+  // voor gelogd werd.
   const hasPlannedCallback = activities.some(
-    (a) => a.type === "CALL" && a.status === "PLANNED" && a.scheduledAt && a.scheduledAt > now
+    (a) =>
+      (a.type === "CALL" || a.type === "MEETING") &&
+      a.status === "PLANNED" &&
+      a.scheduledAt &&
+      a.scheduledAt > now
   );
   if (hasPlannedCallback) return "TERUGKOPPELEN";
 
   const completedCalls = activities.filter(
     (a) => a.type === "CALL" && a.status === "COMPLETED"
   );
-  const wasReached = completedCalls.some((a) => !a.wasVoicemail);
+  const hadCompletedMeeting = activities.some(
+    (a) => a.type === "MEETING" && a.status === "COMPLETED"
+  );
+  const wasReached = completedCalls.some((a) => !a.wasVoicemail) || hadCompletedMeeting;
   if (wasReached) return "OVERIG";
 
   return completedCalls.some((a) => a.wasVoicemail) ? "VOICEMAIL" : "TE_CONTACTEREN";
