@@ -80,6 +80,9 @@ export type SimpleDuplicateLead = {
   lastName: string;
   ownerName: string;
   createdAt: Date;
+  stageLabel: string;
+  isWon: boolean;
+  isLost: boolean;
 };
 
 export type SimpleDuplicateGroup = {

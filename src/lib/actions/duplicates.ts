@@ -260,6 +260,7 @@ async function computeSimpleDuplicateGroups(): Promise<SimpleDuplicateGroup[]> {
           phone: true,
           createdAt: true,
           owner: { select: { name: true } },
+          stage: { select: { label: true, isWon: true, isLost: true } },
         },
         orderBy: { createdAt: "asc" },
       }),
@@ -290,6 +291,9 @@ async function computeSimpleDuplicateGroups(): Promise<SimpleDuplicateGroup[]> {
       lastName: l.lastName,
       ownerName: l.owner?.name || "Onbekend",
       createdAt: l.createdAt,
+      stageLabel: l.stage?.label ?? "—",
+      isWon: l.stage?.isWon ?? false,
+      isLost: l.stage?.isLost ?? false,
     });
 
     const groups: SimpleDuplicateGroup[] = [];

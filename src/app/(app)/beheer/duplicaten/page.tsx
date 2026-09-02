@@ -45,6 +45,17 @@ function DuplicateGroupCard({ group }: { group: SimpleDuplicateGroup }) {
               <Link href={`/leads/${lead.id}`} className="font-medium text-slate-900 hover:underline">
                 {lead.firstName} {lead.lastName}
               </Link>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  lead.isWon
+                    ? "bg-blue-100 text-blue-700"
+                    : lead.isLost
+                    ? "bg-red-100 text-red-700"
+                    : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {lead.stageLabel}
+              </span>
               {index === 0 && (
                 <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                   Eerst toegevoegd
