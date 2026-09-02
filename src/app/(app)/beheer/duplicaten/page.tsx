@@ -5,6 +5,7 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools } from "@/lib/permissions";
 import { getDuplicateLeads, dismissDuplicateGroupAction } from "@/lib/actions/duplicates";
 import { deleteLeadAction } from "@/lib/actions/leads";
+import { BulkDuplicateCleanupButton } from "@/components/BulkDuplicateCleanupButton";
 import type { SimpleDuplicateGroup } from "@/lib/duplicateUtils";
 
 // Nooit cachen/statisch renderen — dit overzicht moet elke keer vers zijn.
@@ -81,15 +82,18 @@ export default async function DuplicatenPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
-          <Copy size={26} />
-          Dubbele leads
-        </h1>
-        <p className="mt-1 text-base text-slate-500">
-          Leads met hetzelfde e-mailadres of telefoonnummer, zodat niet
-          meerdere mensen dezelfde persoon contacteren.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+            <Copy size={26} />
+            Dubbele leads
+          </h1>
+          <p className="mt-1 text-base text-slate-500">
+            Leads met hetzelfde e-mailadres of telefoonnummer, zodat niet
+            meerdere mensen dezelfde persoon contacteren.
+          </p>
+        </div>
+        {groups.length > 0 && <BulkDuplicateCleanupButton />}
       </div>
 
       {groups.length === 0 ? (

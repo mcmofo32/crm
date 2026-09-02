@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { canViewBeheerderTools } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { logAudit } from "@/lib/audit";
 import {
   normalizeEmail,
   normalizePhone,
@@ -354,4 +355,126 @@ export async function dismissDuplicateGroupAction(signature: string) {
 
   revalidatePath("/beheer/duplicaten");
   revalidatePath("/dashboard");
+}
+
+/**
+ * Ruimt in één keer elke duplicatengroep op waarbij de leads niet enkel
+ * hetzelfde e-mailadres/telefoonnummer delen, maar ook voor de rest
+ * (voornaam, achternaam, type) volledig identiek zijn — het patroon van een
+ * dubbel ingediend formulier, niet toevallig gedeelde contactgegevens
+ * tussen twee verschillende personen (bv. een gezin op hetzelfde
+ * vast nummer). Zo'n groep wordt automatisch tot één lead herleid: de
+ * oudste blijft, de rest gaat naar de prullenbak (herstelbaar). Een groep
+ * waarin de namen verschillen wordt niet aangeraakt en blijft op deze
+ * pagina staan voor manuele controle.
+ */
+export type DuplicateCleanupState = {
+  deletedCount: number;
+  skippedGroups: number;
+} | null;
+
+export async function bulkDeleteExactDuplicatesAction(
+  _prevState: DuplicateCleanupState,
+  _formData: FormData
+): Promise<DuplicateCleanupState> {
+  const viewer = await getEffectiveViewer();
+  if (!viewer || !canViewBeheerderTools(viewer)) {
+    throw new Error("Je hebt geen toegang tot dit overzicht");
+  }
+
+  const [leads, dismissed] = await Promise.all([
+    prisma.lead.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        leadType: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.dismissedDuplicateGroup.findMany({ select: { signature: true } }),
+  ]);
+  const dismissedSignatures = new Set(dismissed.map((d) => d.signature));
+
+  type LeadRow = (typeof leads)[number];
+  const byEmail = new Map<string, LeadRow[]>();
+  const byPhone = new Map<string, LeadRow[]>();
+  for (const lead of leads) {
+    const email = normalizeEmail(lead.email);
+    if (email) {
+      const arr = byEmail.get(email);
+      if (arr) arr.push(lead);
+      else byEmail.set(email, [lead]);
+    }
+    const phone = normalizePhone(lead.phone);
+    if (phone) {
+      const arr = byPhone.get(phone);
+      if (arr) arr.push(lead);
+      else byPhone.set(phone, [lead]);
+    }
+  }
+
+  // Volledige identiteit van een lead — enkel leads die hier woord-voor-woord
+  // hetzelfde uit komen, tellen als "dezelfde persoon nog eens ingediend".
+  function identityKey(lead: LeadRow) {
+    return [
+      lead.firstName.trim().toLowerCase(),
+      lead.lastName.trim().toLowerCase(),
+      normalizeEmail(lead.email) ?? "",
+      normalizePhone(lead.phone) ?? "",
+      lead.leadType,
+    ].join("|");
+  }
+
+  const toDeleteIds = new Set<string>();
+  let skippedGroups = 0;
+
+  function processGroup(group: LeadRow[], signature: string) {
+    if (dismissedSignatures.has(signature)) return;
+    if (new Set(group.map(identityKey)).size > 1) {
+      skippedGroups++;
+      return;
+    }
+    // group staat al op createdAt asc (van de leads-query hierboven) — de
+    // eerste is dus de oudste, en blijft; de rest is de dubbele indiening.
+    for (const extra of group.slice(1)) toDeleteIds.add(extra.id);
+  }
+
+  for (const [email, group] of byEmail) {
+    if (group.length >= 2) processGroup(group, `email:${email}`);
+  }
+  for (const [phone, group] of byPhone) {
+    if (group.length >= 2) processGroup(group, `phone:${phone}`);
+  }
+
+  if (toDeleteIds.size > 0) {
+    await prisma.lead.updateMany({
+      where: { id: { in: Array.from(toDeleteIds) } },
+      data: { deletedAt: new Date(), deletedById: viewer.id },
+    });
+
+    await logAudit({
+      actorId: viewer.id,
+      action: "lead.bulk_deleted_duplicates",
+      entityType: "Lead",
+      entityId: "bulk",
+      description: `${toDeleteIds.size} exacte dubbele leads in bulk verwijderd (naar prullenbak)`,
+    });
+  }
+
+  revalidatePath("/beheer/duplicaten");
+  revalidatePath("/beheer/prullenbak");
+  revalidatePath("/dashboard");
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/funnel/FA");
+  revalidatePath("/funnel/RG");
+  revalidatePath("/klanten");
+  revalidatePath("/taken");
+
+  return { deletedCount: toDeleteIds.size, skippedGroups };
 }
