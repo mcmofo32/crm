@@ -7,8 +7,16 @@ import type { LeadType } from "@/generated/prisma/client";
  * kunnen worden zonder tegen die beperking aan te lopen.
  */
 
+// Enkel om te matchen op duplicaten: een waarde die zelf geen geldig
+// e-mailadres kan zijn (bv. "/" of "-" als placeholder voor "onbekend") mag
+// nooit als gedeeld e-mailadres tellen — anders komen alle leads met zo'n
+// placeholder ten onrechte in dezelfde "duplicaten"-groep terecht.
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function normalizeEmail(email: string | null) {
-  return email ? email.trim().toLowerCase() : null;
+  if (!email) return null;
+  const trimmed = email.trim().toLowerCase();
+  return EMAIL_SHAPE.test(trimmed) ? trimmed : null;
 }
 
 export function normalizePhone(phone: string | null) {
