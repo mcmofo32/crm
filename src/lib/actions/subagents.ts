@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/generated/prisma/client";
 import { canManageUsers } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getEffectiveViewer } from "@/lib/impersonation";
@@ -17,31 +16,16 @@ async function requireUserManager() {
 }
 
 /**
- * Subagenten om te kiezen bij het inplannen van een adviesgesprek, beperkt tot
- * de eigen structuur: Beheerder/Admin zien iedereen, Coach enkel het team dat
- * hij coacht, User enkel zijn eigen team.
+ * Subagenten om te kiezen bij het inplannen van een adviesgesprek. Een
+ * adviesgesprek moet altijd samen met een subagent kunnen, dus iedereen ziet
+ * hier alle actieve subagenten — niet enkel die van het eigen team.
  */
 export async function getSubagents() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
 
-  if (viewer.role === Role.BEHEERDER || viewer.role === Role.ADMIN) {
-    return prisma.subagent.findMany({
-      where: { active: true },
-      include: { team: { select: { name: true } } },
-      orderBy: { name: "asc" },
-    });
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: viewer.id },
-    select: { teamId: true, coachedTeam: { select: { id: true } } },
-  });
-  const ownTeamId = user?.coachedTeam?.id ?? user?.teamId ?? null;
-  if (!ownTeamId) return [];
-
   return prisma.subagent.findMany({
-    where: { teamId: ownTeamId, active: true },
+    where: { active: true },
     include: { team: { select: { name: true } } },
     orderBy: { name: "asc" },
   });
