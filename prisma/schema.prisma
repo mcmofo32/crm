@@ -193,6 +193,8 @@ model User {
 
   fsmaModules UserFsmaModule[] @relation("UserFsmaModules")
 
+  libraryDocuments LibraryDocument[] @relation("UserLibraryDocuments")
+
   @@index([teamId])
   @@index([deletedAt])
 }
@@ -901,4 +903,32 @@ model OfficeSettings {
   note    String?
 
   updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Bibliotheek
+// ---------------------------------------------------------------------------
+
+/// Document (PowerPoint, cursus, ...) dat medewerkers kunnen raadplegen/
+/// downloaden op de Bibliotheek-pagina. Het bestand zelf staat niet in de
+/// database — enkel de URL naar Vercel Blob storage — zodat ook grote
+/// bestanden (uitgebreide presentaties, video) probleemloos werken.
+model LibraryDocument {
+  id       String @id @default(cuid())
+  title    String
+  fileName String
+  /// Directe URL (toont bv. een PDF inline in de browser).
+  fileUrl  String
+  /// Aparte URL die browsers altijd laat downloaden i.p.v. inline tonen (van Vercel Blob zelf).
+  downloadUrl String
+  /// Pad in Vercel Blob storage, nodig om het bestand te verwijderen (los van fileUrl).
+  blobPathname String
+  mimeType     String
+  fileSize     Int
+  createdAt    DateTime @default(now())
+
+  uploadedById String
+  uploadedBy   User   @relation("UserLibraryDocuments", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([uploadedById])
 }

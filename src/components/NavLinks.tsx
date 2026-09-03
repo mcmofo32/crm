@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Network,
   LineChart,
+  BookOpen,
   ChevronDown,
   Menu,
   X,
@@ -29,12 +30,15 @@ const ICONS: Record<string, LucideIcon> = {
   "/evenementen": CalendarDays,
   "/organigram": Network,
   "/productie": LineChart,
+  "/bibliotheek": BookOpen,
 };
 
 type NavItem = {
   href: string;
   label: string;
   badge?: number;
+  /** Toont enkel het icoon op een smaller desktopscherm (vanaf lg: ook de tekst) — voor een item dat pas laat toegevoegd is en anders de balk te vol maakt. */
+  compactLabel?: boolean;
   children?: { href: string; label: string }[];
 };
 
@@ -74,7 +78,11 @@ export function NavLinks({ items }: { items: NavItem[] }) {
               }`}
             >
               {Icon && <Icon size={15} strokeWidth={2} />}
-              {item.label}
+              {item.compactLabel ? (
+                <span className="hidden lg:inline">{item.label}</span>
+              ) : (
+                item.label
+              )}
               {item.children && <ChevronDown size={12} />}
               {!!item.badge && (
                 <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
