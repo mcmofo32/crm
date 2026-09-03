@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
-import { Upload } from "lucide-react";
+import { Upload, FileText } from "lucide-react";
 import { saveLibraryDocumentAction } from "@/lib/actions/library";
 import { useToastAction } from "@/components/toast/useToastAction";
 
@@ -18,6 +18,7 @@ export function UploadLibraryDocumentForm() {
   const [progress, setProgress] = useState<number | null>(null);
   const [inputKey, setInputKey] = useState(0);
   const [pending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { runWithToast } = useToastAction();
 
   function handleSubmit(e: FormEvent) {
@@ -76,11 +77,19 @@ export function UploadLibraryDocumentForm() {
         <label className="text-sm font-medium text-slate-700">Bestand</label>
         <input
           key={inputKey}
+          ref={fileInputRef}
           type="file"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          required
-          className="text-sm"
+          className="hidden"
         />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex max-w-xs items-center gap-1.5 truncate rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          <FileText size={14} className="flex-shrink-0" />
+          <span className="truncate">{file ? file.name : "Kies een bestand..."}</span>
+        </button>
       </div>
       <button
         type="submit"
