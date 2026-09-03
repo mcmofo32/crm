@@ -94,6 +94,7 @@ export default async function AppLayout({
           },
         ]
       : []),
+    { href: "/bibliotheek", label: "Bibliotheek", compactLabel: true },
   ];
 
   return (
