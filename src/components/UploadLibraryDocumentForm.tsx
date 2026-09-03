@@ -29,7 +29,6 @@ export function UploadLibraryDocumentForm({
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? firstCategoryId);
-  const [progress, setProgress] = useState<number | null>(null);
   const [inputKey, setInputKey] = useState(0);
   const [pending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,11 +44,25 @@ export function UploadLibraryDocumentForm({
     startTransition(async () => {
       try {
         await runWithToast(async () => {
-          const blob = await upload(currentFile.name, currentFile, {
-            access: "public",
-            handleUploadUrl: "/api/library/upload",
-            onUploadProgress: ({ percentage }) => setProgress(percentage),
-          });
+          // Geen onUploadProgress: dat dwingt @vercel/blob/client in een
+          // streaming-uploadpad (body als ReadableStream, fetch met
+          // duplex:"half") dat afhankelijk is van fragiele, browserspecifieke
+          // feature-detectie — en dat pad lijkt de "Failed to execute
+          // 'fetch' on 'Window': Invalid value"-fout te veroorzaken. Zonder
+          // voortgangsindicatie gebruikt de bibliotheek een simpele,
+          // rechttoe-rechtaan fetch() met het bestand als gewone body.
+          let blob;
+          try {
+            blob = await upload(currentFile.name, currentFile, {
+              access: "public",
+              handleUploadUrl: "/api/library/upload",
+            });
+          } catch (error) {
+            // Zichtbaar in de browserconsole (F12), i.t.t. de generieke
+            // toast-melding die enkel error.message toont.
+            console.error("[bibliotheek-upload]", error);
+            throw error;
+          }
 
           await saveLibraryDocumentAction({
             title: currentTitle,
@@ -68,8 +81,6 @@ export function UploadLibraryDocumentForm({
         setInputKey((k) => k + 1);
       } catch {
         // Foutmelding is al getoond door runWithToast.
-      } finally {
-        setProgress(null);
       }
     });
   }
@@ -131,7 +142,7 @@ export function UploadLibraryDocumentForm({
         className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
       >
         <Upload size={15} />
-        {pending ? (progress != null ? `Uploaden... ${progress}%` : "Uploaden...") : "Toevoegen"}
+        {pending ? "Uploaden..." : "Toevoegen"}
       </button>
     </form>
   );
