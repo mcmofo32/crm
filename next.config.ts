@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Tijdelijk aan: de browserconsole toont anders enkel geminifieerde
+  // functienamen (j, $, y.retries, ...) bij een fout, i.p.v. de echte
+  // bestandsnaam/regel — nodig om de aanhoudende Bibliotheek-uploadfout
+  // definitief te lokaliseren i.p.v. te blijven gokken.
+  productionBrowserSourceMaps: true,
   // Server Action-requests zijn standaard beperkt tot 1 MB — ruim onder de
   // 4 MB (profielfoto) en 8 MB (incentive-poster) die de app zelf toestaat,
   // waardoor een normale foto-upload al mislukte nog vóór onze eigen
