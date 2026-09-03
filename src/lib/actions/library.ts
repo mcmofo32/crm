@@ -11,17 +11,121 @@ async function requireLibraryManager() {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
   if (!canViewBeheerderTools(viewer)) {
-    throw new Error("Je hebt geen rechten om documenten toe te voegen of te verwijderen");
+    throw new Error("Je hebt geen rechten om de bibliotheek te beheren");
   }
   return viewer;
 }
 
-/** Iedereen die ingelogd is mag de bibliotheek raadplegen/downloaden. */
-export async function getLibraryDocuments() {
+/** Tabbladen + hun categorieën, voor de tabbalk bovenaan de Bibliotheek-pagina. */
+export async function getLibraryTabs() {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+
+  return prisma.libraryTab.findMany({
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      name: true,
+      categories: {
+        orderBy: { order: "asc" },
+        select: { id: true, name: true, _count: { select: { documents: true } } },
+      },
+    },
+  });
+}
+
+export async function createLibraryTabAction(formData: FormData) {
+  await requireLibraryManager();
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("Naam is verplicht");
+
+  const existing = await prisma.libraryTab.findUnique({ where: { name } });
+  if (existing) throw new Error(`Tabblad "${name}" bestaat al`);
+
+  const { _max } = await prisma.libraryTab.aggregate({ _max: { order: true } });
+  await prisma.libraryTab.create({
+    data: { name, order: (_max.order ?? -1) + 1 },
+  });
+
+  revalidatePath("/bibliotheek");
+}
+
+/** Enkel een leeg tabblad (geen categorieën meer) kan verwijderd worden. */
+export async function deleteLibraryTabAction(tabId: string) {
+  await requireLibraryManager();
+
+  const tab = await prisma.libraryTab.findUnique({
+    where: { id: tabId },
+    select: { name: true, _count: { select: { categories: true } } },
+  });
+  if (!tab) throw new Error("Tabblad niet gevonden");
+  if (tab._count.categories > 0) {
+    throw new Error(
+      `Verwijder eerst alle categorieën in "${tab.name}" voor je dit tabblad kan verwijderen`
+    );
+  }
+
+  await prisma.libraryTab.delete({ where: { id: tabId } });
+  revalidatePath("/bibliotheek");
+}
+
+export async function createLibraryCategoryAction(tabId: string, formData: FormData) {
+  await requireLibraryManager();
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("Naam is verplicht");
+
+  const tab = await prisma.libraryTab.findUnique({ where: { id: tabId } });
+  if (!tab) throw new Error("Tabblad niet gevonden");
+
+  const existing = await prisma.libraryCategory.findUnique({
+    where: { tabId_name: { tabId, name } },
+  });
+  if (existing) throw new Error(`Categorie "${name}" bestaat al in dit tabblad`);
+
+  const { _max } = await prisma.libraryCategory.aggregate({
+    where: { tabId },
+    _max: { order: true },
+  });
+  await prisma.libraryCategory.create({
+    data: { name, tabId, order: (_max.order ?? -1) + 1 },
+  });
+
+  revalidatePath("/bibliotheek");
+}
+
+/** Enkel een lege categorie (geen documenten meer) kan verwijderd worden. */
+export async function deleteLibraryCategoryAction(categoryId: string) {
+  await requireLibraryManager();
+
+  const category = await prisma.libraryCategory.findUnique({
+    where: { id: categoryId },
+    select: { name: true, _count: { select: { documents: true } } },
+  });
+  if (!category) throw new Error("Categorie niet gevonden");
+  if (category._count.documents > 0) {
+    throw new Error(
+      `Verplaats of verwijder eerst de documenten in "${category.name}" voor je deze categorie kan verwijderen`
+    );
+  }
+
+  await prisma.libraryCategory.delete({ where: { id: categoryId } });
+  revalidatePath("/bibliotheek");
+}
+
+/**
+ * Iedereen die ingelogd is mag de bibliotheek raadplegen/downloaden.
+ * `categoryIds` beperkt tot die categorieën (bv. alle categorieën van het
+ * actieve tabblad, of net één specifiek gekozen categorie) — weggelaten
+ * geeft alles terug.
+ */
+export async function getLibraryDocuments(categoryIds?: string[]) {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
 
   return prisma.libraryDocument.findMany({
+    where: categoryIds ? { categoryId: { in: categoryIds } } : {},
     select: {
       id: true,
       title: true,
@@ -31,6 +135,7 @@ export async function getLibraryDocuments() {
       mimeType: true,
       fileSize: true,
       createdAt: true,
+      categoryId: true,
       uploadedBy: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -51,8 +156,14 @@ export async function saveLibraryDocumentAction(params: {
   blobPathname: string;
   mimeType: string;
   fileSize: number;
+  categoryId: string;
 }) {
   const viewer = await requireLibraryManager();
+
+  const category = await prisma.libraryCategory.findUnique({
+    where: { id: params.categoryId },
+  });
+  if (!category) throw new Error("Kies eerst een categorie");
 
   const title = params.title.trim() || params.fileName;
 
@@ -66,6 +177,7 @@ export async function saveLibraryDocumentAction(params: {
       mimeType: params.mimeType,
       fileSize: params.fileSize,
       uploadedById: viewer.id,
+      categoryId: params.categoryId,
     },
   });
 

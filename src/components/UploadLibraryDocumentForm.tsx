@@ -6,15 +6,29 @@ import { Upload, FileText } from "lucide-react";
 import { saveLibraryDocumentAction } from "@/lib/actions/library";
 import { useToastAction } from "@/components/toast/useToastAction";
 
+type LibraryTabOption = {
+  id: string;
+  name: string;
+  categories: { id: string; name: string }[];
+};
+
 /**
  * Het bestand zelf gaat rechtstreeks van de browser naar Vercel Blob (via
  * /api/library/upload, dat enkel een upload-token uitgeeft) — nooit door
  * een server-actie, zodat ook grote presentaties/cursusbestanden werken.
  * Pas nadien slaat saveLibraryDocumentAction de metadata (naam + URL's) op.
  */
-export function UploadLibraryDocumentForm() {
+export function UploadLibraryDocumentForm({
+  tabs,
+  defaultCategoryId,
+}: {
+  tabs: LibraryTabOption[];
+  defaultCategoryId?: string;
+}) {
+  const firstCategoryId = tabs.flatMap((t) => t.categories)[0]?.id ?? "";
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [categoryId, setCategoryId] = useState(defaultCategoryId ?? firstCategoryId);
   const [progress, setProgress] = useState<number | null>(null);
   const [inputKey, setInputKey] = useState(0);
   const [pending, startTransition] = useTransition();
@@ -23,9 +37,10 @@ export function UploadLibraryDocumentForm() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!file) return;
+    if (!file || !categoryId) return;
     const currentFile = file;
     const currentTitle = title;
+    const currentCategoryId = categoryId;
 
     startTransition(async () => {
       try {
@@ -44,6 +59,7 @@ export function UploadLibraryDocumentForm() {
             blobPathname: blob.pathname,
             mimeType: currentFile.type || "application/octet-stream",
             fileSize: currentFile.size,
+            categoryId: currentCategoryId,
           });
         }, "Document toegevoegd");
 
@@ -74,6 +90,24 @@ export function UploadLibraryDocumentForm() {
         />
       </div>
       <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-slate-700">Categorie</label>
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        >
+          {tabs.map((tab) => (
+            <optgroup key={tab.id} label={tab.name}>
+              {tab.categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-slate-700">Bestand</label>
         <input
           key={inputKey}
@@ -93,7 +127,7 @@ export function UploadLibraryDocumentForm() {
       </div>
       <button
         type="submit"
-        disabled={pending || !file}
+        disabled={pending || !file || !categoryId}
         className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
       >
         <Upload size={15} />

@@ -909,6 +909,32 @@ model OfficeSettings {
 // Bibliotheek
 // ---------------------------------------------------------------------------
 
+/// Tabblad bovenaan de Bibliotheek-pagina (bv. "Opleiding", "Documenten") —
+/// door Beheerder/Admin zelf aan te maken, niet vast in de code.
+model LibraryTab {
+  id         String            @id @default(cuid())
+  name       String            @unique
+  order      Int               @default(0)
+  createdAt  DateTime          @default(now())
+  categories LibraryCategory[]
+}
+
+/// Categorie binnen één tabblad, waaronder documenten gegroepeerd worden.
+model LibraryCategory {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tabId String
+  tab   LibraryTab @relation(fields: [tabId], references: [id])
+
+  documents LibraryDocument[]
+
+  @@unique([tabId, name])
+  @@index([tabId])
+}
+
 /// Document (PowerPoint, cursus, ...) dat medewerkers kunnen raadplegen/
 /// downloaden op de Bibliotheek-pagina. Het bestand zelf staat niet in de
 /// database — enkel de URL naar Vercel Blob storage — zodat ook grote
@@ -930,5 +956,12 @@ model LibraryDocument {
   uploadedById String
   uploadedBy   User   @relation("UserLibraryDocuments", fields: [uploadedById], references: [id], onDelete: Cascade)
 
+  /// Elk document hoort verplicht bij één categorie — voorkomt "verweesde"
+  /// documenten die nergens meer opduiken (zie deleteLibraryCategoryAction:
+  /// een categorie met documenten kan niet verwijderd worden).
+  categoryId String
+  category   LibraryCategory @relation(fields: [categoryId], references: [id])
+
   @@index([uploadedById])
+  @@index([categoryId])
 }
