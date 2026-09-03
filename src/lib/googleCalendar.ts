@@ -10,17 +10,15 @@ function withPlusPrefix(phone: string) {
   return phone.startsWith("+") || !phone.startsWith("32") ? phone : `+${phone}`;
 }
 
-/** Formatteert één contactregel voor de omschrijving (bv. "Jan Peeters — Telefoon: ... — E-mail: ..."), zonder rol-label — enkel naam en contactgegevens. */
+/**
+ * Formatteert één contactregel voor de omschrijving (bv. "Jan Peeters —
+ * Telefoon: ..."), zonder rol-label — enkel naam en telefoonnummer. Geen
+ * e-mailadres: wie uitgenodigd is, ziet dat al bij de deelnemers van het
+ * agenda-item zelf, dus dat zou hier dubbel op staan.
+ */
 function formatContactLine(person?: ContactInfo | null) {
-  if (!person) return null;
-  const details = [
-    person.phone ? `Telefoon: ${withPlusPrefix(person.phone)}` : null,
-    person.email ? `E-mail: ${person.email}` : null,
-  ]
-    .filter(Boolean)
-    .join(" — ");
-  if (!details) return null;
-  return `${person.name} — ${details}`;
+  if (!person || !person.phone) return null;
+  return `${person.name} — Telefoon: ${withPlusPrefix(person.phone)}`;
 }
 
 const SCOPES = [
@@ -183,7 +181,8 @@ function buildEventBody(
   // (zodat de klant weet bij wie hij terechtkan), nooit de interne
   // notities. Bij een gewoon uitgaand contactmoment (geen klant
   // uitgenodigd) is de beschrijving enkel voor onszelf, dus daar mogen de
-  // notities wel in staan.
+  // notities wel in staan. Geen e-mailadres hier (zie formatContactLine):
+  // wie uitgenodigd is, ziet dat al bij de deelnemers van het agenda-item.
   const subagentLine = formatContactLine(subagent);
   const aanbrengerLine = isFinancieleAnalyseSubject(activity.subject)
     ? formatContactLine(owner)
@@ -199,7 +198,6 @@ function buildEventBody(
           : scheduledBy?.phone
           ? `Telefoon: ${withPlusPrefix(scheduledBy.phone)}`
           : null,
-        namedContactLine ? null : scheduledBy?.email ? `E-mail: ${scheduledBy.email}` : null,
         subagentLine,
         aanbrengerLine,
         activity.meetingMode === "ONLINE" && activity.meetingLink
