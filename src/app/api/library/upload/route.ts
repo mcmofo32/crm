@@ -30,6 +30,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
+    // @vercel/blob/client's upload() toont bij eender welke fout hier altijd
+    // dezelfde generieke "Failed to retrieve the client token" — de
+    // eigenlijke reden (bv. ontbrekende BLOB_READ_WRITE_TOKEN, geen rechten)
+    // komt dus enkel hier in de Vercel-logs terecht, nooit in de UI.
+    console.error("[library/upload] token-aanvraag mislukt:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Upload mislukt" },
       { status: 400 }
