@@ -3,6 +3,10 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools } from "@/lib/permissions";
 
+// Expliciet op de Node.js-runtime (niet Edge) — generateClientTokenFromReadWriteToken
+// (intern aangeroepen door handleUpload) vereist dat.
+export const runtime = "nodejs";
+
 // Ruim bemeten (PowerPoints, cursusmateriaal): het bestand zelf gaat
 // rechtstreeks van de browser naar Vercel Blob, dus dit loopt nooit door de
 // eigen server-actielimiet (next.config.ts) — enkel deze token-aanvraag doet dat.
