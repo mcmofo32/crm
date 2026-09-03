@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  turbopack: {
+    resolveAlias: {
+      // Zie src/lib/browserFetchShim.ts: @vercel/blob (Bibliotheek-upload)
+      // heeft anders een kapotte browser-fetch onder Turbopack.
+      undici: { browser: "./src/lib/browserFetchShim.ts" },
+    },
+  },
   async headers() {
     return [
       {
