@@ -714,40 +714,55 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
   };
 }
 
-export type MonthlyProductionFigureRow = {
-  userId: string;
-  userName: string;
+export type MonthlyProductionMetricValue = { target: number; actual: number };
+
+export type MonthlyProductionLeaderboardRow = {
+  name: string;
+  jobFunction: JobFunction | null;
+  coachName: string | null;
+  byMetric: Record<GoalMetric, MonthlyProductionMetricValue>;
+};
+
+export type MonthlyProductionLeaderboard = {
   year: number;
   month: number;
-  metric: GoalMetric;
-  target: number;
-  actual: number;
+  isCurrent: boolean;
+  rows: MonthlyProductionLeaderboardRow[];
 };
 
 /**
- * Alle 5 productiecijfers (doel + behaald) per gebruiker, per ingestelde
- * productiemaand, over de volledige historiek — voor de Google Sheets-
- * back-up. Geen `requireViewer()`: dit draait vanuit de nachtelijke cron/
- * back-up-sync, zonder ingelogde sessie.
+ * Eén ranglijst per ingestelde productiemaand, over de volledige historiek —
+ * zelfde vorm en berekeningsregels als `getProductionLeaderboard` hierboven
+ * (Klanten/Eenheden met manuele-override-ondersteuning via
+ * `MONTHLY_ACTUAL_METRICS`, Gesprekken via `financieleAnalyseActivityWhere`,
+ * ABV verkoop/RG via nieuwe FA-/RG-leads, enkel actieve niet-opleiding-
+ * gebruikers, gerangschikt op Behaald Eenheden) — bewust hergebruikt i.p.v.
+ * herschreven, zodat de Google Sheets-back-up niet stilletjes uit sync raakt
+ * met wat de Productie-pagina toont als die regels ooit wijzigen.
  *
- * Zelfde berekeningsregels als `getProductionLeaderboard`/
- * `getProductionMonthGoalProgress` hierboven (Klanten/Eenheden met
- * manuele-override-ondersteuning via `MONTHLY_ACTUAL_METRICS`, Gesprekken
- * via `financieleAnalyseActivityWhere`, ABV verkoop/RG via nieuwe FA-/RG-
- * leads) — bewust hergebruikt i.p.v. herschreven, zodat dit tabblad niet
- * stilletjes uit sync raakt met wat de Productie-pagina toont als die regels
- * ooit wijzigen. Rijen waar zowel doel als behaald 0 zijn, worden
- * overgeslagen (anders explodeert het tabblad met lege combinaties van
- * elke gebruiker × elke productiemaand × elke metric).
+ * Voor de back-up (`sheetsBackupTabs.ts`, "Productiecijfers per
+ * productiemaand" — één tabel per maand, net als op de Productie-pagina).
+ * Geen `requireViewer()`: dit draait vanuit de nachtelijke cron-sync, zonder
+ * ingelogde sessie.
  */
-export async function getAllMonthlyProductionFiguresForBackup(): Promise<
-  MonthlyProductionFigureRow[]
+export async function getAllMonthlyProductionLeaderboardsForBackup(): Promise<
+  MonthlyProductionLeaderboard[]
 > {
-  const [users, productionMonths, goals, actuals] = await Promise.all([
-    prisma.user.findMany({ select: { id: true, name: true } }),
+  const [users, productionMonths, goals, actuals, current] = await Promise.all([
+    prisma.user.findMany({
+      where: { active: true, inTraining: false },
+      select: {
+        id: true,
+        name: true,
+        jobFunction: true,
+        team: { select: { coach: { select: { name: true } } } },
+      },
+      orderBy: { name: "asc" },
+    }),
     prisma.productionMonth.findMany({ orderBy: [{ year: "asc" }, { month: "asc" }] }),
     prisma.userMonthlyGoal.findMany(),
     prisma.userMonthlyActual.findMany(),
+    getCurrentProductionMonth(),
   ]);
   const userIds = users.map((u) => u.id);
 
@@ -758,7 +773,7 @@ export async function getAllMonthlyProductionFiguresForBackup(): Promise<
     actuals.map((a) => [`${a.userId}_${a.year}_${a.month}_${a.metric}`, Number(a.value)])
   );
 
-  const rows: MonthlyProductionFigureRow[] = [];
+  const leaderboards: MonthlyProductionLeaderboard[] = [];
 
   for (const pm of productionMonths) {
     const start = pm.startDate;
@@ -829,7 +844,7 @@ export async function getAllMonthlyProductionFiguresForBackup(): Promise<
     const faByUser = new Map(newFaLeads.map((l) => [l.ownerId, l._count._all]));
     const rgByUser = new Map(newRgLeads.map((l) => [l.ownerId, l._count._all]));
 
-    for (const user of users) {
+    const rows: MonthlyProductionLeaderboardRow[] = users.map((user) => {
       const computedByMetric: Record<GoalMetric, number> = {
         CUSTOMERS: customersByUser.get(user.id)?.size ?? 0,
         UNITS: unitsByUser.get(user.id) ?? 0,
@@ -838,29 +853,37 @@ export async function getAllMonthlyProductionFiguresForBackup(): Promise<
         ABV_RG: rgByUser.get(user.id) ?? 0,
       };
 
+      const byMetric = {} as Record<GoalMetric, MonthlyProductionMetricValue>;
       for (const metric of GOAL_METRIC_ORDER) {
         const key = `${user.id}_${pm.year}_${pm.month}_${metric}`;
         const override = (MONTHLY_ACTUAL_METRICS as readonly GoalMetric[]).includes(metric)
           ? overrideByKey.get(key)
           : undefined;
-        const actual = override ?? computedByMetric[metric];
-        const target = goalByKey.get(key) ?? 0;
-        if (actual === 0 && target === 0) continue;
-
-        rows.push({
-          userId: user.id,
-          userName: user.name,
-          year: pm.year,
-          month: pm.month,
-          metric,
-          target,
-          actual,
-        });
+        byMetric[metric] = {
+          target: goalByKey.get(key) ?? 0,
+          actual: override ?? computedByMetric[metric],
+        };
       }
-    }
+
+      return {
+        name: user.name,
+        jobFunction: user.jobFunction,
+        coachName: user.team?.coach.name ?? null,
+        byMetric,
+      };
+    });
+
+    rows.sort((a, b) => b.byMetric.UNITS.actual - a.byMetric.UNITS.actual);
+
+    leaderboards.push({
+      year: pm.year,
+      month: pm.month,
+      isCurrent: pm.year === current.year && pm.month === current.month,
+      rows,
+    });
   }
 
-  return rows;
+  return leaderboards;
 }
 
 /**

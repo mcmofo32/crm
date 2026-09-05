@@ -247,7 +247,7 @@ export async function syncGoogleSheetsBackupNow(): Promise<
     // 4) Opmaak van alle tabbladen in één gecombineerde batchUpdate.
     const formattingRequests: sheets_v4.Schema$Request[] = [];
     for (const { tab, sheetId, values } of usableTabData) {
-      const columnCount = Math.max(tab.headers.length, 1);
+      const columnCount = Math.max(tab.columnCount ?? tab.headers.length, 1);
       const rowCount = values.length;
 
       formattingRequests.push(
@@ -281,7 +281,7 @@ export async function syncGoogleSheetsBackupNow(): Promise<
         }))
       );
 
-      if (rowCount > 1) {
+      if (rowCount > 1 && !tab.noBanding) {
         formattingRequests.push({
           addBanding: {
             bandedRange: {

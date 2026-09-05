@@ -6,13 +6,26 @@ import {
   POLICY_STATUS_LABELS,
 } from "@/lib/policyLabels";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MONTH_LABELS } from "@/lib/goalLabels";
-import { getAllMonthlyProductionFiguresForBackup } from "@/lib/actions/production";
+import { getAllMonthlyProductionLeaderboardsForBackup } from "@/lib/actions/production";
 
 export type SheetsBackupTab = {
   /** Titel van het tabblad in Google Sheets — moet uniek zijn. */
   name: string;
   headers: string[];
   fetchRows: () => Promise<(string | number | null)[][]>;
+  /**
+   * Aantal kolommen om te auto-resizen — enkel nodig als de echte data breder
+   * is dan `headers.length` (bv. een tabblad dat zelf meerdere onder-
+   * tabellen met eigen kolomkoppen samenstelt i.p.v. één uniforme rijenlijst
+   * onder `headers`). Standaard `headers.length`.
+   */
+  columnCount?: number;
+  /**
+   * Sla de zebra-banding over — voor tabbladen die geen uniforme rijenlijst
+   * zijn (bv. meerdere per-maand tabellen met eigen titel-/kolomkop-/
+   * totaalrijen na elkaar), waar doorlopende banding er doorheen zou striepen.
+   */
+  noBanding?: boolean;
 };
 
 function fmtDate(date: Date | null | undefined): string {
@@ -367,24 +380,94 @@ const monthlyActualsTab: SheetsBackupTab = {
   },
 };
 
+// Volgorde/afkortingen zoals op de Productie-pagina (Klanten vóór Eenheden,
+// "KL"/"EH" i.p.v. de volledige metric-naam).
+const PRODUCTION_DISPLAY_METRICS = [
+  "CUSTOMERS",
+  "UNITS",
+  "CONVERSATIONS",
+  "ABV_SALES",
+  "ABV_RG",
+] as const;
+const PRODUCTION_METRIC_SHORT_LABELS: Record<(typeof PRODUCTION_DISPLAY_METRICS)[number], string> = {
+  CUSTOMERS: "KL",
+  UNITS: "EH",
+  CONVERSATIONS: "Gesprekken",
+  ABV_SALES: "ABV verkoop",
+  ABV_RG: "ABV RG",
+};
+const PRODUCTION_TABLE_COLUMN_COUNT =
+  4 + PRODUCTION_DISPLAY_METRICS.length * 3; // #, Naam, Functie, Coach + per metric Doel/Behaald/%
+
 const productionFiguresTab: SheetsBackupTab = {
   name: "Productiecijfers per productiemaand",
-  headers: ["Gebruiker", "Jaar", "Maand", "Metric", "Doel", "Behaald", "% behaald"],
+  headers: [
+    "Eén tabel per productiemaand, gerangschikt op Behaald EH — zelfde cijfers als de Productie-pagina",
+  ],
+  columnCount: PRODUCTION_TABLE_COLUMN_COUNT,
+  noBanding: true,
   fetchRows: async () => {
-    const rows = await getAllMonthlyProductionFiguresForBackup();
-    // Zelfde volgorde-conventie als de andere productiemaand-tabbladen
-    // (meest recent bovenaan); stabiele sort behoudt de gebruiker-/metric-
-    // volgorde binnen eenzelfde maand die de berekening al opleverde.
-    rows.sort((a, b) => b.year - a.year || b.month - a.month);
-    return rows.map((r) => [
-      r.userName,
-      r.year,
-      MONTH_LABELS[r.month - 1],
-      GOAL_METRIC_LABELS[r.metric],
-      fmtNumber(r.target),
-      fmtNumber(r.actual),
-      r.target > 0 ? Math.round((r.actual / r.target) * 100) : "",
-    ]);
+    const leaderboards = await getAllMonthlyProductionLeaderboardsForBackup();
+    // Meest recente productiemaand bovenaan, zoals de andere productiemaand-tabbladen.
+    leaderboards.sort((a, b) => b.year - a.year || b.month - a.month);
+
+    const headerRow = [
+      "#",
+      "Naam",
+      "Functie",
+      "Directe coach",
+      ...PRODUCTION_DISPLAY_METRICS.flatMap((metric) => {
+        const label = PRODUCTION_METRIC_SHORT_LABELS[metric];
+        return [`Doel ${label}`, `Behaald ${label}`, `% Doel ${label}`];
+      }),
+    ];
+
+    const result: (string | number | null)[][] = [];
+    for (const board of leaderboards) {
+      const monthLabel = String(board.month).padStart(2, "0");
+      result.push([
+        `Productiemaand ${monthLabel}/${board.year}${board.isCurrent ? " (huidige)" : ""}`,
+      ]);
+      result.push(headerRow);
+
+      board.rows.forEach((row, index) => {
+        result.push([
+          index + 1,
+          row.name,
+          row.jobFunction ?? "",
+          row.coachName ?? "",
+          ...PRODUCTION_DISPLAY_METRICS.flatMap((metric) => {
+            const { target, actual } = row.byMetric[metric];
+            return [
+              fmtNumber(target),
+              fmtNumber(actual),
+              target > 0 ? Math.round((actual / target) * 100) : "",
+            ];
+          }),
+        ]);
+      });
+
+      const totals = PRODUCTION_DISPLAY_METRICS.map((metric) => {
+        const targetSum = board.rows.reduce((sum, r) => sum + r.byMetric[metric].target, 0);
+        const actualSum = board.rows.reduce((sum, r) => sum + r.byMetric[metric].actual, 0);
+        return { targetSum, actualSum };
+      });
+      result.push([
+        "Totaal",
+        "",
+        "",
+        "",
+        ...totals.flatMap(({ targetSum, actualSum }) => [
+          targetSum,
+          actualSum,
+          targetSum > 0 ? Math.round((actualSum / targetSum) * 100) : "",
+        ]),
+      ]);
+
+      result.push([]);
+    }
+
+    return result;
   },
 };
 
