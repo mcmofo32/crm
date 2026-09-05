@@ -714,6 +714,155 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
   };
 }
 
+export type MonthlyProductionFigureRow = {
+  userId: string;
+  userName: string;
+  year: number;
+  month: number;
+  metric: GoalMetric;
+  target: number;
+  actual: number;
+};
+
+/**
+ * Alle 5 productiecijfers (doel + behaald) per gebruiker, per ingestelde
+ * productiemaand, over de volledige historiek — voor de Google Sheets-
+ * back-up. Geen `requireViewer()`: dit draait vanuit de nachtelijke cron/
+ * back-up-sync, zonder ingelogde sessie.
+ *
+ * Zelfde berekeningsregels als `getProductionLeaderboard`/
+ * `getProductionMonthGoalProgress` hierboven (Klanten/Eenheden met
+ * manuele-override-ondersteuning via `MONTHLY_ACTUAL_METRICS`, Gesprekken
+ * via `financieleAnalyseActivityWhere`, ABV verkoop/RG via nieuwe FA-/RG-
+ * leads) — bewust hergebruikt i.p.v. herschreven, zodat dit tabblad niet
+ * stilletjes uit sync raakt met wat de Productie-pagina toont als die regels
+ * ooit wijzigen. Rijen waar zowel doel als behaald 0 zijn, worden
+ * overgeslagen (anders explodeert het tabblad met lege combinaties van
+ * elke gebruiker × elke productiemaand × elke metric).
+ */
+export async function getAllMonthlyProductionFiguresForBackup(): Promise<
+  MonthlyProductionFigureRow[]
+> {
+  const [users, productionMonths, goals, actuals] = await Promise.all([
+    prisma.user.findMany({ select: { id: true, name: true } }),
+    prisma.productionMonth.findMany({ orderBy: [{ year: "asc" }, { month: "asc" }] }),
+    prisma.userMonthlyGoal.findMany(),
+    prisma.userMonthlyActual.findMany(),
+  ]);
+  const userIds = users.map((u) => u.id);
+
+  const goalByKey = new Map(
+    goals.map((g) => [`${g.userId}_${g.year}_${g.month}_${g.metric}`, Number(g.target)])
+  );
+  const overrideByKey = new Map(
+    actuals.map((a) => [`${a.userId}_${a.year}_${a.month}_${a.metric}`, Number(a.value)])
+  );
+
+  const rows: MonthlyProductionFigureRow[] = [];
+
+  for (const pm of productionMonths) {
+    const start = pm.startDate;
+    const end = new Date(pm.endDate.getTime() + 1);
+
+    const [wonChanges, unitsRows, conversationCounts, newFaLeads, newRgLeads] =
+      await Promise.all([
+        prisma.leadStageChange.findMany({
+          where: {
+            toStage: { isWon: true },
+            changedAt: { gte: start, lt: end },
+            lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
+          },
+          select: { lead: { select: { id: true, ownerId: true } } },
+        }),
+        prisma.leadProduct.findMany({
+          where: {
+            contractDate: { gte: start, lt: end },
+            lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
+          },
+          select: { units: true, lead: { select: { ownerId: true } } },
+        }),
+        prisma.activity.groupBy({
+          by: ["assigneeId"],
+          where: {
+            assigneeId: { in: userIds },
+            ...financieleAnalyseActivityWhere({ gte: start, lt: end }),
+          },
+          _count: { _all: true },
+        }),
+        prisma.lead.groupBy({
+          by: ["ownerId"],
+          where: {
+            ownerId: { in: userIds },
+            deletedAt: null,
+            leadType: "FA",
+            createdAt: { gte: start, lt: end },
+            ...excludingBulkImportedLeads(),
+          },
+          _count: { _all: true },
+        }),
+        prisma.lead.groupBy({
+          by: ["ownerId"],
+          where: {
+            ownerId: { in: userIds },
+            deletedAt: null,
+            leadType: "RG",
+            createdAt: { gte: start, lt: end },
+            ...excludingBulkImportedLeads(),
+          },
+          _count: { _all: true },
+        }),
+      ]);
+
+    const customersByUser = new Map<string, Set<string>>();
+    for (const c of wonChanges) {
+      const set = customersByUser.get(c.lead.ownerId) ?? new Set<string>();
+      set.add(c.lead.id);
+      customersByUser.set(c.lead.ownerId, set);
+    }
+    const unitsByUser = new Map<string, number>();
+    for (const p of unitsRows) {
+      unitsByUser.set(p.lead.ownerId, (unitsByUser.get(p.lead.ownerId) ?? 0) + p.units);
+    }
+    const conversationsByUser = new Map(
+      conversationCounts.map((c) => [c.assigneeId, c._count._all])
+    );
+    const faByUser = new Map(newFaLeads.map((l) => [l.ownerId, l._count._all]));
+    const rgByUser = new Map(newRgLeads.map((l) => [l.ownerId, l._count._all]));
+
+    for (const user of users) {
+      const computedByMetric: Record<GoalMetric, number> = {
+        CUSTOMERS: customersByUser.get(user.id)?.size ?? 0,
+        UNITS: unitsByUser.get(user.id) ?? 0,
+        CONVERSATIONS: conversationsByUser.get(user.id) ?? 0,
+        ABV_SALES: faByUser.get(user.id) ?? 0,
+        ABV_RG: rgByUser.get(user.id) ?? 0,
+      };
+
+      for (const metric of GOAL_METRIC_ORDER) {
+        const key = `${user.id}_${pm.year}_${pm.month}_${metric}`;
+        const override = (MONTHLY_ACTUAL_METRICS as readonly GoalMetric[]).includes(metric)
+          ? overrideByKey.get(key)
+          : undefined;
+        const actual = override ?? computedByMetric[metric];
+        const target = goalByKey.get(key) ?? 0;
+        if (actual === 0 && target === 0) continue;
+
+        rows.push({
+          userId: user.id,
+          userName: user.name,
+          year: pm.year,
+          month: pm.month,
+          metric,
+          target,
+          actual,
+        });
+      }
+    }
+  }
+
+  return rows;
+}
+
 /**
  * Zelfde als `getProductionMonthGoalProgress`, maar dan als totaal over een
  * groep gebruikers (bv. heel het team van een Coach, of iedereen voor

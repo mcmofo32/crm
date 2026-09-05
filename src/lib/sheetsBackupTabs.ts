@@ -6,6 +6,7 @@ import {
   POLICY_STATUS_LABELS,
 } from "@/lib/policyLabels";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MONTH_LABELS } from "@/lib/goalLabels";
+import { getAllMonthlyProductionFiguresForBackup } from "@/lib/actions/production";
 
 export type SheetsBackupTab = {
   /** Titel van het tabblad in Google Sheets — moet uniek zijn. */
@@ -366,6 +367,27 @@ const monthlyActualsTab: SheetsBackupTab = {
   },
 };
 
+const productionFiguresTab: SheetsBackupTab = {
+  name: "Productiecijfers per productiemaand",
+  headers: ["Gebruiker", "Jaar", "Maand", "Metric", "Doel", "Behaald", "% behaald"],
+  fetchRows: async () => {
+    const rows = await getAllMonthlyProductionFiguresForBackup();
+    // Zelfde volgorde-conventie als de andere productiemaand-tabbladen
+    // (meest recent bovenaan); stabiele sort behoudt de gebruiker-/metric-
+    // volgorde binnen eenzelfde maand die de berekening al opleverde.
+    rows.sort((a, b) => b.year - a.year || b.month - a.month);
+    return rows.map((r) => [
+      r.userName,
+      r.year,
+      MONTH_LABELS[r.month - 1],
+      GOAL_METRIC_LABELS[r.metric],
+      fmtNumber(r.target),
+      fmtNumber(r.actual),
+      r.target > 0 ? Math.round((r.actual / r.target) * 100) : "",
+    ]);
+  },
+};
+
 const kpiGoalsTab: SheetsBackupTab = {
   name: "KPI-doelen jaarlijks",
   headers: ["Gebruiker", "Jaar", "KPI", "Streefwaarde"],
@@ -551,6 +573,7 @@ export const SHEETS_BACKUP_TABS: SheetsBackupTab[] = [
   productionMonthsTab,
   monthlyGoalsTab,
   monthlyActualsTab,
+  productionFiguresTab,
   kpiGoalsTab,
   kpiMonthlyEntriesTab,
   incentivesTab,
