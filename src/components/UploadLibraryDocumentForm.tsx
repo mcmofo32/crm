@@ -54,7 +54,7 @@ export function UploadLibraryDocumentForm({
           let blob;
           try {
             blob = await upload(currentFile.name, currentFile, {
-              access: "public",
+              access: "private",
               handleUploadUrl: "/api/library/upload",
             });
           } catch (error) {

@@ -130,8 +130,6 @@ export async function getLibraryDocuments(categoryIds?: string[]) {
       id: true,
       title: true,
       fileName: true,
-      fileUrl: true,
-      downloadUrl: true,
       mimeType: true,
       fileSize: true,
       createdAt: true,
