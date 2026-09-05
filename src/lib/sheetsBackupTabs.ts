@@ -348,6 +348,24 @@ const monthlyGoalsTab: SheetsBackupTab = {
   },
 };
 
+const monthlyActualsTab: SheetsBackupTab = {
+  name: "Handmatige cijfers per productiemaand",
+  headers: ["Gebruiker", "Jaar", "Maand", "Metric", "Waarde"],
+  fetchRows: async () => {
+    const actuals = await prisma.userMonthlyActual.findMany({
+      include: { user: { select: { name: true } } },
+      orderBy: [{ year: "desc" }, { month: "desc" }, { user: { name: "asc" } }],
+    });
+    return actuals.map((a) => [
+      a.user.name,
+      a.year,
+      MONTH_LABELS[a.month - 1],
+      GOAL_METRIC_LABELS[a.metric],
+      fmtNumber(a.value),
+    ]);
+  },
+};
+
 const kpiGoalsTab: SheetsBackupTab = {
   name: "KPI-doelen jaarlijks",
   headers: ["Gebruiker", "Jaar", "KPI", "Streefwaarde"],
@@ -532,6 +550,7 @@ export const SHEETS_BACKUP_TABS: SheetsBackupTab[] = [
   weeklyGoalsTab,
   productionMonthsTab,
   monthlyGoalsTab,
+  monthlyActualsTab,
   kpiGoalsTab,
   kpiMonthlyEntriesTab,
   incentivesTab,
