@@ -216,8 +216,6 @@ const policiesTab: SheetsBackupTab = {
     "Easy",
     "Tool",
     "RL",
-    "SA File",
-    "CC File",
     "Ingangsdatum",
     "Betaald",
   ],
@@ -241,8 +239,6 @@ const policiesTab: SheetsBackupTab = {
       fmtBool(p.easy),
       fmtBool(p.tool),
       fmtBool(p.rl),
-      fmtBool(p.saFile),
-      fmtBool(p.ccFile),
       fmtDate(p.ingangsdatum),
       fmtDate(p.betaaldOp),
     ]);
