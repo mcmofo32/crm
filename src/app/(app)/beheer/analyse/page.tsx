@@ -31,7 +31,19 @@ import {
 } from "@/lib/roleLabels";
 import { KPI_METRIC_LABELS } from "@/lib/goalLabels";
 import { isoWeeksOfYear } from "@/lib/productionMonth";
-import { Badge } from "@/components/Badge";
+import { Badge, type BadgeVariant } from "@/components/Badge";
+import type { IncentiveStatus } from "@/lib/incentiveMetrics";
+
+const INCENTIVE_OVERVIEW_STATUS_LABELS: Record<IncentiveStatus, string> = {
+  upcoming: "Binnenkort",
+  active: "Lopend",
+  ended: "Afgelopen",
+};
+const INCENTIVE_OVERVIEW_STATUS_VARIANT: Record<IncentiveStatus, BadgeVariant> = {
+  upcoming: "blue",
+  active: "green",
+  ended: "slate",
+};
 import { Avatar } from "@/components/Avatar";
 import { LineChart } from "@/components/analytics/LineChart";
 import { BarList, type BarListItem } from "@/components/analytics/BarList";
@@ -716,8 +728,8 @@ export default async function AnalysePage({
                     >
                       {incentive.title}
                     </Link>
-                    <Badge variant={incentive.isActive ? "green" : "slate"}>
-                      {incentive.isActive ? "Lopend" : "Afgelopen"}
+                    <Badge variant={INCENTIVE_OVERVIEW_STATUS_VARIANT[incentive.status]}>
+                      {INCENTIVE_OVERVIEW_STATUS_LABELS[incentive.status]}
                     </Badge>
                   </div>
                   <span className="text-sm text-slate-500">

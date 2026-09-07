@@ -15,6 +15,7 @@ import {
 import { isoWeeksOfYear } from "@/lib/productionMonth";
 import { computeIncentiveLeaderboard, type LeaderboardEntry } from "@/lib/actions/incentives";
 import { MONTH_LABELS } from "@/lib/goalLabels";
+import { getIncentiveStatus, type IncentiveStatus } from "@/lib/incentiveMetrics";
 
 async function requireBeheerder() {
   const viewer = await getEffectiveViewer();
@@ -945,7 +946,7 @@ export type IncentiveOverviewEntry = {
   title: string;
   startDate: Date;
   endDate: Date;
-  isActive: boolean;
+  status: IncentiveStatus;
   topEntries: LeaderboardEntry[];
   achievedCount: number;
   totalParticipants: number;
@@ -971,7 +972,7 @@ export async function getIncentiveOverview(): Promise<IncentiveOverviewEntry[]> 
         title: incentive.title,
         startDate: incentive.startDate,
         endDate: incentive.endDate,
-        isActive: incentive.startDate <= now && now <= incentive.endDate,
+        status: getIncentiveStatus(incentive.startDate, incentive.endDate, now),
         topEntries: leaderboard.slice(0, 3),
         achievedCount: leaderboard.filter((e) => e.achieved).length,
         totalParticipants: leaderboard.length,

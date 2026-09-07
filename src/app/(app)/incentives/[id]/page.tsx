@@ -7,13 +7,23 @@ import {
   deleteIncentiveAction,
   getIncentiveLeaderboard,
 } from "@/lib/actions/incentives";
-import { METRIC_LABELS } from "@/lib/incentiveMetrics";
+import {
+  METRIC_LABELS,
+  getIncentiveStatus,
+  INCENTIVE_STATUS_LABELS,
+} from "@/lib/incentiveMetrics";
 import { IncentiveMode } from "@/generated/prisma/client";
-import { Badge } from "@/components/Badge";
+import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 const MEDAL_COLORS = ["#eab308", "#94a3b8", "#b45309"];
+
+const STATUS_BADGE_VARIANT: Record<ReturnType<typeof getIncentiveStatus>, BadgeVariant> = {
+  upcoming: "blue",
+  active: "green",
+  ended: "slate",
+};
 
 const LEAD_TYPE_FILTER_LABELS: Record<string, string> = {
   FA: "Enkel Leads FA",
@@ -39,7 +49,7 @@ export default async function IncentiveDetailPage({
 
   const leaderboard = await getIncentiveLeaderboard(id);
   const now = new Date();
-  const isActive = now >= incentive.startDate && now <= incentive.endDate;
+  const status = getIncentiveStatus(incentive.startDate, incentive.endDate, now);
   const hasPoster = Boolean(incentive.posterMimeType);
   const isImage = incentive.posterMimeType?.startsWith("image/");
   const boundDelete = deleteIncentiveAction.bind(null, id);
@@ -64,8 +74,8 @@ export default async function IncentiveDetailPage({
             {incentive.createdBy.name}
           </p>
         </div>
-        <Badge variant={isActive ? "green" : "slate"} className="text-sm">
-          {isActive ? "Actief" : "Afgelopen"}
+        <Badge variant={STATUS_BADGE_VARIANT[status]} className="text-sm">
+          {INCENTIVE_STATUS_LABELS[status]}
         </Badge>
       </div>
 
