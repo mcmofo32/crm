@@ -222,6 +222,34 @@ export async function setUserInTrainingAction(userId: string, inTraining: boolea
   revalidatePath("/beheer/analyse");
 }
 
+/** Geeft wel/geen toegang tot het Management-tabblad in de Bibliotheek — los van rol. */
+export async function setUserManagementAction(userId: string, isManagement: boolean) {
+  const actor = await requireUserManager();
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, name: true },
+  });
+  if (!target) throw new Error("Gebruiker niet gevonden");
+  if (!canEditAccount(actor, target)) {
+    throw new Error("Je mag deze gebruiker niet beheren");
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { isManagement } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: isManagement ? "user.management_granted" : "user.management_revoked",
+    entityType: "User",
+    entityId: target.id,
+    description: `Gebruiker "${target.name}" ${
+      isManagement ? "kreeg toegang tot" : "verloor toegang tot"
+    } het Management-tabblad in de Bibliotheek`,
+  });
+
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/bibliotheek");
+}
+
 /**
  * Alle medewerkers, voor de Medewerkers-lijst — bekijken mag door eender
  * welke Beheerder/Admin (requireUserManager), ook van elkaar: enkel het
@@ -319,6 +347,7 @@ export async function getUserForEdit(userId: string) {
       teamId: true,
       active: true,
       inTraining: true,
+      isManagement: true,
       deletedAt: true,
       updatedAt: true,
       referralNumber: true,

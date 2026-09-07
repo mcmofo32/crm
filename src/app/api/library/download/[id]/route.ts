@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { get } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { getAllowedLibrarySections } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 
@@ -9,8 +10,8 @@ export const runtime = "nodejs";
  * Enige manier om een Bibliotheek-document effectief te downloaden — de blob
  * zelf staat in een private store (zie UploadLibraryDocumentForm), dus enkel
  * de server (met BLOB_READ_WRITE_TOKEN) kan de inhoud ophalen. Deze route
- * stroomt het bestand door naar wie ingelogd is, ongeacht rol (net als
- * getLibraryDocuments in lib/actions/library.ts).
+ * stroomt het bestand door naar wie toegang heeft tot de sectie van dit
+ * document (net als getLibraryDocuments in lib/actions/library.ts).
  */
 export async function GET(
   _req: Request,
@@ -22,9 +23,18 @@ export async function GET(
   }
 
   const { id } = await params;
-  const doc = await prisma.libraryDocument.findUnique({ where: { id } });
+  const doc = await prisma.libraryDocument.findUnique({
+    where: { id },
+    include: { category: { include: { tab: { select: { section: true } } } } },
+  });
   if (!doc) {
     return NextResponse.json({ error: "Document niet gevonden" }, { status: 404 });
+  }
+
+  // Zelfde grens als getLibraryDocuments — een directe download-link mag een
+  // Management/Subagent-document niet lekken naar wie dat tabblad niet ziet.
+  if (!getAllowedLibrarySections(viewer).includes(doc.category.tab.section)) {
+    return NextResponse.json({ error: "Geen toegang tot dit document" }, { status: 403 });
   }
 
   const result = await get(doc.blobPathname, { access: "private" });

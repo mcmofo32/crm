@@ -4,8 +4,19 @@ import { revalidatePath } from "next/cache";
 import { del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canViewBeheerderTools } from "@/lib/permissions";
+import { canViewBeheerderTools, getAllowedLibrarySections } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { LibrarySection } from "@/generated/prisma/client";
+
+/** Gooit een fout als `section` niet toegelaten is voor deze kijker (bv. rechtstreeks een Management-URL bezoeken zonder toegang). */
+async function requireLibrarySectionAccess(section: LibrarySection) {
+  const viewer = await getEffectiveViewer();
+  if (!viewer) throw new Error("Niet ingelogd");
+  if (!getAllowedLibrarySections(viewer).includes(section)) {
+    throw new Error("Je hebt geen toegang tot deze sectie van de Bibliotheek");
+  }
+  return viewer;
+}
 
 async function requireLibraryManager() {
   const viewer = await getEffectiveViewer();
@@ -16,12 +27,12 @@ async function requireLibraryManager() {
   return viewer;
 }
 
-/** Tabbladen + hun categorieën, voor de tabbalk bovenaan de Bibliotheek-pagina. */
-export async function getLibraryTabs() {
-  const viewer = await getEffectiveViewer();
-  if (!viewer) throw new Error("Niet ingelogd");
+/** Tabbladen + hun categorieën binnen één sectie, voor de mappenboom op de Bibliotheek-pagina. */
+export async function getLibraryTabs(section: LibrarySection = LibrarySection.ALGEMEEN) {
+  await requireLibrarySectionAccess(section);
 
   return prisma.libraryTab.findMany({
+    where: { section },
     orderBy: { order: "asc" },
     select: {
       id: true,
@@ -34,18 +45,23 @@ export async function getLibraryTabs() {
   });
 }
 
-export async function createLibraryTabAction(formData: FormData) {
+export async function createLibraryTabAction(section: LibrarySection, formData: FormData) {
   await requireLibraryManager();
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) throw new Error("Naam is verplicht");
 
-  const existing = await prisma.libraryTab.findUnique({ where: { name } });
-  if (existing) throw new Error(`Tabblad "${name}" bestaat al`);
+  const existing = await prisma.libraryTab.findUnique({
+    where: { section_name: { section, name } },
+  });
+  if (existing) throw new Error(`Map "${name}" bestaat al`);
 
-  const { _max } = await prisma.libraryTab.aggregate({ _max: { order: true } });
+  const { _max } = await prisma.libraryTab.aggregate({
+    where: { section },
+    _max: { order: true },
+  });
   await prisma.libraryTab.create({
-    data: { name, order: (_max.order ?? -1) + 1 },
+    data: { name, section, order: (_max.order ?? -1) + 1 },
   });
 
   revalidatePath("/bibliotheek");
@@ -115,17 +131,28 @@ export async function deleteLibraryCategoryAction(categoryId: string) {
 }
 
 /**
- * Iedereen die ingelogd is mag de bibliotheek raadplegen/downloaden.
- * `categoryIds` beperkt tot die categorieën (bv. alle categorieën van het
- * actieve tabblad, of net één specifiek gekozen categorie) — weggelaten
- * geeft alles terug.
+ * Documenten uit categorieën waar de kijker toegang toe heeft (zie
+ * getAllowedLibrarySections) — voor ALGEMEEN is dat iedereen die ingelogd is,
+ * voor MANAGEMENT/SUBAGENT enkel wie daar recht op heeft. `categoryIds`
+ * beperkt verder tot die categorieën (bv. alle categorieën van het actieve
+ * tabblad, of net één specifiek gekozen categorie) — weggelaten geeft alles
+ * terug waar toegang toe is.
  */
 export async function getLibraryDocuments(categoryIds?: string[]) {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
 
+  // Nooit enkel op het meegegeven categoryIds vertrouwen: een server-actie is
+  // rechtstreeks aan te roepen, dus dit filter is de effectieve grens die
+  // voorkomt dat iemand zonder Management/Subagent-toegang die documenten
+  // toch te zien krijgt door een categoryId te raden/kopiëren.
+  const allowedSections = getAllowedLibrarySections(viewer);
+
   return prisma.libraryDocument.findMany({
-    where: categoryIds ? { categoryId: { in: categoryIds } } : {},
+    where: {
+      ...(categoryIds ? { categoryId: { in: categoryIds } } : {}),
+      category: { tab: { section: { in: allowedSections } } },
+    },
     select: {
       id: true,
       title: true,

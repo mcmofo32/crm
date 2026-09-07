@@ -20,6 +20,8 @@ export type EffectiveViewer = {
   isImpersonating: boolean;
   /** Analyst (standaard) of subagent — bepaalt o.a. of deze gebruiker leads als klant mag afsluiten. */
   agentType: AgentType;
+  /** Geeft toegang tot het Management-tabblad in de Bibliotheek. */
+  isManagement: boolean;
 };
 
 function isViewableRole(value: string | undefined): value is Role {
@@ -48,6 +50,7 @@ const getFreshSessionUser = cache(async function getFreshSessionUser() {
       role: true,
       active: true,
       agentType: true,
+      isManagement: true,
       sessionInvalidatedAt: true,
     },
   });
@@ -89,6 +92,7 @@ export const getEffectiveViewer = cache(
       realRole,
       isImpersonating: role !== realRole,
       agentType: dbUser.agentType,
+      isManagement: dbUser.isManagement,
     };
   }
 );

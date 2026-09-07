@@ -44,6 +44,16 @@ enum AgentType {
   SUBAGENT
 }
 
+/// Welke sectie van de Bibliotheek een tabblad hoort bij — elke sectie heeft
+/// zijn eigen, onafhankelijke mappenstructuur. ALGEMEEN is voor iedereen die
+/// ingelogd is; MANAGEMENT/SUBAGENT enkel voor wie daar toegang toe heeft
+/// (zie canViewManagementLibrary/canViewSubagentLibrary in permissions.ts).
+enum LibrarySection {
+  ALGEMEEN
+  MANAGEMENT
+  SUBAGENT
+}
+
 model Team {
   id        String   @id @default(cuid())
   name      String
@@ -108,6 +118,10 @@ model User {
   /// verder een gewone, actieve gebruiker (kan inloggen, krijgt leads, komt
   /// voor op Medewerkers/Teams/Organigram).
   inTraining Boolean @default(false)
+
+  /// Management: geeft toegang tot het "Management"-tabblad in de
+  /// Bibliotheek (los van rol — een Beheerder/Admin ziet dat tabblad sowieso).
+  isManagement Boolean @default(false)
 
   /// Soft delete: het account zelf (en alle historiek die ernaar verwijst —
   /// activiteiten, audit log, ...) blijft bestaan, maar de gebruiker kan niet
@@ -913,10 +927,13 @@ model OfficeSettings {
 /// door Beheerder/Admin zelf aan te maken, niet vast in de code.
 model LibraryTab {
   id         String            @id @default(cuid())
-  name       String            @unique
+  name       String
+  section    LibrarySection    @default(ALGEMEEN)
   order      Int               @default(0)
   createdAt  DateTime          @default(now())
   categories LibraryCategory[]
+
+  @@unique([section, name])
 }
 
 /// Categorie binnen één tabblad, waaronder documenten gegroepeerd worden.
