@@ -4,6 +4,7 @@ import { LogOut, Eye, Bell } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData, canViewBeheerderTools } from "@/lib/permissions";
+import { Role } from "@/generated/prisma/client";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
 import { touchLoginActivity } from "@/lib/actions/sessions";
 import { logoutAction } from "@/lib/actions/auth";
@@ -21,7 +22,9 @@ export default async function AppLayout({
 }) {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
-  await touchLoginActivity(viewer.id);
+  // Altijd het echte account, nooit het bekeken-als-medewerker-id — anders
+  // zou Robins eigen navigatie als bv. Jef diens login-geschiedenis vervalsen.
+  await touchLoginActivity(viewer.realId);
 
   const viewerDetails = await prisma.user.findUnique({
     where: { id: viewer.id },
@@ -30,6 +33,18 @@ export default async function AppLayout({
   const photoUrl = viewerDetails?.avatarUpdatedAt
     ? `/api/users/${viewer.id}/avatar?v=${viewerDetails.avatarUpdatedAt.getTime()}`
     : null;
+
+  // Enkel voor de "Bekijk als medewerker"-lijst (zie ViewAsEmployeeModal) —
+  // op basis van realRole/realId, dus deze lijst blijft ook zichtbaar en
+  // correct terwijl je zelf al als iemand anders aan het kijken bent.
+  const employeesForImpersonation =
+    viewer.realRole === Role.BEHEERDER
+      ? await prisma.user.findMany({
+          where: { active: true, deletedAt: null, id: { not: viewer.realId } },
+          select: { id: true, name: true, role: true },
+          orderBy: { name: "asc" },
+        })
+      : [];
   // Enkel de eigen verlopen taken van de ingelogde gebruiker tellen mee voor
   // het badge-cijfer naast "Taken" — anders krijgt bv. een coach of
   // beheerder hier het totaal van zijn hele team te zien, wat aanvoelt als
@@ -140,6 +155,11 @@ export default async function AppLayout({
                 viewer={viewer}
                 jobFunction={viewerDetails?.jobFunction ?? null}
                 photoUrl={photoUrl}
+                employees={employeesForImpersonation.map((e) => ({
+                  id: e.id,
+                  name: e.name,
+                  roleLabel: ROLE_LABELS[e.role],
+                }))}
               />
               <form action={logoutAction}>
                 <button
@@ -159,9 +179,20 @@ export default async function AppLayout({
             <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-6 py-2.5 text-sm text-amber-800 lg:px-10">
               <span className="flex items-center gap-2">
                 <Eye size={16} />
-                Testomgeving: je bekijkt de CRM als{" "}
-                <strong>{ROLE_LABELS[viewer.role]}</strong> — dit is enkel een
-                voorbeeldweergave, je bent nog steeds ingelogd als jezelf.
+                {viewer.id !== viewer.realId ? (
+                  <>
+                    Je bekijkt de CRM als <strong>{viewer.name}</strong> — pagina&apos;s
+                    zoals Instellingen tonen diens eigen gegevens, en acties
+                    die je hier uitvoert worden aan hen toegeschreven.
+                  </>
+                ) : (
+                  <>
+                    Testomgeving: je bekijkt de CRM als{" "}
+                    <strong>{ROLE_LABELS[viewer.role]}</strong> — dit is enkel
+                    een voorbeeldweergave, je bent nog steeds ingelogd als
+                    jezelf.
+                  </>
+                )}
               </span>
               <ViewAsControls currentRole={viewer.role} isImpersonating inline />
             </div>
