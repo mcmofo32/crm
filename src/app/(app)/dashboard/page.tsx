@@ -8,6 +8,7 @@ import {
   Euro,
   Briefcase,
   Presentation,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -20,7 +21,7 @@ import {
   type EmployeeStats,
 } from "@/lib/actions/analytics";
 import { isBeheerder } from "@/lib/permissions";
-import { getYearlyKpiProgress } from "@/lib/actions/goals";
+import { getYearlyKpiProgress, computeMixedKpiPercent } from "@/lib/actions/goals";
 import {
   getProductionMonthGoalProgress,
   getGroupProductionMonthGoalProgress,
@@ -31,7 +32,7 @@ import {
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
-import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS } from "@/lib/goalLabels";
+import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MIXED_KPI_LABEL } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
@@ -145,6 +146,7 @@ export default async function DashboardPage({
     getProductionLeaderboard(currentProductionMonth.year, currentProductionMonth.month),
     getConversationsLeaderboard(),
   ]);
+  const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
 
   const activeTeam =
     allTeamOverviews?.find((t) => t.teamId === selectedTeamId) ??
@@ -318,6 +320,14 @@ export default async function DashboardPage({
               accent="amber"
             />
           ))}
+          <GoalCard
+            label={MIXED_KPI_LABEL}
+            percent={mixedKpiPercent}
+            icon={Gauge}
+            percentPosition="below"
+            accent="amber"
+            emptyLabel="Onvoldoende data"
+          />
         </div>
       </div>
 
@@ -498,17 +508,22 @@ function GoalCard({
   percentPosition,
   percentSize = "text-2xl",
   accent,
+  emptyLabel = "—",
 }: {
   label: string;
-  actual: number;
-  target: number;
+  /** Weglaten verbergt de "behaald / doel"-regel — voor een kaart die enkel een percentage toont (bv. een samengestelde KPI zonder eigen telling). */
+  actual?: number;
+  target?: number;
   percent: number | null;
   icon: LucideIcon;
   percentPosition: "below" | "beside";
   percentSize?: string;
   accent: keyof typeof GOAL_CARD_ACCENTS;
+  /** Getoond i.p.v. een percentage zolang percent null is (standaard een kale "—"). */
+  emptyLabel?: string;
 }) {
   const accentClasses = GOAL_CARD_ACCENTS[accent];
+  const hasCount = actual !== undefined && target !== undefined;
   return (
     <div
       className={`rounded-xl border border-slate-200 ${accentClasses.border} bg-white p-6 shadow-sm`}
@@ -526,19 +541,23 @@ function GoalCard({
             : "flex flex-col"
         }
       >
-        <p className="text-3xl font-semibold text-slate-900">
-          {formatValue(actual)}
-          <span className="text-lg font-normal text-slate-400">
-            {" "}
-            / {formatValue(target)}
-          </span>
-        </p>
+        {hasCount && (
+          <p className="text-3xl font-semibold text-slate-900">
+            {formatValue(actual)}
+            <span className="text-lg font-normal text-slate-400">
+              {" "}
+              / {formatValue(target)}
+            </span>
+          </p>
+        )}
         <p
-          className={`${percentSize} font-semibold ${percentColor(percent)} ${
-            percentPosition === "below" ? "mt-1" : ""
+          className={`${
+            percent === null ? "text-lg" : hasCount ? percentSize : "text-3xl"
+          } font-semibold ${percentColor(percent)} ${
+            percentPosition === "below" && hasCount ? "mt-1" : ""
           }`}
         >
-          {percent === null ? "—" : `${percent}%`}
+          {percent === null ? emptyLabel : `${percent}%`}
         </p>
       </div>
     </div>

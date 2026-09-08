@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageUsers, canAccessOwner } from "@/lib/permissions";
 import { KpiMetric, Role } from "@/generated/prisma/client";
-import { KPI_METRIC_ORDER, MANUAL_KPI_METRIC_ORDER } from "@/lib/goalLabels";
+import { KPI_METRIC_ORDER, KPI_WEIGHTS, MANUAL_KPI_METRIC_ORDER } from "@/lib/goalLabels";
 import { getEventAttendancePercent } from "@/lib/actions/events";
 import { getMonthlyGoalAchievements } from "@/lib/actions/production";
 
@@ -206,4 +206,20 @@ export async function getYearlyKpiProgress(
         target > 0 ? Math.round((achievedConversationsMonths / target) * 100) : null,
     };
   });
+}
+
+/**
+ * Gewogen gemiddelde van de 4 jaarlijkse KPI's (zie KPI_WEIGHTS) — enkel
+ * berekenbaar zodra alle 4 al minstens één gemeten periode hebben (anders
+ * `null`, i.p.v. een KPI zonder data stilzwijgend als 0% mee te tellen).
+ */
+export async function computeMixedKpiPercent(
+  rows: KpiProgress[]
+): Promise<number | null> {
+  if (rows.some((row) => row.percent === null)) return null;
+  const weighted = rows.reduce(
+    (sum, row) => sum + (row.percent as number) * KPI_WEIGHTS[row.metric],
+    0
+  );
+  return Math.round(weighted);
 }

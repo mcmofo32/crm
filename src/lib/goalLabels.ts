@@ -57,6 +57,16 @@ export const KPI_METRIC_ORDER: KpiMetric[] = [
  */
 export const MANUAL_KPI_METRIC_ORDER: KpiMetric[] = [];
 
+export const MIXED_KPI_LABEL = "Gemengde KPI";
+
+/** Gewicht van elke jaarlijkse KPI in de Gemengde KPI — moet optellen tot 1. */
+export const KPI_WEIGHTS: Record<KpiMetric, number> = {
+  CONVERSATIONS: 0.2,
+  PRODUCTION: 0.2,
+  CALLING_SESSION: 0.2,
+  SEMINAR: 0.4,
+};
+
 export const MONTH_LABELS = [
   "Januari",
   "Februari",
