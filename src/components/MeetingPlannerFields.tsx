@@ -113,14 +113,15 @@ export function MeetingPlannerFields({
       {(isAdviesgesprekType(meetingType) || isOpvolggesprekType(meetingType)) && (
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">
-            Subagent uitnodigen (optioneel, om te closen)
+            Subagent uitnodigen (verplicht)
           </label>
           <select
+            required
             value={value.subagentId}
             onChange={(e) => onChange({ ...value, subagentId: e.target.value })}
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           >
-            <option value="">Geen subagent</option>
+            <option value="">Kies subagent…</option>
             {subagents.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.teamName})

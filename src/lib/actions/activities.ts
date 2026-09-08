@@ -26,6 +26,8 @@ import {
   isPlanningStage,
   isRichMeetingType,
   isFollowUpStage,
+  isAdviesgesprekType,
+  isOpvolggesprekType,
   buildMeetingSubject,
 } from "@/lib/meetingPlanning";
 import { parseLocalDateTime, combineWithTimeOnSameLocalDay } from "@/lib/datetime";
@@ -482,6 +484,13 @@ export async function planStageMeetingAction(
     ? await prisma.subagent.findUnique({ where: { id: subagentId } })
     : null;
   if (subagentId && !subagent) return { error: "Subagent niet gevonden" };
+  if (
+    !subagentId &&
+    (isAdviesgesprekType(freshLead.stage.label) ||
+      isOpvolggesprekType(freshLead.stage.label))
+  ) {
+    return { error: "Duid een subagent aan om deze afspraak in te plannen" };
+  }
 
   // Zit er een subagent bij (bv. om het adviesgesprek te sluiten), dan voert
   // die het gesprek — zijn eigen Zoom-link komt dan in de afspraak, niet die
