@@ -31,6 +31,7 @@ import { normalizePhone, formatBelgianPhone } from "@/lib/duplicateUtils";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { contactState } from "@/lib/contactState";
 import { getSubagents } from "@/lib/actions/subagents";
+import { isAdviesgesprekType, isOpvolggesprekType } from "@/lib/meetingPlanning";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -430,7 +431,7 @@ export async function updateLeadStageAction(
   leadId: string,
   toStageId: string,
   notes?: string
-) {
+): Promise<{ error: string } | undefined> {
   const [user, lead, toStage] = await Promise.all([
     requireUser(),
     prisma.lead.findUnique({
@@ -439,16 +440,28 @@ export async function updateLeadStageAction(
     }),
     prisma.funnelStage.findUnique({ where: { id: toStageId } }),
   ]);
-  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!lead || lead.deletedAt) return { error: "Lead niet gevonden" };
   if (!(await canAccessLead(user, lead))) {
-    throw new Error("Geen toegang tot deze lead");
+    return { error: "Geen toegang tot deze lead" };
   }
 
   if (!toStage || toStage.leadType !== lead.leadType) {
-    throw new Error("Ongeldige funnel-stage");
+    return { error: "Ongeldige funnel-stage" };
   }
   if (toStage.isWon && !canManageCustomerData(user)) {
-    throw new Error("Enkel subagenten mogen een lead als klant afsluiten");
+    return { error: "Enkel subagenten mogen een lead als klant afsluiten" };
+  }
+  // Een Opvolggesprek is in essentie een tweede Adviesgesprek — dus enkel een
+  // subagent (die het gesprek zelf voert) mag een lead daarnaartoe
+  // verplaatsen, net als bij het effectief afsluiten als klant hierboven.
+  if (
+    isAdviesgesprekType(lead.stage.label) &&
+    isOpvolggesprekType(toStage.label) &&
+    !canManageCustomerData(user)
+  ) {
+    return {
+      error: "Enkel subagenten mogen een klant van Adviesgesprek naar Opvolggesprek zetten",
+    };
   }
 
   const status = toStage.isWon

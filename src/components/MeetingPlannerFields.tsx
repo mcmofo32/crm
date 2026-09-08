@@ -1,7 +1,11 @@
 "use client";
 
 import { Video, MapPin } from "lucide-react";
-import { isAdviesgesprekType, type MeetingPlannerValue } from "@/lib/meetingPlanning";
+import {
+  isAdviesgesprekType,
+  isOpvolggesprekType,
+  type MeetingPlannerValue,
+} from "@/lib/meetingPlanning";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 type SubagentOption = { id: string; name: string; teamName: string };
@@ -106,7 +110,7 @@ export function MeetingPlannerFields({
           : "Enkel zichtbaar als locatie op het agenda-item."}
       </p>
 
-      {isAdviesgesprekType(meetingType) && (
+      {(isAdviesgesprekType(meetingType) || isOpvolggesprekType(meetingType)) && (
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">
             Subagent uitnodigen (optioneel, om te closen)

@@ -12,6 +12,8 @@ const PLANNING_MEETING_TYPES = new Set([
   "adviesgesprek",
   "kennismakingsgesprek",
   "carrièregesprek",
+  // Een tweede adviesgesprek in alles behalve naam — zelfde rijke widget.
+  "opvolggesprek",
 ]);
 
 export function isPlanningStage(stageLabel: string) {
@@ -39,6 +41,11 @@ export function isAdviesgesprekType(meetingType: string) {
   return meetingTypeFromStageLabel(meetingType).toLowerCase() === "adviesgesprek";
 }
 
+/** Opvolggesprek is in alles behalve naam een tweede Adviesgesprek (zelfde widget, zelfde Van/Tot, zelfde e-mailprompt). */
+export function isOpvolggesprekType(meetingType: string) {
+  return meetingTypeFromStageLabel(meetingType).toLowerCase() === "opvolggesprek";
+}
+
 /** Bij Financiële analyse vragen we een e-mailadres als dat nog ontbreekt. */
 export function isFinancieleAnalyseType(meetingType: string) {
   return (
@@ -49,15 +56,23 @@ export function isFinancieleAnalyseType(meetingType: string) {
 /**
  * Fases waar we (optioneel, nooit verplicht — je wacht soms nog op het
  * e-mailadres) vragen om een e-mailadres toe te voegen als dat nog
- * ontbreekt: Financiële analyse en Adviesgesprek.
+ * ontbreekt: Financiële analyse, Adviesgesprek en Opvolggesprek.
  */
 export function wantsEmailPrompt(meetingType: string) {
-  return isFinancieleAnalyseType(meetingType) || isAdviesgesprekType(meetingType);
+  return (
+    isFinancieleAnalyseType(meetingType) ||
+    isAdviesgesprekType(meetingType) ||
+    isOpvolggesprekType(meetingType)
+  );
 }
 
 /** Onderwerpen die de rijke planning-widget (Van/Tot i.p.v. duurtijd) tonen. */
 export function isRichMeetingType(meetingType: string) {
-  return isAdviesgesprekType(meetingType) || isFinancieleAnalyseType(meetingType);
+  return (
+    isAdviesgesprekType(meetingType) ||
+    isFinancieleAnalyseType(meetingType) ||
+    isOpvolggesprekType(meetingType)
+  );
 }
 
 /**

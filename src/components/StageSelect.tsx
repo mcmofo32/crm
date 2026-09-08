@@ -140,7 +140,8 @@ export function StageSelect({
                 const followUpFormData = buildFollowUpCallFormData(followUpCall);
                 const trimmedEmail = emailInput.trim();
                 await runWithToast(async () => {
-                  await updateLeadStageAction(leadId, targetStageId, notes);
+                  const stageResult = await updateLeadStageAction(leadId, targetStageId, notes);
+                  if (stageResult?.error) throw new Error(stageResult.error);
                   if (trimmedEmail) {
                     await updateLeadEmailAction(leadId, trimmedEmail);
                   }

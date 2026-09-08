@@ -369,7 +369,8 @@ export function FunnelBoard({
     const followUpFormData = buildFollowUpCallFormData(followUpCall);
     startTransition(async () => {
       await runWithToast(async () => {
-        await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+        const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+        if (stageResult?.error) throw new Error(stageResult.error);
         if (trimmedEmail) {
           await updateLeadEmailAction(leadId, trimmedEmail);
         }
