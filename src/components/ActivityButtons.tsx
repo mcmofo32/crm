@@ -200,9 +200,8 @@ export function ActivityButtons({
         </select>
         <textarea
           name="notes"
-          required
           rows={2}
-          placeholder="Reden van wijziging (verplicht)"
+          placeholder="Reden van wijziging (optioneel)"
           className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
         />
         <div className="col-span-2 flex gap-2">

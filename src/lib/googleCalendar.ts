@@ -126,10 +126,13 @@ function buildEventBody(
   const end = new Date(start.getTime() + durationMinutes * 60_000);
   const leadName = `${lead.firstName} ${lead.lastName}`.trim();
 
-  // Afspraken vanuit de planning-widget dragen de leadnaam al in het
-  // onderwerp (bv. "18:00 - Financiële analyse Robin Ceuppens"), dus die
-  // hoeft dan niet nogmaals toegevoegd te worden aan de agenda-titel.
-  const summary = activity.meetingMode
+  // Afspraken vanuit de planning-widget (afspraak of terugbelmoment) dragen
+  // de leadnaam al in het onderwerp (via buildMeetingSubject, bv. "18:00 -
+  // Financiële analyse Robin Ceuppens"), dus die mag dan niet nogmaals
+  // toegevoegd worden aan de agenda-titel — vandaar deze check op de
+  // effectieve inhoud i.p.v. op meetingMode (dat bij een terugbelmoment,
+  // type CALL, niet gezet is, ook al bevat het onderwerp de naam al).
+  const summary = leadName && activity.subject.includes(leadName)
     ? activity.subject
     : `${activity.subject} — ${leadName}`;
 

@@ -310,9 +310,6 @@ export async function updateActivityAction(
   const { user, lead } = await requireLeadAccess(activity.leadId);
 
   const feedback = String(formData.get("notes") ?? "").trim();
-  if (!feedback) {
-    throw new Error("Geef aan waarom deze afspraak gewijzigd wordt");
-  }
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
   const scheduledAt = scheduledAtRaw ? parseLocalDateTime(scheduledAtRaw) : activity.scheduledAt;
@@ -322,7 +319,8 @@ export async function updateActivityAction(
     data: {
       type: (formData.get("type") as ActivityType) ?? activity.type,
       subject: String(formData.get("subject") ?? activity.subject),
-      notes: feedback,
+      // Leeg gelaten (nu optioneel) mag de bestaande notities niet wissen.
+      notes: feedback || activity.notes,
       scheduledAt,
       durationMinutes: Number(
         formData.get("durationMinutes") ?? activity.durationMinutes ?? 15
@@ -335,7 +333,9 @@ export async function updateActivityAction(
     action: "activity.updated",
     entityType: "Activity",
     entityId: activityId,
-    description: `Activiteit "${activity.subject}" bij lead "${lead.firstName} ${lead.lastName}" gewijzigd: ${feedback}`,
+    description: `Activiteit "${activity.subject}" bij lead "${lead.firstName} ${lead.lastName}" gewijzigd${
+      feedback ? `: ${feedback}` : ""
+    }`,
   });
 
   const assignee = await prisma.user.findUnique({
@@ -423,36 +423,49 @@ export async function cancelActivityAction(activityId: string) {
  * gezet; met Google Meet genereert Google zelf een meet-link op het
  * agenda-item.
  */
-export async function planStageMeetingAction(leadId: string, formData: FormData) {
+/**
+ * Server Actions redacten in productie de boodschap van elke fout die
+ * gegooid wordt (enkel een digest blijft over — zie updateUserAction in
+ * users.ts) — deze validatiefouten moeten de gebruiker net wél expliciet
+ * vertellen wat er mis is, dus die komen terug als { error } i.p.v. een
+ * throw. De aanroepers (FunnelBoard/StageSelect) zetten dit om in een
+ * gewone client-side Error, die runWithToast dan wél ongeschonden toont.
+ */
+export type PlanMeetingResult = { error: string } | undefined;
+
+export async function planStageMeetingAction(
+  leadId: string,
+  formData: FormData
+): Promise<PlanMeetingResult> {
   const { user, lead } = await requireLeadAccess(leadId);
 
   const freshLead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: { stage: true },
   });
-  if (!freshLead) throw new Error("Lead niet gevonden");
+  if (!freshLead) return { error: "Lead niet gevonden" };
   if (!isPlanningStage(freshLead.stage.label)) {
-    throw new Error(
-      "Een afspraak inplannen kan enkel in een '...ingepland'-fase"
-    );
+    return {
+      error: "Een afspraak inplannen kan enkel in een '...ingepland'-fase",
+    };
   }
 
   const assignee = await prisma.user.findUnique({
     where: { id: freshLead.ownerId },
     select: { zoomLink: true, ...GOOGLE_CALENDAR_USER_SELECT },
   });
-  if (!assignee) throw new Error("Eigenaar van deze lead niet gevonden");
+  if (!assignee) return { error: "Eigenaar van deze lead niet gevonden" };
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
-  if (!scheduledAtRaw) throw new Error("Kies een datum en uur voor de afspraak");
+  if (!scheduledAtRaw) return { error: "Kies een datum en uur voor de afspraak" };
   const scheduledAt = parseLocalDateTime(scheduledAtRaw);
 
   const endTimeRaw = String(formData.get("endTime") ?? "");
-  if (!endTimeRaw) throw new Error("Kies een einduur voor de afspraak");
+  if (!endTimeRaw) return { error: "Kies een einduur voor de afspraak" };
   const endAt = combineWithTimeOnSameLocalDay(scheduledAt, endTimeRaw);
   const durationMinutes = Math.round((endAt.getTime() - scheduledAt.getTime()) / 60_000);
   if (durationMinutes <= 0) {
-    throw new Error("Het einduur moet na het startuur liggen");
+    return { error: "Het einduur moet na het startuur liggen" };
   }
 
   const mode =
@@ -468,9 +481,10 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
   if (mode === MeetingMode.ONLINE && !useGoogleMeet) {
     meetingLink = assignee.zoomLink;
     if (!meetingLink) {
-      throw new Error(
-        "De eigenaar van deze lead heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag de eigenaar dit eerst in te stellen."
-      );
+      return {
+        error:
+          "De eigenaar van deze lead heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag de eigenaar dit eerst in te stellen.",
+      };
     }
   }
 
@@ -478,7 +492,7 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
   const subagent = subagentId
     ? await prisma.subagent.findUnique({ where: { id: subagentId } })
     : null;
-  if (subagentId && !subagent) throw new Error("Subagent niet gevonden");
+  if (subagentId && !subagent) return { error: "Subagent niet gevonden" };
 
   const subject = buildMeetingSubject(
     scheduledAt,
@@ -526,28 +540,29 @@ export async function planStageMeetingAction(leadId: string, formData: FormData)
  * die net als een afspraak automatisch in de Google Agenda van de eigenaar
  * komt te staan.
  */
-export async function planFollowUpCallAction(leadId: string, formData: FormData) {
+export async function planFollowUpCallAction(
+  leadId: string,
+  formData: FormData
+): Promise<PlanMeetingResult> {
   const { user, lead } = await requireLeadAccess(leadId);
 
   const freshLead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: { stage: true },
   });
-  if (!freshLead) throw new Error("Lead niet gevonden");
+  if (!freshLead) return { error: "Lead niet gevonden" };
   if (!isFollowUpStage(freshLead.stage.label)) {
-    throw new Error(
-      "Een terugbelmoment inplannen kan enkel in de fase 'Opvolging'"
-    );
+    return { error: "Een terugbelmoment inplannen kan enkel in de fase 'Opvolging'" };
   }
 
   const assignee = await prisma.user.findUnique({
     where: { id: freshLead.ownerId },
     select: GOOGLE_CALENDAR_USER_SELECT,
   });
-  if (!assignee) throw new Error("Eigenaar van deze lead niet gevonden");
+  if (!assignee) return { error: "Eigenaar van deze lead niet gevonden" };
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
-  if (!scheduledAtRaw) throw new Error("Kies een datum en uur voor het terugbelmoment");
+  if (!scheduledAtRaw) return { error: "Kies een datum en uur voor het terugbelmoment" };
   const scheduledAt = parseLocalDateTime(scheduledAtRaw);
 
   const subject = buildMeetingSubject(

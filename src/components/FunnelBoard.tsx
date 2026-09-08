@@ -374,10 +374,12 @@ export function FunnelBoard({
           await updateLeadEmailAction(leadId, trimmedEmail);
         }
         if (meetingFormData) {
-          await planStageMeetingAction(leadId, meetingFormData);
+          const result = await planStageMeetingAction(leadId, meetingFormData);
+          if (result?.error) throw new Error(result.error);
         }
         if (followUpFormData) {
-          await planFollowUpCallAction(leadId, followUpFormData);
+          const result = await planFollowUpCallAction(leadId, followUpFormData);
+          if (result?.error) throw new Error(result.error);
         }
         if (toStageIsWon && hasAnyProduct(products)) {
           await saveLeadProductsAction(leadId, buildProductsFormData(products));
