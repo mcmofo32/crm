@@ -16,6 +16,11 @@ import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType, Role } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
 
+// Nooit cachen/statisch renderen — een activiteit die elders (bv. vanuit de
+// Funnel/Leaddetail) afgerond wordt, moet hier meteen uit de openstaande
+// taken verdwijnen i.p.v. pas na een harde refresh.
+export const dynamic = "force-dynamic";
+
 /** Sentinelwaarde voor "iedereen die ik mag zien" (heel mijn team, of voor Admin/Beheerder alle medewerkers). */
 const GROUP_OPTION = "groep";
 

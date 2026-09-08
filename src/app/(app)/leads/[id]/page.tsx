@@ -32,6 +32,10 @@ import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
+// Nooit cachen/statisch renderen — een activiteit afronden/plannen moet hier
+// meteen zichtbaar zijn i.p.v. pas na een harde refresh.
+export const dynamic = "force-dynamic";
+
 const ACTIVITY_TYPE_ICONS: Record<string, LucideIcon> = {
   CALL: Phone,
   MEETING: CalendarClock,

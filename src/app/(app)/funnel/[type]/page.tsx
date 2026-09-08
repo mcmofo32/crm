@@ -10,6 +10,14 @@ import { FunnelBoard } from "@/components/FunnelBoard";
 import { getSubagents } from "@/lib/actions/subagents";
 import { ensureFunnelStages, funnelStageKeys } from "@/lib/funnelStages";
 
+// Nooit cachen/statisch renderen — een activiteit die hier (via een lead)
+// afgerond of verplaatst wordt, moet meteen correct blijven overal elders
+// (bv. Taken) i.p.v. pas na een harde refresh.
+export const dynamic = "force-dynamic";
+
+/** Sentinelwaarde voor "heel Structuur A" (alle leads van dit type, over alle medewerkers die deze kijker mag zien). */
+const ALL_OPTION = "structuur-a";
+
 export default async function FunnelPage({
   params,
   searchParams,
@@ -34,9 +42,11 @@ export default async function FunnelPage({
   const requiresSelection =
     assignableUsers.length > 1 || user.role === Role.COACH;
   const selectedOwnerId =
-    ownerId && assignableUsers.some((u) => u.id === ownerId)
+    ownerId === ALL_OPTION || (ownerId && assignableUsers.some((u) => u.id === ownerId))
       ? ownerId
       : user.id;
+  const isGroupView = selectedOwnerId === ALL_OPTION;
+  const groupOwnerIds = assignableUsers.map((u) => u.id);
 
   const ownerSwitcher = requiresSelection && (
     <form
@@ -50,6 +60,7 @@ export default async function FunnelPage({
         defaultValue={selectedOwnerId}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
+        <option value={ALL_OPTION}>Structuur A</option>
         {assignableUsers.map((u) => (
           <option key={u.id} value={u.id}>
             {u.id === user.id ? `${u.name} (jezelf)` : u.name}
@@ -85,11 +96,20 @@ export default async function FunnelPage({
         where: {
           deletedAt: null,
           OR: [
-            { ownerId: selectedOwnerId },
-            // Ook leads tonen waar deze persoon als subagent uitgenodigd is
-            // op een activiteit (bv. een adviesgesprek dat hij mee sluit),
-            // ook al is hij niet de eigenaar.
-            { activities: { some: { subagent: { userId: selectedOwnerId } } } },
+            { ownerId: isGroupView ? { in: groupOwnerIds } : selectedOwnerId },
+            // Ook leads tonen waar deze persoon (of, in de Structuur A-weergave,
+            // om het even wie in scope) als subagent uitgenodigd is op een
+            // activiteit (bv. een adviesgesprek dat hij mee sluit), ook al is
+            // hij niet de eigenaar.
+            {
+              activities: {
+                some: {
+                  subagent: {
+                    userId: isGroupView ? { in: groupOwnerIds } : selectedOwnerId,
+                  },
+                },
+              },
+            },
           ],
         },
         select: {
@@ -131,7 +151,7 @@ export default async function FunnelPage({
     where: {
       deletedAt: null,
       leadType: leadType as LeadType,
-      ownerId: selectedOwnerId,
+      ownerId: isGroupView ? { in: groupOwnerIds } : selectedOwnerId,
     },
     select: {
       id: true,
