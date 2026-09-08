@@ -477,22 +477,42 @@ export async function planStageMeetingAction(
   const useGoogleMeet =
     mode === MeetingMode.ONLINE && formData.get("useGoogleMeet") === "on";
 
-  let meetingLink: string | null = null;
-  if (mode === MeetingMode.ONLINE && !useGoogleMeet) {
-    meetingLink = assignee.zoomLink;
-    if (!meetingLink) {
-      return {
-        error:
-          "De eigenaar van deze lead heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag de eigenaar dit eerst in te stellen.",
-      };
-    }
-  }
-
   const subagentId = String(formData.get("subagentId") ?? "").trim() || null;
   const subagent = subagentId
     ? await prisma.subagent.findUnique({ where: { id: subagentId } })
     : null;
   if (subagentId && !subagent) return { error: "Subagent niet gevonden" };
+
+  // Zit er een subagent bij (bv. om het adviesgesprek te sluiten), dan voert
+  // die het gesprek — zijn eigen Zoom-link komt dan in de afspraak, niet die
+  // van de eigenaar van de lead (die vaak niet eens aanwezig is).
+  let meetingLink: string | null = null;
+  if (mode === MeetingMode.ONLINE && !useGoogleMeet) {
+    if (subagent) {
+      const subagentUser = subagent.userId
+        ? await prisma.user.findUnique({
+            where: { id: subagent.userId },
+            select: { zoomLink: true },
+          })
+        : null;
+      meetingLink = subagentUser?.zoomLink ?? null;
+      if (!meetingLink) {
+        return {
+          error: subagent.userId
+            ? `${subagent.name} heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag hen dit eerst in te stellen.`
+            : `${subagent.name} heeft geen Zoom-link beschikbaar (geen account). Kies Google Meet, of geef de link zelf door.`,
+        };
+      }
+    } else {
+      meetingLink = assignee.zoomLink;
+      if (!meetingLink) {
+        return {
+          error:
+            "De eigenaar van deze lead heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag de eigenaar dit eerst in te stellen.",
+        };
+      }
+    }
+  }
 
   const subject = buildMeetingSubject(
     scheduledAt,
