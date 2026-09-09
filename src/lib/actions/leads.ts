@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   ActivityStatus,
   ActivityType,
+  EmploymentStatus,
   LeadStatus,
   LeadType,
   Role,
@@ -28,6 +29,7 @@ import {
 } from "@/lib/funnelStages";
 import { findLeadsByContact } from "@/lib/actions/duplicates";
 import { normalizePhone, formatBelgianPhone } from "@/lib/duplicateUtils";
+import { EMPLOYMENT_STATUS_ORDER } from "@/lib/employmentStatus";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { contactState } from "@/lib/contactState";
 import { getSubagents } from "@/lib/actions/subagents";
@@ -529,7 +531,7 @@ export async function updateLeadStageAction(
   revalidatePath("/dashboard");
 }
 
-/** Wijzigt de contactgegevens van een bestaande lead (naam, e-mail, telefoon, bedrijf, bron, notities). */
+/** Wijzigt de contactgegevens van een bestaande lead (naam, e-mail, telefoon, bedrijf, beroep, statuut, bron, notities). */
 export async function updateLeadDetailsAction(leadId: string, formData: FormData) {
   const [user, lead] = await Promise.all([
     requireUser(),
@@ -546,6 +548,14 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
     throw new Error("Voornaam is verplicht");
   }
 
+  const employmentStatusRaw = String(formData.get("employmentStatus") ?? "").trim();
+  const employmentStatus = employmentStatusRaw
+    ? (employmentStatusRaw as EmploymentStatus)
+    : null;
+  if (employmentStatus && !EMPLOYMENT_STATUS_ORDER.includes(employmentStatus)) {
+    throw new Error("Kies een geldig statuut");
+  }
+
   await prisma.lead.update({
     where: { id: leadId },
     data: {
@@ -554,6 +564,8 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
       email: (formData.get("email") as string)?.trim() || null,
       phone: formatBelgianPhone((formData.get("phone") as string)?.trim() || null),
       company: (formData.get("company") as string)?.trim() || null,
+      job: (formData.get("job") as string)?.trim() || null,
+      employmentStatus,
       source: (formData.get("source") as string)?.trim() || null,
       notes: (formData.get("notes") as string) || null,
     },

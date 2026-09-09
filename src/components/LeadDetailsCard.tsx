@@ -4,6 +4,11 @@ import { useState, useTransition } from "react";
 import { Mail, Phone, Pencil } from "lucide-react";
 import { updateLeadDetailsAction } from "@/lib/actions/leads";
 import { FormToast } from "@/components/toast/FormToast";
+import {
+  EMPLOYMENT_STATUS_LABELS,
+  EMPLOYMENT_STATUS_ORDER,
+} from "@/lib/employmentStatus";
+import type { EmploymentStatus } from "@/generated/prisma/client";
 
 export function LeadDetailsCard({
   leadId,
@@ -11,6 +16,8 @@ export function LeadDetailsCard({
   lastName,
   email,
   phone,
+  job,
+  employmentStatus,
   source,
   notes,
 }: {
@@ -19,6 +26,8 @@ export function LeadDetailsCard({
   lastName: string;
   email: string | null;
   phone: string | null;
+  job: string | null;
+  employmentStatus: EmploymentStatus | null;
   source: string | null;
   notes: string | null;
 }) {
@@ -46,6 +55,27 @@ export function LeadDetailsCard({
           <div className="grid grid-cols-2 gap-3">
             <Field label="E-mail" name="email" type="email" defaultValue={email ?? ""} />
             <Field label="Telefoon" name="phone" type="tel" defaultValue={phone ?? ""} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Beroep" name="job" defaultValue={job ?? ""} />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="employmentStatus" className="text-slate-600">
+                Statuut
+              </label>
+              <select
+                id="employmentStatus"
+                name="employmentStatus"
+                defaultValue={employmentStatus ?? ""}
+                className="rounded-md border border-slate-300 px-3 py-2"
+              >
+                <option value="">Onbekend</option>
+                {EMPLOYMENT_STATUS_ORDER.map((status) => (
+                  <option key={status} value={status}>
+                    {EMPLOYMENT_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <Field label="Bron" name="source" defaultValue={source ?? ""} />
           <div className="flex flex-col gap-1">
@@ -98,6 +128,11 @@ export function LeadDetailsCard({
         <Row label="Achternaam" value={lastName} />
         <Row icon={Mail} label="E-mail" value={email} />
         <Row icon={Phone} label="Telefoon" value={phone} />
+        <Row label="Beroep" value={job} />
+        <Row
+          label="Statuut"
+          value={employmentStatus ? EMPLOYMENT_STATUS_LABELS[employmentStatus] : null}
+        />
         <Row label="Bron" value={source} />
       </dl>
       <div className="mt-3 border-t border-slate-100 pt-3">
