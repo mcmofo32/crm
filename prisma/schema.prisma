@@ -180,14 +180,14 @@ model User {
   /// Analyst (standaard) of subagent; subagenten krijgen een icoon op het organigram.
   agentType AgentType @default(ANALYST)
 
-  leadsOwned        Lead[]            @relation("LeadOwner")
-  leadsCreated      Lead[]            @relation("LeadCreatedBy")
-  leadsDeleted      Lead[]            @relation("LeadDeletedBy")
-  activities        Activity[]        @relation("ActivityAssignee")
-  stageChanges      LeadStageChange[] @relation("StageChangedBy")
-  incentivesCreated Incentive[]       @relation("IncentiveCreatedBy")
-  auditLogEntries   AuditLog[]        @relation("AuditActor")
-  loginEvents       LoginEvent[]      @relation("UserLoginEvents")
+  leadsOwned               Lead[]                    @relation("LeadOwner")
+  leadsCreated             Lead[]                    @relation("LeadCreatedBy")
+  leadsDeleted             Lead[]                    @relation("LeadDeletedBy")
+  activities               Activity[]                @relation("ActivityAssignee")
+  stageChanges             LeadStageChange[]         @relation("StageChangedBy")
+  incentivesCreated        Incentive[]               @relation("IncentiveCreatedBy")
+  auditLogEntries          AuditLog[]                @relation("AuditActor")
+  loginEvents              LoginEvent[]              @relation("UserLoginEvents")
   dismissedDuplicateGroups DismissedDuplicateGroup[] @relation("DuplicateGroupDismissedBy")
 
   goals             UserGoal[]            @relation("UserGoals")
@@ -321,6 +321,14 @@ enum LeadStatus {
   LOST
 }
 
+/// Beroepsstatuut van de lead/klant (bv. relevant voor VAPZ/IPT-advies).
+enum EmploymentStatus {
+  BEDIENDE
+  ZELFSTANDIGE
+  ARBEIDER
+  AMBTENAAR
+}
+
 enum TaxDeclarationStatus {
   DONE
   TODO
@@ -351,25 +359,29 @@ model FunnelStage {
 }
 
 model Lead {
-  id              String     @id @default(cuid())
-  firstName       String
-  lastName        String
-  email           String?
-  phone           String?
-  company         String?
-  leadType        LeadType
-  status          LeadStatus @default(OPEN)
-  source          String?
+  id               String            @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  company          String?
+  /// Beroep/functie van de lead (vrij invulveld).
+  job              String?
+  /// Beroepsstatuut van de lead (Bediende/Zelfstandige/Arbeider/Ambtenaar).
+  employmentStatus EmploymentStatus?
+  leadType         LeadType
+  status           LeadStatus        @default(OPEN)
+  source           String?
   /// Aangemaakt via "Leads in bulk toevoegen" (de Excel-achtige plak-tabel op
   /// /leads/bulk) — kan historische/al bestaande leads bevatten i.p.v. nieuw
   /// aangebrachte, dus telt niet mee in de Aanbevelingen/ABV-cijfers (zie
   /// production.ts).
-  bulkImported    Boolean @default(false)
-  notes           String?
-  value           Decimal?   @db.Decimal(10, 2)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  lastContactedAt DateTime?
+  bulkImported     Boolean           @default(false)
+  notes            String?
+  value            Decimal?          @db.Decimal(10, 2)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  lastContactedAt  DateTime?
 
   stageId String
   stage   FunnelStage @relation(fields: [stageId], references: [id])
@@ -443,23 +455,23 @@ enum ProductType {
 /// apart toegevoegd via "Contracten uit opvolging". Gebruikt voor het
 /// klantenoverzicht en voor de "aantal eenheden"-categorie bij incentives.
 model LeadProduct {
-  id        String      @id @default(cuid())
-  leadId    String
-  lead      Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  type      ProductType
-  amount    Decimal     @db.Decimal(10, 2)
-  units     Int         @default(0)
+  id           String      @id @default(cuid())
+  leadId       String
+  lead         Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type         ProductType
+  amount       Decimal     @db.Decimal(10, 2)
+  units        Int         @default(0)
   /// Datum van dit contract — bepaalt in welke productiemaand het meetelt
   /// (zie production.ts/analytics.ts/incentives.ts), los van `createdAt`
   /// (wanneer het record zelf aangemaakt werd). Voor een basisproduct
   /// standaard het moment dat de klant klant werd; voor een vervolgcontract
   /// vrij in te vullen (standaard vandaag).
-  contractDate DateTime  @default(now())
+  contractDate DateTime    @default(now())
   /// true = vervolgcontract uit opvolging (los van de vaste productenlijst
   /// per type op de Producten-kaart); false = basisproduct.
-  isFollowUp Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  isFollowUp   Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   /// Elk apart product/contract krijgt automatisch zijn eigen polis-lijn
   /// (zie Policy) zodra het toegevoegd wordt.
@@ -957,13 +969,13 @@ model LibraryCategory {
 /// database — enkel de URL naar Vercel Blob storage — zodat ook grote
 /// bestanden (uitgebreide presentaties, video) probleemloos werken.
 model LibraryDocument {
-  id       String @id @default(cuid())
-  title    String
-  fileName String
+  id           String   @id @default(cuid())
+  title        String
+  fileName     String
   /// Directe URL (toont bv. een PDF inline in de browser).
-  fileUrl  String
+  fileUrl      String
   /// Aparte URL die browsers altijd laat downloaden i.p.v. inline tonen (van Vercel Blob zelf).
-  downloadUrl String
+  downloadUrl  String
   /// Pad in Vercel Blob storage, nodig om het bestand te verwijderen (los van fileUrl).
   blobPathname String
   mimeType     String
