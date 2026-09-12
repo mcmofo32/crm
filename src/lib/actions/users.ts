@@ -9,6 +9,7 @@ import {
   canEditAccount,
   canChangeRole,
   canManageUsers,
+  isBeheerder,
   wouldCreateCoachCycle,
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
@@ -251,6 +252,47 @@ export async function setUserManagementAction(userId: string, isManagement: bool
 }
 
 /**
+ * Geeft, net als de Beheerder, toegang tot "Bekijk als medewerker" (volledige
+ * identiteitswissel naar een collega voor gericht support/troubleshooting) —
+ * los van rol. Anders dan de andere toggles hierboven (requireUserManager,
+ * ook voor een Admin) mag enkel de Beheerder zelf dit toekennen: het is een
+ * krachtiger recht dan bv. Management-tabbladtoegang, en wie het via deze
+ * vlag krijgt kan sowieso nooit een Beheerder/Admin bekijken (zie
+ * setViewAsUserAction), enkel Coach/User-rol-collega's.
+ */
+export async function setUserViewAsEmployeeAction(
+  userId: string,
+  canViewAsEmployee: boolean
+) {
+  const actor = await getEffectiveViewer();
+  if (!actor || !isBeheerder(actor)) {
+    throw new Error("Enkel de Beheerder kan dit recht toekennen");
+  }
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true },
+  });
+  if (!target) throw new Error("Gebruiker niet gevonden");
+
+  await prisma.user.update({ where: { id: userId }, data: { canViewAsEmployee } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: canViewAsEmployee
+      ? "user.view_as_employee_granted"
+      : "user.view_as_employee_revoked",
+    entityType: "User",
+    entityId: target.id,
+    description: `Gebruiker "${target.name}" ${
+      canViewAsEmployee ? "kreeg toegang tot" : "verloor toegang tot"
+    } "Bekijk als medewerker"`,
+  });
+
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath(`/beheer/gebruikers/${userId}`);
+}
+
+/**
  * Alle medewerkers, voor de Medewerkers-lijst — bekijken mag door eender
  * welke Beheerder/Admin (requireUserManager), ook van elkaar: enkel het
  * effectief *bewerken* van een Beheerder-account (en het aanpassen van een
@@ -348,6 +390,7 @@ export async function getUserForEdit(userId: string) {
       active: true,
       inTraining: true,
       isManagement: true,
+      canViewAsEmployee: true,
       deletedAt: true,
       updatedAt: true,
       referralNumber: true,

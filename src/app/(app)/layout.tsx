@@ -35,16 +35,25 @@ export default async function AppLayout({
     : null;
 
   // Enkel voor de "Bekijk als medewerker"-lijst (zie ViewAsEmployeeModal) —
-  // op basis van realRole/realId, dus deze lijst blijft ook zichtbaar en
-  // correct terwijl je zelf al als iemand anders aan het kijken bent.
-  const employeesForImpersonation =
-    viewer.realRole === Role.BEHEERDER
-      ? await prisma.user.findMany({
-          where: { active: true, deletedAt: null, id: { not: viewer.realId } },
-          select: { id: true, name: true, role: true },
-          orderBy: { name: "asc" },
-        })
-      : [];
+  // op basis van realRole/realId/realCanViewAsEmployee, dus deze lijst blijft
+  // ook zichtbaar en correct terwijl je zelf al als iemand anders aan het
+  // kijken bent. Wie dit recht niet als echte Beheerder heeft, ziet enkel
+  // Coach/User-rol-collega's (nooit een Beheerder/Admin) — zelfde grens als
+  // setViewAsUserAction hanteert, om rechtenescalatie uit te sluiten.
+  const employeesForImpersonation = viewer.realCanViewAsEmployee
+    ? await prisma.user.findMany({
+        where: {
+          active: true,
+          deletedAt: null,
+          id: { not: viewer.realId },
+          ...(viewer.realRole === Role.BEHEERDER
+            ? {}
+            : { role: { notIn: [Role.BEHEERDER, Role.ADMIN] } }),
+        },
+        select: { id: true, name: true, role: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
   // Enkel de eigen verlopen taken van de ingelogde gebruiker tellen mee voor
   // het badge-cijfer naast "Taken" — anders krijgt bv. een coach of
   // beheerder hier het totaal van zijn hele team te zien, wat aanvoelt als

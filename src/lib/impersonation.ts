@@ -33,6 +33,8 @@ export type EffectiveViewer = {
   agentType: AgentType;
   /** Geeft toegang tot het Management-tabblad in de Bibliotheek. */
   isManagement: boolean;
+  /** Mag "Bekijk als medewerker" gebruiken (Beheerder, of expliciet dit recht gekregen via User.canViewAsEmployee) — net als realId/realRole altijd op het echte, ingelogde account gebaseerd, nooit overschreven door een actieve "bekijk als". */
+  realCanViewAsEmployee: boolean;
 };
 
 function isViewableRole(value: string | undefined): value is Role {
@@ -62,6 +64,7 @@ const getFreshSessionUser = cache(async function getFreshSessionUser() {
       active: true,
       agentType: true,
       isManagement: true,
+      canViewAsEmployee: true,
       sessionInvalidatedAt: true,
     },
   });
@@ -93,9 +96,13 @@ export const getEffectiveViewer = cache(
     if (!dbUser) return null;
 
     const realRole = dbUser.role;
+    // Los van rol: de Beheerder heeft dit sowieso, verder enkel wie het
+    // recht expliciet gekregen heeft (zie setUserViewAsEmployeeAction).
+    const canViewAsEmployee =
+      realRole === Role.BEHEERDER || dbUser.canViewAsEmployee;
     const cookieStore = await cookies();
 
-    if (realRole === Role.BEHEERDER) {
+    if (canViewAsEmployee) {
       const viewAsUserId = cookieStore.get(VIEW_AS_USER_COOKIE)?.value;
       if (viewAsUserId) {
         const target = await prisma.user.findUnique({
@@ -111,8 +118,15 @@ export const getEffectiveViewer = cache(
           },
         });
         // Ongeldig of intussen gedeactiveerd doelwit: geruisloos terugvallen
-        // op de rol-cookie/eigen identiteit, i.p.v. crashen.
-        if (target?.active) {
+        // op de rol-cookie/eigen identiteit, i.p.v. crashen. Wie dit recht
+        // niet als echte Beheerder heeft, mag bovendien nooit een Beheerder/
+        // Admin bekijken — anders zou dit stilzwijgend rechtenescalatie
+        // worden i.p.v. enkel troubleshooting van een collega.
+        const targetIsTooPrivileged =
+          target &&
+          realRole !== Role.BEHEERDER &&
+          (target.role === Role.BEHEERDER || target.role === Role.ADMIN);
+        if (target?.active && !targetIsTooPrivileged) {
           return {
             id: target.id,
             name: target.name,
@@ -123,6 +137,7 @@ export const getEffectiveViewer = cache(
             isImpersonating: true,
             agentType: target.agentType,
             isManagement: target.isManagement,
+            realCanViewAsEmployee: canViewAsEmployee,
           };
         }
       }
@@ -142,6 +157,7 @@ export const getEffectiveViewer = cache(
       isImpersonating: role !== realRole,
       agentType: dbUser.agentType,
       isManagement: dbUser.isManagement,
+      realCanViewAsEmployee: canViewAsEmployee,
     };
   }
 );
@@ -173,8 +189,8 @@ export async function setViewAsUserAction(
   userId: string
 ): Promise<{ error: string } | undefined> {
   const dbUser = await getFreshSessionUser();
-  if (!dbUser || dbUser.role !== Role.BEHEERDER) {
-    return { error: "Enkel de Beheerder kan de CRM als een medewerker bekijken" };
+  if (!dbUser || !(dbUser.role === Role.BEHEERDER || dbUser.canViewAsEmployee)) {
+    return { error: "Je hebt geen toegang om de CRM als een medewerker te bekijken" };
   }
   if (userId === dbUser.id) {
     return { error: "Je bekijkt de CRM al als jezelf" };
@@ -182,10 +198,19 @@ export async function setViewAsUserAction(
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { active: true },
+    select: { active: true, role: true },
   });
   if (!target?.active) {
     return { error: "Medewerker niet gevonden of niet actief" };
+  }
+  // Wie dit recht niet als echte Beheerder heeft, mag enkel Coach/User-rol-
+  // medewerkers bekijken — anders zou dit stilzwijgend rechtenescalatie
+  // worden i.p.v. enkel troubleshooting van een collega.
+  if (
+    dbUser.role !== Role.BEHEERDER &&
+    (target.role === Role.BEHEERDER || target.role === Role.ADMIN)
+  ) {
+    return { error: "Je mag deze medewerker niet bekijken" };
   }
 
   const cookieStore = await cookies();

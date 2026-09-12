@@ -78,7 +78,7 @@ export function ProfileMenu({
   // Een Coach mag de doelen van zijn eigen medewerkers aanpassen, ook zonder
   // verder gebruikersbeheer te mogen (zie proxy.ts + requireEmployeeGoalManager).
   const showEmployeeGoals = showUserManagement || viewer.role === Role.COACH;
-  const canImpersonate = viewer.realRole === Role.BEHEERDER;
+  const canImpersonate = viewer.realCanViewAsEmployee;
   // Enkel gezet bij een volledige medewerker-wissel (id wijkt af van het
   // echte, ingelogde account) — niet bij een rol-voorbeeld (id blijft gelijk).
   const viewingAsName = viewer.id !== viewer.realId ? viewer.name : null;

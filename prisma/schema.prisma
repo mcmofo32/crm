@@ -123,6 +123,14 @@ model User {
   /// Bibliotheek (los van rol — een Beheerder/Admin ziet dat tabblad sowieso).
   isManagement Boolean @default(false)
 
+  /// Geeft, net als de Beheerder, toegang tot "Bekijk als medewerker" (volledige
+  /// identiteitswissel naar een actieve collega, voor gericht support/
+  /// troubleshooting) — los van rol, en enkel door de Beheerder zelf toe te
+  /// kennen. Wie dit recht via deze vlag heeft (dus zelf geen echte Beheerder
+  /// is) kan enkel Coach/User-rol-medewerkers bekijken, nooit een Beheerder/
+  /// Admin (zie setViewAsUserAction) — dat sluit stille rechtenescalatie uit.
+  canViewAsEmployee Boolean @default(false)
+
   /// Soft delete: het account zelf (en alle historiek die ernaar verwijst —
   /// activiteiten, audit log, ...) blijft bestaan, maar de gebruiker kan niet
   /// meer inloggen en verdwijnt uit alle keuzelijsten. Klanten/leads die deze

@@ -9,6 +9,7 @@ import {
   setUserActiveAction,
   setUserInTrainingAction,
   setUserManagementAction,
+  setUserViewAsEmployeeAction,
   getUserDeletionImpact,
   getReassignableUsers,
 } from "@/lib/actions/users";
@@ -85,6 +86,11 @@ export default async function EditUserPage({
   const boundToggleActive = setUserActiveAction.bind(null, id, !target.active);
   const boundToggleInTraining = setUserInTrainingAction.bind(null, id, !target.inTraining);
   const boundToggleManagement = setUserManagementAction.bind(null, id, !target.isManagement);
+  const boundToggleViewAsEmployee = setUserViewAsEmployeeAction.bind(
+    null,
+    id,
+    !target.canViewAsEmployee
+  );
   const boundForceLogout = forceLogoutUserAction.bind(null, id);
 
   return (
@@ -394,6 +400,32 @@ export default async function EditUserPage({
           </form>
         )}
       </div>
+
+      {isBeheerder(viewer) && !isSelf && (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-2 text-sm font-medium text-slate-900">
+            Bekijk als medewerker
+          </h2>
+          <p className="mb-3 text-sm text-slate-500">
+            {target.canViewAsEmployee
+              ? "Deze gebruiker mag, net als de Beheerder, de CRM als een collega bekijken (voor gericht support/troubleshooting). Kan zelf enkel Coach/User-rol-collega's bekijken, nooit een Beheerder/Admin."
+              : "Deze gebruiker mag de CRM niet als een collega bekijken (tenzij later via rol Beheerder)."}
+          </p>
+          <form action={boundToggleViewAsEmployee}>
+            <FormToast message="Status opgeslagen" />
+            <button
+              type="submit"
+              className={
+                target.canViewAsEmployee
+                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
+              }
+            >
+              {target.canViewAsEmployee ? "Toegang intrekken" : "Toegang geven"}
+            </button>
+          </form>
+        </div>
+      )}
 
       {isBeheerder(viewer) && (
         <div className="rounded-lg border border-slate-200 bg-white p-4">
