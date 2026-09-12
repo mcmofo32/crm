@@ -18,6 +18,7 @@ export function ViewAsControls({
   inline = false,
   employees = [],
   viewingAsName,
+  canPreviewRoles = false,
 }: {
   currentRole: Role;
   isImpersonating: boolean;
@@ -26,6 +27,8 @@ export function ViewAsControls({
   employees?: Employee[];
   /** Naam van de medewerker waarvan je nu het perspectief bekijkt — enkel gezet bij een volledige identiteitswissel (niet bij een rol-voorbeeld). */
   viewingAsName?: string | null;
+  /** Enkel een echte Beheerder mag een ROL-voorbeeld tonen (Admin/Coach/User) — wie enkel via canViewAsEmployee toegang kreeg, ziet enkel de medewerker-picker hieronder. */
+  canPreviewRoles?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
@@ -54,14 +57,14 @@ export function ViewAsControls({
         className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-60"
       >
         <RotateCcw size={14} />
-        Terug naar Beheerder
+        {viewingAsName ? "Terug naar mezelf" : "Terug naar Beheerder"}
       </button>
     );
   }
 
   return (
     <div className="flex flex-col gap-1">
-      {OPTIONS.map((role) => {
+      {canPreviewRoles && OPTIONS.map((role) => {
         // Bij een volledige medewerker-wissel is currentRole diens eigen rol
         // — kan toevallig overeenkomen met een van deze knoppen, maar dat is
         // dan geen rol-voorbeeld, dus niet als actief tonen.
@@ -100,7 +103,7 @@ export function ViewAsControls({
           className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-60"
         >
           <RotateCcw size={14} />
-          Terug naar Beheerder
+          {viewingAsName ? "Terug naar mezelf" : "Terug naar Beheerder"}
         </button>
       )}
       <ViewAsEmployeeModal

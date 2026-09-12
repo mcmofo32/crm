@@ -203,7 +203,12 @@ export default async function AppLayout({
                   </>
                 )}
               </span>
-              <ViewAsControls currentRole={viewer.role} isImpersonating inline />
+              <ViewAsControls
+                currentRole={viewer.role}
+                isImpersonating
+                inline
+                viewingAsName={viewer.id !== viewer.realId ? viewer.name : null}
+              />
             </div>
           </div>
         )}

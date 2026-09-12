@@ -125,6 +125,7 @@ export function ProfileMenu({
             isImpersonating={viewer.isImpersonating}
             employees={employees}
             viewingAsName={viewingAsName}
+            canPreviewRoles={viewer.realRole === Role.BEHEERDER}
           />
           <hr className="my-1.5 border-slate-100" />
         </>
