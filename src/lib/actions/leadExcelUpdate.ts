@@ -26,7 +26,6 @@ const FIRSTNAME_HEADERS = ["VOORNAAM", "FIRSTNAME", "FIRST NAME"];
 const LASTNAME_HEADERS = ["ACHTERNAAM", "LASTNAME", "LAST NAME"];
 const PHONE_HEADERS = ["NUMMER", "TELEFOON", "GSM", "PHONE", "TEL"];
 const EMAIL_HEADERS = ["EMAIL", "E-MAIL"];
-const DATE_HEADERS = ["DATUM GEKREGEN", "DATUM ONTVANGEN", "DATUM", "DATE"];
 const NOTES_HEADERS = [
   "NOTITIES",
   "NOTES",
@@ -234,11 +233,11 @@ async function parseAndMatch(file: File): Promise<
     const lastNameCol = findColumn(LASTNAME_HEADERS);
     const phoneCol = findColumn(PHONE_HEADERS);
     const emailCol = findColumn(EMAIL_HEADERS);
-    const dateCol = findColumn(DATE_HEADERS);
     const notesCol = findColumn(NOTES_HEADERS);
-    // De datum die overschreven moet worden staat altijd in de eerste kolom
-    // van het bestand, ongeacht de herkende kolomkop erboven.
-    const firstColumnIndex = 1;
+    // De datum die overschreven moet worden staat altijd letterlijk in kolom
+    // A — ongeacht de kolomkop erboven (geen kop-gebaseerde herkenning zoals
+    // bij naam/telefoon/email/notities hierboven).
+    const DATE_COLUMN_INDEX = 1;
 
     for (let rowNumber = headerRowNumber + 1; rowNumber <= sheet.rowCount; rowNumber++) {
       const row = sheet.getRow(rowNumber);
@@ -263,7 +262,7 @@ async function parseAndMatch(file: File): Promise<
       const displayName = `${firstName} ${lastName}`.trim();
       if (!firstName && !phone && !email) continue; // lege rij
 
-      const dateValue = cellToDate(row.getCell(dateCol ?? firstColumnIndex).value);
+      const dateValue = cellToDate(row.getCell(DATE_COLUMN_INDEX).value);
       const notesRaw = notesCol ? cellToString(row.getCell(notesCol).value) : "";
       const notes = notesRaw.trim() || null;
       const markLost = rowIsRed(row);
