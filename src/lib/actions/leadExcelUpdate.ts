@@ -406,6 +406,15 @@ export type LeadsExcelUpdateState = {
   }[];
   unmatched?: { row: number; sheet: string; name: string; reason: string }[];
   appliedCount?: number;
+  /** Grondwaarheid na het toepassen: wat er letterlijk in de database staat na elke update, rechtstreeks van de write zelf. */
+  confirmed?: {
+    row: number;
+    sheet: string;
+    name: string;
+    matchedLeadName: string;
+    dateAfterWrite: string;
+    statusAfterWrite: string;
+  }[];
   failed?: { row: number; sheet: string; name: string; reason: string }[];
 } | null;
 
@@ -463,39 +472,57 @@ export async function updateLeadsFromExcelAction(
 
   const now = new Date();
   const failed: { row: number; sheet: string; name: string; reason: string }[] = [];
+  // Ground truth: niet wat we DACHTEN te schrijven, maar wat er na de write
+  // echt in de database staat (rechtstreeks van de update-call zelf) — zo
+  // valt hier niets meer over te twijfelen, ook niet over caching elders.
+  const confirmed: {
+    row: number;
+    sheet: string;
+    name: string;
+    matchedLeadName: string;
+    dateAfterWrite: string;
+    statusAfterWrite: string;
+  }[] = [];
   let appliedCount = 0;
 
   for (const r of actionable) {
     try {
       const activityDate = r.dateValue ?? now;
-      await prisma.$transaction([
-        prisma.lead.update({
+      const updatedLead = await prisma.$transaction(async (tx) => {
+        const lead = await tx.lead.update({
           where: { id: r.matchedLeadId! },
           data: {
             ...(r.dateValue ? { createdAt: r.dateValue } : {}),
             ...(r.markLost ? { status: LeadStatus.LOST } : {}),
           },
-        }),
-        ...(r.notes
-          ? [
-              prisma.activity.create({
-                data: {
-                  leadId: r.matchedLeadId!,
-                  assigneeId: user.id,
-                  type: ActivityType.NOTE,
-                  status: ActivityStatus.COMPLETED,
-                  subject: r.markLost
-                    ? "Rapportering uit Excel-import (gemarkeerd als geen klant)"
-                    : "Rapportering uit Excel-import",
-                  notes: r.notes,
-                  scheduledAt: activityDate,
-                  completedAt: activityDate,
-                },
-              }),
-            ]
-          : []),
-      ]);
+        });
+        if (r.notes) {
+          await tx.activity.create({
+            data: {
+              leadId: r.matchedLeadId!,
+              assigneeId: user.id,
+              type: ActivityType.NOTE,
+              status: ActivityStatus.COMPLETED,
+              subject: r.markLost
+                ? "Rapportering uit Excel-import (gemarkeerd als geen klant)"
+                : "Rapportering uit Excel-import",
+              notes: r.notes,
+              scheduledAt: activityDate,
+              completedAt: activityDate,
+            },
+          });
+        }
+        return lead;
+      });
       appliedCount++;
+      confirmed.push({
+        row: r.row,
+        sheet: r.sheet,
+        name: r.name,
+        matchedLeadName: r.matchedLeadName!,
+        dateAfterWrite: updatedLead.createdAt.toISOString(),
+        statusAfterWrite: updatedLead.status,
+      });
       revalidatePath(`/leads/${r.matchedLeadId}`);
     } catch (err) {
       failed.push({
@@ -523,5 +550,12 @@ export async function updateLeadsFromExcelAction(
   revalidatePath("/pipeline/verkoop");
   revalidatePath("/pipeline/recrutering");
 
-  return { mode: "committed", diagnostics: parsed.diagnostics, appliedCount, failed, unmatched };
+  return {
+    mode: "committed",
+    diagnostics: parsed.diagnostics,
+    appliedCount,
+    confirmed,
+    failed,
+    unmatched,
+  };
 }

@@ -107,6 +107,42 @@ export function LeadsExcelUpdateForm() {
         </div>
       )}
 
+      {state?.confirmed && state.confirmed.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-slate-700">
+            Rechtstreeks uit de database, meteen na het schrijven:
+          </p>
+          <div className="max-h-[400px] overflow-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Rij</th>
+                  <th className="px-3 py-2 font-medium">Lead</th>
+                  <th className="px-3 py-2 font-medium">Aanmaakdatum na write</th>
+                  <th className="px-3 py-2 font-medium">Status na write</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.confirmed.map((c, i) => (
+                  <tr key={i}>
+                    <td className="whitespace-nowrap px-3 py-2 text-slate-400">
+                      {c.sheet} · {c.row}
+                    </td>
+                    <td className="px-3 py-2 font-medium text-slate-900">
+                      {c.matchedLeadName}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-medium text-slate-900">
+                      {formatDate(c.dateAfterWrite)}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">{c.statusAfterWrite}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {state?.diagnostics && state.diagnostics.length > 0 && (
         <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
           <p className="font-medium">Herkende datumkolom per tabblad:</p>
