@@ -600,6 +600,7 @@ export async function planFollowUpCallAction(
     freshLead.firstName,
     freshLead.lastName
   );
+  const notes = String(formData.get("notes") ?? "").trim() || null;
 
   const activity = await prisma.activity.create({
     data: {
@@ -607,6 +608,7 @@ export async function planFollowUpCallAction(
       assigneeId: freshLead.ownerId,
       type: ActivityType.CALL,
       subject,
+      notes,
       scheduledAt,
       durationMinutes: 30,
       status: ActivityStatus.PLANNED,
