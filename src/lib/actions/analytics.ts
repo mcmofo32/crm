@@ -1228,12 +1228,17 @@ export type EventAttendanceStats = {
   }[];
 };
 
-/** Effectieve aanwezigheidsratio (bevestigd door Beheerder/Admin) per evenement-type en per medewerker. */
+/**
+ * Effectieve aanwezigheidsratio (bevestigd door Beheerder/Admin) per
+ * evenement-type en per medewerker. Voedt dezelfde KPI-rapportage als
+ * `getKpiHeatmap(Weekly)` (Belsessie/Seminarie), dus dezelfde uitsluiting:
+ * wie in opleiding is telt hier niet in mee.
+ */
 export async function getEventAttendanceStats(): Promise<EventAttendanceStats> {
   await requireBeheerder();
 
   const attendances = await prisma.eventAttendance.findMany({
-    where: { actualStatus: { not: null } },
+    where: { actualStatus: { not: null }, user: { inTraining: false } },
     select: {
       actualStatus: true,
       user: { select: { id: true, name: true } },

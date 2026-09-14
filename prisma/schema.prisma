@@ -113,10 +113,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   /// In opleiding: telt niet mee in de productiecijfers/leaderboards/KPI-
-  /// heatmap (zie getProductionLeaderboard, getConversationsLeaderboard,
-  /// getRecommendationsLeaderboard, getKpiHeatmap(Weekly)), maar blijft
-  /// verder een gewone, actieve gebruiker (kan inloggen, krijgt leads, komt
-  /// voor op Medewerkers/Teams/Organigram).
+  /// heatmap/aanwezigheidsratio (zie getProductionLeaderboard,
+  /// getConversationsLeaderboard, getRecommendationsLeaderboard,
+  /// getKpiHeatmap(Weekly), getEventAttendanceStats), maar blijft verder een
+  /// gewone, actieve gebruiker (kan inloggen, krijgt leads, komt voor op
+  /// Medewerkers/Teams/Organigram).
   inTraining Boolean @default(false)
 
   /// Management: geeft toegang tot het "Management"-tabblad in de
