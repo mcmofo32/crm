@@ -43,9 +43,9 @@ function cellToString(value: unknown): string {
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     if (Array.isArray(obj.richText)) {
-      return (obj.richText as { text: string }[]).map((r) => r.text).join("");
+      return (obj.richText as { text: string }[]).map((r) => r.text).join("").trim();
     }
-    if (typeof obj.text === "string") return obj.text;
+    if (typeof obj.text === "string") return obj.text.trim();
     if ("result" in obj) return cellToString(obj.result);
   }
   return String(value).trim();
@@ -227,6 +227,18 @@ async function parseAndMatch(file: File): Promise<
       }
       return null;
     }
+    // Voor de datumkolom: een héle kop exact laten matchen ("DATUM GEKREGEN")
+    // bleek al bij een kleine variatie (bv. een andere formulering, of hoe
+    // Google Sheets' "Tabel"-kolomkoppen exporteren) niets te vinden. Zoekt
+    // daarom de eerste kolom waarvan de kop "DATUM" ergens bevat i.p.v. er
+    // exact aan gelijk moet zijn — vindt zo "Datum", "Datum gekregen",
+    // "Datum ontvangen", enz., ongeacht waar die kolom in het bestand staat.
+    function findColumnContaining(fragment: string): number | null {
+      for (const [header, col] of columnByHeader) {
+        if (header.includes(fragment)) return col;
+      }
+      return null;
+    }
 
     const fullNameCol = findColumn(NAME_HEADERS);
     const firstNameCol = findColumn(FIRSTNAME_HEADERS);
@@ -234,10 +246,9 @@ async function parseAndMatch(file: File): Promise<
     const phoneCol = findColumn(PHONE_HEADERS);
     const emailCol = findColumn(EMAIL_HEADERS);
     const notesCol = findColumn(NOTES_HEADERS);
-    // De datum die overschreven moet worden staat altijd letterlijk in kolom
-    // A — ongeacht de kolomkop erboven (geen kop-gebaseerde herkenning zoals
-    // bij naam/telefoon/email/notities hierboven).
-    const DATE_COLUMN_INDEX = 1;
+    // Laatste redmiddel als geen enkele kolomkop "datum" bevat: gewoon kolom
+    // A zelf proberen — beter dan helemaal geen datum lezen.
+    const dateCol = findColumnContaining("DATUM") ?? findColumnContaining("DATE") ?? 1;
 
     for (let rowNumber = headerRowNumber + 1; rowNumber <= sheet.rowCount; rowNumber++) {
       const row = sheet.getRow(rowNumber);
@@ -262,7 +273,7 @@ async function parseAndMatch(file: File): Promise<
       const displayName = `${firstName} ${lastName}`.trim();
       if (!firstName && !phone && !email) continue; // lege rij
 
-      const dateValue = cellToDate(row.getCell(DATE_COLUMN_INDEX).value);
+      const dateValue = cellToDate(row.getCell(dateCol).value);
       const notesRaw = notesCol ? cellToString(row.getCell(notesCol).value) : "";
       const notes = notesRaw.trim() || null;
       const markLost = rowIsRed(row);
