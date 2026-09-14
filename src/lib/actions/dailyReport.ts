@@ -49,11 +49,26 @@ export type DailyStageFlow = {
   byPerson: DailyPersonStageFlowRow[];
 };
 
+export type DailyNewLeadsRow = { teamName: string; total: number };
+export type DailyPersonNewLeadsRow = {
+  userId: string;
+  name: string;
+  teamName: string;
+  total: number;
+};
+/** Aanbevelingen/leads die op de gekozen dag nieuw aangemaakt zijn (createdAt), los van fase-wijzigingen. */
+export type DailyNewLeadsReport = {
+  rows: DailyNewLeadsRow[];
+  byPerson: DailyPersonNewLeadsRow[];
+};
+
 export type DailyReport = {
   periodStart: Date;
   periodEnd: Date;
   fa: DailyStageFlow;
   rg: DailyStageFlow;
+  newLeadsFa: DailyNewLeadsReport;
+  newLeadsRg: DailyNewLeadsReport;
 };
 
 async function buildStageFlow(
@@ -115,6 +130,57 @@ async function buildStageFlow(
 }
 
 /**
+ * Ontvangen aanbevelingen: hoeveel leads er op de gekozen dag nieuw
+ * aangemaakt zijn (createdAt) — los van wat er nadien met hun fase gebeurde.
+ * Bij een Excel-import telt de datum uit het bestand (die de aanmaakdatum
+ * overschrijft), niet de dag waarop de import zelf liep.
+ */
+async function buildNewLeadsReport(
+  leadType: LeadType,
+  start: Date,
+  end: Date
+): Promise<DailyNewLeadsReport> {
+  const leads = await prisma.lead.findMany({
+    where: { leadType, createdAt: { gte: start, lt: end }, deletedAt: null },
+    select: {
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          team: { select: { name: true } },
+          coachedTeam: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  const byTeam = new Map<string, number>();
+  const byPersonMap = new Map<string, { name: string; teamName: string; total: number }>();
+  for (const lead of leads) {
+    const teamName = lead.owner.team?.name ?? lead.owner.coachedTeam?.name ?? "Geen team";
+    byTeam.set(teamName, (byTeam.get(teamName) ?? 0) + 1);
+
+    const entry = byPersonMap.get(lead.owner.id) ?? {
+      name: lead.owner.name,
+      teamName,
+      total: 0,
+    };
+    entry.total += 1;
+    byPersonMap.set(lead.owner.id, entry);
+  }
+
+  const rows = Array.from(byTeam.entries())
+    .map(([teamName, total]) => ({ teamName, total }))
+    .sort((a, b) => b.total - a.total || a.teamName.localeCompare(b.teamName));
+
+  const byPerson = Array.from(byPersonMap.entries())
+    .map(([userId, entry]) => ({ userId, ...entry }))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+
+  return { rows, byPerson };
+}
+
+/**
  * Dagrapport: per team, hoeveel leads op de gekozen dag naar elke
  * funnel-fase verhuisden (bv. hoeveel nieuwe FA's ingepland, hoeveel
  * doorgestroomd naar Adviesgesprek, hoeveel Klant/Geen klant geworden).
@@ -167,7 +233,7 @@ export async function getDailyStageReport(date: Date): Promise<DailyReport> {
     },
   }));
 
-  const [fa, rg] = await Promise.all([
+  const [fa, rg, newLeadsFa, newLeadsRg] = await Promise.all([
     buildStageFlow(
       "FA",
       withTeamName.filter((c) => c.lead.leadType === "FA")
@@ -176,7 +242,9 @@ export async function getDailyStageReport(date: Date): Promise<DailyReport> {
       "RG",
       withTeamName.filter((c) => c.lead.leadType === "RG")
     ),
+    buildNewLeadsReport("FA", start, end),
+    buildNewLeadsReport("RG", start, end),
   ]);
 
-  return { periodStart: start, periodEnd: end, fa, rg };
+  return { periodStart: start, periodEnd: end, fa, rg, newLeadsFa, newLeadsRg };
 }

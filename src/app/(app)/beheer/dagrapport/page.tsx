@@ -3,7 +3,11 @@ import Link from "next/link";
 import { Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canViewBeheerderTools } from "@/lib/permissions";
-import { getDailyStageReport, type DailyStageFlow } from "@/lib/actions/dailyReport";
+import {
+  getDailyStageReport,
+  type DailyStageFlow,
+  type DailyNewLeadsReport,
+} from "@/lib/actions/dailyReport";
 import { BarList, type BarListItem } from "@/components/analytics/BarList";
 
 // Zelfde categorische kleuren als STAGE_COLORS op Analyse (al gevalideerd
@@ -112,8 +116,76 @@ export default async function DagrapportPage({
         </Link>
       </div>
 
+      <NewLeadsSection title="FA" report={report.newLeadsFa} />
       <StageFlowSection title="FA" flow={report.fa} />
+      <NewLeadsSection title="RG" report={report.newLeadsRg} />
       <StageFlowSection title="RG" flow={report.rg} />
+    </div>
+  );
+}
+
+/** Hoeveel leads/aanbevelingen er die dag nieuw binnenkwamen — los van wat er nadien met hun fase gebeurde (zie StageFlowSection hieronder). */
+function NewLeadsSection({
+  title,
+  report,
+}: {
+  title: string;
+  report: DailyNewLeadsReport;
+}) {
+  const grandTotal = report.rows.reduce((sum, r) => sum + r.total, 0);
+
+  const teamItems: BarListItem[] = report.rows.map((r, i) => ({
+    key: r.teamName,
+    label: r.teamName,
+    value: r.total,
+    displayValue: String(r.total),
+    color: STAGE_COLORS[i % STAGE_COLORS.length],
+  }));
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h2 className="text-xl font-medium text-slate-900">
+        Ontvangen aanbevelingen — {title}
+      </h2>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <p className="mb-3 text-sm font-medium text-slate-700">
+          Totaal nieuw toegevoegd vandaag: {grandTotal}
+        </p>
+        {grandTotal > 0 ? (
+          <BarList items={teamItems} />
+        ) : (
+          <p className="text-sm text-slate-400">Geen nieuwe aanbevelingen op deze dag.</p>
+        )}
+      </div>
+
+      {report.byPerson.length > 0 && (
+        <div>
+          <p className="mb-2 text-sm font-medium text-slate-500">Per medewerker</p>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Medewerker</th>
+                  <th className="px-4 py-3 font-medium">Team</th>
+                  <th className="px-3 py-3 text-center font-medium">Aantal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {report.byPerson.map((row) => (
+                  <tr key={row.userId} className="hover:bg-slate-50">
+                    <td className="px-4 py-2.5 font-medium text-slate-900">{row.name}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{row.teamName}</td>
+                    <td className="px-3 py-2.5 text-center font-semibold text-slate-900">
+                      {row.total}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
