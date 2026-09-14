@@ -78,11 +78,13 @@ function normalizeName(value: string): string {
 }
 
 /**
- * Is deze cel "rood" gemarkeerd? Kijkt naar een effectieve solid-fill kleur
- * i.p.v. één exacte hexwaarde te verwachten — Excel's ingebouwde "lichtrode
- * opvulling" (FFC7CE) en een gewone volle rode opvulling (FF0000) verschillen
- * flink in exacte tint, maar allebei "zien er rood uit": duidelijk meer rood
- * dan groen/blauw, en niet gewoon wit/grijs/zwart.
+ * Is deze cel "rood" gemarkeerd? Op kleurtoon (hue) gebaseerd i.p.v. enkel
+ * "rood-kanaal domineert" — dat laatste bleek ook oranje ("Voicemail") en
+ * geel te herkennen als rood, want die hebben óók een dominant rood-kanaal.
+ * Hue is onafhankelijk van hoe licht/donker/verzadigd de kleur is, dus dit
+ * herkent zowel een volle rode opvulling als een lichtrode/roze rij-highlight
+ * (bv. conditional formatting), maar laat oranje (~20-45°) en geel (~45-65°)
+ * er duidelijk buiten — enkel een smalle band rond zuiver rood (0°/360°).
  */
 function isReddishFill(cell: ExcelJS.Cell): boolean {
   const fill = cell.fill;
@@ -91,11 +93,23 @@ function isReddishFill(cell: ExcelJS.Cell): boolean {
   const argb = fgColor?.argb;
   if (!argb || argb.length < 6) return false;
   const hex = argb.slice(-6);
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
   if ([r, g, b].some((n) => Number.isNaN(n))) return false;
-  return r > 150 && r - g > 40 && r - b > 40;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  if (delta < 0.08) return false; // wit/grijs/zwart: nauwelijks kleurverschil
+
+  let hue: number;
+  if (max === r) hue = 60 * (((g - b) / delta) % 6);
+  else if (max === g) hue = 60 * ((b - r) / delta + 2);
+  else hue = 60 * ((r - g) / delta + 4);
+  if (hue < 0) hue += 360;
+
+  return hue >= 345 || hue <= 15;
 }
 
 function rowIsRed(row: ExcelJS.Row): boolean {
