@@ -15,6 +15,7 @@ import {
   Building2,
   Newspaper,
   GraduationCap,
+  FileSpreadsheet,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -141,6 +142,9 @@ export function ProfileMenu({
           </MenuLink>
           <MenuLink href="/beheer/fsma" icon={GraduationCap}>
             FSMA
+          </MenuLink>
+          <MenuLink href="/beheer/leads-bijwerken" icon={FileSpreadsheet}>
+            Leads bijwerken (Excel)
           </MenuLink>
         </>
       )}
