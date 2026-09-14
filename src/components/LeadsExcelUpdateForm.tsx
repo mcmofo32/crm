@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   updateLeadsFromExcelAction,
   type LeadsExcelUpdateState,
@@ -15,25 +15,38 @@ function formatDate(iso: string | null) {
 }
 
 export function LeadsExcelUpdateForm() {
-  const [state, formAction, pending] = useActionState<LeadsExcelUpdateState, FormData>(
+  const [state, dispatch, pending] = useActionState<LeadsExcelUpdateState, FormData>(
     updateLeadsFromExcelAction,
     null
   );
+  // Het bestand zelf bewaren i.p.v. te vertrouwen op de file-input: na een
+  // geslaagde form-actie herzet React een ongecontroleerd bestandsveld, dus
+  // bij de tweede klik ("Bevestigen") stond er anders geen bestand meer in
+  // — waardoor die stap altijd stil faalde (leeg bestand) i.p.v. effectief
+  // de aanpassingen door te voeren.
+  const [file, setFile] = useState<File | null>(null);
 
   const hasPreview = state?.mode === "preview";
   const changesCount = state?.matched?.length ?? 0;
 
+  function submit(intent: "preview" | "commit") {
+    if (!file) return;
+    const fd = new FormData();
+    fd.set("file", file);
+    fd.set("intent", intent);
+    dispatch(fd);
+  }
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-slate-700">
           Excel-bestand (.xlsx)
         </label>
         <input
           type="file"
-          name="file"
           accept=".xlsx,.xls"
-          required
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
         />
       </div>
@@ -46,20 +59,18 @@ export function LeadsExcelUpdateForm() {
 
       <div className="flex items-center gap-2">
         <button
-          type="submit"
-          name="intent"
-          value="preview"
-          disabled={pending}
+          type="button"
+          onClick={() => submit("preview")}
+          disabled={pending || !file}
           className="self-start rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
         >
           {pending ? "Bezig…" : "Voorbeeld bekijken"}
         </button>
         {hasPreview && changesCount > 0 && (
           <button
-            type="submit"
-            name="intent"
-            value="commit"
-            disabled={pending}
+            type="button"
+            onClick={() => submit("commit")}
+            disabled={pending || !file}
             className="self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             {pending
@@ -70,8 +81,7 @@ export function LeadsExcelUpdateForm() {
       </div>
       <p className="text-xs text-slate-400">
         Bekijk eerst het voorbeeld — er wordt pas iets aangepast in de
-        database nadat je op &quot;Bevestigen&quot; klikt. Kies daarna
-        hetzelfde bestand niet opnieuw, klik gewoon meteen op Bevestigen.
+        database nadat je op &quot;Bevestigen&quot; klikt.
       </p>
 
       {state?.mode === "committed" && (
@@ -192,6 +202,6 @@ export function LeadsExcelUpdateForm() {
           </ul>
         </details>
       )}
-    </form>
+    </div>
   );
 }
