@@ -17,14 +17,16 @@ export default async function LeadsExcelUpdatePage() {
           Upload een Excel-export (bv. vanuit Google Sheets) om bestaande
           leads bij te werken — er worden nooit nieuwe leads aangemaakt, enkel
           bestaande aangepast. Elke rij wordt gematcht op telefoonnummer, dan
-          e-mailadres, dan naam (enkel als die uniek is). Heeft de rij een
-          datum in de kolom &quot;Datum gekregen&quot; (of &quot;Datum&quot;),
-          dan wordt de aanmaakdatum van de lead daarmee overschreven. Is de
-          rij rood gemarkeerd, dan wordt de lead op &quot;geen klant&quot;
-          gezet. Staat er iets in de Notities-kolom, dan komt dat als
-          rapportering op de lead te staan. Herkende kolommen: Naam (of
-          Voornaam/Achternaam apart), Nummer, Email, Datum (gekregen),
-          Notities.
+          e-mailadres, dan naam. Matcht een naam op meerdere bestaande leads
+          (geen telefoon/email om ze te onderscheiden), dan wordt dezelfde rij
+          op elk van hen toegepast — meestal toch dubbels van dezelfde persoon
+          uit dezelfde oorspronkelijke import. Heeft de rij een datum in de
+          kolom &quot;Datum gekregen&quot; (of &quot;Datum&quot;), dan wordt
+          de aanmaakdatum van de lead daarmee overschreven. Is de rij rood
+          gemarkeerd, dan wordt de lead op &quot;geen klant&quot; gezet. Staat
+          er iets in de Notities-kolom, dan komt dat als rapportering op de
+          lead te staan. Herkende kolommen: Naam (of Voornaam/Achternaam
+          apart), Nummer, Email, Datum (gekregen), Notities.
         </p>
       </div>
 

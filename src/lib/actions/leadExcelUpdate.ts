@@ -155,16 +155,21 @@ type ParsedRow = {
   sheet: string;
   row: number;
   name: string;
-  matchedLeadId: string | null;
-  matchedLeadName: string | null;
+  /**
+   * Alle leads die deze rij matcht — normaal precies 1 (via telefoon, email
+   * of een unieke naam), leeg als niets matchte. Matcht de naam op meerdere
+   * bestaande leads (geen telefoon/email om ze te onderscheiden), dan staan
+   * ze hier allemaal in: dezelfde rij wordt dan op elk van hen toegepast
+   * i.p.v. te gokken welke ene bedoeld is — meestal toch dubbels van
+   * dezelfde persoon uit dezelfde oorspronkelijke import.
+   */
+  matchedLeads: ExistingLead[];
   matchedOn: "telefoon" | "email" | "naam" | null;
   skipReason: string | null;
   dateValue: Date | null;
   /** Ruwe tekst van de gelezen datumcel, vóór interpretatie — puur om in het voorbeeld te tonen wat er precies gelezen werd als het parsen toch faalt. */
   rawDateCell: string;
-  currentCreatedAt: string | null;
   markLost: boolean;
-  currentlyWon: boolean;
   notes: string | null;
 };
 
@@ -306,53 +311,36 @@ async function parseAndMatch(file: File): Promise<
 
       const normalizedPhone = normalizePhone(phone);
       const normalizedEmail = normalizeEmail(email);
-      let matched: ExistingLead | null = null;
+      let matchedLeads: ExistingLead[] = [];
       let matchedOn: ParsedRow["matchedOn"] = null;
       if (normalizedPhone && byPhone.has(normalizedPhone)) {
-        matched = byPhone.get(normalizedPhone)!;
+        matchedLeads = [byPhone.get(normalizedPhone)!];
         matchedOn = "telefoon";
       } else if (normalizedEmail && byEmail.has(normalizedEmail)) {
-        matched = byEmail.get(normalizedEmail)!;
+        matchedLeads = [byEmail.get(normalizedEmail)!];
         matchedOn = "email";
       } else if (displayName) {
         const candidates = byName.get(normalizeName(displayName));
-        if (candidates?.length === 1) {
-          matched = candidates[0];
+        if (candidates && candidates.length > 0) {
+          // Bij meerdere leads met exact dezelfde naam (geen telefoon/email
+          // om ze te onderscheiden) passen we dezelfde rij op elk van hen
+          // toe i.p.v. te gokken welke ene bedoeld is.
+          matchedLeads = candidates;
           matchedOn = "naam";
-        } else if (candidates && candidates.length > 1) {
-          rows.push({
-            sheet: sheet.name,
-            row: rowNumber,
-            name: displayName,
-            matchedLeadId: null,
-            matchedLeadName: null,
-            matchedOn: null,
-            skipReason: `naam komt bij ${candidates.length} leads voor (geen telefoon/email om te onderscheiden) — overgeslagen`,
-            dateValue,
-            rawDateCell,
-            currentCreatedAt: null,
-            markLost,
-            currentlyWon: false,
-            notes,
-          });
-          continue;
         }
       }
 
-      if (!matched) {
+      if (matchedLeads.length === 0) {
         rows.push({
           sheet: sheet.name,
           row: rowNumber,
           name: displayName || phone || email || "(geen naam)",
-          matchedLeadId: null,
-          matchedLeadName: null,
+          matchedLeads: [],
           matchedOn: null,
           skipReason: "geen bestaande lead gevonden (telefoon, email en naam komen niet overeen)",
           dateValue,
           rawDateCell,
-          currentCreatedAt: null,
           markLost,
-          currentlyWon: false,
           notes,
         });
         continue;
@@ -362,16 +350,13 @@ async function parseAndMatch(file: File): Promise<
       rows.push({
         sheet: sheet.name,
         row: rowNumber,
-        name: displayName || `${matched.firstName} ${matched.lastName}`,
-        matchedLeadId: matched.id,
-        matchedLeadName: `${matched.firstName} ${matched.lastName}`,
+        name: displayName || `${matchedLeads[0].firstName} ${matchedLeads[0].lastName}`,
+        matchedLeads,
         matchedOn,
         skipReason: nothingToDo ? "niets om aan te passen op deze rij" : null,
         dateValue,
         rawDateCell,
-        currentCreatedAt: matched.createdAt.toISOString(),
         markLost,
-        currentlyWon: matched.status === LeadStatus.WON,
         notes,
       });
     }
@@ -442,29 +427,48 @@ export async function updateLeadsFromExcelAction(
 
   // "unmatched" vat hier zowel een rij zonder gevonden lead als een rij die
   // wél matchte maar niets te wijzigen had (geen datum/rood/notities) — een
-  // matchedLeadId zonder skipReason is precies de "actionable" verzameling
-  // hieronder, dus alles met een skipReason hoort hier, ongeacht de reden.
+  // rij met matchedLeads zonder skipReason is precies de "actionable"
+  // verzameling hieronder, dus alles met een skipReason hoort hier, ongeacht
+  // de reden.
   const unmatched = parsed.rows
     .filter((r) => r.skipReason)
     .map((r) => ({ row: r.row, sheet: r.sheet, name: r.name, reason: r.skipReason! }));
-  const actionable = parsed.rows.filter((r) => r.matchedLeadId && !r.skipReason);
+  // Eén rij kan op meerdere leads matchen (zelfde naam, geen telefoon/email
+  // om te onderscheiden) — hier plat naar één item per (rij, lead)-paar, zo
+  // wordt exact dezelfde rij-data op elk van hen afzonderlijk toegepast.
+  const actionable = parsed.rows
+    .filter((r) => r.matchedLeads.length > 0 && !r.skipReason)
+    .flatMap((r) =>
+      r.matchedLeads.map((lead) => ({
+        row: r.row,
+        sheet: r.sheet,
+        name: r.name,
+        lead,
+        matchedOn: r.matchedOn!,
+        matchCount: r.matchedLeads.length,
+        dateValue: r.dateValue,
+        rawDateCell: r.rawDateCell,
+        markLost: r.markLost,
+        notes: r.notes,
+      }))
+    );
 
   if (intent === "preview") {
     return {
       mode: "preview",
       diagnostics: parsed.diagnostics,
-      matched: actionable.map((r) => ({
-        row: r.row,
-        sheet: r.sheet,
-        name: r.name,
-        matchedLeadName: r.matchedLeadName!,
-        matchedOn: r.matchedOn!,
-        dateFrom: r.currentCreatedAt,
-        dateTo: r.dateValue ? r.dateValue.toISOString() : null,
-        rawDateCell: r.rawDateCell,
-        markLost: r.markLost,
-        currentlyWon: r.currentlyWon,
-        notePreview: r.notes,
+      matched: actionable.map((a) => ({
+        row: a.row,
+        sheet: a.sheet,
+        name: a.name,
+        matchedLeadName: `${a.lead.firstName} ${a.lead.lastName}`,
+        matchedOn: a.matchCount > 1 ? `${a.matchedOn} (${a.matchCount}×)` : a.matchedOn,
+        dateFrom: a.lead.createdAt.toISOString(),
+        dateTo: a.dateValue ? a.dateValue.toISOString() : null,
+        rawDateCell: a.rawDateCell,
+        markLost: a.markLost,
+        currentlyWon: a.lead.status === LeadStatus.WON,
+        notePreview: a.notes,
       })),
       unmatched,
     };
@@ -485,28 +489,28 @@ export async function updateLeadsFromExcelAction(
   }[] = [];
   let appliedCount = 0;
 
-  for (const r of actionable) {
+  for (const a of actionable) {
     try {
-      const activityDate = r.dateValue ?? now;
+      const activityDate = a.dateValue ?? now;
       const updatedLead = await prisma.$transaction(async (tx) => {
         const lead = await tx.lead.update({
-          where: { id: r.matchedLeadId! },
+          where: { id: a.lead.id },
           data: {
-            ...(r.dateValue ? { createdAt: r.dateValue } : {}),
-            ...(r.markLost ? { status: LeadStatus.LOST } : {}),
+            ...(a.dateValue ? { createdAt: a.dateValue } : {}),
+            ...(a.markLost ? { status: LeadStatus.LOST } : {}),
           },
         });
-        if (r.notes) {
+        if (a.notes) {
           await tx.activity.create({
             data: {
-              leadId: r.matchedLeadId!,
+              leadId: a.lead.id,
               assigneeId: user.id,
               type: ActivityType.NOTE,
               status: ActivityStatus.COMPLETED,
-              subject: r.markLost
+              subject: a.markLost
                 ? "Rapportering uit Excel-import (gemarkeerd als geen klant)"
                 : "Rapportering uit Excel-import",
-              notes: r.notes,
+              notes: a.notes,
               scheduledAt: activityDate,
               completedAt: activityDate,
             },
@@ -516,19 +520,19 @@ export async function updateLeadsFromExcelAction(
       });
       appliedCount++;
       confirmed.push({
-        row: r.row,
-        sheet: r.sheet,
-        name: r.name,
-        matchedLeadName: r.matchedLeadName!,
+        row: a.row,
+        sheet: a.sheet,
+        name: a.name,
+        matchedLeadName: `${a.lead.firstName} ${a.lead.lastName}`,
         dateAfterWrite: updatedLead.createdAt.toISOString(),
         statusAfterWrite: updatedLead.status,
       });
-      revalidatePath(`/leads/${r.matchedLeadId}`);
+      revalidatePath(`/leads/${a.lead.id}`);
     } catch (err) {
       failed.push({
-        row: r.row,
-        sheet: r.sheet,
-        name: r.name,
+        row: a.row,
+        sheet: a.sheet,
+        name: a.name,
         reason: err instanceof Error ? err.message : "onbekende fout",
       });
     }
