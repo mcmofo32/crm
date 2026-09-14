@@ -24,6 +24,12 @@ function shiftMonth(year: number, month: number, delta: number) {
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
 }
 
+function formatWeekLabel(start: Date, end: Date) {
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("nl-BE", { day: "numeric", month: "short" });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
 function formatDate(date: Date) {
   return date.toLocaleDateString("nl-BE", {
     dateStyle: "medium",
@@ -38,11 +44,21 @@ export default async function ProductiePage({
     tab?: string;
     year?: string;
     month?: string;
+    weekOffset?: string;
+    aYear?: string;
+    aMonth?: string;
     structureId?: string;
   }>;
 }) {
-  const { tab, year: yearParam, month: monthParam, structureId } =
-    await searchParams;
+  const {
+    tab,
+    year: yearParam,
+    month: monthParam,
+    weekOffset: weekOffsetParam,
+    aYear: aYearParam,
+    aMonth: aMonthParam,
+    structureId,
+  } = await searchParams;
   const activeTab =
     tab === "gesprekken"
       ? "gesprekken"
@@ -61,6 +77,15 @@ export default async function ProductiePage({
   const isCurrentMonth = year === current.year && month === current.month;
   const next = shiftMonth(year, month, 1);
   const prev = shiftMonth(year, month, -1);
+  const weekOffset = weekOffsetParam ? Number(weekOffsetParam) || 0 : 0;
+  // Eigen jaar/maand voor het Aanbevelingen-tabblad i.p.v. het Productie-
+  // tabblad zijn `year`/`month` hergebruiken — anders verspringt Aanbevelingen
+  // stilzwijgend mee zodra je enkel op Productie van maand wisselt.
+  const aYear = aYearParam ? Number(aYearParam) : current.year;
+  const aMonth = aMonthParam ? Number(aMonthParam) : current.month;
+  const isCurrentAanbevelingenMonth = aYear === current.year && aMonth === current.month;
+  const aNext = shiftMonth(aYear, aMonth, 1);
+  const aPrev = shiftMonth(aYear, aMonth, -1);
   const canEditGoals = viewer ? canManageUsers(viewer) : false;
 
   const productionRows =
@@ -70,16 +95,14 @@ export default async function ProductiePage({
   const [conversationsRows, conversationsContext] =
     activeTab === "gesprekken"
       ? await Promise.all([
-          getConversationsLeaderboard(scopeUserIds),
-          getCurrentConversationsContext(),
+          getConversationsLeaderboard(scopeUserIds, weekOffset),
+          getCurrentConversationsContext(weekOffset),
         ])
       : [null, null];
 
-  // "Laatste productiemaand" — altijd de huidige, ongeacht welke maand op
-  // het Productie-tabblad eventueel bekeken wordt.
   const recommendationsRows =
     activeTab === "aanbevelingen"
-      ? await getRecommendationsLeaderboard(current.year, current.month, scopeUserIds)
+      ? await getRecommendationsLeaderboard(aYear, aMonth, scopeUserIds)
       : null;
 
   const conversationsTotals = conversationsRows
@@ -253,11 +276,35 @@ export default async function ProductiePage({
 
       {activeTab === "gesprekken" && conversationsRows && conversationsContext && (
         <>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/productie?tab=gesprekken&weekOffset=${weekOffset - 1}${structureSuffix}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronLeft size={16} />
+            </Link>
+            <span className="min-w-48 text-center text-base font-medium text-slate-900">
+              Week {formatWeekLabel(conversationsContext.weekStart, conversationsContext.weekEnd)}
+              {weekOffset === 0 && (
+                <span className="ml-1.5 text-xs font-normal text-slate-400">
+                  (huidige week)
+                </span>
+              )}
+            </span>
+            <Link
+              href={`/productie?tab=gesprekken&weekOffset=${weekOffset + 1}${structureSuffix}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+
           <p className="text-sm text-slate-400">
-            Deze week: {formatDate(conversationsContext.weekStart)} –{" "}
+            {formatDate(conversationsContext.weekStart)} –{" "}
             {formatDate(conversationsContext.weekEnd)} · doel afgeleid van het
             maandelijkse gesprekken-doel voor productiemaand{" "}
-            {String(conversationsContext.month).padStart(2, "0")}
+            {String(conversationsContext.month).padStart(2, "0")}/
+            {conversationsContext.year}
           </p>
 
           <div
@@ -266,7 +313,7 @@ export default async function ProductiePage({
           >
             <CijfersPosterHeader
               title="Cijfers — Gesprekken"
-              subtitle={`Deze week: ${formatDate(conversationsContext.weekStart)} – ${formatDate(conversationsContext.weekEnd)}`}
+              subtitle={`Week: ${formatDate(conversationsContext.weekStart)} – ${formatDate(conversationsContext.weekEnd)}${weekOffset === 0 ? " (huidige week)" : ""}`}
             />
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -363,9 +410,32 @@ export default async function ProductiePage({
 
       {activeTab === "aanbevelingen" && recommendationsRows && (
         <>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/productie?tab=aanbevelingen&aYear=${aPrev.year}&aMonth=${aPrev.month}${structureSuffix}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronLeft size={16} />
+            </Link>
+            <span className="min-w-40 text-center text-base font-medium text-slate-900">
+              Productiemaand {String(aMonth).padStart(2, "0")}
+              {isCurrentAanbevelingenMonth && (
+                <span className="ml-1.5 text-xs font-normal text-slate-400">
+                  (huidige)
+                </span>
+              )}
+            </span>
+            <Link
+              href={`/productie?tab=aanbevelingen&aYear=${aNext.year}&aMonth=${aNext.month}${structureSuffix}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+
           <p className="text-sm text-slate-400">
-            Productiemaand {String(current.month).padStart(2, "0")}/{current.year}{" "}
-            (huidige)
+            Productiemaand {String(aMonth).padStart(2, "0")}/{aYear}
+            {isCurrentAanbevelingenMonth && " (huidige)"}
           </p>
 
           <div
@@ -374,7 +444,7 @@ export default async function ProductiePage({
           >
             <CijfersPosterHeader
               title="Cijfers — Aanbevelingen"
-              subtitle={`Productiemaand ${String(current.month).padStart(2, "0")}/${current.year} (huidige)`}
+              subtitle={`Productiemaand ${String(aMonth).padStart(2, "0")}/${aYear}${isCurrentAanbevelingenMonth ? " (huidige)" : ""}`}
             />
             <div className="overflow-x-auto">
             <table className="w-full text-sm">

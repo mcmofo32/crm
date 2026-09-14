@@ -16,7 +16,11 @@ import {
   MONTHLY_GOAL_METRICS,
   MONTHLY_ACTUAL_METRICS,
 } from "@/lib/goalLabels";
-import { isoWeeksOfYear, type ProductionMonthConfigRow } from "@/lib/productionMonth";
+import {
+  isoWeeksOfYear,
+  resolveProductionMonth,
+  type ProductionMonthConfigRow,
+} from "@/lib/productionMonth";
 import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
 
 /**
@@ -200,14 +204,18 @@ export async function getAllProductionMonthConfigs(): Promise<
   });
 }
 
-/** Maandag 00:00 t.e.m. volgende maandag 00:00 (lokale tijd) van de huidige week. */
-function currentWeekRange() {
+/**
+ * Maandag 00:00 t.e.m. volgende maandag 00:00 (lokale tijd) van de huidige
+ * week, of `offsetWeeks` weken ervoor/erna (bv. 1 = volgende week, -1 =
+ * vorige week) — voor het doorbladeren van de Gesprekken-ranglijst.
+ */
+function currentWeekRange(offsetWeeks: number = 0) {
   const now = new Date();
   const day = now.getDay(); // 0 = zondag
   const diffToMonday = day === 0 ? -6 : 1 - day;
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() + diffToMonday);
+  start.setDate(start.getDate() + diffToMonday + offsetWeeks * 7);
   const end = new Date(start);
   end.setDate(end.getDate() + 7);
   return { start, end };
@@ -432,33 +440,44 @@ function weeksInRange(start: Date, end: Date) {
 }
 
 /**
- * Week (ma-zo) + productiemaand waarvan het maandelijkse gesprekken-doel
- * wordt afgeleid — voor weergave boven de Gesprekken-ranglijst.
+ * Week (ma-zo, `weekOffset` weken t.o.v. nu) + productiemaand waarin die
+ * week valt (zie `resolveProductionMonth`) — voor weergave boven de
+ * Gesprekken-ranglijst.
  */
-export async function getCurrentConversationsContext() {
-  const week = currentWeekRange();
-  const { year, month } = await getCurrentProductionMonth();
+export async function getCurrentConversationsContext(weekOffset: number = 0) {
+  const week = currentWeekRange(weekOffset);
+  const configs = await prisma.productionMonth.findMany({
+    select: { year: true, month: true, startDate: true, endDate: true },
+  });
+  const { year, month } = resolveProductionMonth(week.start, configs);
   return {
     weekStart: week.start,
     weekEnd: new Date(week.end.getTime() - 1),
     year,
     month,
+    weekOffset,
   };
 }
 
 /**
  * Het wekelijkse gesprekken-doel is afgeleid van het maandelijkse
- * Gesprekken-doel voor de huidige productiemaand (`UserMonthlyGoal`),
- * verdeeld over het aantal weken dat die productiemaand beslaat — zo weet
- * je hoeveel je die week effectief moet inplannen.
+ * Gesprekken-doel voor de productiemaand waarin de bekeken week valt
+ * (`UserMonthlyGoal`), verdeeld over het aantal weken dat die productiemaand
+ * beslaat — zo weet je hoeveel je die week effectief moet inplannen.
+ * `weekOffset` (bv. 1 = volgende week, -1 = vorige week) laat toe ook andere
+ * weken te bekijken dan de huidige.
  */
 export async function getConversationsLeaderboard(
   /** Beperkt de ranglijst tot deze gebruikers (bv. een gekozen substructuur) — `null`/weggelaten = iedereen. */
-  scopeUserIds?: string[] | null
+  scopeUserIds?: string[] | null,
+  weekOffset: number = 0
 ): Promise<ConversationsRow[]> {
   await requireViewer();
-  const week = currentWeekRange();
-  const { year, month } = await getCurrentProductionMonth();
+  const week = currentWeekRange(weekOffset);
+  const configs = await prisma.productionMonth.findMany({
+    select: { year: true, month: true, startDate: true, endDate: true },
+  });
+  const { year, month } = resolveProductionMonth(week.start, configs);
   const { start: monthStart, end: monthEnd } = await getProductionMonthRange(
     year,
     month
