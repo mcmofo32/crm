@@ -25,7 +25,7 @@ import {
 } from "@/lib/actions/pipeline";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canManageCustomerData } from "@/lib/permissions";
+import { canManageCustomerData, canManageUsers } from "@/lib/permissions";
 import { Role } from "@/generated/prisma/client";
 import { getSubagents } from "@/lib/actions/subagents";
 import { ensureFunnelStages, funnelStageKeys } from "@/lib/funnelStages";
@@ -38,6 +38,8 @@ import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 const TYPE_MAP = { verkoop: "FA", recrutering: "RG" } as const;
 const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline Rekrutering" } as const;
+/** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. Nodig om bv. een lead van een intussen inactieve (dus niet meer los kiesbare) medewerker toch te kunnen terugvinden. */
+const ALL_OPTION = "alles";
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
@@ -199,10 +201,19 @@ export default async function PipelinePage({
   // balk tonen zodra er meer dan enkel jezelf te kiezen valt.
   const requiresSelection =
     assignableUsers.length > 1 || user.role === Role.COACH;
-  const selectedOwnerId =
-    ownerId && assignableUsers.some((u) => u.id === ownerId)
-      ? ownerId
-      : user.id;
+  const canViewEveryone = canManageUsers(user);
+  const showAll = canViewEveryone && ownerId === ALL_OPTION;
+  // ownerParam is altijd een concrete string, voor de select/URL-parameters;
+  // selectedOwnerId is wat effectief naar de queries gaat — undefined bij
+  // "Iedereen", zodat die daar helemaal geen eigenaar-filter toepassen
+  // (nodig om bv. een lead van een intussen inactieve medewerker, die niet
+  // meer los kiesbaar is in de lijst hieronder, toch te kunnen terugvinden).
+  const ownerParam: string = showAll
+    ? ALL_OPTION
+    : ownerId && assignableUsers.some((u) => u.id === ownerId)
+    ? ownerId
+    : user.id;
+  const selectedOwnerId: string | undefined = showAll ? undefined : ownerParam;
 
   const ownerSwitcher = requiresSelection && (
     <form
@@ -213,9 +224,10 @@ export default async function PipelinePage({
       <label className="text-sm text-slate-600">Bekijk pipeline van:</label>
       <select
         name="ownerId"
-        defaultValue={selectedOwnerId}
+        defaultValue={ownerParam}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
+        {canViewEveryone && <option value={ALL_OPTION}>Iedereen</option>}
         {assignableUsers.map((u) => (
           <option key={u.id} value={u.id}>
             {u.id === user.id ? `${u.name} (jezelf)` : u.name}
@@ -236,7 +248,7 @@ export default async function PipelinePage({
   function categoryHref(c: "alle" | PipelineCategoryFilter) {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (requiresSelection) params.set("ownerId", selectedOwnerId);
+    if (requiresSelection) params.set("ownerId", ownerParam);
     params.set("view", c);
     const qs = params.toString();
     return `/pipeline/${type}?${qs}`;
@@ -245,7 +257,7 @@ export default async function PipelinePage({
   function sortHref(key: SortKey) {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (requiresSelection) params.set("ownerId", selectedOwnerId);
+    if (requiresSelection) params.set("ownerId", ownerParam);
     params.set("view", resolvedView);
     params.set("sort", key);
     params.set(
@@ -349,7 +361,7 @@ export default async function PipelinePage({
       <div className="flex flex-wrap items-center gap-3">
         <form method="GET" className="flex w-full items-center gap-2 sm:w-auto">
           {requiresSelection && (
-            <input type="hidden" name="ownerId" value={selectedOwnerId} />
+            <input type="hidden" name="ownerId" value={ownerParam} />
           )}
           <input type="hidden" name="view" value={resolvedView} />
           <div className="relative w-full sm:w-auto">

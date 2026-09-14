@@ -58,6 +58,8 @@ function formatAmount(amount: number) {
 
 /** Voorvoegsel om een team/structuur-optie te onderscheiden van een individuele gebruiker in "Bekijk klanten van". */
 const TEAM_PREFIX = "team:";
+/** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. Nodig om bv. een klant van een intussen inactieve (dus niet meer los kiesbare) medewerker toch te kunnen terugvinden. */
+const ALL_OPTION = "alles";
 
 export default async function KlantenPage({
   searchParams,
@@ -95,11 +97,14 @@ export default async function KlantenPage({
   const canViewOthersCustomers = canManageUsers(viewer);
   const requiresSelection =
     canViewOthersCustomers && (assignableUsers.length > 1 || teams.length > 0);
+  const showAll = canViewOthersCustomers && ownerId === ALL_OPTION;
   const selectedTeam = canViewOthersCustomers
     ? teams.find((t) => `${TEAM_PREFIX}${t.id}` === ownerId)
     : undefined;
   const selectedOwnerId = selectedTeam
     ? `${TEAM_PREFIX}${selectedTeam.id}`
+    : showAll
+    ? ALL_OPTION
     : canViewOthersCustomers && ownerId && assignableUsers.some((u) => u.id === ownerId)
     ? ownerId
     : viewer.id;
@@ -112,6 +117,11 @@ export default async function KlantenPage({
         ...(await getDescendantUserIds(selectedTeam.coachId)),
       ]
     : undefined;
+  // Voor de eigenlijke queries hieronder: "Iedereen" of een team geeft geen
+  // ownerId mee (resp. helemaal geen eigenaar-filter, of ownerIds hierboven)
+  // — selectedOwnerId zelf blijft wel de "alles"-sentinel/team-prefix, voor
+  // de select/URL-parameters verderop.
+  const queryOwnerId = showAll || selectedOwnerIds ? undefined : selectedOwnerId;
 
   function clearFiltersHref() {
     const params = new URLSearchParams();
@@ -138,6 +148,7 @@ export default async function KlantenPage({
         defaultValue={selectedOwnerId}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
+        <option value={ALL_OPTION}>Iedereen</option>
         {assignableUsers.map((u) => (
           <option key={u.id} value={u.id}>
             {u.id === viewer.id ? `${u.name} (jezelf)` : u.name}
@@ -162,7 +173,7 @@ export default async function KlantenPage({
     customerId
       ? getCustomersForCurrentUser({ leadId: customerId })
       : getCustomersForCurrentUser({
-          ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
+          ownerId: queryOwnerId,
           ownerIds: selectedOwnerIds,
           search: q,
           productType,
@@ -171,7 +182,7 @@ export default async function KlantenPage({
           sortBy,
         }),
     getCustomerStats(monthPeriod, yearPeriod, {
-      ownerId: selectedOwnerIds ? undefined : selectedOwnerId,
+      ownerId: queryOwnerId,
       ownerIds: selectedOwnerIds,
     }),
   ]);
