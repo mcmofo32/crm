@@ -107,6 +107,20 @@ export function LeadsExcelUpdateForm() {
         </div>
       )}
 
+      {state?.diagnostics && state.diagnostics.length > 0 && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          <p className="font-medium">Herkende datumkolom per tabblad:</p>
+          <ul className="mt-1 list-inside list-disc">
+            {state.diagnostics.map((d, i) => (
+              <li key={i}>
+                &quot;{d.sheet}&quot;: kolom {d.dateColumnIndex} (koptekst:
+                &quot;{d.dateColumnHeader}&quot;), koppenrij {d.headerRowNumber}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {hasPreview && (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-slate-600">
@@ -137,6 +151,7 @@ export function LeadsExcelUpdateForm() {
                     <th className="px-3 py-2 font-medium">Lead</th>
                     <th className="px-3 py-2 font-medium">Gematcht op</th>
                     <th className="px-3 py-2 font-medium">Datum</th>
+                    <th className="px-3 py-2 font-medium">Ruwe celwaarde</th>
                     <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 font-medium">Rapportering</th>
                   </tr>
@@ -165,6 +180,9 @@ export function LeadsExcelUpdateForm() {
                         ) : (
                           "—"
                         )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-500">
+                        {m.rawDateCell || "(leeg)"}
                       </td>
                       <td className="px-3 py-2">
                         {m.markLost ? (

@@ -160,6 +160,8 @@ type ParsedRow = {
   matchedOn: "telefoon" | "email" | "naam" | null;
   skipReason: string | null;
   dateValue: Date | null;
+  /** Ruwe tekst van de gelezen datumcel, vóór interpretatie — puur om in het voorbeeld te tonen wat er precies gelezen werd als het parsen toch faalt. */
+  rawDateCell: string;
   currentCreatedAt: string | null;
   markLost: boolean;
   currentlyWon: boolean;
@@ -173,7 +175,16 @@ type ParsedRow = {
  * het voorbeeld "X wordt Y" toonde ook effectief zo toegepast wordt.
  */
 async function parseAndMatch(file: File): Promise<
-  { error: string } | { rows: ParsedRow[] }
+  | { error: string }
+  | {
+      rows: ParsedRow[];
+      diagnostics: {
+        sheet: string;
+        headerRowNumber: number;
+        dateColumnIndex: number;
+        dateColumnHeader: string;
+      }[];
+    }
 > {
   const ExcelJSModule = (await import("exceljs")).default;
   const workbook = new ExcelJSModule.Workbook();
@@ -213,6 +224,12 @@ async function parseAndMatch(file: File): Promise<
   }
 
   const rows: ParsedRow[] = [];
+  const diagnostics: {
+    sheet: string;
+    headerRowNumber: number;
+    dateColumnIndex: number;
+    dateColumnHeader: string;
+  }[] = [];
 
   for (const sheet of sheets) {
     const headerRowNumber = findHeaderRowNumber(sheet);
@@ -249,6 +266,13 @@ async function parseAndMatch(file: File): Promise<
     // Laatste redmiddel als geen enkele kolomkop "datum" bevat: gewoon kolom
     // A zelf proberen — beter dan helemaal geen datum lezen.
     const dateCol = findColumnContaining("DATUM") ?? findColumnContaining("DATE") ?? 1;
+    diagnostics.push({
+      sheet: sheet.name,
+      headerRowNumber,
+      dateColumnIndex: dateCol,
+      dateColumnHeader:
+        cellToString(sheet.getRow(headerRowNumber).getCell(dateCol).value) || "(leeg)",
+    });
 
     for (let rowNumber = headerRowNumber + 1; rowNumber <= sheet.rowCount; rowNumber++) {
       const row = sheet.getRow(rowNumber);
@@ -273,7 +297,9 @@ async function parseAndMatch(file: File): Promise<
       const displayName = `${firstName} ${lastName}`.trim();
       if (!firstName && !phone && !email) continue; // lege rij
 
-      const dateValue = cellToDate(row.getCell(dateCol).value);
+      const dateCellValue = row.getCell(dateCol).value;
+      const dateValue = cellToDate(dateCellValue);
+      const rawDateCell = cellToString(dateCellValue);
       const notesRaw = notesCol ? cellToString(row.getCell(notesCol).value) : "";
       const notes = notesRaw.trim() || null;
       const markLost = rowIsRed(row);
@@ -303,6 +329,7 @@ async function parseAndMatch(file: File): Promise<
             matchedOn: null,
             skipReason: `naam komt bij ${candidates.length} leads voor (geen telefoon/email om te onderscheiden) — overgeslagen`,
             dateValue,
+            rawDateCell,
             currentCreatedAt: null,
             markLost,
             currentlyWon: false,
@@ -322,6 +349,7 @@ async function parseAndMatch(file: File): Promise<
           matchedOn: null,
           skipReason: "geen bestaande lead gevonden (telefoon, email en naam komen niet overeen)",
           dateValue,
+          rawDateCell,
           currentCreatedAt: null,
           markLost,
           currentlyWon: false,
@@ -340,6 +368,7 @@ async function parseAndMatch(file: File): Promise<
         matchedOn,
         skipReason: nothingToDo ? "niets om aan te passen op deze rij" : null,
         dateValue,
+        rawDateCell,
         currentCreatedAt: matched.createdAt.toISOString(),
         markLost,
         currentlyWon: matched.status === LeadStatus.WON,
@@ -348,12 +377,19 @@ async function parseAndMatch(file: File): Promise<
     }
   }
 
-  return { rows };
+  return { rows, diagnostics };
 }
 
 export type LeadsExcelUpdateState = {
   error?: string;
   mode?: "preview" | "committed";
+  /** Welke kolom er per tabblad als datumkolom herkend werd — om te controleren of dat effectief de juiste is. */
+  diagnostics?: {
+    sheet: string;
+    headerRowNumber: number;
+    dateColumnIndex: number;
+    dateColumnHeader: string;
+  }[];
   matched?: {
     row: number;
     sheet: string;
@@ -362,6 +398,8 @@ export type LeadsExcelUpdateState = {
     matchedOn: string;
     dateFrom: string | null;
     dateTo: string | null;
+    /** Ruwe tekst van de gelezen datumcel — zodat zichtbaar is wat er gelezen werd, ook als dat niet als datum herkend kon worden. */
+    rawDateCell: string;
     markLost: boolean;
     currentlyWon: boolean;
     notePreview: string | null;
@@ -405,6 +443,7 @@ export async function updateLeadsFromExcelAction(
   if (intent === "preview") {
     return {
       mode: "preview",
+      diagnostics: parsed.diagnostics,
       matched: actionable.map((r) => ({
         row: r.row,
         sheet: r.sheet,
@@ -413,6 +452,7 @@ export async function updateLeadsFromExcelAction(
         matchedOn: r.matchedOn!,
         dateFrom: r.currentCreatedAt,
         dateTo: r.dateValue ? r.dateValue.toISOString() : null,
+        rawDateCell: r.rawDateCell,
         markLost: r.markLost,
         currentlyWon: r.currentlyWon,
         notePreview: r.notes,
@@ -483,5 +523,5 @@ export async function updateLeadsFromExcelAction(
   revalidatePath("/pipeline/verkoop");
   revalidatePath("/pipeline/recrutering");
 
-  return { mode: "committed", appliedCount, failed, unmatched };
+  return { mode: "committed", diagnostics: parsed.diagnostics, appliedCount, failed, unmatched };
 }
