@@ -36,6 +36,11 @@ import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { InlineTextField } from "@/components/InlineTextField";
 
+// Nooit cachen/statisch renderen — een lead die elders (bv. via de
+// Excel-import, of het afsluiten van een deal) klant wordt of net niet meer,
+// moet hier meteen kloppen i.p.v. pas na een harde refresh.
+export const dynamic = "force-dynamic";
+
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
   return date.toLocaleDateString("nl-BE", {

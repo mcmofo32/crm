@@ -36,6 +36,11 @@ import { StageSelect } from "@/components/StageSelect";
 import { QuickCallLogButton } from "@/components/QuickCallLogButton";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
+// Nooit cachen/statisch renderen — een lead die elders (bv. via de
+// Excel-import, of de Funnel/Leaddetail) aangepast wordt, moet hier meteen
+// de nieuwe gegevens tonen i.p.v. pas na een harde refresh.
+export const dynamic = "force-dynamic";
+
 const TYPE_MAP = { verkoop: "FA", recrutering: "RG" } as const;
 const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline Rekrutering" } as const;
 /** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. Nodig om bv. een lead van een intussen inactieve (dus niet meer los kiesbare) medewerker toch te kunnen terugvinden. */
