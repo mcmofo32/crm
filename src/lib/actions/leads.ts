@@ -466,11 +466,20 @@ export async function updateLeadStageAction(
     };
   }
 
-  const status = toStage.isWon
-    ? LeadStatus.WON
-    : toStage.isLost
-    ? LeadStatus.LOST
-    : LeadStatus.OPEN;
+  // Eenmaal een lead klant is (status WON) blijft die dat, ongeacht naar
+  // welke fase die nadien nog verplaatst wordt — zo kan een klant probleemloos
+  // opnieuw door de funnel (bv. een extra Adviesgesprek voor een bijkomend
+  // product) zonder uit "Klant" (en dus uit Klanten/rapportering) te vallen.
+  // Die status verdwijnt pas als de lead expliciet als klant verwijderd wordt
+  // (zie canDeleteLeads: verwijderen van een klant is al Beheerder/Admin-only).
+  const status =
+    lead.status === LeadStatus.WON
+      ? LeadStatus.WON
+      : toStage.isWon
+      ? LeadStatus.WON
+      : toStage.isLost
+      ? LeadStatus.LOST
+      : LeadStatus.OPEN;
 
   const trimmedNotes = notes?.trim();
   const now = new Date();
