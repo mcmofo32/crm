@@ -204,6 +204,7 @@ export default async function LeadDetailPage({
             employmentStatus={lead.employmentStatus}
             source={lead.source}
             notes={lead.notes}
+            createdAt={lead.createdAt}
           />
 
           <LeadProductsCard

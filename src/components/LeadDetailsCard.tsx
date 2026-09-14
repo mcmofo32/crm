@@ -20,6 +20,7 @@ export function LeadDetailsCard({
   employmentStatus,
   source,
   notes,
+  createdAt,
 }: {
   leadId: string;
   firstName: string;
@@ -30,6 +31,7 @@ export function LeadDetailsCard({
   employmentStatus: EmploymentStatus | null;
   source: string | null;
   notes: string | null;
+  createdAt: Date;
 }) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -134,6 +136,13 @@ export function LeadDetailsCard({
           value={employmentStatus ? EMPLOYMENT_STATUS_LABELS[employmentStatus] : null}
         />
         <Row label="Bron" value={source} />
+        <Row
+          label="Aangemaakt op"
+          value={createdAt.toLocaleDateString("nl-BE", {
+            dateStyle: "medium",
+            timeZone: "Europe/Brussels",
+          })}
+        />
       </dl>
       <div className="mt-3 border-t border-slate-100 pt-3">
         <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
