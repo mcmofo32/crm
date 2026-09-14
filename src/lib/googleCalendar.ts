@@ -264,6 +264,18 @@ export async function syncActivityToGoogleCalendar(
   scheduledBy?: { name: string; email: string | null; phone: string | null } | null
 ) {
   if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
+    // Zonder dit zag je nergens waarom een afspraak niet op de agenda stond
+    // (de activiteit zelf werd wel gewoon aangemaakt) — dit hergebruikt
+    // dezelfde melding als een echte sync-fout (zie leads/[id]/page.tsx),
+    // want bij een uitnodigende afspraak (Financiële analyse, ...) krijgt de
+    // klant zelf zo ook geen uitnodiging, dus dit is meer dan cosmetisch.
+    await prisma.activity.update({
+      where: { id: activity.id },
+      data: {
+        googleSyncError:
+          "Geen Google Agenda gekoppeld bij de toegewezen medewerker — koppel deze bij Instellingen.",
+      },
+    });
     return { synced: false as const, reason: "not_connected" as const };
   }
   if (!activity.scheduledAt) {
