@@ -97,6 +97,12 @@ export default async function EventDetailPage({
         )}
       </div>
 
+      {event.canManage && event.googleSyncError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          Google Agenda-synchronisatie mislukt: {event.googleSyncError}
+        </div>
+      )}
+
       <div className="rounded-lg border border-slate-200 bg-white p-6">
         <h2 className="mb-3 text-lg font-medium text-slate-900">
           Jouw aanwezigheid
@@ -205,6 +211,25 @@ export default async function EventDetailPage({
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {event.canManage && event.invitedSubagents.length > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h2 className="mb-3 text-lg font-medium text-slate-900">
+            Uitgenodigde subagenten ({event.invitedSubagents.length})
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {event.invitedSubagents.map((s) => (
+              <li
+                key={s.subagentId}
+                className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
+              >
+                <Avatar name={s.name} size="sm" />
+                {s.name}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

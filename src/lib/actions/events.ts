@@ -8,6 +8,14 @@ import { canManageEvents } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
 import { parseLocalDateTime } from "@/lib/datetime";
+import { syncEventToGoogleCalendar } from "@/lib/googleCalendar";
+
+/** Enkel de velden die syncEventToGoogleCalendar nodig heeft — zie dezelfde aanpak in activities.ts. */
+const GOOGLE_CALENDAR_USER_SELECT = {
+  googleCalendarConnected: true,
+  googleCalendarRefreshToken: true,
+  googleCalendarId: true,
+} as const;
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -81,8 +89,105 @@ export async function createEventAction(formData: FormData) {
     },
   });
 
+  await inviteToEvent(actor.id, event.id, formData);
+
   revalidatePath("/evenementen");
   redirect(`/evenementen/${event.id}?created=1`);
+}
+
+/**
+ * Verwerkt de individueel aangevinkte gebruikers/subagenten (`userIds`/
+ * `subagentIds`, zie EventInviteField) bij het aanmaken van een evenement:
+ * legt meteen een EventAttendance (PENDING)/EventSubagentInvite vast — en
+ * stuurt, als er minstens één e-mailadres over is, een Google Agenda-
+ * uitnodiging vanaf de agenda van de aanmaker.
+ */
+async function inviteToEvent(actorId: string, eventId: string, formData: FormData) {
+  const userIds = formData.getAll("userIds").map(String).filter(Boolean);
+  const subagentIds = formData.getAll("subagentIds").map(String).filter(Boolean);
+  if (userIds.length === 0 && subagentIds.length === 0) return;
+
+  const [invitedUsers, invitedSubagents] = await Promise.all([
+    userIds.length > 0
+      ? prisma.user.findMany({
+          where: { id: { in: userIds }, active: true },
+          select: { id: true, email: true },
+        })
+      : Promise.resolve([]),
+    subagentIds.length > 0
+      ? prisma.subagent.findMany({
+          where: { id: { in: subagentIds }, active: true },
+          select: { id: true, email: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const writes = [
+    ...invitedUsers.map((u) =>
+      prisma.eventAttendance.create({ data: { eventId, userId: u.id } })
+    ),
+    ...invitedSubagents.map((s) =>
+      prisma.eventSubagentInvite.create({ data: { eventId, subagentId: s.id } })
+    ),
+  ];
+  if (writes.length > 0) await prisma.$transaction(writes);
+
+  const attendeeEmails = Array.from(
+    new Set(
+      [...invitedUsers.map((u) => u.email), ...invitedSubagents.map((s) => s.email)].filter(
+        (email): email is string => Boolean(email)
+      )
+    )
+  );
+  if (attendeeEmails.length === 0) return;
+
+  const organizer = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: GOOGLE_CALENDAR_USER_SELECT,
+  });
+  if (!organizer) return;
+
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) return;
+
+  await syncEventToGoogleCalendar(organizer, event, attendeeEmails);
+}
+
+export type EventInviteOptions = {
+  users: { id: string; name: string; email: string | null; isManagement: boolean }[];
+  subagents: { id: string; name: string; email: string; teamName: string }[];
+};
+
+/**
+ * Kiesbare mensen om op een evenement uit te nodigen — individueel, of in
+ * bulk via de knoppen "Subagenten"/"Management"/"Structuur A" (iedereen) op
+ * EventInviteField.
+ */
+export async function getEventInviteOptions(): Promise<EventInviteOptions> {
+  await requireEventManager();
+
+  const [users, subagents] = await Promise.all([
+    prisma.user.findMany({
+      where: { active: true },
+      select: { id: true, name: true, email: true, isManagement: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.subagent.findMany({
+      where: { active: true },
+      select: { id: true, name: true, email: true, team: { select: { name: true } } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  return {
+    users,
+    subagents: subagents.map((s) => ({
+      id: s.id,
+      name: s.name,
+      email: s.email,
+      teamName: s.team.name,
+    })),
+  };
 }
 
 export async function updateEventAction(eventId: string, formData: FormData) {
@@ -201,6 +306,7 @@ export async function getEventForDetail(eventId: string) {
       attendances: {
         include: { user: { select: { id: true, name: true } } },
       },
+      subagentInvites: { include: { subagent: { select: { id: true, name: true } } } },
     },
   });
   if (!event) return null;
@@ -253,6 +359,13 @@ export async function getEventForDetail(eventId: string) {
         }))
       : [],
     nonResponders,
+    invitedSubagents: canManage
+      ? event.subagentInvites.map((i) => ({
+          subagentId: i.subagentId,
+          name: i.subagent.name,
+        }))
+      : [],
+    googleSyncError: canManage ? event.googleSyncError : null,
   };
 }
 

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { encryptToken, decryptToken } from "@/lib/tokenCrypto";
-import type { Activity, Lead, Subagent, User } from "@/generated/prisma/client";
+import type { Activity, Event, Lead, Subagent, User } from "@/generated/prisma/client";
 import { subjectInvitesLead, isFinancieleAnalyseSubject } from "@/lib/meetingPlanning";
 
 type ContactInfo = { name: string; email: string | null; phone: string | null };
@@ -367,6 +367,94 @@ export async function syncActivityToGoogleCalendar(
     const message = error instanceof Error ? error.message : "Onbekende fout";
     await prisma.activity.update({
       where: { id: activity.id },
+      data: { googleSyncError: message },
+    });
+    return { synced: false as const, reason: "error" as const, message };
+  }
+}
+
+function buildEventInviteBody(event: Event, attendeeEmails: string[]) {
+  const start = event.date;
+  // Event heeft, in tegenstelling tot Activity, geen durationMinutes — bij
+  // ontbrekend einduur valt dit terug op een uur, een redelijk standaard
+  // voor een vergadering.
+  const end = event.endDate ?? new Date(start.getTime() + 60 * 60_000);
+  const attendees = attendeeEmails.map((email) => ({ email }));
+
+  return {
+    summary: event.title,
+    description: event.description ?? undefined,
+    location: event.location ?? undefined,
+    start: { dateTime: start.toISOString() },
+    end: { dateTime: end.toISOString() },
+    ...(attendees.length > 0 ? { attendees } : {}),
+  };
+}
+
+/**
+ * Maakt (of werkt bij) het Google Agenda-item voor een evenement op de
+ * agenda van `user` (de aanmaker), met de meegegeven e-mailadressen als
+ * deelnemers — analoog aan syncActivityToGoogleCalendar, maar dan voor
+ * Event i.p.v. Activity: geen lead/Zoom/kantoornotitie-logica, enkel
+ * titel/omschrijving/locatie/tijd + deelnemers.
+ */
+export async function syncEventToGoogleCalendar(
+  user: GoogleCalendarUser,
+  event: Event,
+  attendeeEmails: string[]
+) {
+  if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
+    await prisma.event.update({
+      where: { id: event.id },
+      data: {
+        googleSyncError:
+          "Geen Google Agenda gekoppeld bij de aanmaker — koppel deze bij Instellingen om uitnodigingen te versturen.",
+      },
+    });
+    return { synced: false as const, reason: "not_connected" as const };
+  }
+
+  const auth = await getClientForUser(user);
+  const google = await getGoogle();
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarId = user.googleCalendarId ?? "primary";
+  const eventBody = buildEventInviteBody(event, attendeeEmails);
+  // Stuurt automatisch een uitnodigingsmail naar elke deelnemer.
+  const sendUpdates = attendeeEmails.length > 0 ? "all" : undefined;
+
+  try {
+    let eventId = event.googleEventId;
+
+    if (eventId) {
+      await calendar.events.update({
+        calendarId,
+        eventId,
+        sendUpdates,
+        requestBody: eventBody,
+      });
+    } else {
+      const { data } = await calendar.events.insert({
+        calendarId,
+        sendUpdates,
+        requestBody: eventBody,
+      });
+      eventId = data.id ?? null;
+    }
+
+    await prisma.event.update({
+      where: { id: event.id },
+      data: {
+        googleEventId: eventId,
+        googleCalendarId: calendarId,
+        googleSyncError: null,
+      },
+    });
+
+    return { synced: true as const, eventId };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Onbekende fout";
+    await prisma.event.update({
+      where: { id: event.id },
       data: { googleSyncError: message },
     });
     return { synced: false as const, reason: "error" as const, message };

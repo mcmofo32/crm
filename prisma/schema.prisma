@@ -96,8 +96,9 @@ model Subagent {
   userId String? @unique
   user   User?   @relation("SubagentForUser", fields: [userId], references: [id], onDelete: Cascade)
 
-  activities       Activity[] @relation("ActivitySubagent")
-  caseManagedLeads Lead[]     @relation("LeadCaseManagerSubagent")
+  activities       Activity[]            @relation("ActivitySubagent")
+  caseManagedLeads Lead[]                @relation("LeadCaseManagerSubagent")
+  eventInvites     EventSubagentInvite[]
 
   @@index([teamId])
 }
@@ -872,14 +873,25 @@ model Event {
   verifiedById String?
   verifiedBy   User?     @relation("EventVerifiedBy", fields: [verifiedById], references: [id])
 
-  attendances EventAttendance[]
+  /// Google Agenda-item op de agenda van `createdBy`, aangemaakt zodra bij
+  /// het aanmaken/bewerken minstens één gebruiker/subagent uitgenodigd werd
+  /// (zie syncEventToGoogleCalendar) — zelfde opzet als Activity hieronder.
+  googleEventId    String?
+  googleCalendarId String?
+  googleSyncError  String?
+
+  attendances     EventAttendance[]
+  subagentInvites EventSubagentInvite[]
 
   @@index([type, date])
 }
 
 /// Of een gebruiker aanwezig zal zijn op een evenement (RSVP vooraf), en de
-/// nadien door een Beheerder/Admin bevestigde effectieve aanwezigheid.
-/// Enkel `actualStatus` (na verificatie) telt mee voor KPI Seminarie.
+/// nadien door een Beheerder/Admin bevestigde effectieve aanwezigheid. Wordt
+/// bij het aanmaken van het evenement al aangemaakt (status PENDING) voor
+/// elke expliciet uitgenodigde gebruiker, maar ontstaat evengoed vanzelf
+/// zodra iemand die niet uitgenodigd was toch zelf reageert. Enkel
+/// `actualStatus` (na verificatie) telt mee voor KPI Seminarie.
 model EventAttendance {
   id           String            @id @default(cuid())
   eventId      String
@@ -892,6 +904,21 @@ model EventAttendance {
 
   @@unique([eventId, userId])
   @@index([userId])
+}
+
+/// Een uitgenodigde subagent op een evenement — enkel de uitnodiging zelf
+/// (voor de Google Agenda-uitnodiging en ter info op de evenementpagina),
+/// geen RSVP: een subagent heeft geen inlogaccount om zelf te reageren.
+model EventSubagentInvite {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  subagentId String
+  subagent   Subagent @relation(fields: [subagentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([eventId, subagentId])
+  @@index([subagentId])
 }
 
 // ---------------------------------------------------------------------------
