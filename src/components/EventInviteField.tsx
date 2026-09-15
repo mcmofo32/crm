@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { Users2 } from "lucide-react";
 
 type InviteUser = { id: string; name: string; email: string | null; isManagement: boolean };
@@ -39,13 +39,42 @@ export function EventInviteField({
       return next;
     });
   }
-  function addUsers(ids: string[]) {
-    setSelectedUserIds((prev) => new Set([...prev, ...ids]));
+  /** Op een groepsknop: staat de hele groep al aangevinkt, dan vinkt een tweede klik ze allemaal weer af i.p.v. enkel toe te voegen. */
+  function toggleGroup(
+    ids: string[],
+    selected: Set<string>,
+    setSelected: Dispatch<SetStateAction<Set<string>>>
+  ) {
+    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
   }
 
   const managementIds = users.filter((u) => u.isManagement).map((u) => u.id);
   const allUserIds = users.map((u) => u.id);
+  const allSubagentIds = subagents.map((s) => s.id);
   const totalInvited = selectedUserIds.size + selectedSubagentIds.size;
+
+  const subagentsAllSelected =
+    allSubagentIds.length > 0 && allSubagentIds.every((id) => selectedSubagentIds.has(id));
+  const managementAllSelected =
+    managementIds.length > 0 && managementIds.every((id) => selectedUserIds.has(id));
+  const everyoneAllSelected =
+    allUserIds.length > 0 && allUserIds.every((id) => selectedUserIds.has(id));
+
+  function groupButtonClass(active: boolean) {
+    return `rounded-full border px-3 py-1 text-xs font-medium disabled:opacity-50 ${
+      active
+        ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
+        : "border-slate-300 bg-white text-slate-600 hover:bg-slate-100"
+    }`;
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
@@ -62,27 +91,27 @@ export function EventInviteField({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setSelectedSubagentIds((prev) => new Set([...prev, ...subagents.map((s) => s.id)]))}
-          disabled={subagents.length === 0}
-          className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+          onClick={() => toggleGroup(allSubagentIds, selectedSubagentIds, setSelectedSubagentIds)}
+          disabled={allSubagentIds.length === 0}
+          className={groupButtonClass(subagentsAllSelected)}
         >
-          + Alle subagenten
+          {subagentsAllSelected ? "✓ " : "+ "}Alle subagenten
         </button>
         <button
           type="button"
-          onClick={() => addUsers(managementIds)}
+          onClick={() => toggleGroup(managementIds, selectedUserIds, setSelectedUserIds)}
           disabled={managementIds.length === 0}
-          className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+          className={groupButtonClass(managementAllSelected)}
         >
-          + Management
+          {managementAllSelected ? "✓ " : "+ "}Management
         </button>
         <button
           type="button"
-          onClick={() => addUsers(allUserIds)}
+          onClick={() => toggleGroup(allUserIds, selectedUserIds, setSelectedUserIds)}
           disabled={allUserIds.length === 0}
-          className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+          className={groupButtonClass(everyoneAllSelected)}
         >
-          + Structuur A (iedereen)
+          {everyoneAllSelected ? "✓ " : "+ "}Structuur A (iedereen)
         </button>
         {totalInvited > 0 && (
           <button
