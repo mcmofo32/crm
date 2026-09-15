@@ -320,11 +320,18 @@ export async function createCustomerAction(formData: FormData) {
  * de standaard Funnel bovenaan het formulier, ingevuld (FA/RG) overschrijft
  * enkel die rij — zo kan één geplakte tabel meteen leads voor beide funnels
  * tegelijk aanmaken (bv. bij het importeren van je eigen oude leads).
+ *
+ * `excludeFromStats` (het vinkje op het formulier) bepaalt of deze leads
+ * meetellen voor de Aanbevelingen/ABV-cijfers (zie excludingBulkImportedLeads
+ * in production.ts) — standaard (onaangevinkt) tellen ze gewoon mee, net als
+ * een individueel toegevoegde lead; enkel aangevinkt (bv. bij het invoeren
+ * van oude/historische leads van vóór dit CRM) worden ze uitgesloten.
  */
 export async function createLeadsBulkAction(formData: FormData) {
   const user = await requireUser();
 
   const defaultLeadType = formData.get("leadType") as LeadType;
+  const excludeFromStats = formData.get("excludeFromStats") === "on";
 
   const firstNames = formData.getAll("firstName");
   const lastNames = formData.getAll("lastName");
@@ -404,7 +411,7 @@ export async function createLeadsBulkAction(formData: FormData) {
           ownerId: user.id,
           createdById: user.id,
           stageId: stageIdByType.get(row.leadType)!,
-          bulkImported: true,
+          bulkImported: excludeFromStats,
         },
       })
     )

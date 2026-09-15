@@ -25,14 +25,17 @@ import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
 import { avatarUrl } from "@/lib/avatarUrl";
 
 /**
- * Sluit leads uit die via een van de twee bulk-importfeatures aangemaakt
- * zijn — "Klanten in bulk toevoegen" (Excel-upload, herkenbaar aan `source`)
- * en "Leads in bulk toevoegen" (de Excel-achtige plak-tabel, `bulkImported`)
- * — want dat zijn achteraf ingevoerde/historische leads, geen nieuw
- * aangebrachte, dus geen "nieuwe aanbeveling" voor de Aanbevelingen/
- * ABV-cijfers. `OR` met `source: null` i.p.v. enkel `source: { not: ... }`,
- * zodat leads zonder ingevulde source (de meerderheid) gegarandeerd blijven
- * meetellen, ongeacht hoe Prisma `not` op een nullable veld interpreteert.
+ * Sluit leads uit die expliciet als "niet meetellen" gemarkeerd zijn bij een
+ * van de twee bulk-importfeatures — "Klanten in bulk toevoegen"
+ * (Excel-upload, herkenbaar aan `source`, altijd uitgesloten: dat is per
+ * definitie historische klantendata) en "Leads in bulk toevoegen" (de
+ * Excel-achtige plak-tabel, `bulkImported` — daar is het een keuze per
+ * import via het vinkje "oude/historische leads", zie createLeadsBulkAction;
+ * onaangevinkt telt een bulk-toegevoegde lead gewoon mee, net als een
+ * individueel toegevoegde). `OR` met `source: null` i.p.v. enkel
+ * `source: { not: ... }`, zodat leads zonder ingevulde source (de
+ * meerderheid) gegarandeerd blijven meetellen, ongeacht hoe Prisma `not` op
+ * een nullable veld interpreteert.
  */
 function excludingBulkImportedLeads() {
   return {
