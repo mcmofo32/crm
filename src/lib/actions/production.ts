@@ -22,6 +22,7 @@ import {
   type ProductionMonthConfigRow,
 } from "@/lib/productionMonth";
 import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 /**
  * Sluit leads uit die via een van de twee bulk-importfeatures aangemaakt
@@ -1647,6 +1648,7 @@ export async function getAllUserMonthlyGoalsForTable(year: number, month: number
       id: true,
       name: true,
       role: true,
+      avatarUpdatedAt: true,
       monthlyGoals: { where: { year, month } },
     },
     orderBy: { name: "asc" },
@@ -1655,6 +1657,7 @@ export async function getAllUserMonthlyGoalsForTable(year: number, month: number
   return users.map((u) => ({
     id: u.id,
     name: u.name,
+    photoUrl: avatarUrl(u),
     role: u.role,
     targetByMetric: new Map(u.monthlyGoals.map((g) => [g.metric, Number(g.target)])),
   }));

@@ -193,7 +193,7 @@ export default async function EventDetailPage({
                   className="flex flex-wrap items-center justify-between gap-3"
                 >
                   <span className="flex items-center gap-2 text-sm text-slate-700">
-                    <Avatar name={a.name} />
+                    <Avatar name={a.name} photoUrl={a.photoUrl} />
                     {a.name}
                   </span>
                   <Badge
@@ -244,7 +244,7 @@ export default async function EventDetailPage({
                 key={u.userId}
                 className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm text-slate-700"
               >
-                <Avatar name={u.name} size="sm" />
+                <Avatar name={u.name} size="sm" photoUrl={u.photoUrl} />
                 {u.name}
               </li>
             ))}

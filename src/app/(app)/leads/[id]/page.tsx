@@ -30,6 +30,7 @@ import { FollowUpContractsCard } from "@/components/FollowUpContractsCard";
 import { InlineSelect } from "@/components/InlineSelect";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 // Nooit cachen/statisch renderen — een activiteit afronden/plannen moet hier
@@ -75,7 +76,9 @@ export default async function LeadDetailPage({
         stage: true,
         products: true,
         activities: {
-          include: { assignee: { select: { name: true } } },
+          include: {
+            assignee: { select: { id: true, name: true, avatarUpdatedAt: true } },
+          },
           orderBy: { scheduledAt: "desc" },
         },
       },
@@ -125,7 +128,7 @@ export default async function LeadDetailPage({
             {lead.firstName} {lead.lastName}
           </h1>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-            <Avatar name={lead.owner.name} />
+            <Avatar name={lead.owner.name} photoUrl={avatarUrl(lead.owner)} />
             Eigenaar:{" "}
             {lead.status === "WON" && canManageUsers(user) ? (
               <InlineSelect
@@ -293,7 +296,11 @@ export default async function LeadDetailPage({
                             )}
                           </div>
                           <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
-                            <Avatar name={activity.assignee.name} size="sm" />
+                            <Avatar
+                              name={activity.assignee.name}
+                              size="sm"
+                              photoUrl={avatarUrl(activity.assignee)}
+                            />
                             {activity.assignee.name}
                           </div>
                         </div>

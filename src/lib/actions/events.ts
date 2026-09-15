@@ -9,6 +9,7 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
 import { parseLocalDateTime } from "@/lib/datetime";
 import { syncEventToGoogleCalendar } from "@/lib/googleCalendar";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 /** Enkel de velden die syncEventToGoogleCalendar nodig heeft — zie dezelfde aanpak in activities.ts. */
 const GOOGLE_CALENDAR_USER_SELECT = {
@@ -304,7 +305,9 @@ export async function getEventForDetail(eventId: string) {
     include: {
       verifiedBy: { select: { name: true } },
       attendances: {
-        include: { user: { select: { id: true, name: true } } },
+        include: {
+          user: { select: { id: true, name: true, avatarUpdatedAt: true } },
+        },
       },
       subagentInvites: { include: { subagent: { select: { id: true, name: true } } } },
     },
@@ -323,17 +326,17 @@ export async function getEventForDetail(eventId: string) {
   // (die wordt pas aangemaakt zodra iemand zichzelf aan-/afwezig zet) — dus
   // enkel af te leiden door alle actieve gebruikers te vergelijken met wie
   // wél al gereageerd heeft.
-  let nonResponders: { userId: string; name: string }[] = [];
+  let nonResponders: { userId: string; name: string; photoUrl: string | null }[] = [];
   if (canManage) {
     const respondedIds = new Set(event.attendances.map((a) => a.userId));
     const allActiveUsers = await prisma.user.findMany({
       where: { active: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, avatarUpdatedAt: true },
       orderBy: { name: "asc" },
     });
     nonResponders = allActiveUsers
       .filter((u) => !respondedIds.has(u.id))
-      .map((u) => ({ userId: u.id, name: u.name }));
+      .map((u) => ({ userId: u.id, name: u.name, photoUrl: avatarUrl(u) }));
   }
 
   return {
@@ -354,6 +357,7 @@ export async function getEventForDetail(eventId: string) {
       ? event.attendances.map((a) => ({
           userId: a.userId,
           name: a.user.name,
+          photoUrl: avatarUrl(a.user),
           status: a.status,
           actualStatus: a.actualStatus,
         }))
@@ -388,6 +392,7 @@ export async function getUnverifiedPastVerifiableEvents() {
 export type EventVerificationRow = {
   userId: string;
   name: string;
+  photoUrl: string | null;
   status: AttendanceStatus;
   actualStatus: AttendanceStatus;
 };
@@ -405,7 +410,7 @@ export async function getEventVerification(
     }),
     prisma.user.findMany({
       where: { active: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, avatarUpdatedAt: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -420,6 +425,7 @@ export async function getEventVerification(
     return {
       userId: u.id,
       name: u.name,
+      photoUrl: avatarUrl(u),
       status: attendance?.status ?? "PENDING",
       actualStatus: attendance?.actualStatus ?? attendance?.status ?? "PENDING",
     };

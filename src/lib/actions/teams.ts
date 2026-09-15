@@ -26,10 +26,18 @@ export async function getTeamsWithMembers() {
   await requireUserManager();
   return prisma.team.findMany({
     include: {
-      coach: { select: { id: true, name: true, email: true, teamId: true } },
+      coach: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          teamId: true,
+          avatarUpdatedAt: true,
+        },
+      },
       members: {
         where: { deletedAt: null },
-        select: { id: true, name: true, email: true, role: true },
+        select: { id: true, name: true, email: true, role: true, avatarUpdatedAt: true },
         orderBy: { name: "asc" },
       },
     },
@@ -48,7 +56,14 @@ export async function getAllActiveUsersForPlanning() {
   await requireUserManager();
   return prisma.user.findMany({
     where: { active: true },
-    select: { id: true, name: true, email: true, role: true, teamId: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      teamId: true,
+      avatarUpdatedAt: true,
+    },
     orderBy: { name: "asc" },
   });
 }

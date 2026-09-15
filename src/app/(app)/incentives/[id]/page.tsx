@@ -162,7 +162,7 @@ export default async function IncentiveDetailPage({
                       </span>
                     )}
                   </span>
-                  <Avatar name={entry.name} />
+                  <Avatar name={entry.name} photoUrl={entry.photoUrl} />
                   <span className="font-medium text-slate-900">
                     {entry.name}
                   </span>

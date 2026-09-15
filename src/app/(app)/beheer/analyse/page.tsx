@@ -870,7 +870,7 @@ export default async function AnalysePage({
               <tr key={employee.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-slate-900">
                   <div className="flex items-center gap-2">
-                    <Avatar name={employee.name} />
+                    <Avatar name={employee.name} photoUrl={employee.photoUrl} />
                     {employee.name}
                   </div>
                 </td>

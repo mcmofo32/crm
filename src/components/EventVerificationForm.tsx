@@ -48,7 +48,7 @@ export function EventVerificationForm({
               className="flex items-center justify-between gap-3"
             >
               <span className="flex items-center gap-2 text-sm text-slate-700">
-                <Avatar name={row.name} />
+                <Avatar name={row.name} photoUrl={row.photoUrl} />
                 {row.name}
                 <span className="text-xs text-slate-400">
                   (gaf zelf op: {ATTENDANCE_STATUS_LABELS[row.status]})
@@ -114,7 +114,7 @@ function AttendanceColumn({
               <span
                 className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${dotClass}`}
               />
-              <Avatar name={row.name} />
+              <Avatar name={row.name} photoUrl={row.photoUrl} />
               {row.name}
             </li>
           ))}

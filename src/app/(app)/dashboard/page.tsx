@@ -461,7 +461,7 @@ function TeamOverviewTable({
               <tr key={member.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-slate-900">
                   <div className="flex items-center gap-2">
-                    <Avatar name={member.name} />
+                    <Avatar name={member.name} photoUrl={member.photoUrl} />
                     {member.name}
                   </div>
                 </td>

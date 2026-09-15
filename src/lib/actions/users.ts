@@ -310,6 +310,7 @@ export async function getManageableUsers() {
       role: true,
       active: true,
       inTraining: true,
+      avatarUpdatedAt: true,
       team: { select: { name: true } },
       coachedTeam: { select: { name: true } },
     },

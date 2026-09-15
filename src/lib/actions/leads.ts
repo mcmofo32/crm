@@ -865,7 +865,7 @@ export async function getAssignableUsers(options?: { includeInactive?: boolean }
       ...(options?.includeInactive ? {} : { active: true }),
       ...(ids ? { id: { in: ids } } : {}),
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, avatarUpdatedAt: true },
     orderBy: { name: "asc" },
   });
 }

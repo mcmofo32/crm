@@ -5,6 +5,7 @@ import { syncAllSubagentsAction } from "@/lib/actions/subagents";
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
 
 function normalizedName(name: string) {
@@ -109,7 +110,7 @@ export default async function UsersPage({
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 font-medium text-slate-900">
-                  <Avatar name={u.name} />
+                  <Avatar name={u.name} photoUrl={avatarUrl(u)} />
                   {u.name}
                 </div>
                 <MoreVertical size={18} className="flex-shrink-0 text-slate-400" />
@@ -160,7 +161,7 @@ export default async function UsersPage({
                     href={`/beheer/gebruikers/${u.id}`}
                     className="flex items-center gap-2 hover:underline"
                   >
-                    <Avatar name={u.name} />
+                    <Avatar name={u.name} photoUrl={avatarUrl(u)} />
                     {u.name}
                     {isDuplicateName && (
                       <span

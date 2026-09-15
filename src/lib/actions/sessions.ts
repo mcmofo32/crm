@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { isBeheerder, canViewBeheerderTools } from "@/lib/permissions";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 /** Logt een gebruiker geforceerd uit: hun huidige sessie wordt bij de eerstvolgende paginanavigatie ongeldig, ze moeten opnieuw via Google inloggen. Enkel de Beheerder mag dit. */
 export async function forceLogoutUserAction(userId: string) {
@@ -86,6 +87,7 @@ export type UserLoginSummary = {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhotoUrl: string | null;
   lastSeenAt: Date;
   sessionsToday: number;
 };
@@ -130,7 +132,7 @@ export async function getLoginActivitySummary(options?: {
 
   const users = await prisma.user.findMany({
     where: { id: { in: lastSeenGroups.map((g) => g.userId) } },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, avatarUpdatedAt: true },
   });
   const userById = new Map(users.map((u) => [u.id, u]));
   const todayCountByUser = new Map(todayGroups.map((g) => [g.userId, g._count._all]));
@@ -142,6 +144,7 @@ export async function getLoginActivitySummary(options?: {
         userId: g.userId,
         userName: user?.name ?? "Onbekend",
         userEmail: user?.email ?? "",
+        userPhotoUrl: user ? avatarUrl(user) : null,
         lastSeenAt: g._max.lastSeenAt!,
         sessionsToday: todayCountByUser.get(g.userId) ?? 0,
       };

@@ -8,6 +8,7 @@ import {
   Role,
 } from "@/generated/prisma/client";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { avatarUrl } from "@/lib/avatarUrl";
 import {
   getMonthlyGoalAchievementsForUsers,
   getWeeklyGoalAchievementsForUsers,
@@ -44,6 +45,7 @@ export type StageBucket = {
 export type EmployeeStats = {
   id: string;
   name: string;
+  photoUrl: string | null;
   role: Role;
   teamId: string | null;
   teamName: string | null;
@@ -57,6 +59,7 @@ export type EmployeeStats = {
 type EmployeeUser = {
   id: string;
   name: string;
+  avatarUpdatedAt: Date | null;
   role: Role;
   team: { id: string; name: string } | null;
   coachedTeam: { id: string; name: string } | null;
@@ -106,6 +109,7 @@ function buildEmployeeStats(
       return {
         id: u.id,
         name: u.name,
+        photoUrl: avatarUrl(u),
         role: u.role,
         teamId: team?.id ?? null,
         teamName: team?.name ?? null,
@@ -146,6 +150,7 @@ export async function getAnalytics(teamFilter?: string, personFilter?: string) {
       select: {
         id: true,
         name: true,
+        avatarUpdatedAt: true,
         role: true,
         team: { select: { id: true, name: true } },
         coachedTeam: { select: { id: true, name: true } },
@@ -239,6 +244,7 @@ export async function getTeamOverviewForCoach() {
       select: {
         id: true,
         name: true,
+        avatarUpdatedAt: true,
         role: true,
         team: { select: { id: true, name: true } },
         coachedTeam: { select: { id: true, name: true } },
@@ -299,6 +305,7 @@ export async function getAllTeamOverviews(): Promise<TeamOverview[]> {
       select: {
         id: true,
         name: true,
+        avatarUpdatedAt: true,
         role: true,
         team: { select: { id: true, name: true } },
         coachedTeam: { select: { id: true, name: true } },

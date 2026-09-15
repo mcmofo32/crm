@@ -103,7 +103,7 @@ export default async function DoelenPage({
                 <tr key={u.id} className="hover:bg-slate-50">
                   <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900">
                     <div className="flex items-center gap-2">
-                      <Avatar name={u.name} />
+                      <Avatar name={u.name} photoUrl={u.photoUrl} />
                       <div className="flex flex-col leading-tight">
                         <span>{u.name}</span>
                         <span className="text-xs font-normal text-slate-400">

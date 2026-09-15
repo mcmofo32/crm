@@ -21,7 +21,7 @@ export async function getAuditLog(
         ? { actorId: { in: options.actorIds } }
         : {}),
     },
-    include: { actor: { select: { name: true } } },
+    include: { actor: { select: { id: true, name: true, avatarUpdatedAt: true } } },
     orderBy: { createdAt: "desc" },
     take: 200,
   });

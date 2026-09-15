@@ -13,6 +13,7 @@ import {
 import { getSubagents, deleteSubagentAction } from "@/lib/actions/subagents";
 import { TeamPlanningContext } from "@/lib/teamPlanning";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { DeleteTeamButton } from "@/components/DeleteTeamButton";
 import { FormToast } from "@/components/toast/FormToast";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
@@ -61,7 +62,7 @@ function TeamCard({
         <div>
           <h3 className="text-lg font-medium text-slate-900">{team.name}</h3>
           <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-            <Avatar name={team.coach.name} />
+            <Avatar name={team.coach.name} photoUrl={avatarUrl(team.coach)} />
             Coach: {team.coach.name}
           </div>
         </div>
@@ -206,7 +207,7 @@ function TeamCard({
               className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
             >
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Avatar name={member.name} />
+                <Avatar name={member.name} photoUrl={avatarUrl(member)} />
                 <span className="text-sm text-slate-700">{member.name}</span>
                 {teamByCoachId.has(member.id) && (
                   <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
@@ -394,7 +395,7 @@ function TeamCard({
                 key={m.id}
                 className="flex items-center gap-1.5 rounded-full bg-slate-50 py-1 pl-1 pr-2.5 text-xs text-slate-600"
               >
-                <Avatar name={m.name} size="sm" />
+                <Avatar name={m.name} size="sm" photoUrl={avatarUrl(m)} />
                 {m.name}
                 {teamByCoachId.has(m.id) && (
                   <span className="text-amber-600">· heeft eigen team</span>
