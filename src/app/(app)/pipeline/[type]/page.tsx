@@ -135,7 +135,12 @@ function compareValues(a: string | number | boolean | null, b: string | number |
 function sortLeads(leads: PipelineLeadRow[], sort: SortKey, dir: SortDir) {
   return [...leads].sort((a, b) => {
     const cmp = compareValues(sortValue(a, sort), sortValue(b, sort));
-    return dir === "asc" ? cmp : -cmp;
+    if (cmp !== 0) return dir === "asc" ? cmp : -cmp;
+    // Bij een gelijke waarde (bv. dezelfde aanbeveler) toch een voorspelbare
+    // volgorde i.p.v. willekeurig — nieuwste eerst, net als de
+    // standaardsortering op datum. Zo staan bv. alle aanbevelingen van
+    // dezelfde persoon mooi bij elkaar, op datum gesorteerd.
+    return sort === "datum" ? 0 : b.createdAt.getTime() - a.createdAt.getTime();
   });
 }
 
@@ -171,9 +176,12 @@ export default async function PipelinePage({
   const { type } = await params;
   if (type !== "verkoop" && type !== "recrutering") notFound();
   const { q, ownerId, view, sort, dir } = await searchParams;
+  // Standaard gegroepeerd per aanbeveler (en op datum binnen elke groep, zie
+  // sortLeads) i.p.v. kaal op datum — zo staan alle aanbevelingen van
+  // dezelfde persoon bij elkaar zonder dat je zelf op de kolom moet klikken.
   const sortKey: SortKey = (SORT_KEYS as readonly string[]).includes(sort ?? "")
     ? (sort as SortKey)
-    : "datum";
+    : "aanbevolen";
   const sortDir: SortDir = dir === "asc" || dir === "desc" ? dir : SORT_DEFAULT_DIR[sortKey];
   // Standaard tonen we enkel open leads — "Alle leads" moet je bewust
   // kiezen (view=alle), anders valt terug op "open" bij een lege/ongeldige
