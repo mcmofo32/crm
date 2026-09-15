@@ -544,12 +544,18 @@ export async function getConversationsLeaderboard(
  * "Adviesgesprek" binnen een periode — zelfde opzet als
  * financieleAnalyseActivityWhere hierboven, maar voor dat onderwerp i.p.v.
  * Financiële analyse, en niet beperkt tot leadType FA (een adviesgesprek
- * hoort evengoed bij een RG-lead thuis).
+ * hoort evengoed bij een RG-lead thuis). Telt ook "Opvolggesprek" mee — dat
+ * is in alles behalve naam een tweede adviesgesprek (zelfde widget, zie
+ * isOpvolggesprekType in meetingPlanning.ts), maar de letterlijke tekst
+ * bevat het woord "Adviesgesprek" niet, dus dat moet apart opgenomen worden.
  */
 function adviesgesprekActivityWhere(range: { gte: Date; lt: Date }) {
   return {
     status: { in: [ActivityStatus.PLANNED, ActivityStatus.COMPLETED] },
-    subject: { contains: "Adviesgesprek", mode: "insensitive" as const },
+    OR: [
+      { subject: { contains: "Adviesgesprek", mode: "insensitive" as const } },
+      { subject: { contains: "Opvolggesprek", mode: "insensitive" as const } },
+    ],
     scheduledAt: range,
     lead: { deletedAt: null },
   };
