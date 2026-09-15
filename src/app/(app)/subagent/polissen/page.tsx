@@ -242,8 +242,12 @@ function PolicyTable({
                 className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
               />
             </td>
-            <td className="whitespace-nowrap px-3 py-2 font-medium text-slate-900">
-              <Link href={`/leads/${p.leadId}`} className="hover:underline">
+            <td className="px-3 py-2 font-medium text-slate-900">
+              <Link
+                href={`/leads/${p.leadId}`}
+                title={`${p.customerFirstName} ${p.customerLastName}`}
+                className="block max-w-[11rem] truncate hover:underline"
+              >
                 {p.customerFirstName} {p.customerLastName}
               </Link>
             </td>
