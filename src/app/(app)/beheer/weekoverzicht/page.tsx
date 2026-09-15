@@ -8,6 +8,7 @@ import {
   getTeamWeekOverview,
   getCoachTeamOptions,
   type TeamWeekOverviewRow,
+  type TeamWeekDailyRow,
 } from "@/lib/actions/production";
 
 // Nooit cachen — dit moet elke keer de actuele stand van deze week tonen.
@@ -62,6 +63,90 @@ function TeamRow({ row }: { row: TeamWeekOverviewRow }) {
       </td>
       <td className="px-3 py-3 text-center text-slate-900">{row.agScheduled}</td>
     </tr>
+  );
+}
+
+function DailyBreakdownTable({
+  title,
+  dayLabels,
+  rows,
+}: {
+  title: string;
+  dayLabels: string[];
+  rows: TeamWeekDailyRow[];
+}) {
+  const dayTotals = dayLabels.map((_, i) =>
+    rows.reduce((sum, r) => sum + (r.counts[i] ?? 0), 0)
+  );
+  const grandTotal = dayTotals.reduce((sum, c) => sum + c, 0);
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 text-slate-500">
+          <tr className="border-b border-slate-200">
+            <th
+              colSpan={dayLabels.length + 2}
+              className="px-4 py-2 text-left font-medium text-slate-700"
+            >
+              {title}
+            </th>
+          </tr>
+          <tr className="border-b border-slate-200">
+            <th className="px-4 py-2 text-left font-medium">Teamlid</th>
+            {dayLabels.map((label) => (
+              <th
+                key={label}
+                className="border-l border-slate-200 px-3 py-2 text-center font-medium"
+              >
+                {label}
+              </th>
+            ))}
+            <th className="border-l border-slate-200 px-3 py-2 text-center font-medium">
+              Totaal
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {rows.map((row) => (
+            <tr key={row.userId} className={row.isCoach ? "bg-slate-50" : "hover:bg-slate-50"}>
+              <td className="px-4 py-2.5 font-medium text-slate-900">
+                {row.name}
+                {row.isCoach && (
+                  <span className="ml-1.5 text-xs font-normal text-slate-400">
+                    (coach)
+                  </span>
+                )}
+              </td>
+              {row.counts.map((count, i) => (
+                <td
+                  key={i}
+                  className="border-l border-slate-100 px-3 py-2.5 text-center text-slate-700"
+                >
+                  {count || <span className="text-slate-300">—</span>}
+                </td>
+              ))}
+              <td className="border-l border-slate-200 px-3 py-2.5 text-center font-medium text-slate-900">
+                {row.counts.reduce((s, c) => s + c, 0)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="border-t-2 border-slate-900 bg-slate-900 font-semibold text-white">
+            <td className="px-4 py-2.5">Team totaal</td>
+            {dayTotals.map((count, i) => (
+              <td key={i} className="border-l border-slate-700 px-3 py-2.5 text-center">
+                {count}
+              </td>
+            ))}
+            <td className="border-l border-slate-700 px-3 py-2.5 text-center">
+              {grandTotal}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 }
 
@@ -211,6 +296,17 @@ export default async function WeekoverzichtPage({
               </tfoot>
             </table>
           </div>
+
+          <DailyBreakdownTable
+            title="Financiële analyse — per dag"
+            dayLabels={overview.dayLabels}
+            rows={overview.faDaily}
+          />
+          <DailyBreakdownTable
+            title="Adviesgesprekken — per dag"
+            dayLabels={overview.dayLabels}
+            rows={overview.agDaily}
+          />
 
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
             <span className="flex items-center gap-1.5">

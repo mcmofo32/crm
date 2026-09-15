@@ -574,6 +574,14 @@ export type TeamWeekOverviewRow = {
   agScheduled: number;
 };
 
+export type TeamWeekDailyRow = {
+  userId: string;
+  name: string;
+  isCoach: boolean;
+  /** 7 tellingen voor deze week, index 0 = maandag t.e.m. 6 = zondag. */
+  counts: number[];
+};
+
 export type TeamWeekOverview = {
   teamName: string;
   weekStart: Date;
@@ -587,7 +595,54 @@ export type TeamWeekOverview = {
     faPercent: number | null;
     agScheduled: number;
   };
+  /** Labels voor de 7 dagkolommen van de dagoverzicht-tabellen, bv. "Ma 15/09". */
+  dayLabels: string[];
+  faDaily: TeamWeekDailyRow[];
+  agDaily: TeamWeekDailyRow[];
 };
+
+/** Vaste kolomvolgorde voor de dagoverzicht-tabellen: index 0 = maandag ... 6 = zondag. */
+const WEEKDAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+
+/** Kalenderdag-index (0 = maandag ... 6 = zondag) van `date` binnen de week die op `weekStart` (maandag 00:00) begint. */
+function dayIndexInWeek(date: Date, weekStart: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+/**
+ * Verdeelt een lijst activiteiten over de 7 dagen van de week, per lid van
+ * `members` — voor de dagoverzicht-tabellen. `totalByUser` (de som per
+ * gebruiker over alle dagen) blijft zo gegarandeerd gelijk aan het
+ * bestaande weektotaal per gebruiker, want beide komen uit exact dezelfde
+ * activiteiten-lijst.
+ */
+function buildDailyBreakdown(
+  members: { id: string; name: string; isCoach: boolean }[],
+  activities: { assigneeId: string; scheduledAt: Date | null }[],
+  weekStart: Date
+) {
+  const countsByUser = new Map<string, number[]>();
+  for (const m of members) countsByUser.set(m.id, [0, 0, 0, 0, 0, 0, 0]);
+
+  for (const a of activities) {
+    if (!a.scheduledAt) continue;
+    const dayIndex = dayIndexInWeek(a.scheduledAt, weekStart);
+    if (dayIndex < 0 || dayIndex > 6) continue;
+    const counts = countsByUser.get(a.assigneeId);
+    if (counts) counts[dayIndex] += 1;
+  }
+
+  const totalByUser = new Map<string, number>();
+  const rows: TeamWeekDailyRow[] = members.map((m) => {
+    const counts = countsByUser.get(m.id) ?? [0, 0, 0, 0, 0, 0, 0];
+    totalByUser.set(m.id, counts.reduce((sum, c) => sum + c, 0));
+    return { userId: m.id, name: m.name, isCoach: m.isCoach, counts };
+  });
+
+  return { totalByUser, rows };
+}
 
 export type CoachTeamOption = { coachId: string; teamName: string };
 
@@ -675,27 +730,33 @@ export async function getTeamWeekOverview(
     prisma.userMonthlyGoal.findMany({
       where: { userId: { in: userIds }, year, month, metric: GoalMetric.CONVERSATIONS },
     }),
-    prisma.activity.groupBy({
-      by: ["assigneeId"],
+    prisma.activity.findMany({
       where: {
         assigneeId: { in: userIds },
         ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
       },
-      _count: { _all: true },
+      select: { assigneeId: true, scheduledAt: true },
     }),
-    prisma.activity.groupBy({
-      by: ["assigneeId"],
+    prisma.activity.findMany({
       where: {
         assigneeId: { in: userIds },
         ...adviesgesprekActivityWhere({ gte: week.start, lt: week.end }),
       },
-      _count: { _all: true },
+      select: { assigneeId: true, scheduledAt: true },
     }),
   ]);
 
   const goalByUser = new Map(monthlyGoals.map((g) => [g.userId, Number(g.target)]));
-  const faByUser = new Map(faActivities.map((a) => [a.assigneeId, a._count._all]));
-  const agByUser = new Map(agActivities.map((a) => [a.assigneeId, a._count._all]));
+  const { totalByUser: faByUser, rows: faDaily } = buildDailyBreakdown(
+    members,
+    faActivities,
+    week.start
+  );
+  const { totalByUser: agByUser, rows: agDaily } = buildDailyBreakdown(
+    members,
+    agActivities,
+    week.start
+  );
 
   const rows: TeamWeekOverviewRow[] = members.map((m) => {
     const monthlyTarget = goalByUser.get(m.id) ?? 0;
@@ -716,6 +777,13 @@ export async function getTeamWeekOverview(
   const totalFaTarget = rows.reduce((s, r) => s + r.faTarget, 0);
   const totalAgScheduled = rows.reduce((s, r) => s + r.agScheduled, 0);
 
+  const dayLabels = WEEKDAY_LABELS.map((label, i) => {
+    const d = new Date(week.start.getTime() + i * 24 * 60 * 60 * 1000);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${label} ${dd}/${mm}`;
+  });
+
   return {
     teamName: team.name,
     weekStart: week.start,
@@ -729,6 +797,9 @@ export async function getTeamWeekOverview(
         totalFaTarget > 0 ? Math.round((totalFaScheduled / totalFaTarget) * 100) : null,
       agScheduled: totalAgScheduled,
     },
+    dayLabels,
+    faDaily,
+    agDaily,
   };
 }
 
