@@ -593,10 +593,13 @@ export async function getCoachTeamOptions(): Promise<CoachTeamOption[]> {
 }
 
 /**
- * Weekoverzicht van een team: voor elk teamlid (inclusief de coach zelf)
- * hoeveel Financiële analyses/Adviesgesprekken deze week al ingepland staan,
- * plus het wekelijkse FA-doel (afgeleid van het maandelijkse
- * Gesprekken-doel — zelfde afleiding als getConversationsLeaderboard).
+ * Weekoverzicht van een team: voor elk teamlid — de coach zelf, plus zijn
+ * hele substructuur (ook rechtstreekse/onrechtstreekse teamleden van een
+ * sub-coach, bv. iemand die onder een teamlid van deze coach zit i.p.v.
+ * rechtstreeks onder hemzelf; zie getDescendantUserIds) — hoeveel
+ * Financiële analyses/Adviesgesprekken deze week al ingepland staan, plus
+ * het wekelijkse FA-doel (afgeleid van het maandelijkse Gesprekken-doel —
+ * zelfde afleiding als getConversationsLeaderboard).
  *
  * Telt op basis van `assigneeId` (de eigenaar van de lead), nooit op basis
  * van `subagentId` — een teamlid dat als subagent optreedt bij een afspraak
@@ -626,10 +629,20 @@ export async function getTeamWeekOverview(
     select: {
       name: true,
       coach: { select: { id: true, name: true } },
-      members: { select: { id: true, name: true } },
     },
   });
   if (!team) return null;
+
+  // De volledige substructuur (rechtstreekse én onrechtstreekse teamleden,
+  // bv. Emiel/Wannes die zelf onder Zacharia zitten i.p.v. rechtstreeks
+  // onder deze coach) — niet enkel de rechtstreekse Team.members, anders
+  // vallen teamleden van een sub-coach hier onterecht weg. Zelfde aanpak
+  // als getVisibleUserIds/resolveProductionUserIds elders in de app.
+  const descendantIds = await getDescendantUserIds(resolvedCoachId);
+  const descendants = await prisma.user.findMany({
+    where: { id: { in: descendantIds } },
+    select: { id: true, name: true },
+  });
 
   const week = currentWeekRange(weekOffset);
   const configs = await prisma.productionMonth.findMany({
@@ -644,7 +657,7 @@ export async function getTeamWeekOverview(
 
   const members = [
     { id: team.coach.id, name: team.coach.name, isCoach: true },
-    ...team.members.map((m) => ({ id: m.id, name: m.name, isCoach: false })),
+    ...descendants.map((m) => ({ id: m.id, name: m.name, isCoach: false })),
   ];
   const userIds = members.map((m) => m.id);
 
