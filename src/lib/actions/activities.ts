@@ -29,6 +29,7 @@ import {
   isAdviesgesprekType,
   isOpvolggesprekType,
   buildMeetingSubject,
+  bareMeetingType,
 } from "@/lib/meetingPlanning";
 import { parseLocalDateTime, combineWithTimeOnSameLocalDay } from "@/lib/datetime";
 import { getOfficeSettings } from "@/lib/actions/officeSettings";
@@ -295,13 +296,19 @@ export async function completeActivityAction(
 }
 
 /**
- * Past een nog geplande afspraak aan (bv. datum/tijd verzetten, onderwerp of
- * notities wijzigen). Synchroniseert het bestaande Google Agenda-item mee.
+ * Past een nog geplande afspraak aan. Voor eenvoudige activiteiten
+ * (Telefoongesprek/E-mail/Notitie) enkel type/onderwerp/tijdstip/duur. Voor
+ * een rijke afspraak (Financiële analyse/Adviesgesprek/...) — herkenbaar aan
+ * `meetingMode !== null` — ook Van/Tot, fysiek/online, locatie/Zoom-Meet en
+ * subagent, net als bij het oorspronkelijk inplannen; onderwerp/type blijven
+ * dan ongewijzigd (bepalen de fase-koppeling, niet in scope van een
+ * logistieke aanpassing). Synchroniseert het bestaande Google Agenda-item
+ * mee.
  */
 export async function updateActivityAction(
   activityId: string,
   formData: FormData
-) {
+): Promise<PlanMeetingResult> {
   const activity = await prisma.activity.findUnique({
     where: { id: activityId },
   });
@@ -312,21 +319,88 @@ export async function updateActivityAction(
   const { user, lead } = await requireLeadAccess(activity.leadId);
 
   const feedback = String(formData.get("notes") ?? "").trim();
+  const isRichMeeting = activity.meetingMode !== null;
 
   const scheduledAtRaw = String(formData.get("scheduledAt") ?? "");
-  const scheduledAt = scheduledAtRaw ? parseLocalDateTime(scheduledAtRaw) : activity.scheduledAt;
+  const scheduledAt = scheduledAtRaw
+    ? parseLocalDateTime(scheduledAtRaw)
+    : activity.scheduledAt;
+
+  let durationMinutes = Number(
+    formData.get("durationMinutes") ?? activity.durationMinutes ?? 15
+  );
+  let meetingMode = activity.meetingMode;
+  let location = activity.location;
+  let meetingLink = activity.meetingLink;
+  let subagentId = activity.subagentId;
+  let subagent = null;
+
+  if (isRichMeeting) {
+    if (!scheduledAt) return { error: "Kies een datum en uur voor de afspraak" };
+
+    const endTimeRaw = String(formData.get("endTime") ?? "");
+    if (!endTimeRaw) return { error: "Kies een einduur voor de afspraak" };
+    const endAt = combineWithTimeOnSameLocalDay(scheduledAt, endTimeRaw);
+    durationMinutes = Math.round((endAt.getTime() - scheduledAt.getTime()) / 60_000);
+    if (durationMinutes <= 0) {
+      return { error: "Het einduur moet na het startuur liggen" };
+    }
+
+    meetingMode =
+      formData.get("mode") === "ONLINE" ? MeetingMode.ONLINE : MeetingMode.ONSITE;
+    location =
+      meetingMode === MeetingMode.ONSITE
+        ? await resolveOnsiteLocation(String(formData.get("location") ?? "").trim())
+        : null;
+    const useGoogleMeet =
+      meetingMode === MeetingMode.ONLINE && formData.get("useGoogleMeet") === "on";
+
+    meetingLink = null;
+    if (meetingMode === MeetingMode.ONLINE && !useGoogleMeet) {
+      const assigneeUser = await prisma.user.findUnique({
+        where: { id: activity.assigneeId },
+        select: { zoomLink: true },
+      });
+      meetingLink = assigneeUser?.zoomLink ?? null;
+      if (!meetingLink) {
+        return {
+          error:
+            "De toegewezen gebruiker heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag dit eerst in te stellen.",
+        };
+      }
+    }
+
+    subagentId = String(formData.get("subagentId") ?? "").trim() || null;
+    if (subagentId) {
+      subagent = await prisma.subagent.findUnique({ where: { id: subagentId } });
+      if (!subagent) return { error: "Subagent niet gevonden" };
+    }
+    const bareType = bareMeetingType(activity.subject);
+    if (
+      !subagentId &&
+      (isAdviesgesprekType(bareType) || isOpvolggesprekType(bareType))
+    ) {
+      return { error: "Duid een subagent aan om deze afspraak in te plannen" };
+    }
+  }
 
   const updated = await prisma.activity.update({
     where: { id: activityId },
     data: {
-      type: (formData.get("type") as ActivityType) ?? activity.type,
-      subject: String(formData.get("subject") ?? activity.subject),
+      ...(isRichMeeting
+        ? {}
+        : {
+            type: (formData.get("type") as ActivityType) ?? activity.type,
+            subject: String(formData.get("subject") ?? activity.subject),
+          }),
       // Leeg gelaten (nu optioneel) mag de bestaande notities niet wissen.
       notes: feedback || activity.notes,
       scheduledAt,
-      durationMinutes: Number(
-        formData.get("durationMinutes") ?? activity.durationMinutes ?? 15
-      ),
+      durationMinutes,
+      meetingMode,
+      location,
+      meetingLink,
+      subagentId,
     },
   });
 
@@ -347,9 +421,6 @@ export async function updateActivityAction(
   if (assignee && scheduledAt) {
     // Anders valt bv. de subagent-contactregel (zie buildEventBody) weg uit
     // de omschrijving zodra een afspraak nadien gewijzigd wordt.
-    const subagent = activity.subagentId
-      ? await prisma.subagent.findUnique({ where: { id: activity.subagentId } })
-      : null;
     await syncActivityToGoogleCalendar(assignee, updated, lead, subagent);
   }
 

@@ -107,6 +107,23 @@ export function isFinancieleAnalyseSubject(subject: string) {
   return subject.toLowerCase().includes("financiële analyse");
 }
 
+/**
+ * Herleidt het kale gesprektype uit een volledig opgebouwd onderwerp (bv.
+ * "18:00 - Adviesgesprek Jan Janssens" -> "Adviesgesprek"), voor gevallen
+ * waar enkel de tekst van een al bestaande activiteit gekend is en niet meer
+ * de oorspronkelijke fase-naam. "Opvolggesprek" wordt vóór "Adviesgesprek"
+ * gecontroleerd zodat een woord dat toevallig beide bevat niet fout uitkomt.
+ */
+export function bareMeetingType(subject: string): string {
+  const lower = subject.toLowerCase();
+  if (lower.includes("opvolggesprek")) return "Opvolggesprek";
+  if (lower.includes("financiële analyse")) return "Financiële analyse";
+  if (lower.includes("adviesgesprek")) return "Adviesgesprek";
+  if (lower.includes("kennismakingsgesprek")) return "Kennismakingsgesprek";
+  if (lower.includes("carrièregesprek")) return "Carrièregesprek";
+  return "";
+}
+
 /** Bouwt de afspraaknaam op in het vaste formaat "Uur - Type Voornaam Achternaam". */
 export function buildMeetingSubject(
   scheduledAt: Date,

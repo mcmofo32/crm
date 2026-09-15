@@ -313,6 +313,11 @@ export default async function LeadDetailPage({
                         durationMinutes={activity.durationMinutes}
                         status={activity.status}
                         canDelete={canDeleteActivities(user)}
+                        meetingMode={activity.meetingMode}
+                        location={activity.location}
+                        meetingLink={activity.meetingLink}
+                        subagentId={activity.subagentId}
+                        subagents={subagents}
                       />
                     </div>
                     {activity.scheduledAt && (
