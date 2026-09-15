@@ -16,6 +16,7 @@ import {
   Newspaper,
   GraduationCap,
   FileSpreadsheet,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -153,6 +154,9 @@ export function ProfileMenu({
           {!showUserManagement && <SectionLabel>Beheer</SectionLabel>}
           <MenuLink href="/beheer/doelen" icon={Target}>
             Doelen
+          </MenuLink>
+          <MenuLink href="/beheer/weekoverzicht" icon={CalendarClock}>
+            Weekoverzicht team
           </MenuLink>
         </>
       )}

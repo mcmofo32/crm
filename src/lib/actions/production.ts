@@ -534,6 +534,182 @@ export async function getConversationsLeaderboard(
 }
 
 // ---------------------------------------------------------------------------
+// Weekoverzicht team: voor een Coach (eigen team) of Beheerder/Admin (een
+// gekozen team) — hoeveel Financiële analyses/Adviesgesprekken elk teamlid
+// deze week al ingepland heeft, naast het wekelijkse FA-doel.
+// ---------------------------------------------------------------------------
+
+/**
+ * "Adviesgesprek" binnen een periode — zelfde opzet als
+ * financieleAnalyseActivityWhere hierboven, maar voor dat onderwerp i.p.v.
+ * Financiële analyse, en niet beperkt tot leadType FA (een adviesgesprek
+ * hoort evengoed bij een RG-lead thuis).
+ */
+function adviesgesprekActivityWhere(range: { gte: Date; lt: Date }) {
+  return {
+    status: { in: [ActivityStatus.PLANNED, ActivityStatus.COMPLETED] },
+    subject: { contains: "Adviesgesprek", mode: "insensitive" as const },
+    scheduledAt: range,
+    lead: { deletedAt: null },
+  };
+}
+
+export type TeamWeekOverviewRow = {
+  userId: string;
+  name: string;
+  isCoach: boolean;
+  faScheduled: number;
+  faTarget: number;
+  faPercent: number | null;
+  agScheduled: number;
+};
+
+export type TeamWeekOverview = {
+  teamName: string;
+  weekStart: Date;
+  /** Inclusieve laatste dag (zondag) van de week. */
+  weekEnd: Date;
+  weekOffset: number;
+  rows: TeamWeekOverviewRow[];
+  totals: {
+    faScheduled: number;
+    faTarget: number;
+    faPercent: number | null;
+    agScheduled: number;
+  };
+};
+
+export type CoachTeamOption = { coachId: string; teamName: string };
+
+/** Voor de teamkeuze van Beheerder/Admin op het Weekoverzicht — elk team met zijn coach. Een Coach kiest niet, die ziet altijd zijn eigen team. */
+export async function getCoachTeamOptions(): Promise<CoachTeamOption[]> {
+  await requireViewer();
+  const teams = await prisma.team.findMany({
+    where: { coach: { active: true } },
+    select: { name: true, coachId: true },
+    orderBy: { name: "asc" },
+  });
+  return teams.map((t) => ({ coachId: t.coachId, teamName: t.name }));
+}
+
+/**
+ * Weekoverzicht van een team: voor elk teamlid (inclusief de coach zelf)
+ * hoeveel Financiële analyses/Adviesgesprekken deze week al ingepland staan,
+ * plus het wekelijkse FA-doel (afgeleid van het maandelijkse
+ * Gesprekken-doel — zelfde afleiding als getConversationsLeaderboard).
+ *
+ * Telt op basis van `assigneeId` (de eigenaar van de lead), nooit op basis
+ * van `subagentId` — een teamlid dat als subagent optreedt bij een afspraak
+ * van een ander teamlid (bv. de coach die als subagent instapt bij een
+ * adviesgesprek van een teamlid) telt dus niet nog eens apart mee: die
+ * afspraak staat dan wel op de agenda van de subagent (als deelnemer via
+ * Google Agenda), maar blijft in de CRM toegewezen aan de eigenaar van de
+ * lead, en telt dus uitsluitend bij die eigenaar mee.
+ */
+export async function getTeamWeekOverview(
+  weekOffset: number = 0,
+  /** Enkel gebruikt voor Beheerder/Admin — een Coach ziet altijd zijn eigen team, ongeacht deze parameter. */
+  coachId?: string
+): Promise<TeamWeekOverview | null> {
+  const viewer = await requireViewer();
+  if (viewer.role !== Role.COACH && !canManageUsers(viewer)) {
+    throw new Error(
+      "Enkel coaches en Beheerder/Admin hebben toegang tot het weekoverzicht"
+    );
+  }
+
+  const resolvedCoachId = viewer.role === Role.COACH ? viewer.id : coachId;
+  if (!resolvedCoachId) return null;
+
+  const team = await prisma.team.findUnique({
+    where: { coachId: resolvedCoachId },
+    select: {
+      name: true,
+      coach: { select: { id: true, name: true } },
+      members: { select: { id: true, name: true } },
+    },
+  });
+  if (!team) return null;
+
+  const week = currentWeekRange(weekOffset);
+  const configs = await prisma.productionMonth.findMany({
+    select: { year: true, month: true, startDate: true, endDate: true },
+  });
+  const { year, month } = resolveProductionMonth(week.start, configs);
+  const { start: monthStart, end: monthEnd } = await getProductionMonthRange(
+    year,
+    month
+  );
+  const weeksInMonth = weeksInRange(monthStart, monthEnd);
+
+  const members = [
+    { id: team.coach.id, name: team.coach.name, isCoach: true },
+    ...team.members.map((m) => ({ id: m.id, name: m.name, isCoach: false })),
+  ];
+  const userIds = members.map((m) => m.id);
+
+  const [monthlyGoals, faActivities, agActivities] = await Promise.all([
+    prisma.userMonthlyGoal.findMany({
+      where: { userId: { in: userIds }, year, month, metric: GoalMetric.CONVERSATIONS },
+    }),
+    prisma.activity.groupBy({
+      by: ["assigneeId"],
+      where: {
+        assigneeId: { in: userIds },
+        ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
+      },
+      _count: { _all: true },
+    }),
+    prisma.activity.groupBy({
+      by: ["assigneeId"],
+      where: {
+        assigneeId: { in: userIds },
+        ...adviesgesprekActivityWhere({ gte: week.start, lt: week.end }),
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const goalByUser = new Map(monthlyGoals.map((g) => [g.userId, Number(g.target)]));
+  const faByUser = new Map(faActivities.map((a) => [a.assigneeId, a._count._all]));
+  const agByUser = new Map(agActivities.map((a) => [a.assigneeId, a._count._all]));
+
+  const rows: TeamWeekOverviewRow[] = members.map((m) => {
+    const monthlyTarget = goalByUser.get(m.id) ?? 0;
+    const faTarget = monthlyTarget > 0 ? Math.round(monthlyTarget / weeksInMonth) : 0;
+    const faScheduled = faByUser.get(m.id) ?? 0;
+    return {
+      userId: m.id,
+      name: m.name,
+      isCoach: m.isCoach,
+      faScheduled,
+      faTarget,
+      faPercent: faTarget > 0 ? Math.round((faScheduled / faTarget) * 100) : null,
+      agScheduled: agByUser.get(m.id) ?? 0,
+    };
+  });
+
+  const totalFaScheduled = rows.reduce((s, r) => s + r.faScheduled, 0);
+  const totalFaTarget = rows.reduce((s, r) => s + r.faTarget, 0);
+  const totalAgScheduled = rows.reduce((s, r) => s + r.agScheduled, 0);
+
+  return {
+    teamName: team.name,
+    weekStart: week.start,
+    weekEnd: new Date(week.end.getTime() - 1),
+    weekOffset,
+    rows,
+    totals: {
+      faScheduled: totalFaScheduled,
+      faTarget: totalFaTarget,
+      faPercent:
+        totalFaTarget > 0 ? Math.round((totalFaScheduled / totalFaTarget) * 100) : null,
+      agScheduled: totalAgScheduled,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Aanbevelingen: ranglijst met doel vs. effectief toegevoegde leads (FA/RG)
 // per productiemaand, vergelijkbaar met de ABV-doelen op het dashboard maar
 // dan per persoon i.p.v. samengevat.
