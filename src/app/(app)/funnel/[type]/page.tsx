@@ -122,7 +122,7 @@ export default async function FunnelPage({
           company: true,
           stageId: true,
           lastContactedAt: true,
-          owner: { select: { name: true } },
+          owner: { select: { id: true, name: true, avatarUpdatedAt: true } },
           activities: {
             where: { status: "PLANNED", scheduledAt: { gte: new Date() } },
             orderBy: { scheduledAt: "asc" },

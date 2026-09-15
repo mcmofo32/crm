@@ -9,6 +9,7 @@ import { planStageMeetingAction, planFollowUpCallAction } from "@/lib/actions/ac
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import { FollowUpCallField } from "@/components/FollowUpCallField";
 import {
@@ -111,7 +112,7 @@ type BoardLead = {
   company: string | null;
   stageId: string;
   lastContactedAt: Date | null;
-  owner: { name: string };
+  owner: { id: string; name: string; avatarUpdatedAt: Date | null };
   activities: { scheduledAt: Date | null }[];
 };
 
@@ -189,7 +190,7 @@ function LeadCard({
       </div>
 
       <div className="mt-2 flex items-center gap-1.5">
-        <Avatar name={lead.owner.name} size="sm" />
+        <Avatar name={lead.owner.name} size="sm" photoUrl={avatarUrl(lead.owner)} />
         <span className="text-sm text-slate-500">{lead.owner.name}</span>
       </div>
 
