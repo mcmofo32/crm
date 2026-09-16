@@ -111,22 +111,24 @@ export default async function WeekoverzichtPage({
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
   const isManager = canManageUsers(viewer);
-  if (viewer.role !== Role.COACH && !isManager) redirect("/dashboard");
 
   const { weekOffset: weekOffsetParam, coachId: coachIdParam } = await searchParams;
   const weekOffset = weekOffsetParam ? Number(weekOffsetParam) || 0 : 0;
 
   const teamOptions = isManager ? await getCoachTeamOptions() : [];
-  const selectedCoachId =
-    viewer.role === Role.COACH
-      ? viewer.id
-      : coachIdParam && teamOptions.some((t) => t.coachId === coachIdParam)
+  // Beheerder/Admin kiezen een team via de dropdown (of het eerste team bij
+  // een ongeldige/lege keuze); een Coach ziet altijd zijn eigen team; een
+  // gewone medewerker geeft geen coachId mee — getTeamWeekOverview lost zijn
+  // team dan zelf op via zijn teamlidmaatschap.
+  const selectedCoachId = isManager
+    ? coachIdParam && teamOptions.some((t) => t.coachId === coachIdParam)
       ? coachIdParam
-      : teamOptions[0]?.coachId;
+      : teamOptions[0]?.coachId
+    : viewer.role === Role.COACH
+    ? viewer.id
+    : undefined;
 
-  const overview = selectedCoachId
-    ? await getTeamWeekOverview(weekOffset, selectedCoachId)
-    : null;
+  const overview = await getTeamWeekOverview(weekOffset, selectedCoachId);
 
   const coachSuffix = isManager && selectedCoachId ? `&coachId=${selectedCoachId}` : "";
 

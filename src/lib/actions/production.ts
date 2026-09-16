@@ -638,7 +638,8 @@ export async function getCoachTeamOptions(): Promise<CoachTeamOption[]> {
  * sub-coach, bv. iemand die onder een teamlid van deze coach zit i.p.v.
  * rechtstreeks onder hemzelf; zie getDescendantUserIds) — hoeveel
  * Financiële analyses/Adviesgesprekken deze week ingepland staan, per dag
- * (ma-zo).
+ * (ma-zo). Toegankelijk voor iedereen (voor zijn eigen team) — Beheerder/
+ * Admin kunnen via `coachId` daarnaast om het even welk team bekijken.
  *
  * Telt op basis van `assigneeId` (de eigenaar van de lead), nooit op basis
  * van `subagentId` — een teamlid dat als subagent optreedt bij een afspraak
@@ -650,24 +651,35 @@ export async function getCoachTeamOptions(): Promise<CoachTeamOption[]> {
  */
 export async function getTeamWeekOverview(
   weekOffset: number = 0,
-  /** Enkel gebruikt voor Beheerder/Admin — een Coach ziet altijd zijn eigen team, ongeacht deze parameter. */
+  /** Enkel gebruikt voor Beheerder/Admin — een Coach of gewone medewerker ziet altijd zijn eigen team, ongeacht deze parameter. */
   coachId?: string
 ): Promise<TeamWeekOverview | null> {
   const viewer = await requireViewer();
-  if (viewer.role !== Role.COACH && !canManageUsers(viewer)) {
-    throw new Error(
-      "Enkel coaches en Beheerder/Admin hebben toegang tot het weekoverzicht"
-    );
-  }
 
-  const resolvedCoachId = viewer.role === Role.COACH ? viewer.id : coachId;
+  // Iedereen mag zijn eigen team bekijken: een Coach is zelf de wortel van
+  // zijn team, een gewone medewerker hoort bij het team waar hij lid van is
+  // (User.teamId). Enkel Beheerder/Admin mogen via `coachId` een willekeurig
+  // team kiezen — voor iedereen anders wordt die parameter genegeerd, zodat
+  // niemand via de URL het team van een ander kan opvragen.
+  let resolvedCoachId: string | undefined;
+  if (canManageUsers(viewer)) {
+    resolvedCoachId = coachId;
+  } else if (viewer.role === Role.COACH) {
+    resolvedCoachId = viewer.id;
+  } else {
+    const self = await prisma.user.findUnique({
+      where: { id: viewer.id },
+      select: { team: { select: { coachId: true } } },
+    });
+    resolvedCoachId = self?.team?.coachId;
+  }
   if (!resolvedCoachId) return null;
 
   const team = await prisma.team.findUnique({
     where: { coachId: resolvedCoachId },
     select: {
       name: true,
-      coach: { select: { id: true, name: true } },
+      coach: { select: { id: true, name: true, active: true, deletedAt: true } },
     },
   });
   if (!team) return null;
@@ -677,18 +689,23 @@ export async function getTeamWeekOverview(
   // onder deze coach) — niet enkel de rechtstreekse Team.members, anders
   // vallen teamleden van een sub-coach hier onterecht weg. Zelfde aanpak
   // als getVisibleUserIds/resolveProductionUserIds elders in de app.
+  // Inactieve/verwijderde gebruikers tonen nergens in de CRM, dus ook hier
+  // niet als rij — noch als teamlid, noch (verderop) als coach.
   const descendantIds = await getDescendantUserIds(resolvedCoachId);
   const descendants = await prisma.user.findMany({
-    where: { id: { in: descendantIds } },
+    where: { id: { in: descendantIds }, active: true, deletedAt: null },
     select: { id: true, name: true },
   });
 
   const week = currentWeekRange(weekOffset);
 
   const members = [
-    { id: team.coach.id, name: team.coach.name, isCoach: true },
+    ...(team.coach.active && !team.coach.deletedAt
+      ? [{ id: team.coach.id, name: team.coach.name, isCoach: true }]
+      : []),
     ...descendants.map((m) => ({ id: m.id, name: m.name, isCoach: false })),
   ];
+  if (members.length === 0) return null;
   const userIds = members.map((m) => m.id);
 
   const [faActivities, agActivities] = await Promise.all([

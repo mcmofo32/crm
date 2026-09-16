@@ -155,9 +155,6 @@ export function ProfileMenu({
           <MenuLink href="/beheer/doelen" icon={Target}>
             Doelen
           </MenuLink>
-          <MenuLink href="/beheer/weekoverzicht" icon={CalendarClock}>
-            Weekoverzicht team
-          </MenuLink>
         </>
       )}
       {showUserManagement && showSettingsManagement && (
@@ -196,6 +193,9 @@ export function ProfileMenu({
       {(showUserManagement || showEmployeeGoals || showBeheerderTools) && (
         <hr className="my-1.5 border-slate-100" />
       )}
+      <MenuLink href="/beheer/weekoverzicht" icon={CalendarClock}>
+        Weekoverzicht team
+      </MenuLink>
       <MenuLink href="/instellingen" icon={Settings}>
         Instellingen
       </MenuLink>
