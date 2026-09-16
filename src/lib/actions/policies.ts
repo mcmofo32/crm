@@ -46,6 +46,7 @@ async function requireEditablePolicy(policyId: string) {
       where: { id: policyId },
       include: {
         lead: { include: { caseManagerSubagent: { select: { userId: true } } } },
+        leadProduct: { select: { amount: true } },
       },
     }),
   ]);
@@ -168,4 +169,41 @@ export async function setPolicyContractDateAction(
   // e.a. in production.ts — dus die overzichten moeten hier ook mee verversen.
   revalidatePath("/productie");
   revalidatePath("/dashboard");
+}
+
+/**
+ * Legt een verlaagd (of nadien terug aangepast) bedrag vast t.o.v. het
+ * oorspronkelijke contractbedrag (LeadProduct.amount) — bv. de klant
+ * verlaagt van €500 naar €200. Leeggemaakt, of exact het oorspronkelijke
+ * bedrag opnieuw ingevuld, wist de override (reducedAmount: null) — dan
+ * toont de Polissen-tabel gewoon weer het oorspronkelijke bedrag, zonder
+ * dat er een overbodig "verlaagd"-label achterblijft.
+ */
+export async function setPolicyReducedAmountAction(
+  policyId: string,
+  formData: FormData
+) {
+  const policy = await requireEditablePolicy(policyId);
+  const raw = String(formData.get("reducedAmount") ?? "").trim();
+
+  if (!raw) {
+    await prisma.policy.update({
+      where: { id: policyId },
+      data: { reducedAmount: null },
+    });
+    revalidatePolicyPaths(policy.leadId);
+    return;
+  }
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error("Ongeldig bedrag");
+  }
+  const original = Number(policy.leadProduct.amount);
+
+  await prisma.policy.update({
+    where: { id: policyId },
+    data: { reducedAmount: value === original ? null : value },
+  });
+  revalidatePolicyPaths(policy.leadId);
 }

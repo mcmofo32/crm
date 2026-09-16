@@ -225,6 +225,8 @@ const policiesTab: SheetsBackupTab = {
     "Klant",
     "Eenheden",
     "Product",
+    "Bedrag",
+    "Oorspronkelijk bedrag",
     "Maatschappij",
     "Status",
     "Easy",
@@ -237,7 +239,7 @@ const policiesTab: SheetsBackupTab = {
     const policies = await prisma.policy.findMany({
       include: {
         lead: { select: { firstName: true, lastName: true } },
-        leadProduct: { select: { type: true, units: true } },
+        leadProduct: { select: { type: true, units: true, amount: true } },
         employee: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -248,6 +250,10 @@ const policiesTab: SheetsBackupTab = {
       `${p.lead.firstName} ${p.lead.lastName}`,
       p.leadProduct.units,
       PRODUCT_TYPE_LABELS[p.leadProduct.type],
+      fmtAmount(p.reducedAmount ?? p.leadProduct.amount),
+      // Enkel ingevuld als het bedrag effectief verlaagd (of nadien terug
+      // aangepast) is — anders zou deze kolom telkens hetzelfde herhalen.
+      p.reducedAmount !== null ? fmtAmount(p.leadProduct.amount) : "",
       p.company ? INSURANCE_COMPANY_LABELS[p.company] : "",
       POLICY_STATUS_LABELS[p.status],
       fmtBool(p.easy),

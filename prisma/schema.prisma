@@ -505,6 +505,12 @@ enum InsuranceCompany {
 enum PolicyStatus {
   OPGELADEN_WACHT_ACTIEF
   ACTIEF
+  /// Niet langer actief betaald (de klant stortte niets meer bij), maar het
+  /// contract zelf loopt nog door — i.t.t. UITBETAALD/GEANNULEERD dus geen
+  /// eindstatus. Vooral bedoeld als signaal tijdens opvolging: goed
+  /// zichtbaar (rood) zodat een subagent kan polsen of de klant terug wil
+  /// starten.
+  PREMIEVRIJ
   UITBETAALD
   GEANNULEERD
   BACKOFFICE
@@ -535,6 +541,13 @@ model Policy {
 
   company InsuranceCompany?
   status  PolicyStatus      @default(OPGELADEN_WACHT_ACTIEF)
+
+  /// Verlaagd (of nadien terug aangepast) bedrag t.o.v. het oorspronkelijke
+  /// contractbedrag (LeadProduct.amount) — bv. van €500 naar €200. `null` =
+  /// nog steeds op het oorspronkelijke bedrag. LeadProduct.amount zelf
+  /// wijzigt hierbij nooit: dat telt mee in de historische productiecijfers
+  /// (zie analytics.ts), dus dit staat bewust als apart veld hier.
+  reducedAmount Decimal? @db.Decimal(10, 2)
 
   /// Documentenchecklist, telkens gewoon aan-/uitvinken.
   easy   Boolean @default(false)

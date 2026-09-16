@@ -9,6 +9,7 @@ import {
   setPolicyChecklistFieldAction,
   setPolicyDateAction,
   setPolicyContractDateAction,
+  setPolicyReducedAmountAction,
 } from "@/lib/actions/policies";
 import {
   getManagedPolicies,
@@ -33,7 +34,11 @@ import {
 } from "@/lib/policyLabels";
 import { InlineSelect } from "@/components/InlineSelect";
 import { InlineCheckbox } from "@/components/InlineCheckbox";
-import { PolicyDateEditToggle, PolicyDateCell } from "@/components/PolicyDateCell";
+import {
+  PolicyDateEditToggle,
+  PolicyDateCell,
+  PolicyAmountCell,
+} from "@/components/PolicyDateCell";
 import { SubagentTabs } from "@/components/SubagentTabs";
 
 /** Vaste volgorde waarin de polissen van eenzelfde klant hier getoond worden. */
@@ -115,6 +120,15 @@ function PolicyCards({
                   action={setPolicyContractDateAction.bind(null, p.id)}
                   name="contractDate"
                   date={p.becameCustomerAt}
+                />
+              </div>
+              <div>
+                <div className="text-xs text-slate-400">Bedrag</div>
+                <PolicyAmountCell
+                  action={setPolicyReducedAmountAction.bind(null, p.id)}
+                  name="reducedAmount"
+                  amount={p.amount}
+                  reducedAmount={p.reducedAmount}
                 />
               </div>
               <div>
@@ -204,6 +218,7 @@ function PolicyTable({
           <th className="px-3 py-2.5 font-medium">Klant</th>
           <th className="px-3 py-2.5 text-right font-medium">Eenheden</th>
           <th className="px-3 py-2.5 font-medium">Product</th>
+          <th className="px-3 py-2.5 font-medium">Bedrag</th>
           <th className="px-3 py-2.5 font-medium">Maatschappij</th>
           <th className="px-3 py-2.5 font-medium">Status</th>
           <th className="px-2 py-2.5 text-center font-medium">Easy</th>
@@ -254,6 +269,14 @@ function PolicyTable({
             <td className="px-3 py-2 text-right text-slate-700">{p.units}</td>
             <td className="whitespace-nowrap px-3 py-2 text-slate-700">
               {PRODUCT_TYPE_LABELS[p.productType]}
+            </td>
+            <td className="whitespace-nowrap px-3 py-2">
+              <PolicyAmountCell
+                action={setPolicyReducedAmountAction.bind(null, p.id)}
+                name="reducedAmount"
+                amount={p.amount}
+                reducedAmount={p.reducedAmount}
+              />
             </td>
             <td className="px-3 py-2">
               <InlineSelect
