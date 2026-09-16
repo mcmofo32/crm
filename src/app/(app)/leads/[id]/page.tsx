@@ -75,7 +75,9 @@ export default async function LeadDetailPage({
         owner: true,
         stage: true,
         products: {
-          include: { policy: { select: { status: true, reducedAmount: true } } },
+          include: {
+            policy: { select: { id: true, status: true, reducedAmount: true } },
+          },
         },
         activities: {
           include: {
@@ -220,6 +222,7 @@ export default async function LeadDetailPage({
                 type: p.type,
                 amount: Number(p.amount),
                 units: p.units,
+                policyId: p.policy?.id ?? null,
                 premievrij: p.policy?.status === "PREMIEVRIJ",
                 reducedAmount:
                   p.policy?.reducedAmount != null ? Number(p.policy.reducedAmount) : null,
@@ -238,6 +241,7 @@ export default async function LeadDetailPage({
                   amount: Number(p.amount),
                   units: p.units,
                   contractDate: p.contractDate,
+                  policyId: p.policy?.id ?? null,
                   premievrij: p.policy?.status === "PREMIEVRIJ",
                   reducedAmount:
                     p.policy?.reducedAmount != null ? Number(p.policy.reducedAmount) : null,

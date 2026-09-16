@@ -10,13 +10,15 @@ import {
   type ProductsState,
 } from "@/components/ProductFields";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import { PolicyQuickActions } from "@/components/PolicyQuickActions";
 import type { ProductType } from "@/generated/prisma/client";
 
 type ProductRecord = {
   type: ProductType;
   amount: number;
   units: number;
-  /** Status/verlaagd bedrag komen van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — hier enkel om te tonen, wijzig je op de Polissen-pagina. */
+  /** Komt van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — null zolang die nog niet aangemaakt is. */
+  policyId: string | null;
   premievrij: boolean;
   reducedAmount: number | null;
 };
@@ -120,29 +122,15 @@ export function LeadProductsCard({
         <ul className="flex flex-col gap-2">
           {sortedProducts.map((p) => (
             <li key={p.type} className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-slate-600">
-                {PRODUCT_TYPE_LABELS[p.type]}
-                {p.premievrij && (
-                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
-                    Premievrij
-                  </span>
-                )}
-              </span>
-              <span className="text-slate-900">
-                {p.reducedAmount !== null ? (
-                  <>
-                    <span className="font-medium text-red-700">
-                      {formatAmount(p.reducedAmount)}
-                    </span>{" "}
-                    <span className="text-xs text-slate-400 line-through">
-                      {formatAmount(p.amount)}
-                    </span>
-                  </>
-                ) : (
-                  formatAmount(p.amount)
-                )}{" "}
-                · {p.units} eenh.
-              </span>
+              <span className="text-slate-600">{PRODUCT_TYPE_LABELS[p.type]}</span>
+              <PolicyQuickActions
+                policyId={p.policyId}
+                amount={p.amount}
+                reducedAmount={p.reducedAmount}
+                premievrij={p.premievrij}
+                units={p.units}
+                canEdit={canEdit}
+              />
             </li>
           ))}
           <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900">

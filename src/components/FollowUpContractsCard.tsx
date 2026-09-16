@@ -8,6 +8,7 @@ import {
 } from "@/lib/actions/leadProducts";
 import { useToastAction } from "@/components/toast/useToastAction";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import { PolicyQuickActions } from "@/components/PolicyQuickActions";
 import type { ProductType } from "@/generated/prisma/client";
 
 type FollowUpContract = {
@@ -16,7 +17,8 @@ type FollowUpContract = {
   amount: number;
   units: number;
   contractDate: Date;
-  /** Status/verlaagd bedrag komen van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — hier enkel om te tonen, wijzig je op de Polissen-pagina. */
+  /** Komt van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — null zolang die nog niet aangemaakt is. */
+  policyId: string | null;
   premievrij: boolean;
   reducedAmount: number | null;
 };
@@ -128,34 +130,20 @@ export function FollowUpContractsCard({
               {sortedContracts.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-2">
                   <div className="flex flex-col">
-                    <span className="flex items-center gap-1.5 text-slate-600">
-                      {PRODUCT_TYPE_LABELS[c.type]}
-                      {c.premievrij && (
-                        <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
-                          Premievrij
-                        </span>
-                      )}
-                    </span>
+                    <span className="text-slate-600">{PRODUCT_TYPE_LABELS[c.type]}</span>
                     <span className="text-xs text-slate-400">
                       {formatDate(c.contractDate)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-900">
-                      {c.reducedAmount !== null ? (
-                        <>
-                          <span className="font-medium text-red-700">
-                            {formatAmount(c.reducedAmount)}
-                          </span>{" "}
-                          <span className="text-xs text-slate-400 line-through">
-                            {formatAmount(c.amount)}
-                          </span>
-                        </>
-                      ) : (
-                        formatAmount(c.amount)
-                      )}{" "}
-                      · {c.units} eenh.
-                    </span>
+                    <PolicyQuickActions
+                      policyId={c.policyId}
+                      amount={c.amount}
+                      reducedAmount={c.reducedAmount}
+                      premievrij={c.premievrij}
+                      units={c.units}
+                      canEdit={canEdit}
+                    />
                     {canEdit && (
                       <button
                         type="button"
