@@ -564,16 +564,6 @@ function adviesgesprekActivityWhere(range: { gte: Date; lt: Date }) {
   };
 }
 
-export type TeamWeekOverviewRow = {
-  userId: string;
-  name: string;
-  isCoach: boolean;
-  faScheduled: number;
-  faTarget: number;
-  faPercent: number | null;
-  agScheduled: number;
-};
-
 export type TeamWeekDailyRow = {
   userId: string;
   name: string;
@@ -588,13 +578,6 @@ export type TeamWeekOverview = {
   /** Inclusieve laatste dag (zondag) van de week. */
   weekEnd: Date;
   weekOffset: number;
-  rows: TeamWeekOverviewRow[];
-  totals: {
-    faScheduled: number;
-    faTarget: number;
-    faPercent: number | null;
-    agScheduled: number;
-  };
   /** Labels voor de 7 dagkolommen van de dagoverzicht-tabellen, bv. "Ma 15/09". */
   dayLabels: string[];
   faDaily: TeamWeekDailyRow[];
@@ -611,18 +594,12 @@ function dayIndexInWeek(date: Date, weekStart: Date) {
   return Math.round((d.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000));
 }
 
-/**
- * Verdeelt een lijst activiteiten over de 7 dagen van de week, per lid van
- * `members` — voor de dagoverzicht-tabellen. `totalByUser` (de som per
- * gebruiker over alle dagen) blijft zo gegarandeerd gelijk aan het
- * bestaande weektotaal per gebruiker, want beide komen uit exact dezelfde
- * activiteiten-lijst.
- */
+/** Verdeelt een lijst activiteiten over de 7 dagen van de week, per lid van `members` — voor de dagoverzicht-tabellen. */
 function buildDailyBreakdown(
   members: { id: string; name: string; isCoach: boolean }[],
   activities: { assigneeId: string; scheduledAt: Date | null }[],
   weekStart: Date
-) {
+): TeamWeekDailyRow[] {
   const countsByUser = new Map<string, number[]>();
   for (const m of members) countsByUser.set(m.id, [0, 0, 0, 0, 0, 0, 0]);
 
@@ -634,14 +611,12 @@ function buildDailyBreakdown(
     if (counts) counts[dayIndex] += 1;
   }
 
-  const totalByUser = new Map<string, number>();
-  const rows: TeamWeekDailyRow[] = members.map((m) => {
-    const counts = countsByUser.get(m.id) ?? [0, 0, 0, 0, 0, 0, 0];
-    totalByUser.set(m.id, counts.reduce((sum, c) => sum + c, 0));
-    return { userId: m.id, name: m.name, isCoach: m.isCoach, counts };
-  });
-
-  return { totalByUser, rows };
+  return members.map((m) => ({
+    userId: m.id,
+    name: m.name,
+    isCoach: m.isCoach,
+    counts: countsByUser.get(m.id) ?? [0, 0, 0, 0, 0, 0, 0],
+  }));
 }
 
 export type CoachTeamOption = { coachId: string; teamName: string };
@@ -662,9 +637,8 @@ export async function getCoachTeamOptions(): Promise<CoachTeamOption[]> {
  * hele substructuur (ook rechtstreekse/onrechtstreekse teamleden van een
  * sub-coach, bv. iemand die onder een teamlid van deze coach zit i.p.v.
  * rechtstreeks onder hemzelf; zie getDescendantUserIds) — hoeveel
- * Financiële analyses/Adviesgesprekken deze week al ingepland staan, plus
- * het wekelijkse FA-doel (afgeleid van het maandelijkse Gesprekken-doel —
- * zelfde afleiding als getConversationsLeaderboard).
+ * Financiële analyses/Adviesgesprekken deze week ingepland staan, per dag
+ * (ma-zo).
  *
  * Telt op basis van `assigneeId` (de eigenaar van de lead), nooit op basis
  * van `subagentId` — een teamlid dat als subagent optreedt bij een afspraak
@@ -710,15 +684,6 @@ export async function getTeamWeekOverview(
   });
 
   const week = currentWeekRange(weekOffset);
-  const configs = await prisma.productionMonth.findMany({
-    select: { year: true, month: true, startDate: true, endDate: true },
-  });
-  const { year, month } = resolveProductionMonth(week.start, configs);
-  const { start: monthStart, end: monthEnd } = await getProductionMonthRange(
-    year,
-    month
-  );
-  const weeksInMonth = weeksInRange(monthStart, monthEnd);
 
   const members = [
     { id: team.coach.id, name: team.coach.name, isCoach: true },
@@ -726,10 +691,7 @@ export async function getTeamWeekOverview(
   ];
   const userIds = members.map((m) => m.id);
 
-  const [monthlyGoals, faActivities, agActivities] = await Promise.all([
-    prisma.userMonthlyGoal.findMany({
-      where: { userId: { in: userIds }, year, month, metric: GoalMetric.CONVERSATIONS },
-    }),
+  const [faActivities, agActivities] = await Promise.all([
     prisma.activity.findMany({
       where: {
         assigneeId: { in: userIds },
@@ -746,36 +708,8 @@ export async function getTeamWeekOverview(
     }),
   ]);
 
-  const goalByUser = new Map(monthlyGoals.map((g) => [g.userId, Number(g.target)]));
-  const { totalByUser: faByUser, rows: faDaily } = buildDailyBreakdown(
-    members,
-    faActivities,
-    week.start
-  );
-  const { totalByUser: agByUser, rows: agDaily } = buildDailyBreakdown(
-    members,
-    agActivities,
-    week.start
-  );
-
-  const rows: TeamWeekOverviewRow[] = members.map((m) => {
-    const monthlyTarget = goalByUser.get(m.id) ?? 0;
-    const faTarget = monthlyTarget > 0 ? Math.round(monthlyTarget / weeksInMonth) : 0;
-    const faScheduled = faByUser.get(m.id) ?? 0;
-    return {
-      userId: m.id,
-      name: m.name,
-      isCoach: m.isCoach,
-      faScheduled,
-      faTarget,
-      faPercent: faTarget > 0 ? Math.round((faScheduled / faTarget) * 100) : null,
-      agScheduled: agByUser.get(m.id) ?? 0,
-    };
-  });
-
-  const totalFaScheduled = rows.reduce((s, r) => s + r.faScheduled, 0);
-  const totalFaTarget = rows.reduce((s, r) => s + r.faTarget, 0);
-  const totalAgScheduled = rows.reduce((s, r) => s + r.agScheduled, 0);
+  const faDaily = buildDailyBreakdown(members, faActivities, week.start);
+  const agDaily = buildDailyBreakdown(members, agActivities, week.start);
 
   const dayLabels = WEEKDAY_LABELS.map((label, i) => {
     const d = new Date(week.start.getTime() + i * 24 * 60 * 60 * 1000);
@@ -789,14 +723,6 @@ export async function getTeamWeekOverview(
     weekStart: week.start,
     weekEnd: new Date(week.end.getTime() - 1),
     weekOffset,
-    rows,
-    totals: {
-      faScheduled: totalFaScheduled,
-      faTarget: totalFaTarget,
-      faPercent:
-        totalFaTarget > 0 ? Math.round((totalFaScheduled / totalFaTarget) * 100) : null,
-      agScheduled: totalAgScheduled,
-    },
     dayLabels,
     faDaily,
     agDaily,
