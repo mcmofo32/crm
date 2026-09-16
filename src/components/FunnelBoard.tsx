@@ -8,6 +8,7 @@ import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/lead
 import { planStageMeetingAction, planFollowUpCallAction } from "@/lib/actions/activities";
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
+import { EditMeetingButton } from "@/components/EditMeetingButton";
 import { Avatar } from "@/components/Avatar";
 import { avatarUrl } from "@/lib/avatarUrl";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
@@ -113,7 +114,16 @@ type BoardLead = {
   stageId: string;
   lastContactedAt: Date | null;
   owner: { id: string; name: string; avatarUpdatedAt: Date | null };
-  activities: { scheduledAt: Date | null }[];
+  activities: {
+    id: string;
+    subject: string;
+    scheduledAt: Date | null;
+    durationMinutes: number | null;
+    meetingMode: string | null;
+    location: string | null;
+    meetingLink: string | null;
+    subagentId: string | null;
+  }[];
 };
 
 type BoardStage = {
@@ -143,7 +153,8 @@ function LeadCard({
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
-  const nextContact = lead.activities[0]?.scheduledAt ?? null;
+  const nextActivity = lead.activities[0] ?? null;
+  const nextContact = nextActivity?.scheduledAt ?? null;
   const lastContact = formatDate(lead.lastContactedAt);
   const upcoming = formatDate(nextContact);
 
@@ -156,12 +167,31 @@ function LeadCard({
         dragged ? "opacity-40" : ""
       }`}
     >
-      <Link
-        href={`/leads/${lead.id}`}
-        className="font-medium text-slate-900 hover:underline"
-      >
-        {lead.firstName} {lead.lastName}
-      </Link>
+      <div className="flex items-start justify-between gap-2">
+        <Link
+          href={`/leads/${lead.id}`}
+          className="font-medium text-slate-900 hover:underline"
+        >
+          {lead.firstName} {lead.lastName}
+        </Link>
+        {nextActivity && nextActivity.meetingMode !== null && nextActivity.scheduledAt && (
+          <EditMeetingButton
+            activityId={nextActivity.id}
+            subject={nextActivity.subject}
+            scheduledAt={nextActivity.scheduledAt}
+            durationMinutes={nextActivity.durationMinutes}
+            meetingMode={nextActivity.meetingMode}
+            location={nextActivity.location}
+            meetingLink={nextActivity.meetingLink}
+            subagentId={nextActivity.subagentId}
+            subagents={subagents.map((s) => ({
+              id: s.id,
+              name: s.name,
+              teamName: s.team.name,
+            }))}
+          />
+        )}
+      </div>
       {lead.company && <p className="text-sm text-slate-400">{lead.company}</p>}
 
       <div className="mt-1.5 flex flex-col gap-1 text-sm">

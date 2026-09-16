@@ -183,7 +183,7 @@ export function ActivityButtons({
 
   if (mode === "editing" && isRichMeeting) {
     return (
-      <div className="mt-2 w-80">
+      <div className="mt-2 w-[30rem] max-w-full">
         <MeetingPlannerFields
           value={meeting}
           onChange={setMeeting}
