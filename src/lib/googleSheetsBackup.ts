@@ -316,7 +316,14 @@ export async function syncGoogleSheetsBackupNow(): Promise<
     });
     return { ok: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Onbekende fout";
+    const rawMessage = error instanceof Error ? error.message : "Onbekende fout";
+    // "invalid_grant" is de kale OAuth-foutcode van Google zelf wanneer de
+    // refresh token niet langer geldig is (ingetrokken bij Google, of
+    // verlopen) — voor een niet-technische beheerder betekent die tekst op
+    // zich niets. Vertaalt naar de enige echte oplossing: opnieuw koppelen.
+    const message = rawMessage.includes("invalid_grant")
+      ? "De Google-koppeling is niet meer geldig (ingetrokken bij Google, of verlopen). Klik op \"Ontkoppelen\" en verbind opnieuw."
+      : rawMessage;
     await prisma.googleSheetsBackup.update({
       where: { id: connection.id },
       data: { lastSyncError: message },
