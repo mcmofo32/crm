@@ -53,16 +53,32 @@ export function isFinancieleAnalyseType(meetingType: string) {
   );
 }
 
+export function isKennismakingsgesprekType(meetingType: string) {
+  return (
+    meetingTypeFromStageLabel(meetingType).toLowerCase() === "kennismakingsgesprek"
+  );
+}
+
+export function isCarrieregesprekType(meetingType: string) {
+  return (
+    meetingTypeFromStageLabel(meetingType).toLowerCase() === "carrièregesprek"
+  );
+}
+
 /**
  * Fases waar we (optioneel, nooit verplicht — je wacht soms nog op het
  * e-mailadres) vragen om een e-mailadres toe te voegen als dat nog
- * ontbreekt: Financiële analyse, Adviesgesprek en Opvolggesprek.
+ * ontbreekt: alle types die de lead ook effectief als deelnemer uitnodigen
+ * op de afspraak (zie subjectInvitesLead) — Financiële analyse,
+ * Adviesgesprek, Kennismakingsgesprek, Carrièregesprek en Opvolggesprek.
  */
 export function wantsEmailPrompt(meetingType: string) {
   return (
     isFinancieleAnalyseType(meetingType) ||
     isAdviesgesprekType(meetingType) ||
-    isOpvolggesprekType(meetingType)
+    isOpvolggesprekType(meetingType) ||
+    isKennismakingsgesprekType(meetingType) ||
+    isCarrieregesprekType(meetingType)
   );
 }
 
