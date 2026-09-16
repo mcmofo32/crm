@@ -16,6 +16,9 @@ type FollowUpContract = {
   amount: number;
   units: number;
   contractDate: Date;
+  /** Status/verlaagd bedrag komen van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — hier enkel om te tonen, wijzig je op de Polissen-pagina. */
+  premievrij: boolean;
+  reducedAmount: number | null;
 };
 
 function formatAmount(amount: number) {
@@ -68,7 +71,9 @@ export function FollowUpContractsCard({
   const sortedContracts = [...contracts].sort(
     (a, b) => b.contractDate.getTime() - a.contractDate.getTime()
   );
-  const totalAmount = contracts.reduce((sum, c) => sum + c.amount, 0);
+  // Som van het effectieve (dus eventueel verlaagde) bedrag — anders klopt
+  // het totaal niet meer zodra één van de contracten verlaagd is.
+  const totalAmount = contracts.reduce((sum, c) => sum + (c.reducedAmount ?? c.amount), 0);
   const totalUnits = contracts.reduce((sum, c) => sum + c.units, 0);
 
   function resetForm() {
@@ -123,8 +128,13 @@ export function FollowUpContractsCard({
               {sortedContracts.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-2">
                   <div className="flex flex-col">
-                    <span className="text-slate-600">
+                    <span className="flex items-center gap-1.5 text-slate-600">
                       {PRODUCT_TYPE_LABELS[c.type]}
+                      {c.premievrij && (
+                        <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
+                          Premievrij
+                        </span>
+                      )}
                     </span>
                     <span className="text-xs text-slate-400">
                       {formatDate(c.contractDate)}
@@ -132,7 +142,19 @@ export function FollowUpContractsCard({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-slate-900">
-                      {formatAmount(c.amount)} · {c.units} eenh.
+                      {c.reducedAmount !== null ? (
+                        <>
+                          <span className="font-medium text-red-700">
+                            {formatAmount(c.reducedAmount)}
+                          </span>{" "}
+                          <span className="text-xs text-slate-400 line-through">
+                            {formatAmount(c.amount)}
+                          </span>
+                        </>
+                      ) : (
+                        formatAmount(c.amount)
+                      )}{" "}
+                      · {c.units} eenh.
                     </span>
                     {canEdit && (
                       <button

@@ -74,7 +74,9 @@ export default async function LeadDetailPage({
       include: {
         owner: true,
         stage: true,
-        products: true,
+        products: {
+          include: { policy: { select: { status: true, reducedAmount: true } } },
+        },
         activities: {
           include: {
             assignee: { select: { id: true, name: true, avatarUpdatedAt: true } },
@@ -218,6 +220,9 @@ export default async function LeadDetailPage({
                 type: p.type,
                 amount: Number(p.amount),
                 units: p.units,
+                premievrij: p.policy?.status === "PREMIEVRIJ",
+                reducedAmount:
+                  p.policy?.reducedAmount != null ? Number(p.policy.reducedAmount) : null,
               }))}
             canEdit={canManageCustomerData(user)}
           />
@@ -233,6 +238,9 @@ export default async function LeadDetailPage({
                   amount: Number(p.amount),
                   units: p.units,
                   contractDate: p.contractDate,
+                  premievrij: p.policy?.status === "PREMIEVRIJ",
+                  reducedAmount:
+                    p.policy?.reducedAmount != null ? Number(p.policy.reducedAmount) : null,
                 }))}
               canEdit={canManageCustomerData(user)}
             />

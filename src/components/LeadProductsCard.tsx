@@ -12,7 +12,14 @@ import {
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import type { ProductType } from "@/generated/prisma/client";
 
-type ProductRecord = { type: ProductType; amount: number; units: number };
+type ProductRecord = {
+  type: ProductType;
+  amount: number;
+  units: number;
+  /** Status/verlaagd bedrag komen van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — hier enkel om te tonen, wijzig je op de Polissen-pagina. */
+  premievrij: boolean;
+  reducedAmount: number | null;
+};
 
 function formatAmount(amount: number) {
   return amount.toLocaleString("nl-BE", {
@@ -48,7 +55,9 @@ export function LeadProductsCard({
   const sortedProducts = [...products].sort(
     (a, b) => PRODUCT_TYPE_ORDER.indexOf(a.type) - PRODUCT_TYPE_ORDER.indexOf(b.type)
   );
-  const totalAmount = products.reduce((sum, p) => sum + p.amount, 0);
+  // Som van het effectieve (dus eventueel verlaagde) bedrag — anders klopt
+  // het totaal niet meer zodra één van de producten verlaagd is.
+  const totalAmount = products.reduce((sum, p) => sum + (p.reducedAmount ?? p.amount), 0);
   const totalUnits = products.reduce((sum, p) => sum + p.units, 0);
 
   if (editing) {
@@ -110,10 +119,29 @@ export function LeadProductsCard({
       ) : (
         <ul className="flex flex-col gap-2">
           {sortedProducts.map((p) => (
-            <li key={p.type} className="flex items-center justify-between">
-              <span className="text-slate-600">{PRODUCT_TYPE_LABELS[p.type]}</span>
+            <li key={p.type} className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 text-slate-600">
+                {PRODUCT_TYPE_LABELS[p.type]}
+                {p.premievrij && (
+                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
+                    Premievrij
+                  </span>
+                )}
+              </span>
               <span className="text-slate-900">
-                {formatAmount(p.amount)} · {p.units} eenh.
+                {p.reducedAmount !== null ? (
+                  <>
+                    <span className="font-medium text-red-700">
+                      {formatAmount(p.reducedAmount)}
+                    </span>{" "}
+                    <span className="text-xs text-slate-400 line-through">
+                      {formatAmount(p.amount)}
+                    </span>
+                  </>
+                ) : (
+                  formatAmount(p.amount)
+                )}{" "}
+                · {p.units} eenh.
               </span>
             </li>
           ))}
