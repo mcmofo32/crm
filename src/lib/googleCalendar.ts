@@ -119,7 +119,9 @@ function buildEventBody(
   scheduledBy?: { name: string; email: string | null; phone: string | null } | null,
   owner?: ContactInfo | null,
   officeNote?: string | null,
-  assigneeName?: string | null
+  assigneeName?: string | null,
+  /** True als scheduledBy dezelfde persoon is als de toegewezen gebruiker (op wiens agenda dit event komt). */
+  isSelfScheduled?: boolean
 ) {
   const start = activity.scheduledAt ?? new Date();
   const durationMinutes = activity.durationMinutes ?? 15;
@@ -146,7 +148,11 @@ function buildEventBody(
 
   // Wie deze afspraak heeft ingepland (bv. een Coach die inplant namens een
   // teamlid) wordt mee uitgenodigd als die niet dezelfde persoon is als de
-  // toegewezen gebruiker (die de afspraak al op zijn eigen agenda heeft staan).
+  // toegewezen gebruiker — plant iemand voor zichzelf in, dan zou hij anders
+  // zichzelf uitnodigen op zijn eigen agenda-item, wat Google Agenda
+  // standaard als "in afwachting" toont, ook al is het gewoon zijn eigen
+  // afspraak (zijn telefoonnummer blijft wel altijd in de omschrijving
+  // staan hieronder, voor de uitgenodigde klant).
   const seenEmails = new Set<string>();
   const attendees: { email: string }[] = [];
   function addAttendee(email: string | null | undefined) {
@@ -159,7 +165,7 @@ function buildEventBody(
     addAttendee(lead.email);
   }
   addAttendee(subagent?.email);
-  addAttendee(scheduledBy?.email);
+  if (!isSelfScheduled) addAttendee(scheduledBy?.email);
 
   // Bij een fysieke afspraak op het kantooradres komt de vaste
   // bereikbaarheidsnotitie ("Kantoor" in het profielmenu) altijd mee in de
@@ -261,7 +267,9 @@ export async function syncActivityToGoogleCalendar(
   activity: Activity,
   lead: Lead,
   subagent?: Subagent | null,
-  scheduledBy?: { name: string; email: string | null; phone: string | null } | null
+  scheduledBy?: { name: string; email: string | null; phone: string | null } | null,
+  /** True als scheduledBy dezelfde persoon is als de toegewezen gebruiker (user hierboven) — zie buildEventBody. */
+  isSelfScheduled?: boolean
 ) {
   if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
     // Zonder dit zag je nergens waarom een afspraak niet op de agenda stond
@@ -321,7 +329,8 @@ export async function syncActivityToGoogleCalendar(
     scheduledBy,
     owner,
     isAtOffice ? officeSettings?.note : null,
-    assigneeForNote?.name
+    assigneeForNote?.name,
+    isSelfScheduled
   );
   const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
   // Stuurt automatisch een uitnodigingsmail naar de lead (en eventuele

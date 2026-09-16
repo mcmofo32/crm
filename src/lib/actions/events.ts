@@ -144,14 +144,25 @@ async function inviteToEvent(actorId: string, eventId: string, formData: FormDat
 
   const organizer = await prisma.user.findUnique({
     where: { id: actorId },
-    select: GOOGLE_CALENDAR_USER_SELECT,
+    select: { ...GOOGLE_CALENDAR_USER_SELECT, email: true },
   });
   if (!organizer) return;
 
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) return;
 
-  await syncEventToGoogleCalendar(organizer, event, attendeeEmails);
+  // De organisator zelf komt niet als agenda-deelnemer te staan, ook al
+  // koos hij zichzelf mee (bv. via "Structuur A") — anders nodigt hij
+  // zichzelf uit op zijn eigen agenda-item, wat Google Agenda standaard als
+  // "in afwachting" toont. De EventAttendance/EventSubagentInvite-records
+  // hierboven blijven gewoon staan, dat is enkel onze eigen
+  // aanwezigheidstracking, los van de Google-uitnodiging.
+  const calendarAttendeeEmails = organizer.email
+    ? attendeeEmails.filter((email) => email !== organizer.email)
+    : attendeeEmails;
+  if (calendarAttendeeEmails.length === 0) return;
+
+  await syncEventToGoogleCalendar(organizer, event, calendarAttendeeEmails);
 }
 
 export type EventInviteOptions = {

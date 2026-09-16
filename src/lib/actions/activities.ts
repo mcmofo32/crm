@@ -178,10 +178,19 @@ export async function scheduleActivityAction(formData: FormData) {
       select: GOOGLE_CALENDAR_USER_SELECT,
     });
     if (assignee) {
-      // Wie de afspraak effectief inplant staat altijd mee als deelnemer,
-      // ook als dat dezelfde persoon is als de toegewezen gebruiker.
+      // Wie de afspraak effectief inplant staat mee als deelnemer, tenzij
+      // dat dezelfde persoon is als de toegewezen gebruiker — anders nodig
+      // je jezelf uit op je eigen agenda-item, wat Google Agenda standaard
+      // als "in afwachting" toont (zie buildEventBody in googleCalendar.ts).
       const scheduledBy = await buildScheduledBy(user);
-      await syncActivityToGoogleCalendar(assignee, activity, lead, subagent, scheduledBy);
+      await syncActivityToGoogleCalendar(
+        assignee,
+        activity,
+        lead,
+        subagent,
+        scheduledBy,
+        user.id === assigneeId
+      );
     }
   }
 
@@ -622,10 +631,17 @@ export async function planStageMeetingAction(
     data: { lastContactedAt: new Date() },
   });
 
-  // Wie de afspraak effectief inplant staat altijd mee als deelnemer, ook
-  // als dat dezelfde persoon is als de eigenaar van de lead.
+  // Wie de afspraak effectief inplant staat mee als deelnemer, tenzij dat
+  // dezelfde persoon is als de eigenaar van de lead (zie scheduleActivityAction).
   const scheduledBy = await buildScheduledBy(user);
-  await syncActivityToGoogleCalendar(assignee, activity, freshLead, subagent, scheduledBy);
+  await syncActivityToGoogleCalendar(
+    assignee,
+    activity,
+    freshLead,
+    subagent,
+    scheduledBy,
+    user.id === freshLead.ownerId
+  );
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
@@ -691,8 +707,17 @@ export async function planFollowUpCallAction(
     data: { lastContactedAt: new Date() },
   });
 
+  // Wie dit terugbelmoment effectief inplant staat mee als deelnemer, tenzij
+  // dat dezelfde persoon is als de eigenaar van de lead (zie scheduleActivityAction).
   const scheduledBy = await buildScheduledBy(user);
-  await syncActivityToGoogleCalendar(assignee, activity, freshLead, null, scheduledBy);
+  await syncActivityToGoogleCalendar(
+    assignee,
+    activity,
+    freshLead,
+    null,
+    scheduledBy,
+    user.id === freshLead.ownerId
+  );
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
