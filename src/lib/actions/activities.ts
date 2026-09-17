@@ -429,8 +429,21 @@ export async function updateActivityAction(
   });
   if (assignee && scheduledAt) {
     // Anders valt bv. de subagent-contactregel (zie buildEventBody) weg uit
-    // de omschrijving zodra een afspraak nadien gewijzigd wordt.
-    await syncActivityToGoogleCalendar(assignee, updated, lead, subagent);
+    // de omschrijving zodra een afspraak nadien gewijzigd wordt. scheduledBy
+    // hier opnieuw meegeven (i.p.v. wie de afspraak oorspronkelijk insplande,
+    // wat niet bijgehouden wordt) is nodig, anders verdwijnt de organisator
+    // als gast uit de agenda-uitnodiging zodra deze wijziging opnieuw
+    // gesynchroniseerd wordt (events.update herschrijft de volledige
+    // deelnemerslijst, zie buildEventBody).
+    const scheduledBy = await buildScheduledBy(user);
+    await syncActivityToGoogleCalendar(
+      assignee,
+      updated,
+      lead,
+      subagent,
+      scheduledBy,
+      user.id === activity.assigneeId
+    );
   }
 
   revalidatePath(`/leads/${activity.leadId}`);
