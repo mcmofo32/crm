@@ -119,6 +119,7 @@ export default async function AppLayout({
         ]
       : []),
     { href: "/bibliotheek", label: "Bibliotheek", compactLabel: true },
+    { href: "/academy", label: "Academy", compactLabel: true },
   ];
 
   return (
