@@ -146,26 +146,25 @@ function buildEventBody(
   // de klant, dus daar krijgt hij geen uitnodigingsmail voor.
   const invitesLead = subjectInvitesLead(activity.subject);
 
-  // Wie deze afspraak heeft ingepland (bv. een Coach die inplant namens een
-  // teamlid) wordt mee uitgenodigd als die niet dezelfde persoon is als de
-  // toegewezen gebruiker — plant iemand voor zichzelf in, dan zou hij anders
-  // zichzelf uitnodigen op zijn eigen agenda-item, wat Google Agenda
-  // standaard als "in afwachting" toont, ook al is het gewoon zijn eigen
-  // afspraak (zijn telefoonnummer blijft wel altijd in de omschrijving
-  // staan hieronder, voor de uitgenodigde klant).
+  // Wie deze afspraak heeft ingepland staat altijd mee bij de gasten
+  // (organisator, naast klant en subagent) — plant iemand voor zichzelf in,
+  // dan zou hij anders standaard als "in afwachting" op zijn eigen
+  // agenda-item staan, dus die eigen gast-regel krijgt dan meteen
+  // responseStatus "accepted" mee (zijn telefoonnummer blijft daarnaast ook
+  // altijd in de omschrijving staan hieronder, voor de uitgenodigde klant).
   const seenEmails = new Set<string>();
-  const attendees: { email: string }[] = [];
-  function addAttendee(email: string | null | undefined) {
+  const attendees: { email: string; responseStatus?: string }[] = [];
+  function addAttendee(email: string | null | undefined, responseStatus?: string) {
     if (email && !seenEmails.has(email)) {
       seenEmails.add(email);
-      attendees.push({ email });
+      attendees.push(responseStatus ? { email, responseStatus } : { email });
     }
   }
+  addAttendee(scheduledBy?.email, isSelfScheduled ? "accepted" : undefined);
   if (invitesLead) {
     addAttendee(lead.email);
   }
   addAttendee(subagent?.email);
-  if (!isSelfScheduled) addAttendee(scheduledBy?.email);
 
   // Bij een fysieke afspraak op het kantooradres komt de vaste
   // bereikbaarheidsnotitie ("Kantoor" in het profielmenu) altijd mee in de
