@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { isBeheerder, canEditAccount, canChangeRole } from "@/lib/permissions";
+import {
+  isBeheerder,
+  canEditAccount,
+  canChangeRole,
+  canBulkDeleteEmployeeLeads,
+} from "@/lib/permissions";
 import {
   getUserForEdit,
   getTeamsForAssignment,
@@ -11,6 +16,7 @@ import {
   getUserDeletionImpact,
   getReassignableUsers,
 } from "@/lib/actions/users";
+import { getOwnedLeadsCountForCleanup } from "@/lib/actions/leads";
 import { FormToast } from "@/components/toast/FormToast";
 import { forceLogoutUserAction } from "@/lib/actions/sessions";
 import { getFsmaModulesForUser, setFsmaModuleStatusAction } from "@/lib/actions/fsmaModules";
@@ -25,6 +31,7 @@ import {
 } from "@/lib/fsmaLabels";
 import { EditUserForm } from "@/components/EditUserForm";
 import { DeleteUserButton } from "@/components/DeleteUserButton";
+import { BulkDeleteEmployeeLeadsButton } from "@/components/BulkDeleteEmployeeLeadsButton";
 import { InlineSelect } from "@/components/InlineSelect";
 
 const FSMA_STATUS_OPTIONS = FSMA_STATUS_ORDER.map((status) => ({
@@ -64,11 +71,19 @@ export default async function EditUserPage({
   const canEdit = canEditAccount(viewer, target);
   const canEditRole = canChangeRole(viewer, target, target.role);
   const isSelf = target.id === viewer.id;
-  const [deletionImpact, reassignableUsers, fsmaModules] = await Promise.all([
-    isSelf ? null : getUserDeletionImpact(id),
-    isSelf ? [] : getReassignableUsers(id),
-    getFsmaModulesForUser(id),
-  ]);
+  // Ook niet tonen tijdens "bekijken als" (view-as) een lagere rol: net als
+  // de andere Beheerder-only-secties hierboven (die via viewer.role al
+  // meebewegen met de preview) hoort deze gevarenzone dan verborgen te
+  // blijven — canBulkDeleteEmployeeLeads zelf kijkt naar e-mail, niet naar
+  // rol, en zou anders ook tijdens een preview zichtbaar blijven.
+  const showLeadsCleanup = canBulkDeleteEmployeeLeads(viewer) && !viewer.isImpersonating;
+  const [deletionImpact, reassignableUsers, fsmaModules, ownedLeadsForCleanup] =
+    await Promise.all([
+      isSelf ? null : getUserDeletionImpact(id),
+      isSelf ? [] : getReassignableUsers(id),
+      getFsmaModulesForUser(id),
+      showLeadsCleanup ? getOwnedLeadsCountForCleanup(id) : Promise.resolve(null),
+    ]);
 
   // Een Admin mag rollen aanpassen tot maximaal Coach (nooit Admin/Beheerder
   // toekennen) — maar enkel als de rol van dit profiel zelf al aanpasbaar is
@@ -423,6 +438,26 @@ export default async function EditUserPage({
               />
             </>
           )}
+        </div>
+      )}
+
+      {showLeadsCleanup && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <h2 className="mb-2 text-sm font-medium text-red-900">
+            Gevarenzone — alle leads van deze medewerker verwijderen
+          </h2>
+          <p className="mb-3 text-sm text-red-800">
+            Verwijdert in één keer alle nog niet verwijderde leads waarvan{" "}
+            {target.name}{" "}
+            eigenaar is (ook eventuele klanten/status &quot;Klant&quot;) naar
+            de prullenbak — elke lead is daarna nog apart te herstellen via
+            Prullenbak. Bedoeld om snel op te kuisen na een foutieve import.
+          </p>
+          <BulkDeleteEmployeeLeadsButton
+            ownerId={target.id}
+            ownerName={target.name}
+            leadsCount={ownedLeadsForCleanup ?? 0}
+          />
         </div>
       )}
     </div>

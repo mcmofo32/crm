@@ -68,6 +68,17 @@ export function canDeleteActivities(user: SessionUser) {
   return user.role === Role.BEHEERDER;
 }
 
+/**
+ * Opkuisknop na fouten bij het importeren van leads: in één keer alle leads
+ * van een medewerker verwijderen (zie deleteAllLeadsForOwnerAction). Bewust
+ * beperkt tot dit ene account op e-mail i.p.v. een rol — ook een andere
+ * Beheerder krijgt deze knop niet te zien, dit is geen algemene
+ * rol-bevoegdheid.
+ */
+export function canBulkDeleteEmployeeLeads(user: { email?: string | null }) {
+  return (user.email ?? "").trim().toLowerCase() === "robin@ceuppensconsulting.com";
+}
+
 /** Wie mag incentive-events aanmaken/verwijderen? Iedereen mag ze bekijken. */
 export function canManageIncentives(user: SessionUser) {
   return user.role === Role.BEHEERDER || user.role === Role.ADMIN;

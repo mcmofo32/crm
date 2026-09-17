@@ -14,6 +14,7 @@ import {
 import {
   canAccessOwner,
   canAccessLead,
+  canBulkDeleteEmployeeLeads,
   canDeleteLeads,
   canManageCustomerData,
   canViewBeheerderTools,
@@ -627,6 +628,69 @@ export async function deleteLeadAction(leadId: string) {
   revalidatePath("/taken");
   revalidatePath("/dashboard");
   revalidatePath("/beheer/prullenbak");
+}
+
+/** Aantal nog niet verwijderde leads van deze medewerker, voor de opkuisknop hieronder. */
+export async function getOwnedLeadsCountForCleanup(ownerId: string) {
+  const user = await requireUser();
+  if (!canBulkDeleteEmployeeLeads(user)) {
+    throw new Error("Je hebt geen toegang tot deze functie");
+  }
+  return prisma.lead.count({ where: { ownerId, deletedAt: null } });
+}
+
+/**
+ * Opkuisknop, enkel voor robin@ceuppensconsulting.com (zie
+ * canBulkDeleteEmployeeLeads): verwijdert in één keer alle nog niet
+ * verwijderde leads waarvan de gekozen medewerker eigenaar is — bedoeld om
+ * na fouten bij het importeren snel een volledig foutieve set leads op te
+ * kuisen. Zelfde soft delete als deleteLeadAction hierboven (naar de
+ * prullenbak, elke lead nog apart te herstellen), zonder de WON-uitzondering
+ * van canDeleteLeads: wie deze functie mag gebruiken mag sowieso elke status
+ * individueel verwijderen.
+ */
+export async function deleteAllLeadsForOwnerAction(ownerId: string) {
+  const user = await requireUser();
+  if (!canBulkDeleteEmployeeLeads(user)) {
+    throw new Error("Je hebt geen toegang tot deze functie");
+  }
+
+  const owner = await prisma.user.findUnique({
+    where: { id: ownerId },
+    select: { id: true, name: true },
+  });
+  if (!owner) throw new Error("Gebruiker niet gevonden");
+
+  const leads = await prisma.lead.findMany({
+    where: { ownerId, deletedAt: null },
+    select: { id: true },
+  });
+  if (leads.length === 0) return { count: 0 };
+
+  await prisma.lead.updateMany({
+    where: { ownerId, deletedAt: null },
+    data: { deletedAt: new Date(), deletedById: user.id },
+  });
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.bulk_deleted",
+    entityType: "Lead",
+    entityId: leads[0].id,
+    description: `${leads.length} leads van "${owner.name}" in één keer verwijderd (naar prullenbak, na fouten bij importeren)`,
+  });
+
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/klanten");
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
+  revalidatePath("/beheer/prullenbak");
+  revalidatePath("/funnel/FA");
+  revalidatePath("/funnel/RG");
+  revalidatePath(`/beheer/gebruikers/${ownerId}`);
+
+  return { count: leads.length };
 }
 
 /** Haalt een lead terug uit de prullenbak. */
