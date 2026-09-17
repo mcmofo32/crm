@@ -14,7 +14,6 @@ import {
   Network,
   LineChart,
   BookOpen,
-  GraduationCap,
   ChevronDown,
   Menu,
   X,
@@ -32,7 +31,6 @@ const ICONS: Record<string, LucideIcon> = {
   "/organigram": Network,
   "/productie": LineChart,
   "/bibliotheek": BookOpen,
-  "/academy": GraduationCap,
 };
 
 type NavItem = {

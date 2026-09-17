@@ -17,6 +17,7 @@ import {
   GraduationCap,
   FileSpreadsheet,
   CalendarClock,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -193,6 +194,9 @@ export function ProfileMenu({
       {(showUserManagement || showEmployeeGoals || showBeheerderTools) && (
         <hr className="my-1.5 border-slate-100" />
       )}
+      <MenuLink href="/academy" icon={Presentation}>
+        Academy
+      </MenuLink>
       <MenuLink href="/beheer/weekoverzicht" icon={CalendarClock}>
         Weekoverzicht team
       </MenuLink>
