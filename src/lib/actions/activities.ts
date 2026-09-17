@@ -511,12 +511,17 @@ export async function cancelActivityAction(activityId: string) {
 }
 
 /**
- * Plant meteen een afspraak (fysiek of online) in bij het verplaatsen van een
- * lead naar een "...ingepland"-fase (bv. Financiële analyse ingepland,
- * Adviesgesprek ingepland). Bij online zonder Google Meet wordt de eigen
- * Zoom-link van de toegewezen gebruiker (Instellingen) in de omschrijving
- * gezet; met Google Meet genereert Google zelf een meet-link op het
- * agenda-item.
+ * Plant een afspraak (fysiek of online) in voor het verplaatsen van een lead
+ * naar een "...ingepland"-fase (bv. Financiële analyse ingepland,
+ * Adviesgesprek ingepland) — `toStageId` is de doelfase, niet noodzakelijk
+ * (en typisch nog niet) de huidige fase van de lead: de aanroeper (Funnel-
+ * Board/StageSelect) roept dit bewust vóór updateLeadStageAction aan, zodat
+ * de lead pas effectief verplaatst wordt nadat dit gelukt is — anders zou
+ * een lead in een "...ingepland"-fase kunnen belanden zonder dat er ooit een
+ * afspraak (met, waar verplicht, een subagent) ingepland werd. Bij online
+ * zonder Google Meet wordt de eigen Zoom-link van de toegewezen gebruiker
+ * (Instellingen) in de omschrijving gezet; met Google Meet genereert Google
+ * zelf een meet-link op het agenda-item.
  */
 /**
  * Server Actions redacten in productie de boodschap van elke fout die
@@ -530,16 +535,20 @@ export type PlanMeetingResult = { error: string } | undefined;
 
 export async function planStageMeetingAction(
   leadId: string,
+  toStageId: string,
   formData: FormData
 ): Promise<PlanMeetingResult> {
   const { user, lead } = await requireLeadAccess(leadId);
 
-  const freshLead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    include: { stage: true },
-  });
+  const [freshLead, toStage] = await Promise.all([
+    prisma.lead.findUnique({ where: { id: leadId } }),
+    prisma.funnelStage.findUnique({ where: { id: toStageId } }),
+  ]);
   if (!freshLead) return { error: "Lead niet gevonden" };
-  if (!isPlanningStage(freshLead.stage.label)) {
+  if (!toStage || toStage.leadType !== freshLead.leadType) {
+    return { error: "Ongeldige funnel-stage" };
+  }
+  if (!isPlanningStage(toStage.label)) {
     return {
       error: "Een afspraak inplannen kan enkel in een '...ingepland'-fase",
     };
@@ -579,8 +588,7 @@ export async function planStageMeetingAction(
   if (subagentId && !subagent) return { error: "Subagent niet gevonden" };
   if (
     !subagentId &&
-    (isAdviesgesprekType(freshLead.stage.label) ||
-      isOpvolggesprekType(freshLead.stage.label))
+    (isAdviesgesprekType(toStage.label) || isOpvolggesprekType(toStage.label))
   ) {
     return { error: "Duid een subagent aan om deze afspraak in te plannen" };
   }
@@ -618,7 +626,7 @@ export async function planStageMeetingAction(
 
   const subject = buildMeetingSubject(
     scheduledAt,
-    freshLead.stage.label,
+    toStage.label,
     freshLead.firstName,
     freshLead.lastName
   );
@@ -663,24 +671,29 @@ export async function planStageMeetingAction(
 }
 
 /**
- * Plant meteen een uitgaand telefoongesprek in bij het verplaatsen van een
- * lead naar de "Opvolging"-fase — een lichtere variant van
+ * Plant een uitgaand telefoongesprek in voor het verplaatsen van een lead
+ * naar de "Opvolging"-fase — een lichtere variant van
  * `planStageMeetingAction` (enkel datum/uur, geen fysiek/online/subagent),
  * die net als een afspraak automatisch in de Google Agenda van de eigenaar
- * komt te staan.
+ * komt te staan. `toStageId` is de doelfase (zie planStageMeetingAction voor
+ * waarom dit vóór updateLeadStageAction aangeroepen wordt).
  */
 export async function planFollowUpCallAction(
   leadId: string,
+  toStageId: string,
   formData: FormData
 ): Promise<PlanMeetingResult> {
   const { user, lead } = await requireLeadAccess(leadId);
 
-  const freshLead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    include: { stage: true },
-  });
+  const [freshLead, toStage] = await Promise.all([
+    prisma.lead.findUnique({ where: { id: leadId } }),
+    prisma.funnelStage.findUnique({ where: { id: toStageId } }),
+  ]);
   if (!freshLead) return { error: "Lead niet gevonden" };
-  if (!isFollowUpStage(freshLead.stage.label)) {
+  if (!toStage || toStage.leadType !== freshLead.leadType) {
+    return { error: "Ongeldige funnel-stage" };
+  }
+  if (!isFollowUpStage(toStage.label)) {
     return { error: "Een terugbelmoment inplannen kan enkel in de fase 'Opvolging'" };
   }
 

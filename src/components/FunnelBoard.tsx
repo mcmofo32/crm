@@ -393,26 +393,36 @@ export function FunnelBoard({
 
   function confirmMove() {
     if (!pendingMove) return;
-    const { leadId, toStageId, toStageIsWon } = pendingMove;
+    const { leadId, toStageId, toStageLabel, toStageIsWon } = pendingMove;
     const trimmedNotes = notes;
     const trimmedEmail = emailInput.trim();
     const meetingFormData = buildMeetingFormData(meeting);
     const followUpFormData = buildFollowUpCallFormData(followUpCall);
     startTransition(async () => {
       await runWithToast(async () => {
-        const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
-        if (stageResult?.error) throw new Error(stageResult.error);
         if (trimmedEmail) {
           await updateLeadEmailAction(leadId, trimmedEmail);
         }
-        if (meetingFormData) {
-          const result = await planStageMeetingAction(leadId, meetingFormData);
+        // Eerst de afspraak/het terugbelmoment plannen (en dus valideren,
+        // bv. de verplichte subagent bij Adviesgesprek/Opvolggesprek) vóór
+        // de lead effectief verplaatst wordt — anders kan een lead in een
+        // "...ingepland"-fase belanden zonder dat er ooit iets ingepland werd.
+        if (isPlanningStage(toStageLabel)) {
+          if (!meetingFormData) {
+            throw new Error("Kies een datum en uur voor de afspraak");
+          }
+          const result = await planStageMeetingAction(leadId, toStageId, meetingFormData);
           if (result?.error) throw new Error(result.error);
         }
-        if (followUpFormData) {
-          const result = await planFollowUpCallAction(leadId, followUpFormData);
+        if (isFollowUpStage(toStageLabel)) {
+          if (!followUpFormData) {
+            throw new Error("Kies een datum en uur voor het terugbelmoment");
+          }
+          const result = await planFollowUpCallAction(leadId, toStageId, followUpFormData);
           if (result?.error) throw new Error(result.error);
         }
+        const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+        if (stageResult?.error) throw new Error(stageResult.error);
         if (toStageIsWon && hasAnyProduct(products)) {
           await saveLeadProductsAction(leadId, buildProductsFormData(products));
         }
