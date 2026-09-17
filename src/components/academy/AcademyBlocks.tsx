@@ -13,7 +13,7 @@ export function AcademyBlocks({ blocks }: { blocks: AcademyBlock[] }) {
     (_, i) => blocks.slice(0, i + 1).filter((b) => b[0] === "shot").length
   );
   return (
-    <div className="max-w-[68ch] space-y-4 text-[15px] leading-relaxed text-slate-700">
+    <div className="max-w-[88ch] space-y-4 text-[15px] leading-relaxed text-slate-700">
       {blocks.map((block, i) => (
         <AcademyBlockView key={i} block={block} shotNumber={shotNumbers[i]} />
       ))}

@@ -1,6 +1,6 @@
 {
   "courseTitle": "Structuur A Academy",
-  "courseSubtitle": "De volledige CRM-opleiding voor nieuwe medewerkers van Ceuppens Consulting",
+  "courseSubtitle": "De volledige CRM-opleiding voor nieuwe medewerkers",
   "chapters": [
     {
       "id": "welkom",
@@ -10,7 +10,7 @@
       "blocks": [
         [
           "p",
-          "Fijn dat je hier bent. Deze cursus neemt je stap voor stap mee doorheen **Structuur A**, het CRM waarmee Ceuppens Consulting elke lead, klant en afspraak opvolgt. Na deze cursus ken je elk onderdeel van het systeem: van je eerste keer inloggen tot het opvolgen van polissen die premievrij staan."
+          "Fijn dat je hier bent. Deze cursus neemt je stap voor stap mee doorheen **Structuur A**, het CRM waarmee je elke lead, klant en afspraak opvolgt. Na deze cursus ken je elk onderdeel van het systeem: van je eerste keer inloggen tot het opvolgen van polissen die premievrij staan."
         ],
         [
           "p",
@@ -402,7 +402,7 @@
         ],
         [
           "p",
-          "De fases zelf (hun naam, volgorde en kleur) zijn per kantoor instelbaar, maar de FA Funnel bij Ceuppens Consulting ziet er zo uit: bovenaan de actieve fases, en daaronder — apart gegroepeerd onder **\"Afgerond & geparkeerd\"** — de fases waar een traject eindigt of tijdelijk pauzeert:"
+          "De fases zelf (hun naam, volgorde en kleur) zijn per kantoor instelbaar, maar de FA Funnel ziet er bij ons zo uit: bovenaan de actieve fases, en daaronder — apart gegroepeerd onder **\"Afgerond & geparkeerd\"** — de fases waar een traject eindigt of tijdelijk pauzeert:"
         ],
         [
           "table",
