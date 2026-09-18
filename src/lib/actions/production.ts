@@ -811,7 +811,7 @@ export async function getRecommendationsLeaderboard(
     else if (row.leadType === "RG") rgByUser.set(row.ownerId, row._count._all);
   }
 
-  return users.map((u) => {
+  const rows = users.map((u) => {
     const goalByMetric = new Map(
       u.monthlyGoals.map((g) => [g.metric, Number(g.target)])
     );
@@ -825,6 +825,12 @@ export async function getRecommendationsLeaderboard(
       actualRgLeads: rgByUser.get(u.id) ?? 0,
     };
   });
+
+  // Ranglijst: meeste ontvangen aanbevelingen (FA + RG samen) eerst — bij
+  // gelijke stand blijft de alfabetische volgorde als tiebreaker gelden.
+  return rows.sort(
+    (a, b) => b.actualFaLeads + b.actualRgLeads - (a.actualFaLeads + a.actualRgLeads)
+  );
 }
 
 // ---------------------------------------------------------------------------
