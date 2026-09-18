@@ -407,21 +407,33 @@ export function FunnelBoard({
         // bv. de verplichte subagent bij Adviesgesprek/Opvolggesprek) vóór
         // de lead effectief verplaatst wordt — anders kan een lead in een
         // "...ingepland"-fase belanden zonder dat er ooit iets ingepland werd.
+        let justScheduledActivityId: string | undefined;
         if (isPlanningStage(toStageLabel)) {
           if (!meetingFormData) {
             throw new Error("Kies een datum en uur voor de afspraak");
           }
           const result = await planStageMeetingAction(leadId, toStageId, meetingFormData);
-          if (result?.error) throw new Error(result.error);
+          if (result && "error" in result) throw new Error(result.error);
+          if (result && "activityId" in result) {
+            justScheduledActivityId = result.activityId;
+          }
         }
         if (isFollowUpStage(toStageLabel)) {
           if (!followUpFormData) {
             throw new Error("Kies een datum en uur voor het terugbelmoment");
           }
           const result = await planFollowUpCallAction(leadId, toStageId, followUpFormData);
-          if (result?.error) throw new Error(result.error);
+          if (result && "error" in result) throw new Error(result.error);
+          if (result && "activityId" in result) {
+            justScheduledActivityId = result.activityId;
+          }
         }
-        const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+        const stageResult = await updateLeadStageAction(
+          leadId,
+          toStageId,
+          trimmedNotes,
+          justScheduledActivityId
+        );
         if (stageResult?.error) throw new Error(stageResult.error);
         if (toStageIsWon && hasAnyProduct(products)) {
           await saveLeadProductsAction(leadId, buildProductsFormData(products));

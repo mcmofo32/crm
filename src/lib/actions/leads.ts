@@ -33,7 +33,19 @@ import { EMPLOYMENT_STATUS_ORDER } from "@/lib/employmentStatus";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { contactState } from "@/lib/contactState";
 import { getSubagents } from "@/lib/actions/subagents";
-import { isAdviesgesprekType, isOpvolggesprekType } from "@/lib/meetingPlanning";
+import {
+  isAdviesgesprekType,
+  isOpvolggesprekType,
+  isFollowUpStage,
+} from "@/lib/meetingPlanning";
+import { deleteActivityFromGoogleCalendar } from "@/lib/googleCalendar";
+
+/** Enkel de velden die deleteActivityFromGoogleCalendar nodig heeft — zelfde selectie als in activities.ts. */
+const GOOGLE_CALENDAR_USER_SELECT = {
+  googleCalendarConnected: true,
+  googleCalendarRefreshToken: true,
+  googleCalendarId: true,
+} as const;
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -459,7 +471,15 @@ export async function createLeadsBulkAction(formData: FormData) {
 export async function updateLeadStageAction(
   leadId: string,
   toStageId: string,
-  notes?: string
+  notes?: string,
+  /**
+   * Id van de activiteit die de aanroeper (StageSelect/FunnelBoard) vlak
+   * hiervoor zelf net aanmaakte via planStageMeetingAction/
+   * planFollowUpCallAction (bv. het terugbelmoment bij het verplaatsen naar
+   * "Opvolging") — die blijft uitgesloten van de opkuis van verouderde
+   * geplande taken hieronder, want dat is net de nieuwe, actieve taak.
+   */
+  justScheduledActivityId?: string
 ): Promise<{ error: string } | undefined> {
   const [user, lead, toStage] = await Promise.all([
     requireUser(),
@@ -511,6 +531,39 @@ export async function updateLeadStageAction(
   const trimmedNotes = notes?.trim();
   const now = new Date();
 
+  // Verlaat de lead de actieve funnel richting "Geen klant"/"Geen
+  // medewerker" (isLost) of "Opvolging" (isFollowUpStage), dan is een
+  // eventueel nog openstaande geplande taak (bv. een ingeplande Financiële
+  // analyse die hierdoor niet meer doorgaat) niet langer relevant — die
+  // moet dan ook uit /taken verdwijnen, samen met het bijhorende Google
+  // Agenda-item, net als bij het manueel annuleren van een activiteit
+  // (cancelActivityAction).
+  const shouldCancelPlannedActivities = toStage.isLost || isFollowUpStage(toStage.label);
+  const stalePlannedActivities = shouldCancelPlannedActivities
+    ? await prisma.activity.findMany({
+        where: {
+          leadId,
+          status: ActivityStatus.PLANNED,
+          ...(justScheduledActivityId ? { id: { not: justScheduledActivityId } } : {}),
+        },
+      })
+    : [];
+  if (stalePlannedActivities.length > 0) {
+    const assignees = await prisma.user.findMany({
+      where: { id: { in: [...new Set(stalePlannedActivities.map((a) => a.assigneeId))] } },
+      select: { id: true, ...GOOGLE_CALENDAR_USER_SELECT },
+    });
+    const assigneeById = new Map(assignees.map((a) => [a.id, a]));
+    await Promise.all(
+      stalePlannedActivities.map((activity) => {
+        const assignee = assigneeById.get(activity.assigneeId);
+        return assignee
+          ? deleteActivityFromGoogleCalendar(assignee, activity)
+          : Promise.resolve();
+      })
+    );
+  }
+
   await prisma.$transaction([
     prisma.lead.update({
       where: { id: leadId },
@@ -535,6 +588,14 @@ export async function updateLeadStageAction(
         changedById: user.id,
       },
     }),
+    ...(stalePlannedActivities.length > 0
+      ? [
+          prisma.activity.updateMany({
+            where: { id: { in: stalePlannedActivities.map((a) => a.id) } },
+            data: { status: ActivityStatus.CANCELLED },
+          }),
+        ]
+      : []),
     ...(trimmedNotes
       ? [
           prisma.activity.create({
