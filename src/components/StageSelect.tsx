@@ -148,6 +148,7 @@ export function StageSelect({
                   // Opvolggesprek) vóór de lead effectief verplaatst wordt —
                   // anders kan een lead in een "...ingepland"-fase belanden
                   // zonder dat er ooit iets ingepland werd.
+                  let justScheduledActivityId: string | undefined;
                   if (targetStage && isPlanningStage(targetStage.label)) {
                     if (!meetingFormData) {
                       throw new Error("Kies een datum en uur voor de afspraak");
@@ -157,7 +158,10 @@ export function StageSelect({
                       targetStageId,
                       meetingFormData
                     );
-                    if (result?.error) throw new Error(result.error);
+                    if (result && "error" in result) throw new Error(result.error);
+                    if (result && "activityId" in result) {
+                      justScheduledActivityId = result.activityId;
+                    }
                   }
                   if (targetStage && isFollowUpStage(targetStage.label)) {
                     if (!followUpFormData) {
@@ -168,9 +172,17 @@ export function StageSelect({
                       targetStageId,
                       followUpFormData
                     );
-                    if (result?.error) throw new Error(result.error);
+                    if (result && "error" in result) throw new Error(result.error);
+                    if (result && "activityId" in result) {
+                      justScheduledActivityId = result.activityId;
+                    }
                   }
-                  const stageResult = await updateLeadStageAction(leadId, targetStageId, notes);
+                  const stageResult = await updateLeadStageAction(
+                    leadId,
+                    targetStageId,
+                    notes,
+                    justScheduledActivityId
+                  );
                   if (stageResult?.error) throw new Error(stageResult.error);
                   if (targetStage?.isWon && hasAnyProduct(products)) {
                     await saveLeadProductsAction(leadId, buildProductsFormData(products));
