@@ -243,7 +243,10 @@ export function FollowUpContractsCard({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    disabled={pending || !amount || Number(amount) <= 0}
+                    disabled={
+                      pending ||
+                      (!(Number(amount) > 0) && !(Number(lumpSumAmount) > 0))
+                    }
                     onClick={submit}
                     className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
                   >

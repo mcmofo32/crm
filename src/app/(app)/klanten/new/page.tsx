@@ -149,12 +149,15 @@ export default async function NewCustomerPage() {
           <p className="text-sm font-medium text-slate-700">
             Producten <span className="font-normal text-slate-400">(minstens 1 verplicht)</span>
           </p>
-          <div className="grid grid-cols-[1fr_7rem_6rem] items-center gap-x-2 gap-y-1.5 text-sm">
+          <div className="grid grid-cols-[1fr_6.5rem_6.5rem_5.5rem] items-center gap-x-2 gap-y-1.5 text-sm">
             <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Product
             </span>
             <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Bedrag (€)
+              Bedrag/maand (€)
+            </span>
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Koopsom (€)
             </span>
             <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Eenheden
@@ -172,6 +175,15 @@ export default async function NewCustomerPage() {
                 <input
                   type="number"
                   min={0}
+                  step="0.01"
+                  placeholder="Eenmalig"
+                  title="Eenmalige koopsom (bv. €10.000 in één keer) — telt niet mee in het maandelijkse incasso"
+                  name={`lumpsum-${type}`}
+                  className="rounded-md border border-slate-300 px-2 py-1.5"
+                />
+                <input
+                  type="number"
+                  min={0}
                   step="1"
                   name={`units-${type}`}
                   className="rounded-md border border-slate-300 px-2 py-1.5"
@@ -179,6 +191,11 @@ export default async function NewCustomerPage() {
               </div>
             ))}
           </div>
+          <p className="text-xs text-slate-400">
+            Koopsom = een eenmalige aankoop (bv. in één keer beleggen) i.p.v.
+            een maandelijks bedrag — telt niet mee in het maandelijkse
+            incasso.
+          </p>
         </div>
 
         <button

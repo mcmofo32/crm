@@ -12,7 +12,11 @@ export function emptyProductsState(): ProductsState {
 }
 
 export function hasAnyProduct(value: ProductsState): boolean {
-  return PRODUCT_TYPE_ORDER.some((type) => (value[type]?.amount ?? "").trim() !== "");
+  return PRODUCT_TYPE_ORDER.some(
+    (type) =>
+      (value[type]?.amount ?? "").trim() !== "" ||
+      (value[type]?.lumpSumAmount ?? "").trim() !== ""
+  );
 }
 
 export function buildProductsFormData(value: ProductsState): FormData {

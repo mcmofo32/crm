@@ -34,7 +34,10 @@ export default async function BulkNewCustomerPage() {
           maar één tabblad, dan geldt gewoon de medewerker die je hieronder
           kiest. Herkende kolommen: Naam (of Voornaam/Achternaam apart),
           Nummer, Email, Datum, en de productkolommen (bv. PSP, LTS, BEL,
-          NZP, UZP, VAPZ, IPT).
+          NZP, UZP, VAPZ, IPT). Voor een klant die in één keer een koopsom
+          betaalde i.p.v. maandelijks, voeg je optioneel een extra kolom per
+          product toe met &ldquo;KOOPSOM&rdquo; erachter (bv. &ldquo;BEL
+          KOOPSOM&rdquo;).
         </p>
       </div>
 
