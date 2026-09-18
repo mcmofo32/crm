@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageEvents } from "@/lib/permissions";
-import { createEventAction } from "@/lib/actions/events";
+import { createEventAction, getEventInviteOptions } from "@/lib/actions/events";
+import { EventInviteField } from "@/components/EventInviteField";
 
 export default async function NewEventPage() {
   const user = (await getEffectiveViewer())!;
   if (!canManageEvents(user)) redirect("/evenementen");
+
+  const inviteOptions = await getEventInviteOptions();
 
   return (
     <div className="max-w-xl">
@@ -88,6 +91,11 @@ export default async function NewEventPage() {
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </label>
+
+        <EventInviteField
+          users={inviteOptions.users}
+          subagents={inviteOptions.subagents}
+        />
 
         <div>
           <button

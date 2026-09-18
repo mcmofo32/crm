@@ -11,6 +11,7 @@ import {
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getProductionStructureOptions } from "@/lib/actions/production";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 export default async function LoginSessiesPage({
   searchParams,
@@ -112,6 +113,7 @@ export default async function LoginSessiesPage({
         <PersonDetail
           medewerkerId={selectedMedewerker.id}
           medewerkerName={selectedMedewerker.name}
+          medewerkerPhotoUrl={avatarUrl(selectedMedewerker)}
           backHref={filterHref({ team: teamId })}
         />
       ) : (
@@ -151,7 +153,7 @@ async function PersonSummary({
                   href={filterHref({ team, medewerker: row.userId })}
                   className="flex items-center gap-2"
                 >
-                  <Avatar name={row.userName} />
+                  <Avatar name={row.userName} photoUrl={row.userPhotoUrl} />
                   <span className="font-medium text-slate-900 hover:underline">
                     {row.userName}
                   </span>
@@ -184,10 +186,12 @@ async function PersonSummary({
 async function PersonDetail({
   medewerkerId,
   medewerkerName,
+  medewerkerPhotoUrl,
   backHref,
 }: {
   medewerkerId: string;
   medewerkerName: string;
+  medewerkerPhotoUrl: string | null;
   backHref: string;
 }) {
   const [detail, events] = await Promise.all([
@@ -212,7 +216,7 @@ async function PersonDetail({
       </div>
 
       <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-        <Avatar name={medewerkerName} />
+        <Avatar name={medewerkerName} photoUrl={medewerkerPhotoUrl} />
         {medewerkerName}
       </h2>
 

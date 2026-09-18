@@ -9,6 +9,7 @@ import {
   canEditAccount,
   canChangeRole,
   canManageUsers,
+  isBeheerder,
   wouldCreateCoachCycle,
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
@@ -222,6 +223,75 @@ export async function setUserInTrainingAction(userId: string, inTraining: boolea
   revalidatePath("/beheer/analyse");
 }
 
+/** Geeft wel/geen toegang tot het Management-tabblad in de Bibliotheek — los van rol. */
+export async function setUserManagementAction(userId: string, isManagement: boolean) {
+  const actor = await requireUserManager();
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, name: true },
+  });
+  if (!target) throw new Error("Gebruiker niet gevonden");
+  if (!canEditAccount(actor, target)) {
+    throw new Error("Je mag deze gebruiker niet beheren");
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { isManagement } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: isManagement ? "user.management_granted" : "user.management_revoked",
+    entityType: "User",
+    entityId: target.id,
+    description: `Gebruiker "${target.name}" ${
+      isManagement ? "kreeg toegang tot" : "verloor toegang tot"
+    } het Management-tabblad in de Bibliotheek`,
+  });
+
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath("/bibliotheek");
+}
+
+/**
+ * Geeft, net als de Beheerder, toegang tot "Bekijk als medewerker" (volledige
+ * identiteitswissel naar een collega voor gericht support/troubleshooting) —
+ * los van rol. Anders dan de andere toggles hierboven (requireUserManager,
+ * ook voor een Admin) mag enkel de Beheerder zelf dit toekennen: het is een
+ * krachtiger recht dan bv. Management-tabbladtoegang, en wie het via deze
+ * vlag krijgt kan sowieso nooit een Beheerder/Admin bekijken (zie
+ * setViewAsUserAction), enkel Coach/User-rol-collega's.
+ */
+export async function setUserViewAsEmployeeAction(
+  userId: string,
+  canViewAsEmployee: boolean
+) {
+  const actor = await getEffectiveViewer();
+  if (!actor || !isBeheerder(actor)) {
+    throw new Error("Enkel de Beheerder kan dit recht toekennen");
+  }
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true },
+  });
+  if (!target) throw new Error("Gebruiker niet gevonden");
+
+  await prisma.user.update({ where: { id: userId }, data: { canViewAsEmployee } });
+
+  await logAudit({
+    actorId: actor.id,
+    action: canViewAsEmployee
+      ? "user.view_as_employee_granted"
+      : "user.view_as_employee_revoked",
+    entityType: "User",
+    entityId: target.id,
+    description: `Gebruiker "${target.name}" ${
+      canViewAsEmployee ? "kreeg toegang tot" : "verloor toegang tot"
+    } "Bekijk als medewerker"`,
+  });
+
+  revalidatePath("/beheer/gebruikers");
+  revalidatePath(`/beheer/gebruikers/${userId}`);
+}
+
 /**
  * Alle medewerkers, voor de Medewerkers-lijst — bekijken mag door eender
  * welke Beheerder/Admin (requireUserManager), ook van elkaar: enkel het
@@ -240,6 +310,7 @@ export async function getManageableUsers() {
       role: true,
       active: true,
       inTraining: true,
+      avatarUpdatedAt: true,
       team: { select: { name: true } },
       coachedTeam: { select: { name: true } },
     },
@@ -319,6 +390,8 @@ export async function getUserForEdit(userId: string) {
       teamId: true,
       active: true,
       inTraining: true,
+      isManagement: true,
+      canViewAsEmployee: true,
       deletedAt: true,
       updatedAt: true,
       referralNumber: true,

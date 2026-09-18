@@ -8,6 +8,7 @@ import { getAssignableUsers } from "@/lib/actions/leads";
 import { getProductionStructureOptions } from "@/lib/actions/production";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 const ACTION_LABELS: Record<string, string> = {
   "lead.created": "Lead aangemaakt",
@@ -171,7 +172,7 @@ export default async function AuditLogPage({
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <Avatar name={entry.actor.name} />
+                    <Avatar name={entry.actor.name} photoUrl={avatarUrl(entry.actor)} />
                     <span className="text-slate-700">{entry.actor.name}</span>
                   </div>
                 </td>

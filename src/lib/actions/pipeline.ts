@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { LeadType } from "@/generated/prisma/client";
-import { canAccessOwner } from "@/lib/permissions";
+import { canAccessOwner, canManageUsers } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { mainFunnelStageKeys, NEW_LEAD_STAGE_KEY } from "@/lib/funnelStages";
 import { contactState } from "@/lib/contactState";
@@ -36,10 +36,15 @@ export type PipelineStats = {
 
 export async function getPipelineStats(
   leadType: LeadType,
-  ownerId: string
+  /** undefined = "Iedereen" (heel het bedrijf) — enkel toegestaan voor Beheerder/Admin, zie canManageUsers hieronder. */
+  ownerId: string | undefined
 ): Promise<PipelineStats> {
   const user = await requireUser();
-  if (!(await canAccessOwner(user, ownerId))) {
+  if (ownerId) {
+    if (!(await canAccessOwner(user, ownerId))) {
+      throw new Error("Geen toegang tot deze medewerker");
+    }
+  } else if (!canManageUsers(user)) {
     throw new Error("Geen toegang tot deze medewerker");
   }
 
@@ -54,7 +59,7 @@ export async function getPipelineStats(
     where: {
       deletedAt: null,
       leadType,
-      ownerId,
+      ...(ownerId ? { ownerId } : {}),
       status: "OPEN",
       stage: { key: { notIn: mainFunnelStageKeys(leadType) } },
     },
@@ -104,12 +109,17 @@ export type PipelineLeadRow = {
 
 export async function getPipelineLeads(
   leadType: LeadType,
-  ownerId: string,
+  /** undefined = "Iedereen" (heel het bedrijf) — enkel toegestaan voor Beheerder/Admin, zie canManageUsers hieronder. */
+  ownerId: string | undefined,
   search?: string,
   category?: PipelineCategoryFilter
 ): Promise<PipelineLeadRow[]> {
   const user = await requireUser();
-  if (!(await canAccessOwner(user, ownerId))) {
+  if (ownerId) {
+    if (!(await canAccessOwner(user, ownerId))) {
+      throw new Error("Geen toegang tot deze medewerker");
+    }
+  } else if (!canManageUsers(user)) {
     throw new Error("Geen toegang tot deze medewerker");
   }
   const trimmedSearch = search?.trim();
@@ -118,7 +128,7 @@ export async function getPipelineLeads(
     where: {
       deletedAt: null,
       leadType,
-      ownerId,
+      ...(ownerId ? { ownerId } : {}),
       // "Opvolging"/"Te contacteren"/"Voicemail" hebben, net als de
       // statistieken erboven, enkel zin voor nog actieve leads — een lead
       // die al klant is of al geen interesse heeft hoeft niet meer

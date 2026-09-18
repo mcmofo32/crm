@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { AgentType, LeadStatus, Role } from "@/generated/prisma/client";
+import { AgentType, LeadStatus, LibrarySection, Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -291,4 +291,43 @@ export function canManageCustomerData(user: {
     user.role === Role.ADMIN ||
     user.agentType === AgentType.SUBAGENT
   );
+}
+
+/** Wie ziet het "Management"-tabblad in de Bibliotheek: Beheerder/Admin altijd, verder enkel wie als management gemarkeerd staat. */
+export function canViewManagementLibrary(user: {
+  role: Role;
+  isManagement: boolean;
+}) {
+  return (
+    user.role === Role.BEHEERDER || user.role === Role.ADMIN || user.isManagement
+  );
+}
+
+/** Wie ziet het "Subagent"-tabblad in de Bibliotheek: Beheerder/Admin altijd, verder enkel Type Subagent. */
+export function canViewSubagentLibrary(user: {
+  role: Role;
+  agentType: AgentType;
+}) {
+  return (
+    user.role === Role.BEHEERDER ||
+    user.role === Role.ADMIN ||
+    user.agentType === AgentType.SUBAGENT
+  );
+}
+
+/**
+ * Alle Bibliotheek-secties die `user` mag zien — ALGEMEEN altijd, MANAGEMENT/
+ * SUBAGENT enkel indien van toepassing. Gebruikt om zowel de knoppenrij te
+ * bepalen als (server-side, dus niet te omzeilen) elke Bibliotheek-query af
+ * te bakenen tot enkel toegelaten secties.
+ */
+export function getAllowedLibrarySections(user: {
+  role: Role;
+  agentType: AgentType;
+  isManagement: boolean;
+}): LibrarySection[] {
+  const sections: LibrarySection[] = [LibrarySection.ALGEMEEN];
+  if (canViewManagementLibrary(user)) sections.push(LibrarySection.MANAGEMENT);
+  if (canViewSubagentLibrary(user)) sections.push(LibrarySection.SUBAGENT);
+  return sections;
 }

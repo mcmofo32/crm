@@ -28,7 +28,7 @@ export function PolicyDateEditToggle({ children }: { children: React.ReactNode }
             }`}
           >
             {editMode ? <Check size={15} /> : <Pencil size={15} />}
-            {editMode ? "Klaar met datums wijzigen" : "Datums wijzigen"}
+            {editMode ? "Klaar met wijzigen" : "Datums & bedrag wijzigen"}
           </button>
         </div>
         {children}
@@ -70,6 +70,63 @@ export function PolicyDateCell({
       name={name}
       value={toDateInputValue(date)}
       className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+    />
+  );
+}
+
+function formatAmount(amount: number) {
+  return amount.toLocaleString("nl-BE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  });
+}
+
+/**
+ * Bedrag van een polis: standaard gewoon het contractbedrag (LeadProduct.
+ * amount). Staat er een `reducedAmount` op (de klant verlaagde het bedrag,
+ * zie setPolicyReducedAmountAction), dan toont dit het verlaagde bedrag
+ * met het oorspronkelijke ernaast doorstreept, zodat beide in één oogopslag
+ * duidelijk blijven — precies zoals bij PolicyDateCell wordt dit pas
+ * bewerkbaar in "Datums & bedrag wijzigen"-modus.
+ */
+export function PolicyAmountCell({
+  action,
+  name,
+  amount,
+  reducedAmount,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  name: string;
+  /** Oorspronkelijk contractbedrag (LeadProduct.amount) — wijzigt nooit via dit veld. */
+  amount: number;
+  reducedAmount: number | null;
+}) {
+  const editMode = useContext(PolicyDateEditContext);
+  const effective = reducedAmount ?? amount;
+  if (!editMode) {
+    return (
+      <span className="whitespace-nowrap px-1">
+        <span className={reducedAmount !== null ? "font-medium text-red-700" : "text-slate-600"}>
+          {formatAmount(effective)}
+        </span>
+        {reducedAmount !== null && (
+          <span className="ml-1.5 text-xs text-slate-400 line-through">
+            {formatAmount(amount)}
+          </span>
+        )}
+      </span>
+    );
+  }
+  return (
+    <InlineTextField
+      type="number"
+      min="0"
+      step="0.01"
+      action={action}
+      name={name}
+      value={String(effective)}
+      className="w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
     />
   );
 }

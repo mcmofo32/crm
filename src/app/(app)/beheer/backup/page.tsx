@@ -25,6 +25,25 @@ function formatDateTime(date: Date | null) {
   });
 }
 
+/**
+ * De nachtelijke cron draait elke dag om 2u (zie vercel.json) — meer dan
+ * ruim anderhalve dag (30u) zonder geslaagde sync betekent dus dat er
+ * minstens één nacht is overgeslagen. Dat gebeurt soms volledig stil (bv.
+ * een platform-timeout bij een grote sync onderbreekt de functie vóórdat
+ * die zelf een lastSyncError kan wegschrijven), dus deze melding is de
+ * enige manier om zo'n gemiste nacht sowieso op te merken.
+ */
+const STALE_AFTER_HOURS = 30;
+
+function hoursSince(date: Date) {
+  return (Date.now() - date.getTime()) / (1000 * 60 * 60);
+}
+
+function formatRelativeAge(hours: number) {
+  if (hours < 48) return `${Math.floor(hours)} uur`;
+  return `${Math.floor(hours / 24)} dagen`;
+}
+
 export default async function BackupPage({
   searchParams,
 }: {
@@ -36,6 +55,10 @@ export default async function BackupPage({
 
   const { connected, error } = await searchParams;
   const status = await getBackupStatusForAdmin();
+  const isStale =
+    status.connected &&
+    status.lastSyncedAt !== null &&
+    hoursSince(status.lastSyncedAt) > STALE_AFTER_HOURS;
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -79,6 +102,16 @@ export default async function BackupPage({
                 </button>
               </form>
             </div>
+
+            {isStale && status.lastSyncedAt && (
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                ⚠️ Laatste geslaagde synchronisatie is{" "}
+                {formatRelativeAge(hoursSince(status.lastSyncedAt))} geleden — normaal
+                gebeurt dit elke nacht. Klik hieronder op &quot;Nu synchroniseren&quot;
+                om het meteen te testen; blijft dit zich herhalen, controleer dan de
+                cron-logs van de hosting-omgeving.
+              </p>
+            )}
 
             <div className="flex flex-col gap-1 text-slate-500">
               <span>Laatst gesynchroniseerd: {formatDateTime(status.lastSyncedAt)}</span>

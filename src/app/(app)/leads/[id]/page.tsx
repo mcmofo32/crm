@@ -30,7 +30,12 @@ import { FollowUpContractsCard } from "@/components/FollowUpContractsCard";
 import { InlineSelect } from "@/components/InlineSelect";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
+
+// Nooit cachen/statisch renderen — een activiteit afronden/plannen moet hier
+// meteen zichtbaar zijn i.p.v. pas na een harde refresh.
+export const dynamic = "force-dynamic";
 
 const ACTIVITY_TYPE_ICONS: Record<string, LucideIcon> = {
   CALL: Phone,
@@ -69,9 +74,15 @@ export default async function LeadDetailPage({
       include: {
         owner: true,
         stage: true,
-        products: true,
+        products: {
+          include: {
+            policy: { select: { id: true, status: true, reducedAmount: true } },
+          },
+        },
         activities: {
-          include: { assignee: { select: { name: true } } },
+          include: {
+            assignee: { select: { id: true, name: true, avatarUpdatedAt: true } },
+          },
           orderBy: { scheduledAt: "desc" },
         },
       },
@@ -121,7 +132,7 @@ export default async function LeadDetailPage({
             {lead.firstName} {lead.lastName}
           </h1>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-            <Avatar name={lead.owner.name} />
+            <Avatar name={lead.owner.name} photoUrl={avatarUrl(lead.owner)} />
             Eigenaar:{" "}
             {lead.status === "WON" && canManageUsers(user) ? (
               <InlineSelect
@@ -196,8 +207,11 @@ export default async function LeadDetailPage({
             lastName={lead.lastName}
             email={lead.email}
             phone={lead.phone}
+            job={lead.job}
+            employmentStatus={lead.employmentStatus}
             source={lead.source}
             notes={lead.notes}
+            createdAt={lead.createdAt}
           />
 
           <LeadProductsCard
@@ -208,6 +222,10 @@ export default async function LeadDetailPage({
                 type: p.type,
                 amount: Number(p.amount),
                 units: p.units,
+                policyId: p.policy?.id ?? null,
+                premievrij: p.policy?.status === "PREMIEVRIJ",
+                reducedAmount:
+                  p.policy?.reducedAmount != null ? Number(p.policy.reducedAmount) : null,
               }))}
             canEdit={canManageCustomerData(user)}
           />
@@ -223,6 +241,10 @@ export default async function LeadDetailPage({
                   amount: Number(p.amount),
                   units: p.units,
                   contractDate: p.contractDate,
+                  policyId: p.policy?.id ?? null,
+                  premievrij: p.policy?.status === "PREMIEVRIJ",
+                  reducedAmount:
+                    p.policy?.reducedAmount != null ? Number(p.policy.reducedAmount) : null,
                 }))}
               canEdit={canManageCustomerData(user)}
             />
@@ -286,7 +308,11 @@ export default async function LeadDetailPage({
                             )}
                           </div>
                           <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
-                            <Avatar name={activity.assignee.name} size="sm" />
+                            <Avatar
+                              name={activity.assignee.name}
+                              size="sm"
+                              photoUrl={avatarUrl(activity.assignee)}
+                            />
                             {activity.assignee.name}
                           </div>
                         </div>
@@ -299,6 +325,11 @@ export default async function LeadDetailPage({
                         durationMinutes={activity.durationMinutes}
                         status={activity.status}
                         canDelete={canDeleteActivities(user)}
+                        meetingMode={activity.meetingMode}
+                        location={activity.location}
+                        meetingLink={activity.meetingLink}
+                        subagentId={activity.subagentId}
+                        subagents={subagents}
                       />
                     </div>
                     {activity.scheduledAt && (

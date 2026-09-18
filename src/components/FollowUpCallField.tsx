@@ -20,7 +20,14 @@ export function FollowUpCallField({
       <input
         type="datetime-local"
         value={value.scheduledAt}
-        onChange={(e) => onChange({ scheduledAt: e.target.value })}
+        onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+      />
+      <textarea
+        value={value.notes}
+        onChange={(e) => onChange({ ...value, notes: e.target.value })}
+        placeholder="Notities (optioneel) — komen mee in de beschrijving van het agenda-item"
+        rows={2}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm"
       />
       <p className="text-xs text-slate-400">

@@ -299,13 +299,17 @@ async function computeSimpleDuplicateGroups(): Promise<SimpleDuplicateGroup[]> {
     const groups: SimpleDuplicateGroup[] = [];
     for (const [email, group] of byEmail) {
       if (group.length < 2) continue;
-      const signature = `email:${email}`;
+      // Zelfde signature-opbouw (gesorteerde lead-id's) als computeDuplicateGroupsUnsafe
+      // hierboven — anders negeert "Geen probleem" hier een andere sleutel dan
+      // waar de dashboard-melding (getCrossOwnerDuplicateGroups) tegen checkt,
+      // en blijft die melding staan ook al is de groep hier al genegeerd.
+      const signature = duplicateGroupSignature(group.map((l) => l.id));
       if (dismissedSignatures.has(signature)) continue;
       groups.push({ key: signature, matchLabel: `E-mail: ${email}`, leads: group.map(toLead) });
     }
     for (const [phone, group] of byPhone) {
       if (group.length < 2) continue;
-      const signature = `phone:${phone}`;
+      const signature = duplicateGroupSignature(group.map((l) => l.id));
       if (dismissedSignatures.has(signature)) continue;
       groups.push({ key: signature, matchLabel: `Telefoon: ${phone}`, leads: group.map(toLead) });
     }

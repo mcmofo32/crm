@@ -10,9 +10,18 @@ import {
   type ProductsState,
 } from "@/components/ProductFields";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import { PolicyQuickActions } from "@/components/PolicyQuickActions";
 import type { ProductType } from "@/generated/prisma/client";
 
-type ProductRecord = { type: ProductType; amount: number; units: number };
+type ProductRecord = {
+  type: ProductType;
+  amount: number;
+  units: number;
+  /** Komt van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — null zolang die nog niet aangemaakt is. */
+  policyId: string | null;
+  premievrij: boolean;
+  reducedAmount: number | null;
+};
 
 function formatAmount(amount: number) {
   return amount.toLocaleString("nl-BE", {
@@ -48,7 +57,9 @@ export function LeadProductsCard({
   const sortedProducts = [...products].sort(
     (a, b) => PRODUCT_TYPE_ORDER.indexOf(a.type) - PRODUCT_TYPE_ORDER.indexOf(b.type)
   );
-  const totalAmount = products.reduce((sum, p) => sum + p.amount, 0);
+  // Som van het effectieve (dus eventueel verlaagde) bedrag — anders klopt
+  // het totaal niet meer zodra één van de producten verlaagd is.
+  const totalAmount = products.reduce((sum, p) => sum + (p.reducedAmount ?? p.amount), 0);
   const totalUnits = products.reduce((sum, p) => sum + p.units, 0);
 
   if (editing) {
@@ -110,11 +121,16 @@ export function LeadProductsCard({
       ) : (
         <ul className="flex flex-col gap-2">
           {sortedProducts.map((p) => (
-            <li key={p.type} className="flex items-center justify-between">
+            <li key={p.type} className="flex items-center justify-between gap-2">
               <span className="text-slate-600">{PRODUCT_TYPE_LABELS[p.type]}</span>
-              <span className="text-slate-900">
-                {formatAmount(p.amount)} · {p.units} eenh.
-              </span>
+              <PolicyQuickActions
+                policyId={p.policyId}
+                amount={p.amount}
+                reducedAmount={p.reducedAmount}
+                premievrij={p.premievrij}
+                units={p.units}
+                canEdit={canEdit}
+              />
             </li>
           ))}
           <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900">

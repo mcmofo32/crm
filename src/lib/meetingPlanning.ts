@@ -12,6 +12,8 @@ const PLANNING_MEETING_TYPES = new Set([
   "adviesgesprek",
   "kennismakingsgesprek",
   "carrièregesprek",
+  // Een tweede adviesgesprek in alles behalve naam — zelfde rijke widget.
+  "opvolggesprek",
 ]);
 
 export function isPlanningStage(stageLabel: string) {
@@ -39,6 +41,11 @@ export function isAdviesgesprekType(meetingType: string) {
   return meetingTypeFromStageLabel(meetingType).toLowerCase() === "adviesgesprek";
 }
 
+/** Opvolggesprek is in alles behalve naam een tweede Adviesgesprek (zelfde widget, zelfde Van/Tot, zelfde e-mailprompt). */
+export function isOpvolggesprekType(meetingType: string) {
+  return meetingTypeFromStageLabel(meetingType).toLowerCase() === "opvolggesprek";
+}
+
 /** Bij Financiële analyse vragen we een e-mailadres als dat nog ontbreekt. */
 export function isFinancieleAnalyseType(meetingType: string) {
   return (
@@ -46,18 +53,42 @@ export function isFinancieleAnalyseType(meetingType: string) {
   );
 }
 
+export function isKennismakingsgesprekType(meetingType: string) {
+  return (
+    meetingTypeFromStageLabel(meetingType).toLowerCase() === "kennismakingsgesprek"
+  );
+}
+
+export function isCarrieregesprekType(meetingType: string) {
+  return (
+    meetingTypeFromStageLabel(meetingType).toLowerCase() === "carrièregesprek"
+  );
+}
+
 /**
  * Fases waar we (optioneel, nooit verplicht — je wacht soms nog op het
  * e-mailadres) vragen om een e-mailadres toe te voegen als dat nog
- * ontbreekt: Financiële analyse en Adviesgesprek.
+ * ontbreekt: alle types die de lead ook effectief als deelnemer uitnodigen
+ * op de afspraak (zie subjectInvitesLead) — Financiële analyse,
+ * Adviesgesprek, Kennismakingsgesprek, Carrièregesprek en Opvolggesprek.
  */
 export function wantsEmailPrompt(meetingType: string) {
-  return isFinancieleAnalyseType(meetingType) || isAdviesgesprekType(meetingType);
+  return (
+    isFinancieleAnalyseType(meetingType) ||
+    isAdviesgesprekType(meetingType) ||
+    isOpvolggesprekType(meetingType) ||
+    isKennismakingsgesprekType(meetingType) ||
+    isCarrieregesprekType(meetingType)
+  );
 }
 
 /** Onderwerpen die de rijke planning-widget (Van/Tot i.p.v. duurtijd) tonen. */
 export function isRichMeetingType(meetingType: string) {
-  return isAdviesgesprekType(meetingType) || isFinancieleAnalyseType(meetingType);
+  return (
+    isAdviesgesprekType(meetingType) ||
+    isFinancieleAnalyseType(meetingType) ||
+    isOpvolggesprekType(meetingType)
+  );
 }
 
 /**
@@ -90,6 +121,23 @@ export function subjectInvitesLead(subject: string) {
  */
 export function isFinancieleAnalyseSubject(subject: string) {
   return subject.toLowerCase().includes("financiële analyse");
+}
+
+/**
+ * Herleidt het kale gesprektype uit een volledig opgebouwd onderwerp (bv.
+ * "18:00 - Adviesgesprek Jan Janssens" -> "Adviesgesprek"), voor gevallen
+ * waar enkel de tekst van een al bestaande activiteit gekend is en niet meer
+ * de oorspronkelijke fase-naam. "Opvolggesprek" wordt vóór "Adviesgesprek"
+ * gecontroleerd zodat een woord dat toevallig beide bevat niet fout uitkomt.
+ */
+export function bareMeetingType(subject: string): string {
+  const lower = subject.toLowerCase();
+  if (lower.includes("opvolggesprek")) return "Opvolggesprek";
+  if (lower.includes("financiële analyse")) return "Financiële analyse";
+  if (lower.includes("adviesgesprek")) return "Adviesgesprek";
+  if (lower.includes("kennismakingsgesprek")) return "Kennismakingsgesprek";
+  if (lower.includes("carrièregesprek")) return "Carrièregesprek";
+  return "";
 }
 
 /** Bouwt de afspraaknaam op in het vaste formaat "Uur - Type Voornaam Achternaam". */
@@ -136,9 +184,12 @@ export function buildMeetingFormData(value: MeetingPlannerValue): FormData | nul
   return formData;
 }
 
-export type FollowUpCallValue = { scheduledAt: string };
+export type FollowUpCallValue = { scheduledAt: string; notes: string };
 
-export const EMPTY_FOLLOW_UP_CALL_VALUE: FollowUpCallValue = { scheduledAt: "" };
+export const EMPTY_FOLLOW_UP_CALL_VALUE: FollowUpCallValue = {
+  scheduledAt: "",
+  notes: "",
+};
 
 /** Zet de terugbelmoment-waarde om in FormData voor `planFollowUpCallAction`, of null als er geen tijdstip gekozen is. */
 export function buildFollowUpCallFormData(
@@ -147,5 +198,6 @@ export function buildFollowUpCallFormData(
   if (!value.scheduledAt) return null;
   const formData = new FormData();
   formData.set("scheduledAt", value.scheduledAt);
+  if (value.notes) formData.set("notes", value.notes);
   return formData;
 }

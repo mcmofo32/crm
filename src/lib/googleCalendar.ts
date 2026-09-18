@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { encryptToken, decryptToken } from "@/lib/tokenCrypto";
-import type { Activity, Lead, Subagent, User } from "@/generated/prisma/client";
+import type { Activity, Event, Lead, Subagent, User } from "@/generated/prisma/client";
 import { subjectInvitesLead, isFinancieleAnalyseSubject } from "@/lib/meetingPlanning";
 
 type ContactInfo = { name: string; email: string | null; phone: string | null };
@@ -119,17 +119,22 @@ function buildEventBody(
   scheduledBy?: { name: string; email: string | null; phone: string | null } | null,
   owner?: ContactInfo | null,
   officeNote?: string | null,
-  assigneeName?: string | null
+  assigneeName?: string | null,
+  /** True als scheduledBy dezelfde persoon is als de toegewezen gebruiker (op wiens agenda dit event komt). */
+  isSelfScheduled?: boolean
 ) {
   const start = activity.scheduledAt ?? new Date();
   const durationMinutes = activity.durationMinutes ?? 15;
   const end = new Date(start.getTime() + durationMinutes * 60_000);
   const leadName = `${lead.firstName} ${lead.lastName}`.trim();
 
-  // Afspraken vanuit de planning-widget dragen de leadnaam al in het
-  // onderwerp (bv. "18:00 - Financiële analyse Robin Ceuppens"), dus die
-  // hoeft dan niet nogmaals toegevoegd te worden aan de agenda-titel.
-  const summary = activity.meetingMode
+  // Afspraken vanuit de planning-widget (afspraak of terugbelmoment) dragen
+  // de leadnaam al in het onderwerp (via buildMeetingSubject, bv. "18:00 -
+  // Financiële analyse Robin Ceuppens"), dus die mag dan niet nogmaals
+  // toegevoegd worden aan de agenda-titel — vandaar deze check op de
+  // effectieve inhoud i.p.v. op meetingMode (dat bij een terugbelmoment,
+  // type CALL, niet gezet is, ook al bevat het onderwerp de naam al).
+  const summary = leadName && activity.subject.includes(leadName)
     ? activity.subject
     : `${activity.subject} — ${leadName}`;
 
@@ -141,22 +146,25 @@ function buildEventBody(
   // de klant, dus daar krijgt hij geen uitnodigingsmail voor.
   const invitesLead = subjectInvitesLead(activity.subject);
 
-  // Wie deze afspraak heeft ingepland (bv. een Coach die inplant namens een
-  // teamlid) wordt mee uitgenodigd als die niet dezelfde persoon is als de
-  // toegewezen gebruiker (die de afspraak al op zijn eigen agenda heeft staan).
+  // Wie deze afspraak heeft ingepland staat altijd mee bij de gasten
+  // (organisator, naast klant en subagent) — plant iemand voor zichzelf in,
+  // dan zou hij anders standaard als "in afwachting" op zijn eigen
+  // agenda-item staan, dus die eigen gast-regel krijgt dan meteen
+  // responseStatus "accepted" mee (zijn telefoonnummer blijft daarnaast ook
+  // altijd in de omschrijving staan hieronder, voor de uitgenodigde klant).
   const seenEmails = new Set<string>();
-  const attendees: { email: string }[] = [];
-  function addAttendee(email: string | null | undefined) {
+  const attendees: { email: string; responseStatus?: string }[] = [];
+  function addAttendee(email: string | null | undefined, responseStatus?: string) {
     if (email && !seenEmails.has(email)) {
       seenEmails.add(email);
-      attendees.push({ email });
+      attendees.push(responseStatus ? { email, responseStatus } : { email });
     }
   }
+  addAttendee(scheduledBy?.email, isSelfScheduled ? "accepted" : undefined);
   if (invitesLead) {
     addAttendee(lead.email);
   }
   addAttendee(subagent?.email);
-  addAttendee(scheduledBy?.email);
 
   // Bij een fysieke afspraak op het kantooradres komt de vaste
   // bereikbaarheidsnotitie ("Kantoor" in het profielmenu) altijd mee in de
@@ -258,9 +266,23 @@ export async function syncActivityToGoogleCalendar(
   activity: Activity,
   lead: Lead,
   subagent?: Subagent | null,
-  scheduledBy?: { name: string; email: string | null; phone: string | null } | null
+  scheduledBy?: { name: string; email: string | null; phone: string | null } | null,
+  /** True als scheduledBy dezelfde persoon is als de toegewezen gebruiker (user hierboven) — zie buildEventBody. */
+  isSelfScheduled?: boolean
 ) {
   if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
+    // Zonder dit zag je nergens waarom een afspraak niet op de agenda stond
+    // (de activiteit zelf werd wel gewoon aangemaakt) — dit hergebruikt
+    // dezelfde melding als een echte sync-fout (zie leads/[id]/page.tsx),
+    // want bij een uitnodigende afspraak (Financiële analyse, ...) krijgt de
+    // klant zelf zo ook geen uitnodiging, dus dit is meer dan cosmetisch.
+    await prisma.activity.update({
+      where: { id: activity.id },
+      data: {
+        googleSyncError:
+          "Geen Google Agenda gekoppeld bij de toegewezen medewerker — koppel deze bij Instellingen.",
+      },
+    });
     return { synced: false as const, reason: "not_connected" as const };
   }
   if (!activity.scheduledAt) {
@@ -306,7 +328,8 @@ export async function syncActivityToGoogleCalendar(
     scheduledBy,
     owner,
     isAtOffice ? officeSettings?.note : null,
-    assigneeForNote?.name
+    assigneeForNote?.name,
+    isSelfScheduled
   );
   const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
   // Stuurt automatisch een uitnodigingsmail naar de lead (en eventuele
@@ -352,6 +375,94 @@ export async function syncActivityToGoogleCalendar(
     const message = error instanceof Error ? error.message : "Onbekende fout";
     await prisma.activity.update({
       where: { id: activity.id },
+      data: { googleSyncError: message },
+    });
+    return { synced: false as const, reason: "error" as const, message };
+  }
+}
+
+function buildEventInviteBody(event: Event, attendeeEmails: string[]) {
+  const start = event.date;
+  // Event heeft, in tegenstelling tot Activity, geen durationMinutes — bij
+  // ontbrekend einduur valt dit terug op een uur, een redelijk standaard
+  // voor een vergadering.
+  const end = event.endDate ?? new Date(start.getTime() + 60 * 60_000);
+  const attendees = attendeeEmails.map((email) => ({ email }));
+
+  return {
+    summary: event.title,
+    description: event.description ?? undefined,
+    location: event.location ?? undefined,
+    start: { dateTime: start.toISOString() },
+    end: { dateTime: end.toISOString() },
+    ...(attendees.length > 0 ? { attendees } : {}),
+  };
+}
+
+/**
+ * Maakt (of werkt bij) het Google Agenda-item voor een evenement op de
+ * agenda van `user` (de aanmaker), met de meegegeven e-mailadressen als
+ * deelnemers — analoog aan syncActivityToGoogleCalendar, maar dan voor
+ * Event i.p.v. Activity: geen lead/Zoom/kantoornotitie-logica, enkel
+ * titel/omschrijving/locatie/tijd + deelnemers.
+ */
+export async function syncEventToGoogleCalendar(
+  user: GoogleCalendarUser,
+  event: Event,
+  attendeeEmails: string[]
+) {
+  if (!user.googleCalendarConnected || !user.googleCalendarRefreshToken) {
+    await prisma.event.update({
+      where: { id: event.id },
+      data: {
+        googleSyncError:
+          "Geen Google Agenda gekoppeld bij de aanmaker — koppel deze bij Instellingen om uitnodigingen te versturen.",
+      },
+    });
+    return { synced: false as const, reason: "not_connected" as const };
+  }
+
+  const auth = await getClientForUser(user);
+  const google = await getGoogle();
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarId = user.googleCalendarId ?? "primary";
+  const eventBody = buildEventInviteBody(event, attendeeEmails);
+  // Stuurt automatisch een uitnodigingsmail naar elke deelnemer.
+  const sendUpdates = attendeeEmails.length > 0 ? "all" : undefined;
+
+  try {
+    let eventId = event.googleEventId;
+
+    if (eventId) {
+      await calendar.events.update({
+        calendarId,
+        eventId,
+        sendUpdates,
+        requestBody: eventBody,
+      });
+    } else {
+      const { data } = await calendar.events.insert({
+        calendarId,
+        sendUpdates,
+        requestBody: eventBody,
+      });
+      eventId = data.id ?? null;
+    }
+
+    await prisma.event.update({
+      where: { id: event.id },
+      data: {
+        googleEventId: eventId,
+        googleCalendarId: calendarId,
+        googleSyncError: null,
+      },
+    });
+
+    return { synced: true as const, eventId };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Onbekende fout";
+    await prisma.event.update({
+      where: { id: event.id },
       data: { googleSyncError: message },
     });
     return { synced: false as const, reason: "error" as const, message };

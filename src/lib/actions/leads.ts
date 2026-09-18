@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   ActivityStatus,
   ActivityType,
+  EmploymentStatus,
   LeadStatus,
   LeadType,
   Role,
@@ -28,9 +29,11 @@ import {
 } from "@/lib/funnelStages";
 import { findLeadsByContact } from "@/lib/actions/duplicates";
 import { normalizePhone, formatBelgianPhone } from "@/lib/duplicateUtils";
+import { EMPLOYMENT_STATUS_ORDER } from "@/lib/employmentStatus";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { contactState } from "@/lib/contactState";
 import { getSubagents } from "@/lib/actions/subagents";
+import { isAdviesgesprekType, isOpvolggesprekType } from "@/lib/meetingPlanning";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -317,11 +320,18 @@ export async function createCustomerAction(formData: FormData) {
  * de standaard Funnel bovenaan het formulier, ingevuld (FA/RG) overschrijft
  * enkel die rij — zo kan één geplakte tabel meteen leads voor beide funnels
  * tegelijk aanmaken (bv. bij het importeren van je eigen oude leads).
+ *
+ * `excludeFromStats` (het vinkje op het formulier) bepaalt of deze leads
+ * meetellen voor de Aanbevelingen/ABV-cijfers (zie excludingBulkImportedLeads
+ * in production.ts) — standaard (onaangevinkt) tellen ze gewoon mee, net als
+ * een individueel toegevoegde lead; enkel aangevinkt (bv. bij het invoeren
+ * van oude/historische leads van vóór dit CRM) worden ze uitgesloten.
  */
 export async function createLeadsBulkAction(formData: FormData) {
   const user = await requireUser();
 
   const defaultLeadType = formData.get("leadType") as LeadType;
+  const excludeFromStats = formData.get("excludeFromStats") === "on";
 
   const firstNames = formData.getAll("firstName");
   const lastNames = formData.getAll("lastName");
@@ -401,7 +411,7 @@ export async function createLeadsBulkAction(formData: FormData) {
           ownerId: user.id,
           createdById: user.id,
           stageId: stageIdByType.get(row.leadType)!,
-          bulkImported: true,
+          bulkImported: excludeFromStats,
         },
       })
     )
@@ -430,7 +440,7 @@ export async function updateLeadStageAction(
   leadId: string,
   toStageId: string,
   notes?: string
-) {
+): Promise<{ error: string } | undefined> {
   const [user, lead, toStage] = await Promise.all([
     requireUser(),
     prisma.lead.findUnique({
@@ -439,23 +449,44 @@ export async function updateLeadStageAction(
     }),
     prisma.funnelStage.findUnique({ where: { id: toStageId } }),
   ]);
-  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!lead || lead.deletedAt) return { error: "Lead niet gevonden" };
   if (!(await canAccessLead(user, lead))) {
-    throw new Error("Geen toegang tot deze lead");
+    return { error: "Geen toegang tot deze lead" };
   }
 
   if (!toStage || toStage.leadType !== lead.leadType) {
-    throw new Error("Ongeldige funnel-stage");
+    return { error: "Ongeldige funnel-stage" };
   }
   if (toStage.isWon && !canManageCustomerData(user)) {
-    throw new Error("Enkel subagenten mogen een lead als klant afsluiten");
+    return { error: "Enkel subagenten mogen een lead als klant afsluiten" };
+  }
+  // Een Opvolggesprek is in essentie een tweede Adviesgesprek — dus enkel een
+  // subagent (die het gesprek zelf voert) mag een lead daarnaartoe
+  // verplaatsen, net als bij het effectief afsluiten als klant hierboven.
+  if (
+    isAdviesgesprekType(lead.stage.label) &&
+    isOpvolggesprekType(toStage.label) &&
+    !canManageCustomerData(user)
+  ) {
+    return {
+      error: "Enkel subagenten mogen een klant van Adviesgesprek naar Opvolggesprek zetten",
+    };
   }
 
-  const status = toStage.isWon
-    ? LeadStatus.WON
-    : toStage.isLost
-    ? LeadStatus.LOST
-    : LeadStatus.OPEN;
+  // Eenmaal een lead klant is (status WON) blijft die dat, ongeacht naar
+  // welke fase die nadien nog verplaatst wordt — zo kan een klant probleemloos
+  // opnieuw door de funnel (bv. een extra Adviesgesprek voor een bijkomend
+  // product) zonder uit "Klant" (en dus uit Klanten/rapportering) te vallen.
+  // Die status verdwijnt pas als de lead expliciet als klant verwijderd wordt
+  // (zie canDeleteLeads: verwijderen van een klant is al Beheerder/Admin-only).
+  const status =
+    lead.status === LeadStatus.WON
+      ? LeadStatus.WON
+      : toStage.isWon
+      ? LeadStatus.WON
+      : toStage.isLost
+      ? LeadStatus.LOST
+      : LeadStatus.OPEN;
 
   const trimmedNotes = notes?.trim();
   const now = new Date();
@@ -516,7 +547,7 @@ export async function updateLeadStageAction(
   revalidatePath("/dashboard");
 }
 
-/** Wijzigt de contactgegevens van een bestaande lead (naam, e-mail, telefoon, bedrijf, bron, notities). */
+/** Wijzigt de contactgegevens van een bestaande lead (naam, e-mail, telefoon, bedrijf, beroep, statuut, bron, notities). */
 export async function updateLeadDetailsAction(leadId: string, formData: FormData) {
   const [user, lead] = await Promise.all([
     requireUser(),
@@ -533,6 +564,14 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
     throw new Error("Voornaam is verplicht");
   }
 
+  const employmentStatusRaw = String(formData.get("employmentStatus") ?? "").trim();
+  const employmentStatus = employmentStatusRaw
+    ? (employmentStatusRaw as EmploymentStatus)
+    : null;
+  if (employmentStatus && !EMPLOYMENT_STATUS_ORDER.includes(employmentStatus)) {
+    throw new Error("Kies een geldig statuut");
+  }
+
   await prisma.lead.update({
     where: { id: leadId },
     data: {
@@ -541,6 +580,8 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
       email: (formData.get("email") as string)?.trim() || null,
       phone: formatBelgianPhone((formData.get("phone") as string)?.trim() || null),
       company: (formData.get("company") as string)?.trim() || null,
+      job: (formData.get("job") as string)?.trim() || null,
+      employmentStatus,
       source: (formData.get("source") as string)?.trim() || null,
       notes: (formData.get("notes") as string) || null,
     },
@@ -831,7 +872,7 @@ export async function getAssignableUsers(options?: { includeInactive?: boolean }
       ...(options?.includeInactive ? {} : { active: true }),
       ...(ids ? { id: { in: ids } } : {}),
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, avatarUpdatedAt: true },
     orderBy: { name: "asc" },
   });
 }

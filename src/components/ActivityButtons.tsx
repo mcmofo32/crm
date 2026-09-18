@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import {
   cancelActivityAction,
@@ -11,6 +12,14 @@ import {
 import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
 import { FormToast } from "@/components/toast/FormToast";
 import { useToastAction } from "@/components/toast/useToastAction";
+import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import {
+  bareMeetingType,
+  buildMeetingFormData,
+  type MeetingPlannerValue,
+} from "@/lib/meetingPlanning";
+
+type SubagentRecord = { id: string; name: string; team: { name: string } };
 
 const ACTIVITY_TYPE_OPTIONS = [
   { value: "CALL", label: "Telefoongesprek" },
@@ -29,6 +38,11 @@ function toDatetimeLocalValue(date: Date | null) {
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function toTimeValue(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function ActivityButtons({
   activityId,
   type,
@@ -37,6 +51,11 @@ export function ActivityButtons({
   durationMinutes,
   status,
   canDelete,
+  meetingMode,
+  location,
+  meetingLink,
+  subagentId,
+  subagents,
 }: {
   activityId: string;
   type: string;
@@ -45,7 +64,13 @@ export function ActivityButtons({
   durationMinutes: number | null;
   status: string;
   canDelete: boolean;
+  meetingMode: string | null;
+  location: string | null;
+  meetingLink: string | null;
+  subagentId: string | null;
+  subagents: SubagentRecord[];
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { runWithToast } = useToastAction();
   const [mode, setMode] = useState<"idle" | "reporting" | "editing">("idle");
@@ -57,6 +82,27 @@ export function ActivityButtons({
   const [customSubject, setCustomSubject] = useState(
     ACTIVITY_SUBJECT_SUGGESTIONS.includes(subject) ? "" : subject
   );
+  const isRichMeeting = meetingMode !== null;
+  function buildMeetingDraft(): MeetingPlannerValue {
+    return {
+      scheduledAt: toDatetimeLocalValue(scheduledAt),
+      endTime:
+        scheduledAt && durationMinutes
+          ? toTimeValue(new Date(scheduledAt.getTime() + durationMinutes * 60_000))
+          : "",
+      mode: meetingMode === "ONLINE" ? "ONLINE" : "ONSITE",
+      location: location ?? "",
+      useGoogleMeet: meetingMode === "ONLINE" && !meetingLink,
+      subagentId: subagentId ?? "",
+    };
+  }
+  const [meeting, setMeeting] = useState<MeetingPlannerValue>(buildMeetingDraft);
+  const [richEditNotes, setRichEditNotes] = useState("");
+
+  function resetMeetingDraft() {
+    setMeeting(buildMeetingDraft());
+    setRichEditNotes("");
+  }
 
   const deleteButton = canDelete && (
     <button
@@ -135,6 +181,64 @@ export function ActivityButtons({
     );
   }
 
+  if (mode === "editing" && isRichMeeting) {
+    return (
+      <div className="mt-2 w-[30rem] max-w-full">
+        <MeetingPlannerFields
+          value={meeting}
+          onChange={setMeeting}
+          meetingType={bareMeetingType(subject)}
+          subagents={subagents.map((s) => ({
+            id: s.id,
+            name: s.name,
+            teamName: s.team.name,
+          }))}
+        />
+        <textarea
+          value={richEditNotes}
+          onChange={(e) => setRichEditNotes(e.target.value)}
+          rows={2}
+          placeholder="Reden van wijziging (optioneel)"
+          className="mt-2 w-full rounded-md border border-slate-300 px-2 py-1 text-xs"
+        />
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const meetingFormData = buildMeetingFormData(meeting);
+                await runWithToast(async () => {
+                  if (!meetingFormData) {
+                    throw new Error("Kies een datum en uur voor de afspraak");
+                  }
+                  if (richEditNotes.trim()) {
+                    meetingFormData.set("notes", richEditNotes.trim());
+                  }
+                  const result = await updateActivityAction(activityId, meetingFormData);
+                  if (result?.error) throw new Error(result.error);
+                }, "Afspraak opgeslagen");
+                setMode("idle");
+                router.refresh();
+              })
+            }
+            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+          >
+            Opslaan
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setMode("idle")}
+            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Sluiten
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (mode === "editing") {
     return (
       <form
@@ -200,9 +304,8 @@ export function ActivityButtons({
         </select>
         <textarea
           name="notes"
-          required
           rows={2}
-          placeholder="Reden van wijziging (verplicht)"
+          placeholder="Reden van wijziging (optioneel)"
           className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
         />
         <div className="col-span-2 flex gap-2">
@@ -231,7 +334,10 @@ export function ActivityButtons({
       <button
         type="button"
         disabled={pending}
-        onClick={() => setMode("editing")}
+        onClick={() => {
+          resetMeetingDraft();
+          setMode("editing");
+        }}
         title="Wijzigen"
         className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
       >

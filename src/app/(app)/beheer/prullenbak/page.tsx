@@ -6,6 +6,7 @@ import { getDeletedLeads } from "@/lib/actions/leads";
 import { LEAD_TYPE_LABELS, LEAD_TYPE_BADGE_VARIANT } from "@/lib/roleLabels";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { RestoreLeadButton } from "@/components/RestoreLeadButton";
 
 export default async function PrullenbakPage() {
@@ -57,7 +58,7 @@ export default async function PrullenbakPage() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <Avatar name={lead.owner.name} />
+                    <Avatar name={lead.owner.name} photoUrl={avatarUrl(lead.owner)} />
                     <span className="text-slate-700">{lead.owner.name}</span>
                   </div>
                 </td>

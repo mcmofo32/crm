@@ -14,6 +14,7 @@ export type PlanningUser = {
   email: string | null;
   role: Role;
   teamId: string | null;
+  avatarUpdatedAt: Date | null;
 };
 
 /**
@@ -90,7 +91,12 @@ export class TeamPlanningContext {
     if (ids.size === 0) return [];
     return this.allUsers
       .filter((u) => ids.has(u.id))
-      .map((u) => ({ id: u.id, name: u.name, role: u.role }))
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        avatarUpdatedAt: u.avatarUpdatedAt,
+      }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 

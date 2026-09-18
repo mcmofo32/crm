@@ -8,7 +8,9 @@ import { updateLeadStageAction, updateLeadEmailAction } from "@/lib/actions/lead
 import { planStageMeetingAction, planFollowUpCallAction } from "@/lib/actions/activities";
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
+import { EditMeetingButton } from "@/components/EditMeetingButton";
 import { Avatar } from "@/components/Avatar";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import { FollowUpCallField } from "@/components/FollowUpCallField";
 import {
@@ -111,8 +113,17 @@ type BoardLead = {
   company: string | null;
   stageId: string;
   lastContactedAt: Date | null;
-  owner: { name: string };
-  activities: { scheduledAt: Date | null }[];
+  owner: { id: string; name: string; avatarUpdatedAt: Date | null };
+  activities: {
+    id: string;
+    subject: string;
+    scheduledAt: Date | null;
+    durationMinutes: number | null;
+    meetingMode: string | null;
+    location: string | null;
+    meetingLink: string | null;
+    subagentId: string | null;
+  }[];
 };
 
 type BoardStage = {
@@ -142,7 +153,8 @@ function LeadCard({
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
-  const nextContact = lead.activities[0]?.scheduledAt ?? null;
+  const nextActivity = lead.activities[0] ?? null;
+  const nextContact = nextActivity?.scheduledAt ?? null;
   const lastContact = formatDate(lead.lastContactedAt);
   const upcoming = formatDate(nextContact);
 
@@ -155,12 +167,31 @@ function LeadCard({
         dragged ? "opacity-40" : ""
       }`}
     >
-      <Link
-        href={`/leads/${lead.id}`}
-        className="font-medium text-slate-900 hover:underline"
-      >
-        {lead.firstName} {lead.lastName}
-      </Link>
+      <div className="flex items-start justify-between gap-2">
+        <Link
+          href={`/leads/${lead.id}`}
+          className="font-medium text-slate-900 hover:underline"
+        >
+          {lead.firstName} {lead.lastName}
+        </Link>
+        {nextActivity && nextActivity.meetingMode !== null && nextActivity.scheduledAt && (
+          <EditMeetingButton
+            activityId={nextActivity.id}
+            subject={nextActivity.subject}
+            scheduledAt={nextActivity.scheduledAt}
+            durationMinutes={nextActivity.durationMinutes}
+            meetingMode={nextActivity.meetingMode}
+            location={nextActivity.location}
+            meetingLink={nextActivity.meetingLink}
+            subagentId={nextActivity.subagentId}
+            subagents={subagents.map((s) => ({
+              id: s.id,
+              name: s.name,
+              teamName: s.team.name,
+            }))}
+          />
+        )}
+      </div>
       {lead.company && <p className="text-sm text-slate-400">{lead.company}</p>}
 
       <div className="mt-1.5 flex flex-col gap-1 text-sm">
@@ -189,7 +220,7 @@ function LeadCard({
       </div>
 
       <div className="mt-2 flex items-center gap-1.5">
-        <Avatar name={lead.owner.name} size="sm" />
+        <Avatar name={lead.owner.name} size="sm" photoUrl={avatarUrl(lead.owner)} />
         <span className="text-sm text-slate-500">{lead.owner.name}</span>
       </div>
 
@@ -362,23 +393,36 @@ export function FunnelBoard({
 
   function confirmMove() {
     if (!pendingMove) return;
-    const { leadId, toStageId, toStageIsWon } = pendingMove;
+    const { leadId, toStageId, toStageLabel, toStageIsWon } = pendingMove;
     const trimmedNotes = notes;
     const trimmedEmail = emailInput.trim();
     const meetingFormData = buildMeetingFormData(meeting);
     const followUpFormData = buildFollowUpCallFormData(followUpCall);
     startTransition(async () => {
       await runWithToast(async () => {
-        await updateLeadStageAction(leadId, toStageId, trimmedNotes);
         if (trimmedEmail) {
           await updateLeadEmailAction(leadId, trimmedEmail);
         }
-        if (meetingFormData) {
-          await planStageMeetingAction(leadId, meetingFormData);
+        // Eerst de afspraak/het terugbelmoment plannen (en dus valideren,
+        // bv. de verplichte subagent bij Adviesgesprek/Opvolggesprek) vóór
+        // de lead effectief verplaatst wordt — anders kan een lead in een
+        // "...ingepland"-fase belanden zonder dat er ooit iets ingepland werd.
+        if (isPlanningStage(toStageLabel)) {
+          if (!meetingFormData) {
+            throw new Error("Kies een datum en uur voor de afspraak");
+          }
+          const result = await planStageMeetingAction(leadId, toStageId, meetingFormData);
+          if (result?.error) throw new Error(result.error);
         }
-        if (followUpFormData) {
-          await planFollowUpCallAction(leadId, followUpFormData);
+        if (isFollowUpStage(toStageLabel)) {
+          if (!followUpFormData) {
+            throw new Error("Kies een datum en uur voor het terugbelmoment");
+          }
+          const result = await planFollowUpCallAction(leadId, toStageId, followUpFormData);
+          if (result?.error) throw new Error(result.error);
         }
+        const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+        if (stageResult?.error) throw new Error(stageResult.error);
         if (toStageIsWon && hasAnyProduct(products)) {
           await saveLeadProductsAction(leadId, buildProductsFormData(products));
         }

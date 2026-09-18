@@ -19,6 +19,7 @@ export const INSURANCE_COMPANY_ORDER: InsuranceCompany[] = [
 export const POLICY_STATUS_LABELS: Record<PolicyStatus, string> = {
   OPGELADEN_WACHT_ACTIEF: "Opgeladen wacht actief",
   ACTIEF: "Actief",
+  PREMIEVRIJ: "Premievrij",
   UITBETAALD: "Uitbetaald",
   GEANNULEERD: "Geannuleerd",
   BACKOFFICE: "Backoffice",
@@ -32,6 +33,7 @@ export const POLICY_STATUS_LABELS: Record<PolicyStatus, string> = {
 export const POLICY_STATUS_ORDER: PolicyStatus[] = [
   "OPGELADEN_WACHT_ACTIEF",
   "ACTIEF",
+  "PREMIEVRIJ",
   "UITBETAALD",
   "GEANNULEERD",
   "BACKOFFICE",
@@ -53,6 +55,10 @@ export const POLICY_STATUS_COLORS: Record<
 > = {
   OPGELADEN_WACHT_ACTIEF: { background: "#fed7aa", color: "#9a3412" },
   ACTIEF: { background: "#bbf7d0", color: "#166534" },
+  // Bewust een ander rood dan GEANNULEERD hieronder (dat is solid/fel) —
+  // Premievrij is geen eindstatus, dus een lichter rood dat opvalt zonder
+  // even definitief te ogen als "geannuleerd".
+  PREMIEVRIJ: { background: "#fecaca", color: "#991b1b" },
   UITBETAALD: { background: "#15803d", color: "#ffffff" },
   GEANNULEERD: { background: "#dc2626", color: "#ffffff" },
   BACKOFFICE: { background: "#7e22ce", color: "#ffffff" },

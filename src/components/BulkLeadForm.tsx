@@ -51,6 +51,7 @@ export function BulkLeadForm() {
   const [rows, setRows] = useState<Row[]>(() =>
     Array.from({ length: 8 }, () => emptyRow())
   );
+  const [excludeFromStats, setExcludeFromStats] = useState(false);
 
   function updateCell(rowIndex: number, field: TextField, value: string) {
     setRows((current) => {
@@ -131,6 +132,24 @@ export function BulkLeadForm() {
           hierboven.
         </p>
       </div>
+
+      <label className="flex w-fit items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          name="excludeFromStats"
+          checked={excludeFromStats}
+          onChange={(e) => setExcludeFromStats(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span>
+          Dit zijn oude/historische leads — niet laten meetellen in de
+          cijfers (Aanbevelingen/ABV)
+          <span className="block text-xs text-slate-400">
+            Onaangevinkt (standaard) tellen deze leads gewoon mee, net als
+            een lead die je één voor één toevoegt.
+          </span>
+        </span>
+      </label>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200">
         <table className="w-full text-base">

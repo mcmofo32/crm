@@ -247,7 +247,7 @@ export async function syncGoogleSheetsBackupNow(): Promise<
     // 4) Opmaak van alle tabbladen in één gecombineerde batchUpdate.
     const formattingRequests: sheets_v4.Schema$Request[] = [];
     for (const { tab, sheetId, values } of usableTabData) {
-      const columnCount = Math.max(tab.headers.length, 1);
+      const columnCount = Math.max(tab.columnCount ?? tab.headers.length, 1);
       const rowCount = values.length;
 
       formattingRequests.push(
@@ -281,7 +281,7 @@ export async function syncGoogleSheetsBackupNow(): Promise<
         }))
       );
 
-      if (rowCount > 1) {
+      if (rowCount > 1 && !tab.noBanding) {
         formattingRequests.push({
           addBanding: {
             bandedRange: {
@@ -316,7 +316,14 @@ export async function syncGoogleSheetsBackupNow(): Promise<
     });
     return { ok: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Onbekende fout";
+    const rawMessage = error instanceof Error ? error.message : "Onbekende fout";
+    // "invalid_grant" is de kale OAuth-foutcode van Google zelf wanneer de
+    // refresh token niet langer geldig is (ingetrokken bij Google, of
+    // verlopen) — voor een niet-technische beheerder betekent die tekst op
+    // zich niets. Vertaalt naar de enige echte oplossing: opnieuw koppelen.
+    const message = rawMessage.includes("invalid_grant")
+      ? "De Google-koppeling is niet meer geldig (ingetrokken bij Google, of verlopen). Klik op \"Ontkoppelen\" en verbind opnieuw."
+      : rawMessage;
     await prisma.googleSheetsBackup.update({
       where: { id: connection.id },
       data: { lastSyncError: message },

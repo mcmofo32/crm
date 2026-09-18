@@ -12,9 +12,15 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 import { canDeleteActivities, canManageUsers } from "@/lib/permissions";
 import { getAssignableUsers } from "@/lib/actions/leads";
+import { getSubagents } from "@/lib/actions/subagents";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType, Role } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
+
+// Nooit cachen/statisch renderen — een activiteit die elders (bv. vanuit de
+// Funnel/Leaddetail) afgerond wordt, moet hier meteen uit de openstaande
+// taken verdwijnen i.p.v. pas na een harde refresh.
+export const dynamic = "force-dynamic";
 
 /** Sentinelwaarde voor "iedereen die ik mag zien" (heel mijn team, of voor Admin/Beheerder alle medewerkers). */
 const GROUP_OPTION = "groep";
@@ -65,25 +71,28 @@ export default async function TakenPage({
     ? { ownerId: { in: assignableUsers.map((u) => u.id) } }
     : { ownerId: selectedOwnerId };
 
-  const tasks = await prisma.activity.findMany({
-    where: {
-      status: "PLANNED",
-      lead: { deletedAt: null, ...ownerWhere, ...(leadType ? { leadType } : {}) },
-    },
-    include: {
-      lead: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          leadType: true,
-          lastContactedAt: true,
-        },
+  const [tasks, subagents] = await Promise.all([
+    prisma.activity.findMany({
+      where: {
+        status: "PLANNED",
+        lead: { deletedAt: null, ...ownerWhere, ...(leadType ? { leadType } : {}) },
       },
-      assignee: { select: { name: true } },
-    },
-    orderBy: { scheduledAt: "asc" },
-  });
+      include: {
+        lead: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            leadType: true,
+            lastContactedAt: true,
+          },
+        },
+        assignee: { select: { name: true } },
+      },
+      orderBy: { scheduledAt: "asc" },
+    }),
+    getSubagents(),
+  ]);
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -260,6 +269,11 @@ export default async function TakenPage({
                           durationMinutes={task.durationMinutes}
                           status={task.status}
                           canDelete={canDeleteActivities(user)}
+                          meetingMode={task.meetingMode}
+                          location={task.location}
+                          meetingLink={task.meetingLink}
+                          subagentId={task.subagentId}
+                          subagents={subagents}
                         />
                       </li>
                     );

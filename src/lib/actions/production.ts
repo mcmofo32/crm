@@ -16,18 +16,26 @@ import {
   MONTHLY_GOAL_METRICS,
   MONTHLY_ACTUAL_METRICS,
 } from "@/lib/goalLabels";
-import { isoWeeksOfYear, type ProductionMonthConfigRow } from "@/lib/productionMonth";
+import {
+  isoWeeksOfYear,
+  resolveProductionMonth,
+  type ProductionMonthConfigRow,
+} from "@/lib/productionMonth";
 import { BULK_EXCEL_IMPORT_SOURCE } from "@/lib/leadSources";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 /**
- * Sluit leads uit die via een van de twee bulk-importfeatures aangemaakt
- * zijn — "Klanten in bulk toevoegen" (Excel-upload, herkenbaar aan `source`)
- * en "Leads in bulk toevoegen" (de Excel-achtige plak-tabel, `bulkImported`)
- * — want dat zijn achteraf ingevoerde/historische leads, geen nieuw
- * aangebrachte, dus geen "nieuwe aanbeveling" voor de Aanbevelingen/
- * ABV-cijfers. `OR` met `source: null` i.p.v. enkel `source: { not: ... }`,
- * zodat leads zonder ingevulde source (de meerderheid) gegarandeerd blijven
- * meetellen, ongeacht hoe Prisma `not` op een nullable veld interpreteert.
+ * Sluit leads uit die expliciet als "niet meetellen" gemarkeerd zijn bij een
+ * van de twee bulk-importfeatures — "Klanten in bulk toevoegen"
+ * (Excel-upload, herkenbaar aan `source`, altijd uitgesloten: dat is per
+ * definitie historische klantendata) en "Leads in bulk toevoegen" (de
+ * Excel-achtige plak-tabel, `bulkImported` — daar is het een keuze per
+ * import via het vinkje "oude/historische leads", zie createLeadsBulkAction;
+ * onaangevinkt telt een bulk-toegevoegde lead gewoon mee, net als een
+ * individueel toegevoegde). `OR` met `source: null` i.p.v. enkel
+ * `source: { not: ... }`, zodat leads zonder ingevulde source (de
+ * meerderheid) gegarandeerd blijven meetellen, ongeacht hoe Prisma `not` op
+ * een nullable veld interpreteert.
  */
 function excludingBulkImportedLeads() {
   return {
@@ -200,14 +208,18 @@ export async function getAllProductionMonthConfigs(): Promise<
   });
 }
 
-/** Maandag 00:00 t.e.m. volgende maandag 00:00 (lokale tijd) van de huidige week. */
-function currentWeekRange() {
+/**
+ * Maandag 00:00 t.e.m. volgende maandag 00:00 (lokale tijd) van de huidige
+ * week, of `offsetWeeks` weken ervoor/erna (bv. 1 = volgende week, -1 =
+ * vorige week) — voor het doorbladeren van de Gesprekken-ranglijst.
+ */
+function currentWeekRange(offsetWeeks: number = 0) {
   const now = new Date();
   const day = now.getDay(); // 0 = zondag
   const diffToMonday = day === 0 ? -6 : 1 - day;
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() + diffToMonday);
+  start.setDate(start.getDate() + diffToMonday + offsetWeeks * 7);
   const end = new Date(start);
   end.setDate(end.getDate() + 7);
   return { start, end };
@@ -432,33 +444,44 @@ function weeksInRange(start: Date, end: Date) {
 }
 
 /**
- * Week (ma-zo) + productiemaand waarvan het maandelijkse gesprekken-doel
- * wordt afgeleid — voor weergave boven de Gesprekken-ranglijst.
+ * Week (ma-zo, `weekOffset` weken t.o.v. nu) + productiemaand waarin die
+ * week valt (zie `resolveProductionMonth`) — voor weergave boven de
+ * Gesprekken-ranglijst.
  */
-export async function getCurrentConversationsContext() {
-  const week = currentWeekRange();
-  const { year, month } = await getCurrentProductionMonth();
+export async function getCurrentConversationsContext(weekOffset: number = 0) {
+  const week = currentWeekRange(weekOffset);
+  const configs = await prisma.productionMonth.findMany({
+    select: { year: true, month: true, startDate: true, endDate: true },
+  });
+  const { year, month } = resolveProductionMonth(week.start, configs);
   return {
     weekStart: week.start,
     weekEnd: new Date(week.end.getTime() - 1),
     year,
     month,
+    weekOffset,
   };
 }
 
 /**
  * Het wekelijkse gesprekken-doel is afgeleid van het maandelijkse
- * Gesprekken-doel voor de huidige productiemaand (`UserMonthlyGoal`),
- * verdeeld over het aantal weken dat die productiemaand beslaat — zo weet
- * je hoeveel je die week effectief moet inplannen.
+ * Gesprekken-doel voor de productiemaand waarin de bekeken week valt
+ * (`UserMonthlyGoal`), verdeeld over het aantal weken dat die productiemaand
+ * beslaat — zo weet je hoeveel je die week effectief moet inplannen.
+ * `weekOffset` (bv. 1 = volgende week, -1 = vorige week) laat toe ook andere
+ * weken te bekijken dan de huidige.
  */
 export async function getConversationsLeaderboard(
   /** Beperkt de ranglijst tot deze gebruikers (bv. een gekozen substructuur) — `null`/weggelaten = iedereen. */
-  scopeUserIds?: string[] | null
+  scopeUserIds?: string[] | null,
+  weekOffset: number = 0
 ): Promise<ConversationsRow[]> {
   await requireViewer();
-  const week = currentWeekRange();
-  const { year, month } = await getCurrentProductionMonth();
+  const week = currentWeekRange(weekOffset);
+  const configs = await prisma.productionMonth.findMany({
+    select: { year: true, month: true, startDate: true, endDate: true },
+  });
+  const { year, month } = resolveProductionMonth(week.start, configs);
   const { start: monthStart, end: monthEnd } = await getProductionMonthRange(
     year,
     month
@@ -512,6 +535,215 @@ export async function getConversationsLeaderboard(
   });
 
   return rows.sort((a, b) => b.actual - a.actual);
+}
+
+// ---------------------------------------------------------------------------
+// Weekoverzicht team: voor een Coach (eigen team) of Beheerder/Admin (een
+// gekozen team) — hoeveel Financiële analyses/Adviesgesprekken elk teamlid
+// deze week al ingepland heeft, naast het wekelijkse FA-doel.
+// ---------------------------------------------------------------------------
+
+/**
+ * "Adviesgesprek" binnen een periode — zelfde opzet als
+ * financieleAnalyseActivityWhere hierboven, maar voor dat onderwerp i.p.v.
+ * Financiële analyse, en niet beperkt tot leadType FA (een adviesgesprek
+ * hoort evengoed bij een RG-lead thuis). Telt ook "Opvolggesprek" mee — dat
+ * is in alles behalve naam een tweede adviesgesprek (zelfde widget, zie
+ * isOpvolggesprekType in meetingPlanning.ts), maar de letterlijke tekst
+ * bevat het woord "Adviesgesprek" niet, dus dat moet apart opgenomen worden.
+ */
+function adviesgesprekActivityWhere(range: { gte: Date; lt: Date }) {
+  return {
+    status: { in: [ActivityStatus.PLANNED, ActivityStatus.COMPLETED] },
+    OR: [
+      { subject: { contains: "Adviesgesprek", mode: "insensitive" as const } },
+      { subject: { contains: "Opvolggesprek", mode: "insensitive" as const } },
+    ],
+    scheduledAt: range,
+    lead: { deletedAt: null },
+  };
+}
+
+export type TeamWeekDailyRow = {
+  userId: string;
+  name: string;
+  isCoach: boolean;
+  /** 7 tellingen voor deze week, index 0 = maandag t.e.m. 6 = zondag. */
+  counts: number[];
+};
+
+export type TeamWeekOverview = {
+  teamName: string;
+  weekStart: Date;
+  /** Inclusieve laatste dag (zondag) van de week. */
+  weekEnd: Date;
+  weekOffset: number;
+  /** Labels voor de 7 dagkolommen van de dagoverzicht-tabellen, bv. "Ma 15/09". */
+  dayLabels: string[];
+  faDaily: TeamWeekDailyRow[];
+  agDaily: TeamWeekDailyRow[];
+};
+
+/** Vaste kolomvolgorde voor de dagoverzicht-tabellen: index 0 = maandag ... 6 = zondag. */
+const WEEKDAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+
+/** Kalenderdag-index (0 = maandag ... 6 = zondag) van `date` binnen de week die op `weekStart` (maandag 00:00) begint. */
+function dayIndexInWeek(date: Date, weekStart: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+/** Verdeelt een lijst activiteiten over de 7 dagen van de week, per lid van `members` — voor de dagoverzicht-tabellen. */
+function buildDailyBreakdown(
+  members: { id: string; name: string; isCoach: boolean }[],
+  activities: { assigneeId: string; scheduledAt: Date | null }[],
+  weekStart: Date
+): TeamWeekDailyRow[] {
+  const countsByUser = new Map<string, number[]>();
+  for (const m of members) countsByUser.set(m.id, [0, 0, 0, 0, 0, 0, 0]);
+
+  for (const a of activities) {
+    if (!a.scheduledAt) continue;
+    const dayIndex = dayIndexInWeek(a.scheduledAt, weekStart);
+    if (dayIndex < 0 || dayIndex > 6) continue;
+    const counts = countsByUser.get(a.assigneeId);
+    if (counts) counts[dayIndex] += 1;
+  }
+
+  return members.map((m) => ({
+    userId: m.id,
+    name: m.name,
+    isCoach: m.isCoach,
+    counts: countsByUser.get(m.id) ?? [0, 0, 0, 0, 0, 0, 0],
+  }));
+}
+
+export type CoachTeamOption = { coachId: string; teamName: string };
+
+/** Voor de teamkeuze van Beheerder/Admin op het Weekoverzicht — elk team met zijn coach. Een Coach kiest niet, die ziet altijd zijn eigen team. */
+export async function getCoachTeamOptions(): Promise<CoachTeamOption[]> {
+  await requireViewer();
+  const teams = await prisma.team.findMany({
+    where: { coach: { active: true } },
+    select: { name: true, coachId: true },
+    orderBy: { name: "asc" },
+  });
+  return teams.map((t) => ({ coachId: t.coachId, teamName: t.name }));
+}
+
+/**
+ * Weekoverzicht van een team: voor elk teamlid — de coach zelf, plus zijn
+ * hele substructuur (ook rechtstreekse/onrechtstreekse teamleden van een
+ * sub-coach, bv. iemand die onder een teamlid van deze coach zit i.p.v.
+ * rechtstreeks onder hemzelf; zie getDescendantUserIds) — hoeveel
+ * Financiële analyses/Adviesgesprekken deze week ingepland staan, per dag
+ * (ma-zo). Toegankelijk voor iedereen (voor zijn eigen team) — Beheerder/
+ * Admin kunnen via `coachId` daarnaast om het even welk team bekijken.
+ *
+ * Telt op basis van `assigneeId` (de eigenaar van de lead), nooit op basis
+ * van `subagentId` — een teamlid dat als subagent optreedt bij een afspraak
+ * van een ander teamlid (bv. de coach die als subagent instapt bij een
+ * adviesgesprek van een teamlid) telt dus niet nog eens apart mee: die
+ * afspraak staat dan wel op de agenda van de subagent (als deelnemer via
+ * Google Agenda), maar blijft in de CRM toegewezen aan de eigenaar van de
+ * lead, en telt dus uitsluitend bij die eigenaar mee.
+ */
+export async function getTeamWeekOverview(
+  weekOffset: number = 0,
+  /** Enkel gebruikt voor Beheerder/Admin — een Coach of gewone medewerker ziet altijd zijn eigen team, ongeacht deze parameter. */
+  coachId?: string
+): Promise<TeamWeekOverview | null> {
+  const viewer = await requireViewer();
+
+  // Iedereen mag zijn eigen team bekijken: een Coach is zelf de wortel van
+  // zijn team, een gewone medewerker hoort bij het team waar hij lid van is
+  // (User.teamId). Enkel Beheerder/Admin mogen via `coachId` een willekeurig
+  // team kiezen — voor iedereen anders wordt die parameter genegeerd, zodat
+  // niemand via de URL het team van een ander kan opvragen.
+  let resolvedCoachId: string | undefined;
+  if (canManageUsers(viewer)) {
+    resolvedCoachId = coachId;
+  } else if (viewer.role === Role.COACH) {
+    resolvedCoachId = viewer.id;
+  } else {
+    const self = await prisma.user.findUnique({
+      where: { id: viewer.id },
+      select: { team: { select: { coachId: true } } },
+    });
+    resolvedCoachId = self?.team?.coachId;
+  }
+  if (!resolvedCoachId) return null;
+
+  const team = await prisma.team.findUnique({
+    where: { coachId: resolvedCoachId },
+    select: {
+      name: true,
+      coach: { select: { id: true, name: true, active: true, deletedAt: true } },
+    },
+  });
+  if (!team) return null;
+
+  // De volledige substructuur (rechtstreekse én onrechtstreekse teamleden,
+  // bv. Emiel/Wannes die zelf onder Zacharia zitten i.p.v. rechtstreeks
+  // onder deze coach) — niet enkel de rechtstreekse Team.members, anders
+  // vallen teamleden van een sub-coach hier onterecht weg. Zelfde aanpak
+  // als getVisibleUserIds/resolveProductionUserIds elders in de app.
+  // Inactieve/verwijderde gebruikers tonen nergens in de CRM, dus ook hier
+  // niet als rij — noch als teamlid, noch (verderop) als coach.
+  const descendantIds = await getDescendantUserIds(resolvedCoachId);
+  const descendants = await prisma.user.findMany({
+    where: { id: { in: descendantIds }, active: true, deletedAt: null },
+    select: { id: true, name: true },
+  });
+
+  const week = currentWeekRange(weekOffset);
+
+  const members = [
+    ...(team.coach.active && !team.coach.deletedAt
+      ? [{ id: team.coach.id, name: team.coach.name, isCoach: true }]
+      : []),
+    ...descendants.map((m) => ({ id: m.id, name: m.name, isCoach: false })),
+  ];
+  if (members.length === 0) return null;
+  const userIds = members.map((m) => m.id);
+
+  const [faActivities, agActivities] = await Promise.all([
+    prisma.activity.findMany({
+      where: {
+        assigneeId: { in: userIds },
+        ...financieleAnalyseActivityWhere({ gte: week.start, lt: week.end }),
+      },
+      select: { assigneeId: true, scheduledAt: true },
+    }),
+    prisma.activity.findMany({
+      where: {
+        assigneeId: { in: userIds },
+        ...adviesgesprekActivityWhere({ gte: week.start, lt: week.end }),
+      },
+      select: { assigneeId: true, scheduledAt: true },
+    }),
+  ]);
+
+  const faDaily = buildDailyBreakdown(members, faActivities, week.start);
+  const agDaily = buildDailyBreakdown(members, agActivities, week.start);
+
+  const dayLabels = WEEKDAY_LABELS.map((label, i) => {
+    const d = new Date(week.start.getTime() + i * 24 * 60 * 60 * 1000);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${label} ${dd}/${mm}`;
+  });
+
+  return {
+    teamName: team.name,
+    weekStart: week.start,
+    weekEnd: new Date(week.end.getTime() - 1),
+    weekOffset,
+    dayLabels,
+    faDaily,
+    agDaily,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -712,6 +944,178 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
     periodEnd: new Date(end.getTime() - 1),
     rows,
   };
+}
+
+export type MonthlyProductionMetricValue = { target: number; actual: number };
+
+export type MonthlyProductionLeaderboardRow = {
+  name: string;
+  jobFunction: JobFunction | null;
+  coachName: string | null;
+  byMetric: Record<GoalMetric, MonthlyProductionMetricValue>;
+};
+
+export type MonthlyProductionLeaderboard = {
+  year: number;
+  month: number;
+  isCurrent: boolean;
+  rows: MonthlyProductionLeaderboardRow[];
+};
+
+/**
+ * Eén ranglijst per ingestelde productiemaand, over de volledige historiek —
+ * zelfde vorm en berekeningsregels als `getProductionLeaderboard` hierboven
+ * (Klanten/Eenheden met manuele-override-ondersteuning via
+ * `MONTHLY_ACTUAL_METRICS`, Gesprekken via `financieleAnalyseActivityWhere`,
+ * ABV verkoop/RG via nieuwe FA-/RG-leads, enkel actieve niet-opleiding-
+ * gebruikers, gerangschikt op Behaald Eenheden) — bewust hergebruikt i.p.v.
+ * herschreven, zodat de Google Sheets-back-up niet stilletjes uit sync raakt
+ * met wat de Productie-pagina toont als die regels ooit wijzigen.
+ *
+ * Voor de back-up (`sheetsBackupTabs.ts`, "Productiecijfers per
+ * productiemaand" — één tabel per maand, net als op de Productie-pagina).
+ * Geen `requireViewer()`: dit draait vanuit de nachtelijke cron-sync, zonder
+ * ingelogde sessie.
+ */
+export async function getAllMonthlyProductionLeaderboardsForBackup(): Promise<
+  MonthlyProductionLeaderboard[]
+> {
+  const [users, productionMonths, goals, actuals, current] = await Promise.all([
+    prisma.user.findMany({
+      where: { active: true, inTraining: false },
+      select: {
+        id: true,
+        name: true,
+        jobFunction: true,
+        team: { select: { coach: { select: { name: true } } } },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.productionMonth.findMany({ orderBy: [{ year: "asc" }, { month: "asc" }] }),
+    prisma.userMonthlyGoal.findMany(),
+    prisma.userMonthlyActual.findMany(),
+    getCurrentProductionMonth(),
+  ]);
+  const userIds = users.map((u) => u.id);
+
+  const goalByKey = new Map(
+    goals.map((g) => [`${g.userId}_${g.year}_${g.month}_${g.metric}`, Number(g.target)])
+  );
+  const overrideByKey = new Map(
+    actuals.map((a) => [`${a.userId}_${a.year}_${a.month}_${a.metric}`, Number(a.value)])
+  );
+
+  const leaderboards: MonthlyProductionLeaderboard[] = [];
+
+  for (const pm of productionMonths) {
+    const start = pm.startDate;
+    const end = new Date(pm.endDate.getTime() + 1);
+
+    const [wonChanges, unitsRows, conversationCounts, newFaLeads, newRgLeads] =
+      await Promise.all([
+        prisma.leadStageChange.findMany({
+          where: {
+            toStage: { isWon: true },
+            changedAt: { gte: start, lt: end },
+            lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
+          },
+          select: { lead: { select: { id: true, ownerId: true } } },
+        }),
+        prisma.leadProduct.findMany({
+          where: {
+            contractDate: { gte: start, lt: end },
+            lead: { deletedAt: null, status: "WON", ownerId: { in: userIds } },
+          },
+          select: { units: true, lead: { select: { ownerId: true } } },
+        }),
+        prisma.activity.groupBy({
+          by: ["assigneeId"],
+          where: {
+            assigneeId: { in: userIds },
+            ...financieleAnalyseActivityWhere({ gte: start, lt: end }),
+          },
+          _count: { _all: true },
+        }),
+        prisma.lead.groupBy({
+          by: ["ownerId"],
+          where: {
+            ownerId: { in: userIds },
+            deletedAt: null,
+            leadType: "FA",
+            createdAt: { gte: start, lt: end },
+            ...excludingBulkImportedLeads(),
+          },
+          _count: { _all: true },
+        }),
+        prisma.lead.groupBy({
+          by: ["ownerId"],
+          where: {
+            ownerId: { in: userIds },
+            deletedAt: null,
+            leadType: "RG",
+            createdAt: { gte: start, lt: end },
+            ...excludingBulkImportedLeads(),
+          },
+          _count: { _all: true },
+        }),
+      ]);
+
+    const customersByUser = new Map<string, Set<string>>();
+    for (const c of wonChanges) {
+      const set = customersByUser.get(c.lead.ownerId) ?? new Set<string>();
+      set.add(c.lead.id);
+      customersByUser.set(c.lead.ownerId, set);
+    }
+    const unitsByUser = new Map<string, number>();
+    for (const p of unitsRows) {
+      unitsByUser.set(p.lead.ownerId, (unitsByUser.get(p.lead.ownerId) ?? 0) + p.units);
+    }
+    const conversationsByUser = new Map(
+      conversationCounts.map((c) => [c.assigneeId, c._count._all])
+    );
+    const faByUser = new Map(newFaLeads.map((l) => [l.ownerId, l._count._all]));
+    const rgByUser = new Map(newRgLeads.map((l) => [l.ownerId, l._count._all]));
+
+    const rows: MonthlyProductionLeaderboardRow[] = users.map((user) => {
+      const computedByMetric: Record<GoalMetric, number> = {
+        CUSTOMERS: customersByUser.get(user.id)?.size ?? 0,
+        UNITS: unitsByUser.get(user.id) ?? 0,
+        CONVERSATIONS: conversationsByUser.get(user.id) ?? 0,
+        ABV_SALES: faByUser.get(user.id) ?? 0,
+        ABV_RG: rgByUser.get(user.id) ?? 0,
+      };
+
+      const byMetric = {} as Record<GoalMetric, MonthlyProductionMetricValue>;
+      for (const metric of GOAL_METRIC_ORDER) {
+        const key = `${user.id}_${pm.year}_${pm.month}_${metric}`;
+        const override = (MONTHLY_ACTUAL_METRICS as readonly GoalMetric[]).includes(metric)
+          ? overrideByKey.get(key)
+          : undefined;
+        byMetric[metric] = {
+          target: goalByKey.get(key) ?? 0,
+          actual: override ?? computedByMetric[metric],
+        };
+      }
+
+      return {
+        name: user.name,
+        jobFunction: user.jobFunction,
+        coachName: user.team?.coach.name ?? null,
+        byMetric,
+      };
+    });
+
+    rows.sort((a, b) => b.byMetric.UNITS.actual - a.byMetric.UNITS.actual);
+
+    leaderboards.push({
+      year: pm.year,
+      month: pm.month,
+      isCurrent: pm.year === current.year && pm.month === current.month,
+      rows,
+    });
+  }
+
+  return leaderboards;
 }
 
 /**
@@ -1267,6 +1671,7 @@ export async function getAllUserMonthlyGoalsForTable(year: number, month: number
       id: true,
       name: true,
       role: true,
+      avatarUpdatedAt: true,
       monthlyGoals: { where: { year, month } },
     },
     orderBy: { name: "asc" },
@@ -1275,6 +1680,7 @@ export async function getAllUserMonthlyGoalsForTable(year: number, month: number
   return users.map((u) => ({
     id: u.id,
     name: u.name,
+    photoUrl: avatarUrl(u),
     role: u.role,
     targetByMetric: new Map(u.monthlyGoals.map((g) => [g.metric, Number(g.target)])),
   }));

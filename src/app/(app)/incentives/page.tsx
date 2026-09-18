@@ -3,7 +3,14 @@ import { Plus, Trophy, FileText } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 import { canManageIncentives } from "@/lib/permissions";
-import { Badge } from "@/components/Badge";
+import { Badge, type BadgeVariant } from "@/components/Badge";
+import { getIncentiveStatus, INCENTIVE_STATUS_LABELS } from "@/lib/incentiveMetrics";
+
+const STATUS_BADGE_VARIANT: Record<ReturnType<typeof getIncentiveStatus>, BadgeVariant> = {
+  upcoming: "blue",
+  active: "green",
+  ended: "slate",
+};
 
 export default async function IncentivesPage() {
   const user = (await getEffectiveViewer())!;
@@ -43,8 +50,7 @@ export default async function IncentivesPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {incentives.map((incentive) => {
-            const isActive =
-              now >= incentive.startDate && now <= incentive.endDate;
+            const status = getIncentiveStatus(incentive.startDate, incentive.endDate, now);
             const hasPoster = Boolean(incentive.posterMimeType);
             const isImage = incentive.posterMimeType?.startsWith("image/");
 
@@ -76,8 +82,8 @@ export default async function IncentivesPage() {
                     <h2 className="text-lg font-medium text-slate-900">
                       {incentive.title}
                     </h2>
-                    <Badge variant={isActive ? "green" : "slate"}>
-                      {isActive ? "Actief" : "Afgelopen"}
+                    <Badge variant={STATUS_BADGE_VARIANT[status]}>
+                      {INCENTIVE_STATUS_LABELS[status]}
                     </Badge>
                   </div>
                   <p className="text-sm text-slate-500">

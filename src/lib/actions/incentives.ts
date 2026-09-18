@@ -12,6 +12,7 @@ import {
 import { canManageIncentives } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { METRIC_LABELS } from "@/lib/incentiveMetrics";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 const MAX_POSTER_BYTES = 8 * 1024 * 1024; // 8 MB
 const ALLOWED_POSTER_TYPES = ["image/jpeg", "image/jpg", "application/pdf"];
@@ -173,6 +174,7 @@ export type CategoryProgress = {
 export type LeaderboardEntry = {
   userId: string;
   name: string;
+  photoUrl: string | null;
   score: number;
   progressPercent: number;
   achieved: boolean;
@@ -260,7 +262,7 @@ export async function computeIncentiveLeaderboard(
 ): Promise<LeaderboardEntry[]> {
   const activeUsers = await prisma.user.findMany({
     where: { active: true },
-    select: { id: true, name: true },
+    select: { id: true, name: true, avatarUpdatedAt: true },
   });
 
   if (incentive.mode === IncentiveMode.TOP_N) {
@@ -275,7 +277,12 @@ export async function computeIncentiveLeaderboard(
     const topScore = Math.max(0, ...activeUsers.map((u) => scores.get(u.id) ?? 0));
 
     return activeUsers
-      .map((u) => ({ userId: u.id, name: u.name, score: scores.get(u.id) ?? 0 }))
+      .map((u) => ({
+        userId: u.id,
+        name: u.name,
+        photoUrl: avatarUrl(u),
+        score: scores.get(u.id) ?? 0,
+      }))
       .sort((a, b) => b.score - a.score)
       .map((entry, index) => ({
         ...entry,
@@ -322,6 +329,7 @@ export async function computeIncentiveLeaderboard(
     return {
       userId: u.id,
       name: u.name,
+      photoUrl: avatarUrl(u),
       score: progressPercent,
       progressPercent,
       achieved,

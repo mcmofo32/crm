@@ -1,0 +1,1210 @@
+{
+  "courseTitle": "Structuur A Academy",
+  "courseSubtitle": "De volledige CRM-opleiding voor nieuwe medewerkers",
+  "chapters": [
+    {
+      "id": "welkom",
+      "num": "0",
+      "title": "Welkom bij deze cursus",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Fijn dat je hier bent. Deze cursus neemt je stap voor stap mee doorheen **Structuur A**, het CRM waarmee je elke lead, klant en afspraak opvolgt. Na deze cursus ken je elk onderdeel van het systeem: van je eerste keer inloggen tot het opvolgen van polissen die premievrij staan."
+        ],
+        [
+          "p",
+          "De cursus is **doorlopend**: iedereen doorloopt dezelfde hoofdstukken, in dezelfde volgorde als een lead er in de praktijk doorheen gaat — van eerste contact, over de Funnel en de eerste verkoop, tot de opvolging nadien. Deze cursus behandelt het gedeelte dat voor iedereen relevant is; wat enkel voor Coach, Admin of Beheerder zichtbaar is (bv. het **Beheer**-menu), komt hier niet apart aan bod."
+        ],
+        [
+          "h3",
+          "Hoe lees je deze cursus"
+        ],
+        [
+          "list",
+          [
+            "**Vetgedrukte tekst** verwijst naar een knop, veld of menu-item precies zoals het in het CRM staat.",
+            "Tekst in `code-stijl` toont een letterlijk voorbeeld, zoals een afspraaktitel.",
+            "Groene tip-kaders geven een extra hint; oranje let-op-kaders wijzen op een regel die het systeem afdwingt (bv. een verplicht veld).",
+            "Kaders met een camera-icoon zijn **screenshot-plekhouders**: hier hoort een echte schermafbeelding uit het CRM. Deze cursus is bewust eerst volledig uitgeschreven zodat de plekhouders nadien makkelijk één voor één ingevuld kunnen worden."
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "inloggen",
+      "num": "1",
+      "title": "Inloggen & de basis van de navigatie",
+      "audience": null,
+      "blocks": [
+        [
+          "h3",
+          "Inloggen"
+        ],
+        [
+          "p",
+          "Structuur A heeft geen apart wachtwoord. Je logt altijd in met **Inloggen met Google**, via je bedrijfs-Google-account. Er is geen gebruikersnaam/wachtwoord-alternatief — als je nog geen toegang hebt, vraag je een **Beheerder** om een account voor je Google-adres aan te maken."
+        ],
+        [
+          "photo",
+          "inlogscherm.jpg",
+          "Inlogscherm",
+          "Het inlogscherm met de knop \"Inloggen met Google\"."
+        ],
+        [
+          "h3",
+          "De navigatiebalk"
+        ],
+        [
+          "p",
+          "Bovenaan elke pagina staat dezelfde balk. Van links naar rechts:"
+        ],
+        [
+          "table",
+          [
+            "Onderdeel",
+            "Wat vind je er"
+          ],
+          [
+            [
+              "**Dashboard**",
+              "Je eigen cijfers, doelen en (voor een coach/beheerder) teamoverzicht."
+            ],
+            [
+              "**Pipeline**",
+              "Pipeline verkoop en Pipeline Rekrutering — de allereerste opvolglijst van nieuwe leads."
+            ],
+            [
+              "**Taken**",
+              "Al je geplande activiteiten op één plek; een rood bolletje toont hoeveel er verlopen zijn."
+            ],
+            [
+              "**Funnel**",
+              "FA Funnel en RG Funnel — het bord waarop je leads van fase naar fase verplaatst."
+            ],
+            [
+              "**Klanten**",
+              "Overzicht van alle klanten (gewonnen leads)."
+            ],
+            [
+              "**Incentives**",
+              "Lopende wedstrijden/acties en je eigen voortgang erin."
+            ],
+            [
+              "**Evenementen**",
+              "Vergaderingen, seminaries, belsessies — aan-/afmelden en Google Agenda-uitnodigingen."
+            ],
+            [
+              "**Organigram**",
+              "De volledige bedrijfsstructuur: wie coacht wie."
+            ],
+            [
+              "**Cijfers**",
+              "Je eigen productie: gesprekken en aanbevelingen, per week/maand."
+            ],
+            [
+              "**Subagent**",
+              "Enkel zichtbaar voor subagenten en Admin/Beheerder: \"Klanten onder beheer\" en \"Polissen\"."
+            ],
+            [
+              "**Bibliotheek**",
+              "Documenten, opgedeeld per sectie (Algemeen/Management/Subagent)."
+            ]
+          ]
+        ],
+        [
+          "p",
+          "Rechtsboven staat je naam, foto en rolbadge. Klik erop voor het **profielmenu**: afhankelijk van je rol zie je hier ook een **Beheer**-sectie, **Doelen**, **Beheerderstools**, en voor iedereen **Weekoverzicht team** en **Instellingen**. Het bel-icoon toont meldingen; helemaal rechts kan je uitloggen."
+        ],
+        [
+          "photo",
+          "navigatiebalk.jpg",
+          "De navigatiebalk",
+          "De volledige bovenbalk: alle menu-items links, en rechts de naam, functie-afkorting en rolbadge (hier \"Beheerder\")."
+        ],
+        [
+          "note",
+          "Op een smal scherm (telefoon/tablet) verandert de navigatiebalk in een hamburgermenu — alle items blijven bereikbaar, enkel anders gegroepeerd."
+        ]
+      ]
+    },
+    {
+      "id": "rollen",
+      "num": "2",
+      "title": "Rollen en rechten: wie mag wat",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Wat je in het CRM ziet en mag doen, hangt af van twee onafhankelijke dingen: je **rol** en je **type**."
+        ],
+        [
+          "h3",
+          "Rol"
+        ],
+        [
+          "table",
+          [
+            "Rol",
+            "Toegang"
+          ],
+          [
+            [
+              "**Beheerder**",
+              "Alle rechten. Volledig systeembeheer: gebruikers, teams, kantoorinstellingen, en alle leads/activiteiten van iedereen."
+            ],
+            [
+              "**Admin**",
+              "Bijna alles: ziet en beheert alle leads/klanten/activiteiten, kan gebruikers en teams beheren, heeft toegang tot de Beheerderstools. Enkele gevoelige acties — zoals een activiteit definitief verwijderen, of de rol van een andere Admin wijzigen — blijven voorbehouden aan de Beheerder alleen."
+            ],
+            [
+              "**Coach**",
+              "Toegang tot zichzelf én zijn volledige team — ook de medewerkers van een coach die onder hem/haar valt (de hele structuur, niet enkel de directe teamleden)."
+            ],
+            [
+              "**Medewerker**",
+              "Toegang tot enkel zijn/haar eigen leads, klanten en activiteiten."
+            ]
+          ]
+        ],
+        [
+          "h3",
+          "Type: Analist of Subagent"
+        ],
+        [
+          "p",
+          "Los van je rol heeft elke medewerker ook een **type**. Dat bepaalt wie een leadtraject effectief mag afsluiten als klant:"
+        ],
+        [
+          "list",
+          [
+            "**Subagent** — mag klantendata aanpassen: een lead als **Klant** afsluiten, producten invullen, de dossierbeheerder wijzigen. Een subagent is ook wie je verplicht uitnodigt bij een Adviesgesprek of Opvolggesprek (zie hoofdstuk 7).",
+            "**Analist** — mag leads opvolgen en gesprekken inplannen, maar sluit zelf geen klantendossier af; daarvoor werkt een analist samen met een subagent."
+          ]
+        ],
+        [
+          "p",
+          "Admin en Beheerder mogen, ongeacht hun eigen type, altijd klantendata aanpassen."
+        ],
+        [
+          "h3",
+          "\"Bekijk als\""
+        ],
+        [
+          "p",
+          "Wie dat recht heeft (standaard de Beheerder) kan via het profielmenu **Bekijk als** tijdelijk het scherm van een specifieke medewerker of van een rol bekijken — handig om te controleren wat iemand anders ziet, zonder zelf uit te loggen. Zolang je meekijkt, verschijnt er een badge **\"(bekeken)\"** naast de rol, zodat je niet vergeet dat je aan het meekijken bent."
+        ],
+        [
+          "photo",
+          "bekijk-als-banner.png",
+          "\"Bekijk als\" in gebruik",
+          "De gele balk die verschijnt zodra je als iemand anders meekijkt — hier een Beheerder die de CRM bekijkt als het demo-account \"Opleidingscursus\". Rechtsboven staat de knop \"Terug naar mezelf\" om het meekijken te stoppen."
+        ]
+      ]
+    },
+    {
+      "id": "dashboard",
+      "num": "3",
+      "title": "Dashboard & je maandelijkse doelen",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Het dashboard is je startpagina na het inloggen. Het toont in één oogopslag waar je staat: je eigen cijfers voor de lopende productiemaand, afgezet tegen je doelen. Is er ergens in je team een geplande activiteit verlopen zonder afgerond te worden, dan verschijnt daar bovenaan ook een rode waarschuwing met een link naar **Taken**."
+        ],
+        [
+          "h3",
+          "Doelen"
+        ],
+        [
+          "p",
+          "Het dashboard toont drie blokken doelen, telkens op dezelfde vijf meetwaarden — **Eenheden**, **Klanten**, **Gesprekken**, **ABV Verkoop** en **ABV RG** — elk met het percentage dat je al behaald hebt:"
+        ],
+        [
+          "list",
+          [
+            "**Maandelijkse individuele doelen** — jouw eigen cijfers voor de lopende productiemaand.",
+            "**Maandelijkse groepsdoelen** — hetzelfde overzicht, maar opgeteld voor je hele team.",
+            "**Jaarlijkse KPI's** — je jaardoelen voor Gesprekken, Productie, Belsessie, Seminarie en een gemengde KPI die de andere vier samenvat."
+          ]
+        ],
+        [
+          "p",
+          "Deze pagina is volledig geautomatiseerd op basis van wat je zelf al in de Pipeline/Funnel/Evenementen invult — je hoeft er zelf niets apart in te typen, enkel je voortgang opvolgen. De doelen zelf worden ingesteld door een Beheerder/Admin, of door je eigen **coach** via **Doelen** in het profielmenu."
+        ],
+        [
+          "photo",
+          "dashboard.png",
+          "Dashboard",
+          "Het dashboard net na het inloggen: bovenaan de individuele doelen, daaronder de groepsdoelen van het team, en onderaan de jaarlijkse KPI's."
+        ]
+      ]
+    },
+    {
+      "id": "leads",
+      "num": "4",
+      "title": "Leads: de start van elk traject",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Alles in het CRM begint bij een **lead**. Elke lead heeft een type:"
+        ],
+        [
+          "list",
+          [
+            "**FA** (Financiële Analyse) — een potentiële klant voor een financieel product.",
+            "**RG** (Rekrutering) — een kandidaat-medewerker."
+          ]
+        ],
+        [
+          "p",
+          "Dat type bepaalt in welke Funnel (FA Funnel of RG Funnel, zie hoofdstuk 6) de lead verschijnt, en welke gesprekstypes voor hem/haar van toepassing zijn."
+        ],
+        [
+          "h3",
+          "Een lead aanmaken"
+        ],
+        [
+          "p",
+          "Via **Nieuwe lead** vul je minstens voornaam en achternaam in, en verder naar wens: contactgegevens, **Eigenaar** (staat standaard op jezelf, maar kies je vooraf een collega bv. omdat je een lead voor iemand anders invoert), bron (hoe kwam je aan deze lead) en notities."
+        ],
+        [
+          "steps",
+          [
+            "Klik op **Nieuwe lead**.",
+            "Vul de gegevens in die je al kent — niets hoeft in één keer volledig.",
+            "Kies het type: **FA** of **RG**.",
+            "Bevestig — de lead verschijnt meteen in de bijhorende Pipeline en Funnel, in de eerste fase."
+          ]
+        ],
+        [
+          "photo",
+          "nieuwe-lead-formulier.png",
+          "Nieuwe lead-formulier",
+          "Het formulier om een nieuwe lead aan te maken, met het veld Eigenaar en bovenaan de link naar \"Meerdere leads in bulk toevoegen\"."
+        ],
+        [
+          "h3",
+          "Leads in bulk toevoegen"
+        ],
+        [
+          "p",
+          "Heb je een lijst van meerdere leads tegelijk (bv. oude leads die je wil importeren)? Via **Leads in bulk toevoegen** vul je een Excel-achtige tabel in — elke rij is één lead — en kies je bovenaan in welke Funnel (bv. \"Leads FA\") ze moeten terechtkomen."
+        ],
+        [
+          "steps",
+          [
+            "In te vullen per rij: **Voornaam** (verplicht), Achternaam, E-mail, Telefoon en **Bron** (de aanbeveler — van wie de lead komt). De kolom **Type (FA/RG)** moet je enkel invullen als leads elkaar doorverwijzen tussen FA en RG; een lege Type-kolom gebruikt gewoon de gekozen Funnel hierboven.",
+            "Handig om oude leads te importeren: download het sjabloon (.xlsx), vul het in Excel in, selecteer alle ingevulde rijen (Ctrl+C) en plak ze (Ctrl+V) in de eerste cel van de tabel — er is geen aparte upload-knop, dit gaat via plakken. Je kan ook gewoon rechtstreeks uit Excel/Sheets een selectie in de tabel plakken; elke rij wordt dan automatisch aan zichzelf toegevoegd.",
+            "Zijn het historische leads uit een oude file? Vink dan **\"Dit zijn oude/historische leads — niet laten meetellen in de cijfers (Aanbevelingen/ABV)\"** aan. Onaangevinkt (standaard) tellen ze gewoon mee, net als een lead die je één voor één toevoegt.",
+            "Druk één keer op **Leads aanmaken** en wacht — de leads verschijnen dan in je Pipeline."
+          ]
+        ],
+        [
+          "photo",
+          "leads-bulk.png",
+          "Leads in bulk toevoegen",
+          "Het scherm om leads in bulk toe te voegen: Funnel-keuze, het historische-leads-vakje, en de plaktabel met kolommen Voornaam/Achternaam/E-mail/Telefoon/Bron/Type."
+        ],
+        [
+          "h3",
+          "Status van een lead"
+        ],
+        [
+          "table",
+          [
+            "Status",
+            "Betekenis"
+          ],
+          [
+            [
+              "**Open**",
+              "Nog in opvolging, ergens in de Funnel."
+            ],
+            [
+              "**Klant** (Won)",
+              "Traject succesvol afgesloten — de lead is klant (FA) of nieuwe medewerker (RG) geworden."
+            ],
+            [
+              "**Verloren** (Lost)",
+              "Traject afgesloten zonder resultaat."
+            ]
+          ]
+        ],
+        [
+          "note",
+          "Een lead verwijderen (naar de **prullenbak**, niet definitief) mag iedereen zolang de lead nog **Open** staat. Is de lead al **Klant**, dan kan enkel een Beheerder of Admin hem verwijderen."
+        ]
+      ]
+    },
+    {
+      "id": "pipeline",
+      "num": "5",
+      "title": "De Pipeline: leads opvolgen vóór de funnel",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "De **Pipeline** (Pipeline verkoop voor FA-leads, Pipeline Rekrutering voor RG-leads) is waar al je nieuwe leads terechtkomen — ze vervangt de Excel die vroeger gebruikt werd. Het is een gewone lijstweergave (in plaats van het kaartenbord van de Funnel), bedoeld voor de eerste contactopvolging vóór er een afspraak wordt ingepland."
+        ],
+        [
+          "h3",
+          "Bovenaan: drie tellers"
+        ],
+        [
+          "p",
+          "**Te contacteren**, **Voicemail** en **Terugkoppelen** tonen meteen hoeveel leads in elke situatie zitten. Daaronder filter je de lijst met knoppen: **Open leads**, **Te contacteren**, **Voicemail**, **Alle leads**, **Klanten**, **Ingeplande leads**, **Geen interesse** en **Opvolging** — en kan je zoeken op naam, e-mail of telefoon."
+        ],
+        [
+          "h3",
+          "De tabel"
+        ],
+        [
+          "p",
+          "Per lead zie je: datum, naam, nummer, **aanbevolen door** (de bron), of er een bericht verstuurd is, een **cijfer op 10** (je eigen inschatting bij kwalificatie), laatste contact, status en het aantal keer gebeld."
+        ],
+        [
+          "h3",
+          "Een telefoongesprek loggen"
+        ],
+        [
+          "p",
+          "Klik op het **telefoon-icoontje** naast een lead. Er verschijnt een tekstvak waarin je kort noteert wat er besproken is (bv. \"Hij zit momenteel in een meeting, vraagt om hem vanavond terug te bellen\"). Je kan ook aanvinken of het om een **voicemail** ging. Deze notitie blijft bewaard in het klantprofiel, zodat je bij een volgend contact meteen weet wat er al gezegd is — en het toont aan de klant dat je je huiswerk gedaan hebt."
+        ],
+        [
+          "photo",
+          "pipeline-lijst.png",
+          "Pipeline verkoop",
+          "De Pipeline verkoop met de filterknoppen (Open leads, Te contacteren, Voicemail, ...) en de zoekbalk bovenaan de tabel."
+        ],
+        [
+          "photo",
+          "pipeline-call-log.png",
+          "Telefoongesprek loggen",
+          "Het tekstvak dat verschijnt na een klik op het telefoon-icoontje naast een lead, met het vakje \"Voicemail (niet bereikt)\"."
+        ],
+        [
+          "p",
+          "De lijst is gegroepeerd per **aanbrenger** (wie de lead aanbracht), en binnen elke groep gesorteerd op datum — zo zie je meteen welke aanbeveling het langst blijft liggen. Standaard zie je enkel je eigen leads; als je rol dat toelaat, kan je via **Iedereen** de volledige lijst van het kantoor (of je team) bekijken. Bij Rekrutering vul je in plaats van een cijfer op 10 vrije **kenmerken** van de kandidaat in."
+        ]
+      ]
+    },
+    {
+      "id": "funnel",
+      "num": "6",
+      "title": "De Funnel: het hart van je opvolging",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "De **Funnel** is het bord waarop je dagelijks werkt: elke kolom is een fase, elke kaart een lead. Een lead verschuift van kolom naar kolom naarmate het traject vordert. Er is een **FA Funnel** en een **RG Funnel** — kies bovenaan welke je bekijkt."
+        ],
+        [
+          "p",
+          "De fases zelf (hun naam, volgorde en kleur) zijn per kantoor instelbaar, maar de FA Funnel ziet er bij ons zo uit: bovenaan de actieve fases, en daaronder — apart gegroepeerd onder **\"Afgerond & geparkeerd\"** — de fases waar een traject eindigt of tijdelijk pauzeert:"
+        ],
+        [
+          "table",
+          [
+            "Actief",
+            "Afgerond & geparkeerd"
+          ],
+          [
+            [
+              "Financiële analyse",
+              "Klant"
+            ],
+            [
+              "Adviesgesprek",
+              "Geen klant"
+            ],
+            [
+              "Opvolggesprek",
+              "Opvolging"
+            ]
+          ]
+        ],
+        [
+          "p",
+          "De RG Funnel volgt dezelfde logica, maar dan met Kennismakingsgesprek en Carrièregesprek in plaats van Financiële analyse/Adviesgesprek/Opvolggesprek."
+        ],
+        [
+          "photo",
+          "funnel-bord.png",
+          "FA Funnel-bord",
+          "Het FA-funnelbord: bovenaan de actieve fases (Financiële analyse, Adviesgesprek, Opvolggesprek), daaronder — onder \"Afgerond & geparkeerd\" — Klant, Geen klant en Opvolging."
+        ],
+        [
+          "h3",
+          "Twee manieren om een lead te verplaatsen"
+        ],
+        [
+          "p",
+          "Bellen doe je vanuit de Pipeline, maar inplannen doe je best vanuit de Funnel. Er zijn twee manieren om een gesprek in te plannen of een lead een fase verder te zetten:"
+        ],
+        [
+          "h3",
+          "Manier 1 — via het plusje in de Pipeline"
+        ],
+        [
+          "p",
+          "Klik in de Pipeline op het plusje naast een lead en kies een fase: **Financiële analyse** (het eerste gesprek), **Adviesgesprek** (als iemand rechtstreeks op adviesgesprek zit), **Opvolggesprek** (enkel voor subagenten: iemand die op adviesgesprek geweest is maar nog niet geclosed heeft), **Klant**/**Geen klant** (enkel voor subagenten: na adviesgesprek of opvolggesprek, met meteen de producten invullen — zie hoofdstuk 9), of **Opvolging** (voor iedereen: bv. iemand heeft interesse maar vraagt om pas over een paar maanden terug gebeld te worden — geef een datum/uur en een notitie in, dit verschijnt dan automatisch in je agenda én in het CRM)."
+        ],
+        [
+          "photo",
+          "pipeline-fase-dropdown.png",
+          "Manier 1: via de Pipeline",
+          "De keuzelijst \"Wat moet er met deze lead gebeuren?\" die opent via het plusje naast een lead in de Pipeline."
+        ],
+        [
+          "h3",
+          "Manier 2 — via de Funnel (aanbevolen)"
+        ],
+        [
+          "p",
+          "Sleep een kaart naar een andere kolom, of ga naar de gewenste fase en druk op het **+**-icoon bovenaan die kolom om een bestaande lead er rechtstreeks aan toe te voegen (zonder te moeten slepen). In beide gevallen opent het venster **\"Lead verplaatsen\"**, waarin je noteert wat er besproken/gebeurd is en optioneel meteen een afspraak inplant."
+        ],
+        [
+          "photo",
+          "funnel-lead-zoeken.png",
+          "Lead zoeken via het \"+\" op een kolom",
+          "Het zoekvenster dat opent via het plusje bovenaan een funnel-kolom, om een bestaande lead rechtstreeks bij die fase in te plannen."
+        ],
+        [
+          "warn",
+          "Verplaats je een lead naar een fase die een gesprek of terugbelmoment voorstelt (bv. \"Adviesgesprek\" of \"Opvolging\"), dan **moet** je daar meteen een datum en uur voor invullen (en bij Adviesgesprek/Opvolggesprek ook een subagent kiezen). Zonder die gegevens kan de kaart niet verschuiven. Dat is bewust zo: zo kan een lead nooit in een \"...ingepland\"-fase belanden zonder dat er ook echt iets ingepland staat."
+        ],
+        [
+          "p",
+          "Fases die een gesprek voorstellen (Kennismakingsgesprek, Financiële analyse, Adviesgesprek, Opvolggesprek, Carrièregesprek, of een fase-naam die eindigt op \"...ingepland\") tonen de volledige planningswidget — zie hoofdstuk 7. De fase **Opvolging** toont in plaats daarvan een eenvoudig terugbelmoment: enkel een datum/uur en een notitieveld, voor een fase waar je gewoon nog eens moet terugbellen in plaats van een volwaardige afspraak in te plannen."
+        ],
+        [
+          "photo",
+          "fase-wijzigen.png",
+          "Het venster \"Lead verplaatsen\"",
+          "\"Lead verplaatsen\" van \"Nieuwe lead\" naar \"Financiële analyse\": notitieveld, het e-mail-vraagje (indien nog leeg) en de optionele planningswidget."
+        ],
+        [
+          "h3",
+          "Een geplande afspraak wijzigen vanaf het bord"
+        ],
+        [
+          "p",
+          "Staat er bij een lead al een afspraak gepland (datum, uur, locatie, eventueel subagent), dan verschijnt er naast de naam op de kaart een knop **Wijzigen**. Die opent exact hetzelfde scherm als bij het oorspronkelijk inplannen, maar dan met alle velden al ingevuld — handig als een klant vraagt om te verzetten naar een ander uur, zonder dat je terug de hele fase moet doorlopen."
+        ],
+        [
+          "photo",
+          "afspraak-wijzigen-modal.jpg",
+          "Het venster \"Afspraak wijzigen\"",
+          "Na een klik op \"Wijzigen\" op de kaart: hetzelfde scherm als bij het inplannen, nu met alle velden (uur, locatie) al ingevuld — hier het uur van een Financiële analyse verzetten."
+        ]
+      ]
+    },
+    {
+      "id": "afspraak-inplannen",
+      "num": "7",
+      "title": "Een afspraak inplannen: het planningsscherm in detail",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Dit scherm (de \"planning-widget\") duikt op zowel in de Funnel als op het leadprofiel, telkens wanneer je een echte afspraak inplant of wijzigt. Het bestaat uit dezelfde onderdelen, overal in het CRM."
+        ],
+        [
+          "h3",
+          "Van / Tot"
+        ],
+        [
+          "p",
+          "Kies begin- en einduur van de afspraak. Beide velden zijn bewust breed genoeg om het volledige uur comfortabel in te typen."
+        ],
+        [
+          "h3",
+          "Fysiek of online"
+        ],
+        [
+          "list",
+          [
+            "**Fysiek** — vul een adres in (met adres-suggesties terwijl je typt), of laat het veld leeg: dan wordt automatisch het kantooradres gebruikt.",
+            "**Online** — kies tussen je eigen vaste **Zoom-link** (ingesteld via **Instellingen**, zie hoofdstuk 18) of vink **Gebruik Google Meet in plaats van onze Zoom-link** aan, dan maakt het CRM automatisch een Google Meet-link aan bij de afspraak."
+          ]
+        ],
+        [
+          "h3",
+          "Subagent uitnodigen"
+        ],
+        [
+          "p",
+          "Bij een **Adviesgesprek** of **Opvolggesprek** is dit veld **verplicht**: je kiest een subagent (naam + team) uit de lijst. Bij een Kennismakingsgesprek, Financiële analyse of Carrièregesprek is dit veld er niet — daar is nog geen subagent nodig. Ben je zelf nog geen subagent, kies dan altijd iemand die wél kan closen — die persoon wordt automatisch uitgenodigd en krijgt het gesprek in zijn eigen agenda."
+        ],
+        [
+          "photo",
+          "planningsscherm-subagent.png",
+          "Planningsscherm met verplichte subagent",
+          "\"Lead verplaatsen\" van \"Financiële analyse\" naar \"Adviesgesprek\": de planningswidget met het verplichte veld \"Subagent uitnodigen\" opengeklapt."
+        ],
+        [
+          "h3",
+          "E-mailadres van de lead"
+        ],
+        [
+          "p",
+          "Heeft de lead nog geen e-mailadres, dan vraagt het scherm er optioneel één op — dit verschijnt bij Financiële analyse, Adviesgesprek, Opvolggesprek, Kennismakingsgesprek én Carrièregesprek, want dat zijn precies de gesprekstypes waarbij de lead zelf ook als gast op de agenda-afspraak wordt uitgenodigd. Zonder e-mailadres kan de afspraak nog steeds ingepland worden; de lead ontvangt dan gewoon geen agenda-uitnodiging."
+        ],
+        [
+          "photo",
+          "planningsscherm-online.jpg",
+          "Planningsscherm — online afspraak",
+          "Het planningsscherm met \"Online\" gekozen en de Zoom/Google Meet-keuze zichtbaar."
+        ],
+        [
+          "h3",
+          "Wat er automatisch gebeurt"
+        ],
+        [
+          "p",
+          "Zodra je bevestigt, maakt het CRM een agenda-item aan op de Google Agenda van de medewerker aan wie de lead toegewezen is. De titel volgt altijd hetzelfde format: `Uur - Type Voornaam Achternaam`, bijvoorbeeld `14:00 - Adviesgesprek Jan Janssens`. Als gasten worden toegevoegd: de organisator zelf, de klant (indien een e-mailadres gekend is) en de subagent (indien van toepassing) — plan je zelf je eigen afspraak in, dan staat die meteen als **geaccepteerd** op je eigen agenda, in plaats van als \"in afwachting\"."
+        ],
+        [
+          "note",
+          "Een eenvoudig opvolgmoment (telefoongesprek, e-mail, notitie — de categorie **Opvolging** in plaats van **Afspraak**) plaatst enkel een herinnering op je eigen agenda; de lead wordt daarbij niet als gast uitgenodigd."
+        ],
+        [
+          "photo",
+          "google-agenda-resultaat.jpg",
+          "Resultaat in Google Agenda",
+          "Het aangemaakte agenda-item in Google Agenda: titel volgens het vaste format, de organisator als gast, de Zoom-link en een herinnering 10 minuten op voorhand. (Naam/e-mail van de klant zijn hier afgeschermd.)"
+        ]
+      ]
+    },
+    {
+      "id": "leadprofiel",
+      "num": "8",
+      "title": "Het leadprofiel & de communicatiegeschiedenis",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Klik op een lead (vanaf de Funnel, de Pipeline of Klanten) om zijn/haar volledige profiel te openen. Bovenaan staan de contactgegevens, beroep, beroepsstatuut (Bediende/Zelfstandige/Arbeider/Ambtenaar), eigenaar en eventuele dossierbeheerder. Alles hier is rechtstreeks bewerkbaar."
+        ],
+        [
+          "photo",
+          "leadprofiel-boven.jpg",
+          "Leadprofiel — Contactgegevens",
+          "De contactgegevens-kaart bovenaan een leadprofiel: naam, e-mail, telefoon, beroep, statuut, bron en aanmaakdatum, met een bewerk-knop rechtsboven."
+        ],
+        [
+          "h3",
+          "Communicatiegeschiedenis"
+        ],
+        [
+          "p",
+          "Onder het profiel vind je de volledige **Communicatiegeschiedenis**: elk gesprek, telefoontje, e-mail en notitie die ooit voor deze lead genoteerd werd, met een status (**Ingepland**, **Voltooid**, **Geannuleerd** of **No-show**)."
+        ],
+        [
+          "photo",
+          "communicatiegeschiedenis.jpg",
+          "Communicatiegeschiedenis",
+          "De lijst van activiteiten op een leadprofiel, nieuwste eerst — hier een afgerond telefoongesprek."
+        ],
+        [
+          "h3",
+          "Een geplande afspraak bewerken vanaf het profiel"
+        ],
+        [
+          "p",
+          "Staat er een rijke afspraak gepland (Financiële analyse, Adviesgesprek of Opvolggesprek), dan open je bij **Wijzigen** exact dezelfde volledige planningswidget als in de Funnel — Van/Tot, fysiek/online, locatie, subagent — in plaats van een kaal formulier met enkel datum en duur. Een wijziging hier (bv. het uur verzetten) werkt automatisch door naar het bestaande Google Agenda-item, mét behoud van alle eerder uitgenodigde gasten."
+        ],
+        [
+          "photo",
+          "rijk-bewerkscherm-profiel.jpg",
+          "Rijk bewerkscherm vanaf het profiel",
+          "De Communicatiegeschiedenis met een geplande Financiële analyse; ernaast het uitgeklapte bewerkscherm met de volledige planningswidget (Van/Tot, Fysiek/Online, locatie, Reden van wijziging)."
+        ],
+        [
+          "h3",
+          "Eenvoudige activiteiten"
+        ],
+        [
+          "p",
+          "Voor een telefoontje, e-mail of notitie gebruik je **Volgend gesprek inplannen**: kies eerst het soort opvolging (bv. **Opvolging — enkel voor jezelf**), daarna de betrokken medewerker en het type, een datum en duur, en eventueel notities. Vink **\"Niet in de Google Agenda, enkel als taak\"** aan als je er bewust geen agenda-item voor wil — anders verschijnt het automatisch op de Google Agenda van de toegewezen medewerker (mits die gekoppeld is, zie hoofdstuk 18)."
+        ],
+        [
+          "photo",
+          "eenvoudige-activiteit.png",
+          "\"Volgend gesprek inplannen\"",
+          "Het paneel om een eenvoudige activiteit in te plannen: type opvolging, de \"Niet in de Google Agenda\"-optie, medewerker/type, datum/duur en notities."
+        ],
+        [
+          "p",
+          "Een bestaande eenvoudige activiteit pas je aan via **Wijzigen**: type, datum/duur en optioneel een **\"Reden van wijziging\"**. Is er geen Google Agenda gekoppeld bij de toegewezen medewerker, dan waarschuwt het scherm daar meteen voor in plaats van de wijziging stilzwijgend niet te synchroniseren."
+        ],
+        [
+          "photo",
+          "activiteit-wijzigen.png",
+          "Een eenvoudige activiteit wijzigen",
+          "Het wijzigscherm van een gepland telefoongesprek, met de waarschuwing \"Google Agenda-synchronisatie mislukt\" omdat de medewerker geen Google Agenda gekoppeld heeft."
+        ]
+      ]
+    },
+    {
+      "id": "producten",
+      "num": "9",
+      "title": "Van lead naar klant: Producten",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Zodra een FA-lead de fase **Klant** bereikt, vul je op zijn/haar profiel de **Producten**-kaart in: welk(e) product(en) nam de klant, voor welk bedrag en hoeveel eenheden."
+        ],
+        [
+          "h3",
+          "Producttypes"
+        ],
+        [
+          "list",
+          [
+            "Pensioensparen",
+            "Langetermijnsparen",
+            "Beleggen",
+            "NZP",
+            "UZP",
+            "VAPZ",
+            "IPT",
+            "Kindersparen"
+          ]
+        ],
+        [
+          "p",
+          "Voor elk product dat je hier toevoegt, maakt het CRM automatisch een bijhorende **polislijn** aan — zie hoofdstuk 10, Polissen."
+        ],
+        [
+          "photo",
+          "producten-invullen.png",
+          "Producten invullen bij \"Klant\"",
+          "Het venster \"Lead verplaatsen\" naar \"Klant\": voor elk product vul je het bedrag (€) en het aantal eenheden in. Zo komt de verkoop meteen correct in de cijfers terecht."
+        ],
+        [
+          "photo",
+          "producten-kaart.png",
+          "Producten-kaart (klantprofiel)",
+          "De Producten-kaart op het klantprofiel na het opslaan: elk product met status, bedrag en eenheden, en een Totaal-rij onderaan."
+        ],
+        [
+          "h3",
+          "Contracten uit opvolging"
+        ],
+        [
+          "p",
+          "Naast de eerste, \"basis\"-producten kan een klant later nog bijkomende contracten afsluiten — bijvoorbeeld een tweede beleggingsproduct, een jaar later. Die voeg je toe via **Contracten uit opvolging**: hier mogen er meerdere per type bijkomen, elk met zijn eigen contractdatum."
+        ],
+        [
+          "photo",
+          "contract-opvolging.png",
+          "Contract uit opvolging toevoegen",
+          "Het formulier om een bijkomend contract uit opvolging toe te voegen aan een bestaande klant: type (hier UZP), bedrag/eenheden en contractdatum."
+        ],
+        [
+          "h3",
+          "Dossierbeheerder"
+        ],
+        [
+          "p",
+          "Standaard is de dossierbeheerder van een klant de medewerker die de lead als klant afsloot. Dit is achteraf te wijzigen naar een **subagent** — bijvoorbeeld wanneer de verdere opvolging van het dossier overgedragen wordt."
+        ],
+        [
+          "note",
+          "Premievrij zetten of het bedrag van een contract verlagen kan ook rechtstreeks vanaf deze kaart, zonder naar Polissen te moeten gaan — zie hoofdstuk 10."
+        ]
+      ]
+    },
+    {
+      "id": "polissen",
+      "num": "10",
+      "title": "Polissen: opvolging na de verkoop",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Elk product/contract krijgt automatisch een eigen lijn op het **Polissen**-tabblad (bereikbaar via **Subagent → Polissen**, of rechtstreeks vanaf de Producten-kaart op een klantprofiel). Dit is waar de opvolging na de verkoop gebeurt."
+        ],
+        [
+          "h3",
+          "Wat je bijhoudt per polis"
+        ],
+        [
+          "list",
+          [
+            "**Maatschappij**: Vivium, AXA, Dela, Credimo of Allianz.",
+            "**Status** (zie verder).",
+            "Een **documentenchecklist** om de administratieve opvolging bij te houden.",
+            "**Ingangsdatum** en **betaaldatum**."
+          ]
+        ],
+        [
+          "h3",
+          "Statussen"
+        ],
+        [
+          "p",
+          "De status staat als kleurgecodeerde keuzelijst op elke polislijn:"
+        ],
+        [
+          "list",
+          [
+            "Opgeladen wacht actief",
+            "Actief",
+            "**Premievrij**",
+            "Uitbetaald",
+            "Geannuleerd",
+            "Backoffice",
+            "Polis nog tekenen",
+            "Probleem documenten",
+            "Polis nog opmaken",
+            "Afwachtend eerste premie"
+          ]
+        ],
+        [
+          "photo",
+          "polissen-tabel.png",
+          "Polissen-tabel",
+          "De volledige Polissen-tabel voor een productiemaand, met de kleurgecodeerde statuskolom (hier Premievrij, Opgeladen wacht actief, Actief) en de kolommen Easy/Tool/RL, ingangsdatum en betaald."
+        ],
+        [
+          "h3",
+          "Premievrij"
+        ],
+        [
+          "p",
+          "Een contract dat **Premievrij** staat, wordt niet langer betaald door de klant, maar loopt zelf nog door — dit is dus, in tegenstelling tot Uitbetaald of Geannuleerd, **geen eindstatus**. Precies daarom staat deze status in het **rood**: zo valt hij meteen op in de tabel, als signaal om tijdens de opvolging te polsen of de klant het contract terug wil (her)opstarten."
+        ],
+        [
+          "photo",
+          "premievrij-praktijk.png",
+          "Premievrij in de praktijk",
+          "Een polislijn met status Premievrij, duidelijk in het rood, met het verlaagde bedrag (€80,00) en het oorspronkelijke bedrag doorstreept ernaast (€100,00)."
+        ],
+        [
+          "h3",
+          "Bedrag verlagen"
+        ],
+        [
+          "p",
+          "Naast (of in plaats van) Premievrij zetten, kan je ook gewoon het bedrag van een contract verlagen — bijvoorbeeld een klant die van €500 naar €200 per maand terugschroeft. Dat doe je via **Datums & bedrag wijzigen** op de Polissen-pagina, of rechtstreeks op het leadprofiel bij de Producten-kaart. Het verlaagde bedrag verschijnt vetgedrukt in het rood, met het oorspronkelijke bedrag er doorstreept naast — zo is in één oogopslag duidelijk dat en waarom dit contract afwijkt van wat er oorspronkelijk werd afgesloten."
+        ],
+        [
+          "warn",
+          "Het **oorspronkelijke** bedrag zelf wijzigt hierbij nooit. Dat blijft correct meetellen in de historische productiecijfers — enkel het bedrag dat je nu als \"huidig, actief bedrag\" ziet, daalt."
+        ],
+        [
+          "photo",
+          "bedrag-verlagen.png",
+          "Bedrag verlagen",
+          "De Polissen-tabel met de knop \"Datums & bedrag wijzigen\" bovenaan gemarkeerd — hiermee pas je het bedrag van een polislijn aan."
+        ]
+      ]
+    },
+    {
+      "id": "taken",
+      "num": "11",
+      "title": "Taken",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "**Taken** verzamelt al je geplande activiteiten — afspraken, telefoontjes, e-mails, notities — over al je leads heen, op één plek. Handig om je dag te plannen zonder van lead naar lead te moeten springen."
+        ],
+        [
+          "p",
+          "Het rode bolletje naast **Taken** in de navigatiebalk toont het aantal van je eigen taken dat **verlopen** is (gepland in het verleden, nog niet afgerond) — dit cijfer gaat altijd over je eigen taken, ook als je coach of beheerder bent. Bovenaan filter je met de tabs **Alle**/**Leads FA**/**Leads RG**, en elke taak heeft drie knoppen: **Wijzigen**, **Afgerond** en **Annuleren**."
+        ],
+        [
+          "photo",
+          "takenlijst.jpg",
+          "Takenlijst",
+          "De takenpagina met de tabs Alle/Leads FA/Leads RG, een verlopen taak bovenaan, en de knoppen Wijzigen/Afgerond/Annuleren per rij."
+        ],
+        [
+          "h3",
+          "Een gesprek afronden"
+        ],
+        [
+          "p",
+          "Heb je een financiële analyse of adviesgesprek gedaan? Rond dat gesprek dan af via de knop **Afgerond** en typ er kort bij wat er besproken is — bijvoorbeeld de interesses en hobby's van de klant. Ga daarna ook naar het **profiel** van de klant en vul daar beroep en beroepsstatuut in."
+        ],
+        [
+          "p",
+          "Dit is nuttig om twee redenen:"
+        ],
+        [
+          "list",
+          [
+            "Bij een volgend contact (ook na een jaar) weet je nog wat de klant vertelde, en toon je dat je geïnteresseerd was.",
+            "Beroep/statuut worden in de toekomst filterbaar. Stijgt bijvoorbeeld de VAPZ-premie van 8,17% naar 8,5%, dan kan je meteen al je zelfstandige klanten filteren om hen te contacteren over die verhoging."
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "evenementen",
+      "num": "12",
+      "title": "Evenementen & de Google Agenda-koppeling",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "**Evenementen** zijn kantoorbrede momenten, los van individuele leads: vergaderingen, seminaries, belsessies, managementmeetings en structuurmeetings."
+        ],
+        [
+          "h3",
+          "Aanmaken en uitnodigen"
+        ],
+        [
+          "p",
+          "Enkel **Beheerder**, **Admin** en **Coach** kunnen een nieuw evenement aanmaken — iedereen mag evenementen bekijken en zich aan- of afmelden. Bij het aanmaken kies je wie je uitnodigt: collega's én/of subagenten. Zodra er minstens één genodigde is, plaatst het CRM automatisch een Google Agenda-uitnodiging op de agenda van wie het evenement aanmaakte."
+        ],
+        [
+          "p",
+          "De lijst toont eerst **Aankomend**, daarna **Voorbij**. Elke kaart heeft een gekleurd type-label (bv. paars voor Seminarie, groen voor Belsessie), datum/uur, locatie (of \"Online\"), het aantal aanwezigen, en de knoppen **Aanwezig**/**Niet aanwezig** om je RSVP te geven of aan te passen."
+        ],
+        [
+          "photo",
+          "evenementenlijst.png",
+          "Evenementenlijst",
+          "De evenementenpagina met \"Aankomend\", een Seminarie-kaart met datum, locatie, aantal aanwezigen en de knoppen Aanwezig/Niet aanwezig."
+        ],
+        [
+          "h3",
+          "Aanwezigheid bevestigen"
+        ],
+        [
+          "p",
+          "Elke genodigde geeft vooraf zelf een **RSVP** (\"Ik kom\" / \"Ik kom niet\"). Voor Seminaries en Belsessies gaat het verder: een **Beheerder/Admin** bevestigt nadien de **effectieve** aanwezigheid. Enkel die bevestigde aanwezigheid telt mee voor de KPI Seminarie op het dashboard — een RSVP alleen is dus nog niet genoeg."
+        ],
+        [
+          "photo",
+          "evenement-detail.png",
+          "Evenement-detail met aanwezigheid",
+          "De detailpagina van een seminarie: datum, uur en locatie bovenaan, en \"Jouw aanwezigheid\" met de knoppen Aanwezig/Niet aanwezig."
+        ]
+      ]
+    },
+    {
+      "id": "cijfers",
+      "num": "13",
+      "title": "Cijfers: jouw productie",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "**Cijfers** toont de ranglijst van iedereen: gesprekken deze week, en productie per maand — met drie tabbladen: **Productie**, **Gesprekken** en **Aanbevelingen**."
+        ],
+        [
+          "list",
+          [
+            "**Productie** — per teamlid: functie, directe coach, en het doel/behaald aantal klanten (KL) en eenheden (EH), telkens met percentage.",
+            "**Gesprekken** — hoeveel gesprekken (per type) iedereen voltooide.",
+            "**Aanbevelingen** — hoeveel nieuwe leads via aanbeveling binnenkwamen."
+          ]
+        ],
+        [
+          "p",
+          "Bovenaan kies je via **Bekijk structuur** of je de volledige structuur bekijkt of enkel je eigen team, en blader je met de pijltjes naast **Productiemaand** naar een vorige of volgende maand. Rechtsboven kan je het overzicht **exporteren als foto**, bijvoorbeeld om te delen in een teamchat."
+        ],
+        [
+          "photo",
+          "cijfers-productie.png",
+          "Cijfers — Productie",
+          "Het tabblad Productie: per teamlid het doel en behaald aantal klanten (KL) en eenheden (EH), met percentage en een totaalrij onderaan."
+        ],
+        [
+          "note",
+          "Dit is een live ranglijst — de exacte namen en cijfers op je eigen scherm veranderen dus voortdurend mee met de lopende productiemaand."
+        ]
+      ]
+    },
+    {
+      "id": "weekoverzicht",
+      "num": "14",
+      "title": "Weekoverzicht team",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "**Weekoverzicht team** (in het profielmenu, voor iedereen zichtbaar) toont per dag van de week hoeveel Financiële analyses en Adviesgesprekken er per medewerker ingepland staan — twee aparte tabellen, telkens maandag tot en met zondag."
+        ],
+        [
+          "list",
+          [
+            "Een **gewone medewerker** ziet automatisch het overzicht van zijn/haar eigen team.",
+            "Een **Coach** ziet zijn/haar eigen team.",
+            "**Beheerder/Admin** kunnen via een keuzelijst **elk** team in het kantoor bekijken."
+          ]
+        ],
+        [
+          "p",
+          "Elke tabel heeft ook een **Totaal**-kolom per medewerker en een **Team totaal**-rij onderaan. Enkel actieve medewerkers komen in de tabellen voor — een gedeactiveerd of verwijderd account verschijnt nergens meer in het CRM, dus ook hier niet."
+        ],
+        [
+          "photo",
+          "weekoverzicht.png",
+          "Weekoverzicht team",
+          "De tabel \"Financiële analyse — per dag\": per teamlid het aantal ingeplande gesprekken van maandag tot zondag, met een Totaal-kolom en een Team totaal-rij onderaan. De tabel voor Adviesgesprekken staat er in de app onder."
+        ]
+      ]
+    },
+    {
+      "id": "incentives",
+      "num": "15",
+      "title": "Incentives",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "**Incentives** zijn tijdelijke wedstrijden/acties om extra te motiveren. Iedereen kan ze bekijken; enkel **Beheerder/Admin** maakt ze aan."
+        ],
+        [
+          "p",
+          "Er zijn twee vormen:"
+        ],
+        [
+          "list",
+          [
+            "**Drempel** — elke categorie heeft een eigen richtcijfer (bv. minstens 5 klanten **en** minstens 800 eenheden); wie alle richtcijfers haalt, wint.",
+            "**Top-N** — één meetwaarde bepaalt een ranglijst; de beste N deelnemers winnen."
+          ]
+        ],
+        [
+          "p",
+          "Mogelijke meetwaarden: aantal gewonnen klanten, aantal eenheden, aantal RG-gesprekken, of aantal voltooide activiteiten. Bij het aanmaken kan er ook een poster (afbeelding of pdf) bijgevoegd worden."
+        ],
+        [
+          "photo",
+          "incentives-overzicht.jpg",
+          "Incentives-overzicht",
+          "De kaartenlijst met lopende incentives: poster, titel, status (\"Binnenkort\") en periode — hier de \"Incentive skivakantie\"."
+        ],
+        [
+          "h3",
+          "Een incentive in detail"
+        ],
+        [
+          "p",
+          "De detailpagina toont wie de incentive aanmaakte (\"Aangemaakt door ...\"), de poster, een kadertje **Vereisten om te winnen** met het **Richtcijfer** (bv. \"Aantal eenheden: min. 1500\"), en een **Ranglijst** met per deelnemer een voortgangsbalk en \"Aantal eenheden: X/richtcijfer\"."
+        ],
+        [
+          "photo",
+          "incentive-detail-ranglijst.jpg",
+          "Incentive-detail met ranglijst",
+          "De \"Incentive skivakantie\"-detailpagina: \"Aangemaakt door\", Vereisten om te winnen, het Richtcijfer en de Ranglijst met per deelnemer een voortgangsbalk."
+        ]
+      ]
+    },
+    {
+      "id": "bibliotheek",
+      "num": "16",
+      "title": "Bibliotheek",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "De **Bibliotheek** verzamelt documenten, presentaties en cursusmateriaal om te raadplegen of te downloaden — opgedeeld in drie secties, elk met hun eigen mappenstructuur:"
+        ],
+        [
+          "list",
+          [
+            "**Bestanden** — zichtbaar voor iedereen die ingelogd is.",
+            "**Management** — enkel voor wie als management-medewerker gemarkeerd staat, plus Admin/Beheerder.",
+            "**Subagent** — enkel voor subagenten, plus Admin/Beheerder."
+          ]
+        ],
+        [
+          "p",
+          "Binnen elke sectie kies je links een map uit de **mappenstructuur** (bv. \"Documenten\" en \"Opleiding\", elk verder onderverdeeld per onderwerp zoals Financiële analyse of Recruteringsgesprek), en rechts zie je de bestanden in die map met grootte, datum en een downloadknop. Hier vind je bijvoorbeeld installatiehandleidingen, opleidingen rond bellen en objecties, en fiches zoals die van de RVA."
+        ],
+        [
+          "photo",
+          "bibliotheek.png",
+          "Bibliotheek",
+          "De Bibliotheek met de tabs \"Bestanden\"/\"Subagent\", de mappenstructuur links en de bestandenlijst met downloadknoppen rechts."
+        ]
+      ]
+    },
+    {
+      "id": "klanten-organigram-subagent",
+      "num": "17",
+      "title": "Klanten, Organigram & het Subagent-gedeelte",
+      "audience": null,
+      "blocks": [
+        [
+          "h3",
+          "Klanten"
+        ],
+        [
+          "p",
+          "De **Klanten**-pagina toont alle gewonnen FA-leads op één plek. Bovenaan staan vier kaartjes (Totaal klanten, Nieuwe klanten deze maand, Nieuwe klanten dit jaar, Totaal maandelijks incasso), rechtsboven zit de knop **+ Klant toevoegen**. In de tabel kan je zoeken en filteren (bijvoorbeeld op team), de **dossierbeheerder** wijzigen, en de status van de jaarlijkse **belastingsaangifte** bijhouden: Nog te doen, Ingepland, Gedaan, Boekhouder of NVT. Ook de datum waarop de lead klant werd, staat hier."
+        ],
+        [
+          "note",
+          "Het belastingsaangifte-vakje wordt elk jaar in februari automatisch gereset — zo begin je elk jaar terug met een lege lijst om na te kijken, in plaats van dat de aanvinkingen van vorig jaar blijven meetellen."
+        ],
+        [
+          "photo",
+          "klanten-overzicht.png",
+          "Klanten-overzicht",
+          "De Klanten-pagina met de vier statistiekkaarten en de belastingsaangifte-dropdown open, met de kleurgecodeerde statussen."
+        ],
+        [
+          "h3",
+          "Organigram"
+        ],
+        [
+          "p",
+          "Het **Organigram** toont de volledige structuur van het kantoor: wie coacht wie, van boven naar beneden, elke medewerker met naam en functietitel (bv. Financial Advisor, Financial Trainee 1/2/3). Dat zijn functietitels binnen het kantoor, los van de CRM-toegangsrol (Analist/Subagent/Coach/Admin/Beheerder) uit hoofdstuk 2."
+        ],
+        [
+          "photo",
+          "organigram.jpg",
+          "Organigram",
+          "De organigram-boomstructuur van het kantoor, met naam en functietitel (bv. Financial Advisor, Financial Trainee 1/2/3) per medewerker."
+        ],
+        [
+          "h3",
+          "Subagent-gedeelte"
+        ],
+        [
+          "p",
+          "Zichtbaar voor subagenten en voor Admin/Beheerder. Bestaat uit twee onderdelen, elk met dezelfde vier statistiekkaarten bovenaan:"
+        ],
+        [
+          "list",
+          [
+            "**Klanten onder beheer** — de klanten waarvan jij dossierbeheerder/subagent bent. Extra kolommen **Aanbrenger** en **Opvolging**, met een gekleurde statusdropdown: Opvolging Gedaan, Opvolging nog te doen, Opvolging Ingepland of NVT.",
+            "**Polissen** — alle polissen die je beheert (zie hoofdstuk 10)."
+          ]
+        ],
+        [
+          "photo",
+          "klanten-onder-beheer.jpg",
+          "Klanten onder beheer",
+          "De pagina \"Klanten onder beheer\" met de Opvolging-statusdropdown open: Opvolging Gedaan, Opvolging nog te doen, Opvolging Ingepland, NVT."
+        ]
+      ]
+    },
+    {
+      "id": "instellingen",
+      "num": "18",
+      "title": "Instellingen",
+      "audience": null,
+      "blocks": [
+        [
+          "p",
+          "Onder **Instellingen** (profielmenu) beheer je je eigen, persoonlijke voorkeuren."
+        ],
+        [
+          "h3",
+          "Mijn profielfoto"
+        ],
+        [
+          "p",
+          "Upload een foto van jezelf — die verschijnt overal waar je als eigenaar of teamlid vermeld staat, onder andere rechtsboven in de navigatiebalk en op de Funnel-kaarten."
+        ],
+        [
+          "h3",
+          "Google Agenda"
+        ],
+        [
+          "p",
+          "Koppel je eigen Google Agenda via **Google Agenda koppelen**, zodat elk ingepland telefoongesprek of elke afspraak automatisch als agenda-item op jouw eigen agenda verschijnt. Eenmaal gekoppeld zie je je gekoppelde e-mailadres en kan je op elk moment weer **Ontkoppelen**."
+        ],
+        [
+          "note",
+          "Doe dit meteen bij de start, liefst nog voor je je eerste afspraak inplant — anders komen ingeplande afspraken niet in je agenda terecht."
+        ],
+        [
+          "h3",
+          "Mijn Zoom-link"
+        ],
+        [
+          "p",
+          "Je eigen, persoonlijke Zoom-ruimte. Plan je via de planningswidget een online afspraak in zonder Google Meet te kiezen, dan wordt deze link automatisch mee opgenomen bij de afspraak."
+        ],
+        [
+          "photo",
+          "instellingen.png",
+          "Instellingen-pagina",
+          "De volledige Instellingen-pagina: profielfoto, Google Agenda-koppeling en Zoom-link."
+        ]
+      ]
+    },
+    {
+      "id": "faq",
+      "num": "19",
+      "title": "Veelgestelde vragen & hulp",
+      "audience": null,
+      "blocks": [
+        [
+          "h3",
+          "Ik zie geen veld voor een e-mailadres bij het inplannen?"
+        ],
+        [
+          "p",
+          "Dat veld verschijnt enkel als de lead nog geen e-mailadres heeft **en** het gekozen gesprekstype de lead ook effectief uitnodigt (Kennismakingsgesprek, Financiële analyse, Adviesgesprek, Opvolggesprek of Carrièregesprek). Heeft de lead al een e-mailadres, dan is er niets meer te vragen."
+        ],
+        [
+          "h3",
+          "Waarom kan ik een lead niet naar de volgende fase verplaatsen?"
+        ],
+        [
+          "p",
+          "Waarschijnlijk mist er een verplicht veld: een datum/uur voor de afspraak of het terugbelmoment, of — bij Adviesgesprek/Opvolggesprek — een gekozen subagent. Vul deze in en probeer opnieuw."
+        ],
+        [
+          "h3",
+          "Waarom staat een contract in het rood op Polissen?"
+        ],
+        [
+          "p",
+          "Dat contract staat **Premievrij**: de klant betaalt niet meer, maar het contract zelf loopt nog door. Zie hoofdstuk 10."
+        ],
+        [
+          "h3",
+          "Bij wie moet ik zijn voor een nieuw account of een rolwijziging?"
+        ],
+        [
+          "p",
+          "Bij een **Admin** of de **Beheerder**."
+        ],
+        [
+          "h3",
+          "De Google Sheets back-up toont een foutmelding, wat nu?"
+        ],
+        [
+          "p",
+          "Meld dit aan de Beheerder."
+        ],
+        [
+          "h3",
+          "Ik zie het Subagent-menu niet in de navigatiebalk"
+        ],
+        [
+          "p",
+          "Dat menu is enkel zichtbaar voor medewerkers met type **Subagent**, en voor Admin/Beheerder. Sta je op **Analist**, dan is dit menu voor jou niet van toepassing."
+        ],
+        [
+          "h3",
+          "Ergens anders met vragen?"
+        ],
+        [
+          "p",
+          "Neem contact op met **Robin Ceuppens** of **Thibault Acke**."
+        ],
+        [
+          "note",
+          "Dat was de volledige cursus. Twijfel je ergens over tijdens het werken in het CRM zelf, kom gerust terug naar het bijhorende hoofdstuk hierboven — deze cursus is bedoeld om ook nadien als naslagwerk te blijven dienen."
+        ]
+      ]
+    }
+  ]
+}

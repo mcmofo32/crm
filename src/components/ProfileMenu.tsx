@@ -15,6 +15,9 @@ import {
   Building2,
   Newspaper,
   GraduationCap,
+  FileSpreadsheet,
+  CalendarClock,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -63,11 +66,14 @@ export function ProfileMenu({
   viewer,
   jobFunction,
   photoUrl,
+  employees = [],
 }: {
   name: string;
   viewer: EffectiveViewer;
   jobFunction?: JobFunction | null;
   photoUrl?: string | null;
+  /** Enkel nodig voor de Beheerder, om als een specifieke medewerker te kunnen "bekijk als". */
+  employees?: { id: string; name: string; roleLabel: string }[];
 }) {
   const showUserManagement = canManageUsers(viewer);
   const showBeheerderTools = canViewBeheerderTools(viewer);
@@ -75,7 +81,10 @@ export function ProfileMenu({
   // Een Coach mag de doelen van zijn eigen medewerkers aanpassen, ook zonder
   // verder gebruikersbeheer te mogen (zie proxy.ts + requireEmployeeGoalManager).
   const showEmployeeGoals = showUserManagement || viewer.role === Role.COACH;
-  const canImpersonate = viewer.realRole === Role.BEHEERDER;
+  const canImpersonate = viewer.realCanViewAsEmployee;
+  // Enkel gezet bij een volledige medewerker-wissel (id wijkt af van het
+  // echte, ingelogde account) — niet bij een rol-voorbeeld (id blijft gelijk).
+  const viewingAsName = viewer.id !== viewer.realId ? viewer.name : null;
 
   const trigger = (
     <>
@@ -117,6 +126,9 @@ export function ProfileMenu({
           <ViewAsControls
             currentRole={viewer.role}
             isImpersonating={viewer.isImpersonating}
+            employees={employees}
+            viewingAsName={viewingAsName}
+            canPreviewRoles={viewer.realRole === Role.BEHEERDER}
           />
           <hr className="my-1.5 border-slate-100" />
         </>
@@ -132,6 +144,9 @@ export function ProfileMenu({
           </MenuLink>
           <MenuLink href="/beheer/fsma" icon={GraduationCap}>
             FSMA
+          </MenuLink>
+          <MenuLink href="/beheer/leads-bijwerken" icon={FileSpreadsheet}>
+            Leads bijwerken (Excel)
           </MenuLink>
         </>
       )}
@@ -179,6 +194,12 @@ export function ProfileMenu({
       {(showUserManagement || showEmployeeGoals || showBeheerderTools) && (
         <hr className="my-1.5 border-slate-100" />
       )}
+      <MenuLink href="/academy" icon={Presentation}>
+        Academy
+      </MenuLink>
+      <MenuLink href="/beheer/weekoverzicht" icon={CalendarClock}>
+        Weekoverzicht team
+      </MenuLink>
       <MenuLink href="/instellingen" icon={Settings}>
         Instellingen
       </MenuLink>

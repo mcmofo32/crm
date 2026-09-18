@@ -8,6 +8,7 @@ import {
   Role,
 } from "@/generated/prisma/client";
 import { getEffectiveViewer } from "@/lib/impersonation";
+import { avatarUrl } from "@/lib/avatarUrl";
 import {
   getMonthlyGoalAchievementsForUsers,
   getWeeklyGoalAchievementsForUsers,
@@ -15,6 +16,7 @@ import {
 import { isoWeeksOfYear } from "@/lib/productionMonth";
 import { computeIncentiveLeaderboard, type LeaderboardEntry } from "@/lib/actions/incentives";
 import { MONTH_LABELS } from "@/lib/goalLabels";
+import { getIncentiveStatus, type IncentiveStatus } from "@/lib/incentiveMetrics";
 
 async function requireBeheerder() {
   const viewer = await getEffectiveViewer();
@@ -43,6 +45,7 @@ export type StageBucket = {
 export type EmployeeStats = {
   id: string;
   name: string;
+  photoUrl: string | null;
   role: Role;
   teamId: string | null;
   teamName: string | null;
@@ -56,6 +59,7 @@ export type EmployeeStats = {
 type EmployeeUser = {
   id: string;
   name: string;
+  avatarUpdatedAt: Date | null;
   role: Role;
   team: { id: string; name: string } | null;
   coachedTeam: { id: string; name: string } | null;
@@ -105,6 +109,7 @@ function buildEmployeeStats(
       return {
         id: u.id,
         name: u.name,
+        photoUrl: avatarUrl(u),
         role: u.role,
         teamId: team?.id ?? null,
         teamName: team?.name ?? null,
@@ -145,6 +150,7 @@ export async function getAnalytics(teamFilter?: string, personFilter?: string) {
       select: {
         id: true,
         name: true,
+        avatarUpdatedAt: true,
         role: true,
         team: { select: { id: true, name: true } },
         coachedTeam: { select: { id: true, name: true } },
@@ -238,6 +244,7 @@ export async function getTeamOverviewForCoach() {
       select: {
         id: true,
         name: true,
+        avatarUpdatedAt: true,
         role: true,
         team: { select: { id: true, name: true } },
         coachedTeam: { select: { id: true, name: true } },
@@ -298,6 +305,7 @@ export async function getAllTeamOverviews(): Promise<TeamOverview[]> {
       select: {
         id: true,
         name: true,
+        avatarUpdatedAt: true,
         role: true,
         team: { select: { id: true, name: true } },
         coachedTeam: { select: { id: true, name: true } },
@@ -945,7 +953,7 @@ export type IncentiveOverviewEntry = {
   title: string;
   startDate: Date;
   endDate: Date;
-  isActive: boolean;
+  status: IncentiveStatus;
   topEntries: LeaderboardEntry[];
   achievedCount: number;
   totalParticipants: number;
@@ -971,7 +979,7 @@ export async function getIncentiveOverview(): Promise<IncentiveOverviewEntry[]> 
         title: incentive.title,
         startDate: incentive.startDate,
         endDate: incentive.endDate,
-        isActive: incentive.startDate <= now && now <= incentive.endDate,
+        status: getIncentiveStatus(incentive.startDate, incentive.endDate, now),
         topEntries: leaderboard.slice(0, 3),
         achievedCount: leaderboard.filter((e) => e.achieved).length,
         totalParticipants: leaderboard.length,
@@ -1227,12 +1235,17 @@ export type EventAttendanceStats = {
   }[];
 };
 
-/** Effectieve aanwezigheidsratio (bevestigd door Beheerder/Admin) per evenement-type en per medewerker. */
+/**
+ * Effectieve aanwezigheidsratio (bevestigd door Beheerder/Admin) per
+ * evenement-type en per medewerker. Voedt dezelfde KPI-rapportage als
+ * `getKpiHeatmap(Weekly)` (Belsessie/Seminarie), dus dezelfde uitsluiting:
+ * wie in opleiding is telt hier niet in mee.
+ */
 export async function getEventAttendanceStats(): Promise<EventAttendanceStats> {
   await requireBeheerder();
 
   const attendances = await prisma.eventAttendance.findMany({
-    where: { actualStatus: { not: null } },
+    where: { actualStatus: { not: null }, user: { inTraining: false } },
     select: {
       actualStatus: true,
       user: { select: { id: true, name: true } },
