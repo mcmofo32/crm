@@ -17,6 +17,8 @@ type ProductRecord = {
   type: ProductType;
   amount: number;
   units: number;
+  /** Eenmalige koopsom, los van het maandelijkse `amount` — zie schema.prisma. */
+  lumpSumAmount: number | null;
   /** Komt van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — null zolang die nog niet aangemaakt is. */
   policyId: string | null;
   premievrij: boolean;
@@ -34,7 +36,11 @@ function formatAmount(amount: number) {
 function stateFromProducts(products: ProductRecord[]): ProductsState {
   const state: ProductsState = {};
   for (const p of products) {
-    state[p.type] = { amount: String(p.amount), units: String(p.units) };
+    state[p.type] = {
+      amount: String(p.amount),
+      units: String(p.units),
+      lumpSumAmount: p.lumpSumAmount !== null ? String(p.lumpSumAmount) : "",
+    };
   }
   return state;
 }
@@ -61,6 +67,9 @@ export function LeadProductsCard({
   // het totaal niet meer zodra één van de producten verlaagd is.
   const totalAmount = products.reduce((sum, p) => sum + (p.reducedAmount ?? p.amount), 0);
   const totalUnits = products.reduce((sum, p) => sum + p.units, 0);
+  // Apart totaal, bewust niet opgeteld bij totalAmount — een koopsom is geen
+  // maandelijks bedrag en telt dus ook niet mee in het incasso.
+  const totalLumpSum = products.reduce((sum, p) => sum + (p.lumpSumAmount ?? 0), 0);
 
   if (editing) {
     return (
@@ -127,6 +136,7 @@ export function LeadProductsCard({
                 policyId={p.policyId}
                 amount={p.amount}
                 reducedAmount={p.reducedAmount}
+                lumpSumAmount={p.lumpSumAmount}
                 premievrij={p.premievrij}
                 units={p.units}
                 canEdit={canEdit}
@@ -136,9 +146,15 @@ export function LeadProductsCard({
           <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900">
             <span>Totaal</span>
             <span>
-              {formatAmount(totalAmount)} · {totalUnits} eenh.
+              {formatAmount(totalAmount)}/maand · {totalUnits} eenh.
             </span>
           </li>
+          {totalLumpSum > 0 && (
+            <li className="flex items-center justify-between text-xs text-slate-400">
+              <span>Waarvan koopsom (niet in incasso)</span>
+              <span>{formatAmount(totalLumpSum)}</span>
+            </li>
+          )}
         </ul>
       )}
     </div>

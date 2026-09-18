@@ -29,6 +29,7 @@ export function PolicyQuickActions({
   policyId,
   amount,
   reducedAmount,
+  lumpSumAmount = null,
   premievrij,
   units,
   canEdit,
@@ -37,6 +38,8 @@ export function PolicyQuickActions({
   policyId: string | null;
   amount: number;
   reducedAmount: number | null;
+  /** Eenmalige koopsom, los van `amount` — telt niet mee in het maandelijkse incasso. */
+  lumpSumAmount?: number | null;
   premievrij: boolean;
   units: number;
   canEdit: boolean;
@@ -144,6 +147,14 @@ export function PolicyQuickActions({
             formatAmount(amount)
           )}{" "}
           · {units} eenh.
+        </span>
+      )}
+      {lumpSumAmount !== null && (
+        <span
+          title="Eenmalige koopsom — telt niet mee in het maandelijkse incasso"
+          className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700"
+        >
+          Koopsom {formatAmount(lumpSumAmount)}
         </span>
       )}
       {canEdit && policyId && !editingAmount && (
