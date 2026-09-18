@@ -129,6 +129,7 @@ function PolicyCards({
                   name="reducedAmount"
                   amount={p.amount}
                   reducedAmount={p.reducedAmount}
+                  lumpSumAmount={p.lumpSumAmount}
                 />
               </div>
               <div>
@@ -276,6 +277,7 @@ function PolicyTable({
                 name="reducedAmount"
                 amount={p.amount}
                 reducedAmount={p.reducedAmount}
+                lumpSumAmount={p.lumpSumAmount}
               />
             </td>
             <td className="px-3 py-2">

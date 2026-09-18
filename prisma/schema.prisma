@@ -470,6 +470,11 @@ model LeadProduct {
   lead         Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
   type         ProductType
   amount       Decimal     @db.Decimal(10, 2)
+  /// Eenmalige koopsom (bv. een klant die in één keer €10.000 belegt i.p.v.
+  /// maandelijks) — los van `amount`, en bewust NIET meegeteld in "Totaal
+  /// maandelijks incasso" (zie leadProducts.ts/klanten-pagina) of elders,
+  /// juist omdat dit geen maandelijks terugkerend bedrag is.
+  lumpSumAmount Decimal?   @db.Decimal(10, 2)
   units        Int         @default(0)
   /// Datum van dit contract — bepaalt in welke productiemaand het meetelt
   /// (zie production.ts/analytics.ts/incentives.ts), los van `createdAt`

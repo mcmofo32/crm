@@ -95,12 +95,15 @@ export function PolicyAmountCell({
   name,
   amount,
   reducedAmount,
+  lumpSumAmount = null,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   name: string;
   /** Oorspronkelijk contractbedrag (LeadProduct.amount) — wijzigt nooit via dit veld. */
   amount: number;
   reducedAmount: number | null;
+  /** Eenmalige koopsom, los van `amount` — telt niet mee in het maandelijkse incasso. */
+  lumpSumAmount?: number | null;
 }) {
   const editMode = useContext(PolicyDateEditContext);
   const effective = reducedAmount ?? amount;
@@ -113,6 +116,14 @@ export function PolicyAmountCell({
         {reducedAmount !== null && (
           <span className="ml-1.5 text-xs text-slate-400 line-through">
             {formatAmount(amount)}
+          </span>
+        )}
+        {lumpSumAmount !== null && (
+          <span
+            title="Eenmalige koopsom — telt niet mee in het maandelijkse incasso"
+            className="ml-1.5 rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700"
+          >
+            Koopsom {formatAmount(lumpSumAmount)}
           </span>
         )}
       </span>

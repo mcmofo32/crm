@@ -16,6 +16,8 @@ type FollowUpContract = {
   type: ProductType;
   amount: number;
   units: number;
+  /** Eenmalige koopsom, los van `amount` — telt niet mee in het maandelijkse incasso. */
+  lumpSumAmount: number | null;
   contractDate: Date;
   /** Komt van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — null zolang die nog niet aangemaakt is. */
   policyId: string | null;
@@ -68,6 +70,7 @@ export function FollowUpContractsCard({
   const [type, setType] = useState<ProductType>(PRODUCT_TYPE_ORDER[0]);
   const [amount, setAmount] = useState("");
   const [units, setUnits] = useState("");
+  const [lumpSumAmount, setLumpSumAmount] = useState("");
   const [contractDate, setContractDate] = useState(todayInputValue());
 
   const sortedContracts = [...contracts].sort(
@@ -77,11 +80,14 @@ export function FollowUpContractsCard({
   // het totaal niet meer zodra één van de contracten verlaagd is.
   const totalAmount = contracts.reduce((sum, c) => sum + (c.reducedAmount ?? c.amount), 0);
   const totalUnits = contracts.reduce((sum, c) => sum + c.units, 0);
+  // Apart totaal, bewust niet opgeteld bij totalAmount — telt niet mee in het incasso.
+  const totalLumpSum = contracts.reduce((sum, c) => sum + (c.lumpSumAmount ?? 0), 0);
 
   function resetForm() {
     setType(PRODUCT_TYPE_ORDER[0]);
     setAmount("");
     setUnits("");
+    setLumpSumAmount("");
     setContractDate(todayInputValue());
     setAdding(false);
   }
@@ -91,6 +97,7 @@ export function FollowUpContractsCard({
     formData.set("type", type);
     formData.set("amount", amount);
     formData.set("units", units);
+    formData.set("lumpSumAmount", lumpSumAmount);
     formData.set("contractDate", contractDate);
     startTransition(async () => {
       await runWithToast(
@@ -140,6 +147,7 @@ export function FollowUpContractsCard({
                       policyId={c.policyId}
                       amount={c.amount}
                       reducedAmount={c.reducedAmount}
+                      lumpSumAmount={c.lumpSumAmount}
                       premievrij={c.premievrij}
                       units={c.units}
                       canEdit={canEdit}
@@ -167,9 +175,15 @@ export function FollowUpContractsCard({
               <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900">
                 <span>Totaal</span>
                 <span>
-                  {formatAmount(totalAmount)} · {totalUnits} eenh.
+                  {formatAmount(totalAmount)}/maand · {totalUnits} eenh.
                 </span>
               </li>
+              {totalLumpSum > 0 && (
+                <li className="flex items-center justify-between text-xs text-slate-400">
+                  <span>Waarvan koopsom (niet in incasso)</span>
+                  <span>{formatAmount(totalLumpSum)}</span>
+                </li>
+              )}
             </ul>
           )}
 
@@ -192,7 +206,7 @@ export function FollowUpContractsCard({
                     type="number"
                     min={0}
                     step="0.01"
-                    placeholder="Bedrag (€)"
+                    placeholder="Bedrag/maand (€)"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="rounded-md border border-slate-300 px-2 py-1.5"
@@ -205,6 +219,16 @@ export function FollowUpContractsCard({
                     value={units}
                     onChange={(e) => setUnits(e.target.value)}
                     className="rounded-md border border-slate-300 px-2 py-1.5"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Koopsom (€, eenmalig)"
+                    title="Eenmalige koopsom — telt niet mee in het maandelijkse incasso"
+                    value={lumpSumAmount}
+                    onChange={(e) => setLumpSumAmount(e.target.value)}
+                    className="col-span-2 rounded-md border border-slate-300 px-2 py-1.5"
                   />
                 </div>
                 <label className="flex flex-col gap-1 text-xs text-slate-500">

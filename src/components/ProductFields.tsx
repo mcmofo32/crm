@@ -3,7 +3,9 @@
 import { PRODUCT_TYPE_ORDER, PRODUCT_TYPE_LABELS } from "@/lib/productTypes";
 import type { ProductType } from "@/generated/prisma/client";
 
-export type ProductsState = Partial<Record<ProductType, { amount: string; units: string }>>;
+export type ProductsState = Partial<
+  Record<ProductType, { amount: string; units: string; lumpSumAmount: string }>
+>;
 
 export function emptyProductsState(): ProductsState {
   return {};
@@ -18,6 +20,7 @@ export function buildProductsFormData(value: ProductsState): FormData {
   for (const type of PRODUCT_TYPE_ORDER) {
     formData.set(`amount-${type}`, value[type]?.amount ?? "");
     formData.set(`units-${type}`, value[type]?.units ?? "");
+    formData.set(`lumpsum-${type}`, value[type]?.lumpSumAmount ?? "");
   }
   return formData;
 }
@@ -29,12 +32,17 @@ export function ProductFields({
   value: ProductsState;
   onChange: (next: ProductsState) => void;
 }) {
-  function setField(type: ProductType, field: "amount" | "units", raw: string) {
+  function setField(
+    type: ProductType,
+    field: "amount" | "units" | "lumpSumAmount",
+    raw: string
+  ) {
     onChange({
       ...value,
       [type]: {
         amount: field === "amount" ? raw : value[type]?.amount ?? "",
         units: field === "units" ? raw : value[type]?.units ?? "",
+        lumpSumAmount: field === "lumpSumAmount" ? raw : value[type]?.lumpSumAmount ?? "",
       },
     });
   }
@@ -42,12 +50,15 @@ export function ProductFields({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-medium text-slate-700">Producten</p>
-      <div className="grid grid-cols-[1fr_7rem_6rem] items-center gap-x-2 gap-y-1.5 text-sm">
+      <div className="grid grid-cols-[1fr_6.5rem_6.5rem_5.5rem] items-center gap-x-2 gap-y-1.5 text-sm">
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
           Product
         </span>
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-          Bedrag (€)
+          Bedrag/maand (€)
+        </span>
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          Koopsom (€)
         </span>
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
           Eenheden
@@ -66,6 +77,16 @@ export function ProductFields({
             <input
               type="number"
               min={0}
+              step="0.01"
+              placeholder="Eenmalig"
+              title="Eenmalige koopsom (bv. €10.000 in één keer) — telt niet mee in het maandelijkse incasso"
+              value={value[type]?.lumpSumAmount ?? ""}
+              onChange={(e) => setField(type, "lumpSumAmount", e.target.value)}
+              className="rounded-md border border-slate-300 px-2 py-1.5"
+            />
+            <input
+              type="number"
+              min={0}
               step="1"
               value={value[type]?.units ?? ""}
               onChange={(e) => setField(type, "units", e.target.value)}
@@ -74,6 +95,10 @@ export function ProductFields({
           </div>
         ))}
       </div>
+      <p className="text-xs text-slate-400">
+        Koopsom = een eenmalige aankoop (bv. in één keer beleggen) i.p.v. een
+        maandelijks bedrag — telt niet mee in het maandelijkse incasso.
+      </p>
     </div>
   );
 }

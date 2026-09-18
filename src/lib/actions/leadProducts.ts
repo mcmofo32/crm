@@ -68,15 +68,25 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
     throw new Error("Enkel subagenten mogen klantendata aanpassen");
   }
 
-  const desired: { type: ProductType; amount: number; units: number }[] = [];
+  const desired: {
+    type: ProductType;
+    amount: number;
+    units: number;
+    lumpSumAmount: number | null;
+  }[] = [];
   for (const type of PRODUCT_TYPE_ORDER) {
     const amountRaw = String(formData.get(`amount-${type}`) ?? "").trim();
     const unitsRaw = String(formData.get(`units-${type}`) ?? "").trim();
+    const lumpSumRaw = String(formData.get(`lumpsum-${type}`) ?? "").trim();
     const amount = amountRaw ? Number(amountRaw) : 0;
     const units = unitsRaw ? Math.round(Number(unitsRaw)) : 0;
+    const lumpSumAmount =
+      lumpSumRaw && Number.isFinite(Number(lumpSumRaw)) && Number(lumpSumRaw) > 0
+        ? Number(lumpSumRaw)
+        : null;
     // Een product telt enkel mee als er een bedrag groter dan 0 werd ingevuld.
     if (Number.isFinite(amount) && amount > 0) {
-      desired.push({ type, amount, units: Number.isFinite(units) ? units : 0 });
+      desired.push({ type, amount, units: Number.isFinite(units) ? units : 0, lumpSumAmount });
     }
   }
 
@@ -117,7 +127,7 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
       if (match) {
         return prisma.leadProduct.update({
           where: { id: match.id },
-          data: { amount: d.amount, units: d.units },
+          data: { amount: d.amount, units: d.units, lumpSumAmount: d.lumpSumAmount },
         });
       }
       return prisma.leadProduct.create({
@@ -126,6 +136,7 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
           type: d.type,
           amount: d.amount,
           units: d.units,
+          lumpSumAmount: d.lumpSumAmount,
           policy: { create: { leadId, employeeId: lead.ownerId } },
         },
       });
@@ -202,6 +213,12 @@ export async function addFollowUpContractAction(leadId: string, formData: FormDa
   const unitsRaw = String(formData.get("units") ?? "").trim();
   const units = unitsRaw ? Math.round(Number(unitsRaw)) : 0;
 
+  const lumpSumRaw = String(formData.get("lumpSumAmount") ?? "").trim();
+  const lumpSumAmount =
+    lumpSumRaw && Number.isFinite(Number(lumpSumRaw)) && Number(lumpSumRaw) > 0
+      ? Number(lumpSumRaw)
+      : null;
+
   const dateRaw = String(formData.get("contractDate") ?? "").trim();
   const contractDate = dateRaw ? new Date(`${dateRaw}T12:00:00`) : new Date();
   if (Number.isNaN(contractDate.getTime())) {
@@ -214,6 +231,7 @@ export async function addFollowUpContractAction(leadId: string, formData: FormDa
       type,
       amount,
       units: Number.isFinite(units) ? units : 0,
+      lumpSumAmount,
       contractDate,
       isFollowUp: true,
       policy: { create: { leadId, employeeId: lead.ownerId } },

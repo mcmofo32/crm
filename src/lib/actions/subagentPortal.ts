@@ -247,7 +247,9 @@ export async function getManagedPolicies(options: {
       lead: {
         select: { firstName: true, lastName: true },
       },
-      leadProduct: { select: { type: true, units: true, contractDate: true, amount: true } },
+      leadProduct: {
+        select: { type: true, units: true, contractDate: true, amount: true, lumpSumAmount: true },
+      },
       employeeId: true,
       employee: { select: { name: true } },
       company: true,
@@ -276,6 +278,8 @@ export async function getManagedPolicies(options: {
     units: p.leadProduct.units,
     productType: p.leadProduct.type,
     amount: Number(p.leadProduct.amount),
+    lumpSumAmount:
+      p.leadProduct.lumpSumAmount === null ? null : Number(p.leadProduct.lumpSumAmount),
     reducedAmount: p.reducedAmount === null ? null : Number(p.reducedAmount),
     employeeId: p.employeeId,
     employeeName: p.employee.name,
