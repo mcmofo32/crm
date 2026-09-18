@@ -120,6 +120,16 @@ export async function createLeadAction(formData: FormData) {
     redirectParams.set("duplicateName", `${duplicate.firstName} ${duplicate.lastName}`);
     redirectParams.set("duplicateOwner", duplicate.ownerName);
   }
+
+  // Wie leads liever één voor één handmatig invoert (i.p.v. in bulk) klikt
+  // hier op "Opslaan en nog een lead aanmaken" i.p.v. de gewone knop — dan
+  // gaat het niet naar het profiel van de zonet aangemaakte lead, maar terug
+  // naar hetzelfde lege formulier, klaar voor de volgende.
+  if (String(formData.get("intent") ?? "") === "createAnother") {
+    redirectParams.set("type", leadType);
+    redirect(`/leads/new?${redirectParams.toString()}`);
+  }
+
   const duplicateQuery = `?${redirectParams.toString()}`;
   redirect(`/leads/${lead.id}${duplicateQuery}`);
 }
