@@ -133,7 +133,13 @@ export async function createWonLeadRecord(params: {
   email: string | null;
   phone: string | null;
   source: string | null;
-  products: { type: ProductType; amount: number; units: number }[];
+  products: {
+    type: ProductType;
+    amount: number;
+    units: number;
+    /** Eenmalige koopsom, los van `amount` — telt niet mee in het maandelijkse incasso. */
+    lumpSumAmount?: number | null;
+  }[];
   occurredAt: Date;
   /** Expliciet gekozen dossierbeheerder (subagent) — anders standaard de aanbrenger (ownerId). */
   caseManagerSubagentId?: string | null;
@@ -186,6 +192,7 @@ export async function createWonLeadRecord(params: {
           type: p.type,
           amount: p.amount,
           units: p.units,
+          lumpSumAmount: p.lumpSumAmount ?? null,
           contractDate: params.occurredAt,
           policy: { create: { leadId: lead.id, employeeId: params.ownerId } },
         },
@@ -241,18 +248,31 @@ export async function createCustomerAction(formData: FormData) {
 
   const email = (formData.get("email") as string) || null;
 
-  const products: { type: ProductType; amount: number; units: number }[] = [];
+  const products: {
+    type: ProductType;
+    amount: number;
+    units: number;
+    lumpSumAmount: number | null;
+  }[] = [];
   for (const type of PRODUCT_TYPE_ORDER) {
     const amountRaw = String(formData.get(`amount-${type}`) ?? "").trim();
     const unitsRaw = String(formData.get(`units-${type}`) ?? "").trim();
+    const lumpSumRaw = String(formData.get(`lumpsum-${type}`) ?? "").trim();
     const amount = amountRaw ? Number(amountRaw) : 0;
     const units = unitsRaw ? Math.round(Number(unitsRaw)) : 0;
-    if (Number.isFinite(amount) && amount > 0) {
-      products.push({ type, amount, units: Number.isFinite(units) ? units : 0 });
+    const lumpSumAmount =
+      lumpSumRaw && Number.isFinite(Number(lumpSumRaw)) && Number(lumpSumRaw) > 0
+        ? Number(lumpSumRaw)
+        : null;
+    // Een product telt mee zodra er een maandelijks bedrag ÓF een koopsom
+    // werd ingevuld — een klant die enkel in één keer belegt heeft geen
+    // maandelijks bedrag.
+    if ((Number.isFinite(amount) && amount > 0) || lumpSumAmount !== null) {
+      products.push({ type, amount, units: Number.isFinite(units) ? units : 0, lumpSumAmount });
     }
   }
   if (products.length === 0) {
-    throw new Error("Voeg minstens één product met een bedrag toe");
+    throw new Error("Voeg minstens één product met een bedrag of koopsom toe");
   }
 
   await ensureFunnelStages(leadType);

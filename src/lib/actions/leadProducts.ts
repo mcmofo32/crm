@@ -84,8 +84,10 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
       lumpSumRaw && Number.isFinite(Number(lumpSumRaw)) && Number(lumpSumRaw) > 0
         ? Number(lumpSumRaw)
         : null;
-    // Een product telt enkel mee als er een bedrag groter dan 0 werd ingevuld.
-    if (Number.isFinite(amount) && amount > 0) {
+    // Een product telt mee zodra er een maandelijks bedrag ÓF een koopsom
+    // werd ingevuld — een klant die enkel in één keer belegt (geen
+    // maandelijks bedrag) moet ook opgeslagen kunnen worden.
+    if ((Number.isFinite(amount) && amount > 0) || lumpSumAmount !== null) {
       desired.push({ type, amount, units: Number.isFinite(units) ? units : 0, lumpSumAmount });
     }
   }
@@ -205,9 +207,10 @@ export async function addFollowUpContractAction(leadId: string, formData: FormDa
     throw new Error("Kies een geldig producttype");
   }
 
-  const amount = Number(String(formData.get("amount") ?? "").trim());
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Vul een geldig bedrag groter dan 0 in");
+  const amountRaw = String(formData.get("amount") ?? "").trim();
+  const amount = amountRaw ? Number(amountRaw) : 0;
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Ongeldig bedrag");
   }
 
   const unitsRaw = String(formData.get("units") ?? "").trim();
@@ -218,6 +221,13 @@ export async function addFollowUpContractAction(leadId: string, formData: FormDa
     lumpSumRaw && Number.isFinite(Number(lumpSumRaw)) && Number(lumpSumRaw) > 0
       ? Number(lumpSumRaw)
       : null;
+
+  // Een contract heeft ofwel een maandelijks bedrag, ofwel een koopsom nodig
+  // (of allebei) — een klant die enkel in één keer belegt heeft geen
+  // maandelijks bedrag.
+  if (amount <= 0 && lumpSumAmount === null) {
+    throw new Error("Vul een geldig bedrag (maandelijks of koopsom) groter dan 0 in");
+  }
 
   const dateRaw = String(formData.get("contractDate") ?? "").trim();
   const contractDate = dateRaw ? new Date(`${dateRaw}T12:00:00`) : new Date();

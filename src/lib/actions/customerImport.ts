@@ -32,6 +32,17 @@ const PRODUCT_COLUMN_ALIASES: Record<ProductType, string[]> = {
   KINDERSPAREN: ["KS", "KINDERSPAREN"],
 };
 
+/**
+ * Kolomkoppen voor een eenmalige koopsom per producttype (bv. "BEL KOOPSOM")
+ * — los van de gewone maandelijkse bedragkolom hierboven, en optioneel: een
+ * bestand zonder deze kolommen werkt gewoon verder zoals voorheen.
+ */
+const LUMPSUM_COLUMN_ALIASES: Record<ProductType, string[]> = Object.fromEntries(
+  (Object.entries(PRODUCT_COLUMN_ALIASES) as [ProductType, string[]][]).map(
+    ([type, aliases]) => [type, aliases.map((alias) => `${alias} KOOPSOM`)]
+  )
+) as Record<ProductType, string[]>;
+
 const NAME_HEADERS = ["NAAM", "NAME", "VOLLEDIGE NAAM"];
 const FIRSTNAME_HEADERS = ["VOORNAAM", "FIRSTNAME", "FIRST NAME"];
 const LASTNAME_HEADERS = ["ACHTERNAAM", "LASTNAME", "LAST NAME"];
@@ -166,6 +177,11 @@ async function processSheet(
     const col = findColumn(PRODUCT_COLUMN_ALIASES[type]);
     if (col) productColumns.push({ type, col });
   }
+  const lumpSumColumns: { type: ProductType; col: number }[] = [];
+  for (const type of PRODUCT_TYPE_ORDER) {
+    const col = findColumn(LUMPSUM_COLUMN_ALIASES[type]);
+    if (col) lumpSumColumns.push({ type, col });
+  }
 
   const skipped: { row: number; name: string; reason: string }[] = [];
   let created = 0;
@@ -213,10 +229,24 @@ async function processSheet(
     const occurredAt =
       (dateCol && cellToDate(row.getCell(dateCol).value)) || new Date();
 
-    const products: { type: ProductType; amount: number; units: number }[] = [];
-    for (const { type, col } of productColumns) {
-      const amount = cellToAmount(row.getCell(col).value);
-      if (amount > 0) products.push({ type, amount, units: 0 });
+    const products: {
+      type: ProductType;
+      amount: number;
+      units: number;
+      lumpSumAmount: number | null;
+    }[] = [];
+    for (const type of PRODUCT_TYPE_ORDER) {
+      const amountCol = productColumns.find((p) => p.type === type)?.col;
+      const lumpSumCol = lumpSumColumns.find((p) => p.type === type)?.col;
+      const amount = amountCol ? cellToAmount(row.getCell(amountCol).value) : 0;
+      const lumpSumRaw = lumpSumCol ? cellToAmount(row.getCell(lumpSumCol).value) : 0;
+      const lumpSumAmount = lumpSumRaw > 0 ? lumpSumRaw : null;
+      // Een product telt mee zodra er een maandelijks bedrag ÓF een koopsom
+      // ingevuld staat — een klant die enkel in één keer belegde heeft geen
+      // maandelijks bedrag.
+      if (amount > 0 || lumpSumAmount !== null) {
+        products.push({ type, amount, units: 0, lumpSumAmount });
+      }
     }
     if (products.length === 0) {
       skipped.push({ row: rowNumber, name: displayName, reason: "geen producten met een bedrag" });
