@@ -14,3 +14,16 @@ export const BOAR_STATUS_ORDER: BoarStatus[] = [
   "BOAR_IN_ORDE",
   "GEEN_INTERESSE",
 ];
+
+/**
+ * Hex-kleuren (niet Tailwind-klassen) — als inline `style` toegepast, ook per
+ * `<option>`, want Tailwind-klassen op een `<option>` worden door de meeste
+ * browsers genegeerd in de opengeklapte lijst, inline `style` wel gebruikt
+ * (zelfde aanpak als POLICY_STATUS_COLORS in policyLabels.ts).
+ */
+export const BOAR_STATUS_COLORS: Record<BoarStatus, { background: string; color: string }> = {
+  NOG_CONTACTEREN: { background: "#fecaca", color: "#991b1b" },
+  LEAD_DOORGEGEVEN: { background: "#fef08a", color: "#854d0e" },
+  BOAR_IN_ORDE: { background: "#bbf7d0", color: "#166534" },
+  GEEN_INTERESSE: { background: "#e2e8f0", color: "#334155" },
+};

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateBoarInfoAction } from "@/lib/actions/leadProducts";
 import { useToastAction } from "@/components/toast/useToastAction";
-import { BOAR_STATUS_LABELS, BOAR_STATUS_ORDER } from "@/lib/boarStatus";
+import { BOAR_STATUS_LABELS, BOAR_STATUS_ORDER, BOAR_STATUS_COLORS } from "@/lib/boarStatus";
 import type { BoarStatus } from "@/generated/prisma/client";
 
 /**
@@ -58,11 +58,12 @@ export function BoarCard({
             value={status}
             disabled={!canEdit || pending}
             onChange={(e) => setStatus(e.target.value as BoarStatus)}
-            className="rounded-md border border-slate-300 px-2 py-1.5 disabled:bg-slate-50"
+            className="rounded-md border border-slate-300 px-2 py-1.5 font-medium disabled:opacity-60"
+            style={status ? BOAR_STATUS_COLORS[status] : undefined}
           >
             <option value="">— Kies status —</option>
             {BOAR_STATUS_ORDER.map((s) => (
-              <option key={s} value={s}>
+              <option key={s} value={s} style={BOAR_STATUS_COLORS[s]}>
                 {BOAR_STATUS_LABELS[s]}
               </option>
             ))}
