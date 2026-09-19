@@ -81,18 +81,14 @@ export function PolicyQuickActions({
 
   return (
     <span className="flex items-center gap-1.5">
-      {(premievrij || showPremievrijToggle) &&
+      {premievrij &&
         (showPremievrijToggle ? (
           <button
             type="button"
             disabled={pending}
             onClick={togglePremievrij}
-            title={premievrij ? "Klik om premievrij op te heffen" : "Klik om premievrij te zetten"}
-            className={`rounded px-1.5 py-0.5 text-xs font-medium disabled:opacity-60 ${
-              premievrij
-                ? "bg-red-100 text-red-700 hover:bg-red-200"
-                : "border border-dashed border-slate-300 text-slate-400 hover:border-red-300 hover:text-red-600"
-            }`}
+            title="Klik om premievrij op te heffen"
+            className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
           >
             Premievrij
           </button>

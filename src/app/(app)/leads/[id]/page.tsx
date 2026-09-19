@@ -27,6 +27,7 @@ import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { LeadDetailsCard } from "@/components/LeadDetailsCard";
 import { LeadProductsCard } from "@/components/LeadProductsCard";
 import { FollowUpContractsCard } from "@/components/FollowUpContractsCard";
+import { BoarCard } from "@/components/BoarCard";
 import { InlineSelect } from "@/components/InlineSelect";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
@@ -248,6 +249,16 @@ export default async function LeadDetailPage({
                   reducedAmount:
                     p.policy?.reducedAmount != null ? Number(p.policy.reducedAmount) : null,
                 }))}
+              canEdit={canManageCustomerData(user)}
+            />
+          )}
+
+          {lead.status === "WON" && (
+            <BoarCard
+              leadId={lead.id}
+              boarStatus={lead.boarStatus}
+              boarNotes={lead.boarNotes}
+              boarProductNotes={lead.boarProductNotes}
               canEdit={canManageCustomerData(user)}
             />
           )}

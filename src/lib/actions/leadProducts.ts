@@ -6,6 +6,7 @@ import {
   ProductType,
   LeadType,
   TaxDeclarationStatus,
+  BoarStatus,
   Role,
 } from "@/generated/prisma/client";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
+import { BOAR_STATUS_ORDER } from "@/lib/boarStatus";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -285,6 +287,42 @@ export async function deleteFollowUpContractAction(leadProductId: string) {
   revalidatePath("/productie");
   revalidatePath("/dashboard");
   revalidatePath(`/funnel/${product.lead.leadType}`);
+}
+
+/**
+ * BOAR (Brand, Ongevallen en Andere Risico's) is niet de kernactiviteit —
+ * dus geen volwaardige productintegratie zoals de gewone producten
+ * hierboven, enkel een lichte tracker (status + vrije notities) op het
+ * klantenprofiel.
+ */
+export async function updateBoarInfoAction(leadId: string, formData: FormData) {
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!(await canAccessLead(user, lead))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
+
+  const statusRaw = String(formData.get("boarStatus") ?? "").trim();
+  const boarStatus = BOAR_STATUS_ORDER.includes(statusRaw as BoarStatus)
+    ? (statusRaw as BoarStatus)
+    : null;
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      boarStatus,
+      boarNotes: (formData.get("boarNotes") as string)?.trim() || null,
+      boarProductNotes: (formData.get("boarProductNotes") as string)?.trim() || null,
+    },
+  });
+
+  revalidatePath(`/leads/${leadId}`);
 }
 
 export type CustomerSortOption = "recent" | "oldest" | "amount" | "units";
