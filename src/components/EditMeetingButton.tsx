@@ -11,6 +11,7 @@ import {
   type MeetingPlannerValue,
 } from "@/lib/meetingPlanning";
 import { useToastAction } from "@/components/toast/useToastAction";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type SubagentOption = { id: string; name: string; teamName: string };
 
@@ -58,6 +59,7 @@ export function EditMeetingButton({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { runWithToast } = useToastAction();
+  const { showToast } = useToast();
   function buildDraft(): MeetingPlannerValue {
     return {
       scheduledAt: toDatetimeLocalValue(scheduledAt),
@@ -122,20 +124,26 @@ export function EditMeetingButton({
           <button
             type="button"
             disabled={pending}
-            onClick={() =>
+            onClick={() => {
+              const meetingFormData = buildMeetingFormData(meeting);
+              // Vooraf valideren en enkel via toast melden i.p.v. binnen
+              // runWithToast te gooien — dat gooit door naar de
+              // dichtstbijzijnde error-boundary (error.tsx), wat het hele
+              // venster (en alle al ingevulde velden) zou wegvegen voor iets
+              // dat gewoon "vul dit ene veld nog in" betekent.
+              if (!meetingFormData) {
+                showToast("Kies een datum en uur voor de afspraak", "error");
+                return;
+              }
               startTransition(async () => {
-                const meetingFormData = buildMeetingFormData(meeting);
                 await runWithToast(async () => {
-                  if (!meetingFormData) {
-                    throw new Error("Kies een datum en uur voor de afspraak");
-                  }
                   const result = await updateActivityAction(activityId, meetingFormData);
                   if (result?.error) throw new Error(result.error);
                 }, "Afspraak opgeslagen");
                 setOpen(false);
                 router.refresh();
-              })
-            }
+              });
+            }}
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             Opslaan

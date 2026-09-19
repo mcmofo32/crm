@@ -33,6 +33,7 @@ import {
 } from "@/lib/meetingPlanning";
 import type { LeadType } from "@/generated/prisma/client";
 import { useToastAction } from "@/components/toast/useToastAction";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type SubagentRecord = {
   id: string;
@@ -284,6 +285,7 @@ export function FunnelBoard({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { runWithToast } = useToastAction();
+  const { showToast } = useToast();
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [onlyNoContact, setOnlyNoContact] = useState(false);
@@ -398,6 +400,20 @@ export function FunnelBoard({
     const trimmedEmail = emailInput.trim();
     const meetingFormData = buildMeetingFormData(meeting);
     const followUpFormData = buildFollowUpCallFormData(followUpCall);
+
+    // Vooraf valideren en enkel via toast melden i.p.v. binnen runWithToast
+    // te gooien — dat gooit door naar de dichtstbijzijnde error-boundary
+    // (error.tsx), wat het hele venster (en alle al ingevulde velden) zou
+    // wegvegen voor iets dat gewoon "vul dit ene veld nog in" betekent.
+    if (isPlanningStage(toStageLabel) && !meetingFormData) {
+      showToast("Kies een datum en uur voor de afspraak", "error");
+      return;
+    }
+    if (isFollowUpStage(toStageLabel) && !followUpFormData) {
+      showToast("Kies een datum en uur voor het terugbelmoment", "error");
+      return;
+    }
+
     startTransition(async () => {
       await runWithToast(async () => {
         if (trimmedEmail) {
@@ -408,20 +424,14 @@ export function FunnelBoard({
         // de lead effectief verplaatst wordt — anders kan een lead in een
         // "...ingepland"-fase belanden zonder dat er ooit iets ingepland werd.
         let justScheduledActivityId: string | undefined;
-        if (isPlanningStage(toStageLabel)) {
-          if (!meetingFormData) {
-            throw new Error("Kies een datum en uur voor de afspraak");
-          }
+        if (isPlanningStage(toStageLabel) && meetingFormData) {
           const result = await planStageMeetingAction(leadId, toStageId, meetingFormData);
           if (result && "error" in result) throw new Error(result.error);
           if (result && "activityId" in result) {
             justScheduledActivityId = result.activityId;
           }
         }
-        if (isFollowUpStage(toStageLabel)) {
-          if (!followUpFormData) {
-            throw new Error("Kies een datum en uur voor het terugbelmoment");
-          }
+        if (isFollowUpStage(toStageLabel) && followUpFormData) {
           const result = await planFollowUpCallAction(leadId, toStageId, followUpFormData);
           if (result && "error" in result) throw new Error(result.error);
           if (result && "activityId" in result) {

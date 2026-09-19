@@ -12,6 +12,7 @@ import {
 import { ACTIVITY_SUBJECT_SUGGESTIONS } from "@/lib/activitySubjects";
 import { FormToast } from "@/components/toast/FormToast";
 import { useToastAction } from "@/components/toast/useToastAction";
+import { useToast } from "@/components/toast/ToastProvider";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import {
   bareMeetingType,
@@ -73,6 +74,7 @@ export function ActivityButtons({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { runWithToast } = useToastAction();
+  const { showToast } = useToast();
   const [mode, setMode] = useState<"idle" | "reporting" | "editing">("idle");
   const [reportNotes, setReportNotes] = useState("");
   const [wasVoicemail, setWasVoicemail] = useState(false);
@@ -205,23 +207,29 @@ export function ActivityButtons({
           <button
             type="button"
             disabled={pending}
-            onClick={() =>
+            onClick={() => {
+              const meetingFormData = buildMeetingFormData(meeting);
+              // Vooraf valideren en enkel via toast melden i.p.v. binnen
+              // runWithToast te gooien — dat gooit door naar de
+              // dichtstbijzijnde error-boundary (error.tsx), wat het hele
+              // venster (en alle al ingevulde velden) zou wegvegen voor iets
+              // dat gewoon "vul dit ene veld nog in" betekent.
+              if (!meetingFormData) {
+                showToast("Kies een datum en uur voor de afspraak", "error");
+                return;
+              }
+              if (richEditNotes.trim()) {
+                meetingFormData.set("notes", richEditNotes.trim());
+              }
               startTransition(async () => {
-                const meetingFormData = buildMeetingFormData(meeting);
                 await runWithToast(async () => {
-                  if (!meetingFormData) {
-                    throw new Error("Kies een datum en uur voor de afspraak");
-                  }
-                  if (richEditNotes.trim()) {
-                    meetingFormData.set("notes", richEditNotes.trim());
-                  }
                   const result = await updateActivityAction(activityId, meetingFormData);
                   if (result?.error) throw new Error(result.error);
                 }, "Afspraak opgeslagen");
                 setMode("idle");
                 router.refresh();
-              })
-            }
+              });
+            }}
             className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             Opslaan

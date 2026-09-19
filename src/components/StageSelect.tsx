@@ -28,6 +28,7 @@ import {
   type FollowUpCallValue,
 } from "@/lib/meetingPlanning";
 import { useToastAction } from "@/components/toast/useToastAction";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type SubagentRecord = { id: string; name: string; team: { name: string } };
 
@@ -53,6 +54,7 @@ export function StageSelect({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { runWithToast } = useToastAction();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [targetStageId, setTargetStageId] = useState("");
   const [notes, setNotes] = useState("");
@@ -134,10 +136,25 @@ export function StageSelect({
           <button
             type="button"
             disabled={pending || !targetStageId}
-            onClick={() =>
+            onClick={() => {
+              const meetingFormData = buildMeetingFormData(meeting);
+              const followUpFormData = buildFollowUpCallFormData(followUpCall);
+
+              // Vooraf valideren en enkel via toast melden i.p.v. binnen
+              // runWithToast te gooien — dat gooit door naar de
+              // dichtstbijzijnde error-boundary (error.tsx), wat het hele
+              // venster (en alle al ingevulde velden) zou wegvegen voor iets
+              // dat gewoon "vul dit ene veld nog in" betekent.
+              if (targetStage && isPlanningStage(targetStage.label) && !meetingFormData) {
+                showToast("Kies een datum en uur voor de afspraak", "error");
+                return;
+              }
+              if (targetStage && isFollowUpStage(targetStage.label) && !followUpFormData) {
+                showToast("Kies een datum en uur voor het terugbelmoment", "error");
+                return;
+              }
+
               startTransition(async () => {
-                const meetingFormData = buildMeetingFormData(meeting);
-                const followUpFormData = buildFollowUpCallFormData(followUpCall);
                 const trimmedEmail = emailInput.trim();
                 await runWithToast(async () => {
                   if (trimmedEmail) {
@@ -149,10 +166,7 @@ export function StageSelect({
                   // anders kan een lead in een "...ingepland"-fase belanden
                   // zonder dat er ooit iets ingepland werd.
                   let justScheduledActivityId: string | undefined;
-                  if (targetStage && isPlanningStage(targetStage.label)) {
-                    if (!meetingFormData) {
-                      throw new Error("Kies een datum en uur voor de afspraak");
-                    }
+                  if (targetStage && isPlanningStage(targetStage.label) && meetingFormData) {
                     const result = await planStageMeetingAction(
                       leadId,
                       targetStageId,
@@ -163,10 +177,7 @@ export function StageSelect({
                       justScheduledActivityId = result.activityId;
                     }
                   }
-                  if (targetStage && isFollowUpStage(targetStage.label)) {
-                    if (!followUpFormData) {
-                      throw new Error("Kies een datum en uur voor het terugbelmoment");
-                    }
+                  if (targetStage && isFollowUpStage(targetStage.label) && followUpFormData) {
                     const result = await planFollowUpCallAction(
                       leadId,
                       targetStageId,
@@ -196,8 +207,8 @@ export function StageSelect({
                 setEmailInput("");
                 setProducts(emptyProductsState());
                 router.refresh();
-              })
-            }
+              });
+            }}
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             Bevestigen
