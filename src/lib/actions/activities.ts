@@ -3,11 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ActivityStatus, ActivityType, MeetingMode } from "@/generated/prisma/client";
-import {
-  canAccessOwner,
-  canDeleteActivities,
-  canManageCustomerData,
-} from "@/lib/permissions";
+import { canAccessOwner, canDeleteActivities } from "@/lib/permissions";
 import {
   deleteActivityFromGoogleCalendar,
   syncActivityToGoogleCalendar,
@@ -84,9 +80,6 @@ async function requireLeadAccess(leadId: string) {
 export async function scheduleActivityAction(formData: FormData) {
   const leadId = String(formData.get("leadId"));
   const { user, lead } = await requireLeadAccess(leadId);
-  if (!canManageCustomerData(user)) {
-    throw new Error("Enkel subagenten mogen een volgend gesprek inplannen");
-  }
 
   const assigneeId = String(formData.get("assigneeId") ?? user.id);
   if (!(await canAccessOwner(user, assigneeId))) {

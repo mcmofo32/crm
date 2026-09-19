@@ -265,14 +265,12 @@ export default async function LeadDetailPage({
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-6">
-          {canManageCustomerData(user) && (
-            <ScheduleActivityForm
-              leadId={lead.id}
-              assignableUsers={assignableUsers}
-              currentUserId={user.id}
-              subagents={subagents}
-            />
-          )}
+          <ScheduleActivityForm
+            leadId={lead.id}
+            assignableUsers={assignableUsers}
+            currentUserId={user.id}
+            subagents={subagents}
+          />
 
           <div>
             <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
