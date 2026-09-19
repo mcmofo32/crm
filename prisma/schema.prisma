@@ -347,6 +347,15 @@ enum TaxDeclarationStatus {
   BOEKHOUDER
 }
 
+/// BOAR = Brand, Ongevallen en Andere Risico's — niet de kernactiviteit,
+/// maar wel handig om per klant bij te houden of hierrond al iets loopt.
+enum BoarStatus {
+  NOG_CONTACTEREN
+  LEAD_DOORGEGEVEN
+  BOAR_IN_ORDE
+  GEEN_INTERESSE
+}
+
 /// Configureerbare kolommen van de funnel-boards, per leadtype.
 model FunnelStage {
   id        String   @id @default(cuid())
@@ -421,6 +430,12 @@ model Lead {
 
   /// Status van de opvolging van deze klant op "Klanten onder beheer" (los van belastingsaangifte).
   followUpStatus TaxDeclarationStatus?
+
+  /// BOAR (Brand, Ongevallen en Andere Risico's) — niet de kernactiviteit,
+  /// dus geen volwaardige productintegratie, enkel een lichte tracker.
+  boarStatus       BoarStatus?
+  boarNotes        String?
+  boarProductNotes String?
 
   /// Pipeline: handmatig cijfer op 10 voor de inschatting van deze lead.
   qualityScore    Int?
