@@ -168,6 +168,18 @@ export async function createWonLeadRecord(params: {
   /** Vrije notities voor in het profiel, bv. dat de klant zelf ook belegt en in wat. */
   notes?: string | null;
 }) {
+  // Zelfde als bij updateLeadStageAction: een klant heeft geen actief
+  // funnelbeheer meer nodig, dus die belandt niet blijvend op "Klant"/
+  // "Medewerker" maar meteen door naar "Opvolging" — een rustplaats tot de
+  // kalendermaand van hun "klant sinds"-verjaardag (zie followUpMonth in
+  // subagentPortal.ts). De LeadStageChange naar wonStageId hieronder blijft
+  // gewoon bestaan (met deze extra hop erna), zodat becameCustomerAt correct
+  // blijft werken ongeacht waar de lead uiteindelijk effectief op staat.
+  const followUpStage = await prisma.funnelStage.findFirst({
+    where: { leadType: params.leadType, label: { equals: "Opvolging", mode: "insensitive" } },
+    select: { id: true },
+  });
+
   const lead = await prisma.lead.create({
     data: {
       firstName: params.firstName,
@@ -187,7 +199,7 @@ export async function createWonLeadRecord(params: {
       ...(params.caseManagerSubagentId
         ? { caseManagerSubagentId: params.caseManagerSubagentId }
         : { caseManagerUserId: params.ownerId }),
-      stageId: params.wonStageId,
+      stageId: followUpStage?.id ?? params.wonStageId,
       status: LeadStatus.WON,
       createdAt: params.occurredAt,
     },
@@ -207,6 +219,19 @@ export async function createWonLeadRecord(params: {
         changedAt: params.occurredAt,
       },
     }),
+    ...(followUpStage
+      ? [
+          prisma.leadStageChange.create({
+            data: {
+              leadId: lead.id,
+              fromStageId: params.wonStageId,
+              toStageId: followUpStage.id,
+              changedById: params.ownerId,
+              changedAt: params.occurredAt,
+            },
+          }),
+        ]
+      : []),
     ...params.products.map((p) =>
       prisma.leadProduct.create({
         data: {
@@ -541,14 +566,33 @@ export async function updateLeadStageAction(
   const trimmedNotes = notes?.trim();
   const now = new Date();
 
+  // Een lead die klant wordt, heeft geen actief funnelbeheer meer nodig —
+  // die belandt dus niet blijvend op "Klant"/"Medewerker" (dat zou het bord
+  // laten volstromen), maar meteen door naar "Opvolging": een rustplaats
+  // tot de kalendermaand van hun "klant sinds"-verjaardag, wanneer de
+  // jaarlijkse opvolging opnieuw aan de beurt is (zie followUpMonth in
+  // subagentPortal.ts). De LeadStageChange naar de "Klant"-fase hieronder
+  // blijft wél gewoon bestaan (met deze extra hop erna), zodat becameCustomerAt
+  // (overal waar op de "isWon"-stagewissel gefilterd wordt) correct blijft
+  // werken ongeacht waar de lead uiteindelijk effectief op staat.
+  const followUpStage = toStage.isWon
+    ? await prisma.funnelStage.findFirst({
+        where: { leadType: lead.leadType, label: { equals: "Opvolging", mode: "insensitive" } },
+        select: { id: true },
+      })
+    : null;
+  const finalStageId = followUpStage?.id ?? toStageId;
+
   // Verlaat de lead de actieve funnel richting "Geen klant"/"Geen
-  // medewerker" (isLost) of "Opvolging" (isFollowUpStage), dan is een
-  // eventueel nog openstaande geplande taak (bv. een ingeplande Financiële
-  // analyse die hierdoor niet meer doorgaat) niet langer relevant — die
-  // moet dan ook uit /taken verdwijnen, samen met het bijhorende Google
-  // Agenda-item, net als bij het manueel annuleren van een activiteit
+  // medewerker" (isLost), "Opvolging" zelf (isFollowUpStage), of wordt die
+  // via hierboven meteen doorgestuurd naar "Opvolging" na het winnen, dan is
+  // een eventueel nog openstaande geplande taak (bv. een ingeplande
+  // Financiële analyse die hierdoor niet meer doorgaat) niet langer relevant
+  // — die moet dan ook uit /taken verdwijnen, samen met het bijhorende
+  // Google Agenda-item, net als bij het manueel annuleren van een activiteit
   // (cancelActivityAction).
-  const shouldCancelPlannedActivities = toStage.isLost || isFollowUpStage(toStage.label);
+  const shouldCancelPlannedActivities =
+    toStage.isLost || isFollowUpStage(toStage.label) || followUpStage !== null;
   const stalePlannedActivities = shouldCancelPlannedActivities
     ? await prisma.activity.findMany({
         where: {
@@ -578,7 +622,7 @@ export async function updateLeadStageAction(
     prisma.lead.update({
       where: { id: leadId },
       data: {
-        stageId: toStageId,
+        stageId: finalStageId,
         status,
         ...(trimmedNotes ? { lastContactedAt: now } : {}),
         // Dossierbeheerder standaard op wie de klant maakte, tenzij al
@@ -598,6 +642,18 @@ export async function updateLeadStageAction(
         changedById: user.id,
       },
     }),
+    ...(followUpStage
+      ? [
+          prisma.leadStageChange.create({
+            data: {
+              leadId,
+              fromStageId: toStageId,
+              toStageId: followUpStage.id,
+              changedById: user.id,
+            },
+          }),
+        ]
+      : []),
     ...(stalePlannedActivities.length > 0
       ? [
           prisma.activity.updateMany({
