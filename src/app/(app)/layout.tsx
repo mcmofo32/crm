@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageCustomerData, canViewBeheerderTools } from "@/lib/permissions";
 import { Role } from "@/generated/prisma/client";
-import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
+import { getCrossOwnerDuplicateCount } from "@/lib/actions/duplicates";
 import { touchLoginActivity } from "@/lib/actions/sessions";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/roleLabels";
@@ -70,11 +70,14 @@ export default async function AppLayout({
   // Deze meldingsteller staat op elke pagina (via deze gedeelde layout) —
   // mag dus zeker nooit de hele app onderuit halen als hij faalt, vandaar
   // hier ook nog eens opgevangen bovenop de eigen foutafhandeling van
-  // getCrossOwnerDuplicateGroups zelf.
+  // getCrossOwnerDuplicateCount zelf. Bewust de lichte tel-versie i.p.v.
+  // getCrossOwnerDuplicateGroups (die volledige leaddetails per groep
+  // opbouwt, enkel nodig voor de dashboard-melding) — dit liep hier onnodig
+  // zwaar mee bij élke paginanavigatie van elke Beheerder/Admin.
   let duplicateLeadCount = 0;
   if (canViewBeheerderTools(viewer)) {
     try {
-      duplicateLeadCount = (await getCrossOwnerDuplicateGroups()).length;
+      duplicateLeadCount = await getCrossOwnerDuplicateCount();
     } catch (err) {
       console.error("[layout] kon duplicateLeadCount niet berekenen", err);
     }

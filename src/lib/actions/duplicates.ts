@@ -343,6 +343,74 @@ export async function getCrossOwnerDuplicateGroups(): Promise<DuplicateGroup[]> 
 }
 
 /**
+ * Enkel het AANTAL cross-eigenaar duplicaatgroepen — voor de meldingsbel die
+ * via layout.tsx op élke pagina (dus bij elke navigatie, voor elke
+ * Beheerder/Admin) meeloopt. getCrossOwnerDuplicateGroups hierboven bouwt
+ * voor élke groep de volledige leaddetails op (fase/eigenaar/aanmaker-naam,
+ * gesorteerde lijst, gedeelde e-mails/telefoons, ...) — nodig voor de
+ * dashboard-melding (die de namen toont), maar pure overhead wanneer enkel
+ * een teller nodig is: dat werk liep tot nu toe onnodig mee bij élke
+ * paginalading. Deze versie haalt enkel id/email/telefoon/eigenaar op (geen
+ * fase/naam-joins) en bouwt geen enkel detailobject op.
+ */
+export async function getCrossOwnerDuplicateCount(): Promise<number> {
+  const viewer = await getEffectiveViewer();
+  if (!viewer || !canViewBeheerderTools(viewer)) return 0;
+
+  try {
+    const [leads, dismissed] = await Promise.all([
+      prisma.lead.findMany({
+        where: { deletedAt: null },
+        select: { id: true, email: true, phone: true, ownerId: true },
+      }),
+      prisma.dismissedDuplicateGroup.findMany({ select: { signature: true } }),
+    ]);
+    const dismissedSignatures = new Set(dismissed.map((d) => d.signature));
+
+    const emailMap = new Map<string, string[]>();
+    const phoneMap = new Map<string, string[]>();
+    for (const lead of leads) {
+      const email = normalizeEmail(lead.email);
+      if (email) {
+        const list = emailMap.get(email);
+        if (list) list.push(lead.id);
+        else emailMap.set(email, [lead.id]);
+      }
+      const phone = normalizePhone(lead.phone);
+      if (phone) {
+        const list = phoneMap.get(phone);
+        if (list) list.push(lead.id);
+        else phoneMap.set(phone, [lead.id]);
+      }
+    }
+
+    const uf = new UnionFind();
+    for (const ids of emailMap.values()) {
+      if (ids.length < 2) continue;
+      for (let i = 1; i < ids.length; i++) uf.union(ids[0], ids[i]);
+    }
+    for (const ids of phoneMap.values()) {
+      if (ids.length < 2) continue;
+      for (let i = 1; i < ids.length; i++) uf.union(ids[0], ids[i]);
+    }
+
+    const ownerById = new Map(leads.map((l) => [l.id, l.ownerId]));
+    const groups = uf.groupsOf(leads.map((l) => l.id));
+
+    let count = 0;
+    for (const ids of groups.values()) {
+      if (ids.length < 2) continue;
+      if (dismissedSignatures.has(duplicateGroupSignature(ids))) continue;
+      if (new Set(ids.map((id) => ownerById.get(id))).size > 1) count++;
+    }
+    return count;
+  } catch (err) {
+    console.error("[duplicates] getCrossOwnerDuplicateCount mislukt", err);
+    return 0;
+  }
+}
+
+/**
  * Markeert een duplicaten-groep als "geen probleem" — verdwijnt dan uit de
  * Dubbele leads-lijst (en de meldingsbel op het dashboard) tot de
  * samenstelling van de groep verandert (bv. een nieuwe lead met dezelfde
