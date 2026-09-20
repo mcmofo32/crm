@@ -10,6 +10,7 @@ import {
 import { getEffectiveViewer } from "@/lib/impersonation";
 import type { CustomerSortOption } from "@/lib/actions/leadProducts";
 import { backfillMissingPolicies } from "@/lib/actions/policies";
+import { defaultFollowUpStatus } from "@/lib/followUpStatusReset";
 
 async function requireSubagentPortalAccess() {
   const viewer = await getEffectiveViewer();
@@ -136,16 +137,25 @@ export async function getManagedCustomers(options: {
     },
   });
 
-  const withComputed = customers.map((customer) => ({
-    ...customer,
-    becameCustomerAt: customer.stageChanges[0]?.changedAt ?? customer.updatedAt,
-    totalAmount: customer.products.reduce((sum, p) => sum + Number(p.amount), 0),
-    totalUnits: customer.products.reduce((sum, p) => sum + p.units, 0),
-    caseManagerName:
-      customer.caseManagerSubagent?.name ??
-      customer.caseManagerUser?.name ??
-      customer.owner.name,
-  }));
+  const withComputed = customers.map((customer) => {
+    const becameCustomerAt = customer.stageChanges[0]?.changedAt ?? customer.updatedAt;
+    return {
+      ...customer,
+      becameCustomerAt,
+      // Zolang er nog geen manuele status ingesteld is: in het jaar dat
+      // iemand klant wordt hoeft er nog geen opvolging te gebeuren (NVT),
+      // pas vanaf een maand voor hun (eerste en elke volgende) verjaardag
+      // telt dit standaard als "nog te doen" — zie followUpStatusReset.ts.
+      followUpStatusEffective:
+        customer.followUpStatus ?? defaultFollowUpStatus(becameCustomerAt),
+      totalAmount: customer.products.reduce((sum, p) => sum + Number(p.amount), 0),
+      totalUnits: customer.products.reduce((sum, p) => sum + p.units, 0),
+      caseManagerName:
+        customer.caseManagerSubagent?.name ??
+        customer.caseManagerUser?.name ??
+        customer.owner.name,
+    };
+  });
 
   // becameCustomerAt is afgeleid (niet rechtstreeks in de database), dus
   // wordt hier gefilterd i.p.v. via een Prisma where.
