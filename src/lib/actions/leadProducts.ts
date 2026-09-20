@@ -325,6 +325,27 @@ export async function updateBoarInfoAction(leadId: string, formData: FormData) {
   revalidatePath(`/leads/${leadId}`);
 }
 
+/**
+ * Bulkactie: zet de BOAR-status van alle klanten (bedrijfsbreed) op "Nog
+ * contacteren", ongeacht hun huidige status — om de hele klantenlijst in
+ * één keer te initialiseren i.p.v. elk klantprofiel apart te doorlopen.
+ * Enkel Beheerder/Admin, want dit overschrijft ook al ingestelde statussen.
+ */
+export async function bulkSetBoarStatusTodoAction(): Promise<{ count: number }> {
+  const user = await requireUser();
+  if (!canManageUsers(user)) {
+    throw new Error("Enkel Beheerder/Admin mogen deze bulkactie uitvoeren");
+  }
+
+  const result = await prisma.lead.updateMany({
+    where: { deletedAt: null, status: "WON" },
+    data: { boarStatus: "NOG_CONTACTEREN" },
+  });
+
+  revalidatePath("/subagent");
+  return { count: result.count };
+}
+
 export type CustomerSortOption = "recent" | "oldest" | "amount" | "units";
 
 /** Klanten (gewonnen leads) met hun producten, voor het klantenoverzicht. */

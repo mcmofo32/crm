@@ -14,6 +14,7 @@ import { getSubagents } from "@/lib/actions/subagents";
 import {
   setCaseManagerAction,
   setFollowUpStatusAction,
+  bulkSetBoarStatusTodoAction,
 } from "@/lib/actions/leadProducts";
 import {
   getManagedCustomers,
@@ -39,6 +40,7 @@ import {
 import { ProductType, BoarStatus } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { SubagentTabs } from "@/components/SubagentTabs";
+import { BulkBoarTodoButton } from "@/components/BulkBoarTodoButton";
 
 /** Kleur voor de BOAR-badge zolang er nog geen status ingesteld is — zelfde grijstint als de NVT-opvolgingsstatus. */
 const BOAR_NONE_STYLE = { background: "#e2e8f0", color: "#475569" };
@@ -249,6 +251,7 @@ export default async function SubagentKlantenPage({
             Klanten waar jij (of de gekozen structuur/persoon) dossierbeheerder van bent.
           </p>
         </div>
+        {canPickScope && <BulkBoarTodoButton action={bulkSetBoarStatusTodoAction} />}
       </div>
 
       <SubagentTabs active="klanten" />
@@ -536,21 +539,21 @@ export default async function SubagentKlantenPage({
             )}
           </div>
 
-          <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white sm:block">
-            <table className="w-full text-base">
+          <div className="hidden rounded-lg border border-slate-200 bg-white sm:block">
+            <table className="w-full table-fixed text-xs">
               <thead className="bg-slate-50 text-left text-slate-500">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Klant sinds</th>
-                  <th className="px-6 py-3 font-medium">Naam</th>
-                  <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
-                  <th className="px-4 py-3 font-medium">Aanbrenger</th>
-                  <th className="px-6 py-3 font-medium">Telefoonnummer</th>
-                  <th className="px-6 py-3 font-medium">E-mailadres</th>
-                  <th className="px-6 py-3 font-medium">Opvolging</th>
-                  <th className="px-6 py-3 font-medium">BOAR</th>
-                  <th className="px-6 py-3 font-medium text-right">Totale premies</th>
-                  <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
-                  <th className="px-6 py-3 font-medium"></th>
+                  <th className="w-[9%] px-2 py-2 font-medium">Klant sinds</th>
+                  <th className="w-[15%] px-2 py-2 font-medium">Naam</th>
+                  <th className="w-[12%] px-2 py-2 font-medium">Dossierbeheerder</th>
+                  <th className="w-[10%] px-2 py-2 font-medium">Aanbrenger</th>
+                  <th className="w-[11%] px-2 py-2 font-medium">Telefoonnummer</th>
+                  <th className="w-[15%] px-2 py-2 font-medium">E-mailadres</th>
+                  <th className="w-[13%] px-2 py-2 font-medium">Opvolging</th>
+                  <th className="w-8 px-1 py-2 font-medium">BOAR</th>
+                  <th className="w-[9%] px-2 py-2 font-medium text-right">Premies</th>
+                  <th className="w-14 px-2 py-2 font-medium text-right">Eenh.</th>
+                  <th className="w-8 px-1 py-2 font-medium"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -564,85 +567,89 @@ export default async function SubagentKlantenPage({
                     caseManagerOptions,
                   }) => (
                     <tr key={customer.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 text-slate-600">
+                      <td className="truncate px-2 py-1.5 text-slate-600">
                         {formatDate(customer.becameCustomerAt)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="max-w-0 truncate px-2 py-1.5">
                         <Link
                           href={`/leads/${customer.id}`}
+                          title={`${customer.firstName} ${customer.lastName}`}
                           className="font-medium text-slate-900 hover:underline"
                         >
                           {customer.firstName} {customer.lastName}
                         </Link>
                         {customer.company && (
-                          <span className="ml-2 text-slate-400">{customer.company}</span>
+                          <span className="ml-1 text-slate-400">{customer.company}</span>
                         )}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="max-w-0 px-2 py-1.5">
                         {canEditCustomerData ? (
                           <InlineSelect
                             action={boundSetCaseManager}
                             name="subagentId"
                             value={customer.caseManagerSubagentId ?? ""}
                             options={caseManagerOptions}
-                            className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                            className="w-full truncate rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs disabled:opacity-60"
                           />
                         ) : (
-                          <span className="text-slate-600">
+                          <span className="block truncate text-slate-600">
                             {customer.caseManagerName}
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-slate-600">
+                      <td className="max-w-0 truncate px-2 py-1.5 text-slate-600">
                         {customer.owner.name}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
+                      <td className="max-w-0 truncate px-2 py-1.5 text-slate-600">
                         {customer.phone || "—"}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
+                      <td
+                        className="max-w-0 truncate px-2 py-1.5 text-slate-600"
+                        title={customer.email ?? undefined}
+                      >
                         {customer.email || "—"}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="max-w-0 px-2 py-1.5">
                         {canEditCustomerData ? (
                           <InlineSelect
                             action={boundSetFollowUpStatus}
                             name="status"
                             value={customer.followUpStatusEffective}
                             options={followUpStatusOptions}
-                            className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                            className="w-full truncate rounded-md border-0 px-1.5 py-1 text-xs font-medium"
                             style={followUpStatusColors[customer.followUpStatusEffective]}
                           />
                         ) : (
                           <span
-                            className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                            className="inline-block max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium"
                             style={followUpStatusColors[customer.followUpStatusEffective]}
                           >
                             {followUpStatusLabelByValue.get(customer.followUpStatusEffective)}
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-1 py-1.5">
                         <span
                           title={boarLabel}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold"
+                          className="mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                           style={boarStyle}
                         >
                           B
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-slate-900">
+                      <td className="px-2 py-1.5 text-right font-medium text-slate-900">
                         {formatAmount(customer.totalAmount)}
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-600">
+                      <td className="px-2 py-1.5 text-right text-slate-600">
                         {customer.totalUnits}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-1 py-1.5 text-right">
                         <Link
                           href={`/leads/${customer.id}`}
                           title="Wijzigingen doorvoeren"
-                          className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                          className="inline-flex rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                         >
-                          <MoreVertical size={18} />
+                          <MoreVertical size={15} />
                         </Link>
                       </td>
                     </tr>
