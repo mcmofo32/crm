@@ -20,7 +20,6 @@ import {
   getManagedCustomerStats,
   getManagedScopePersons,
   resolveManagedUserIds,
-  BOAR_STATUS_NONE,
   type ManagedCustomerSortOption,
 } from "@/lib/actions/subagentPortal";
 import {
@@ -31,7 +30,12 @@ import {
 import { canManageCustomerData, canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { MONTH_LABELS } from "@/lib/goalLabels";
-import { BOAR_STATUS_LABELS, BOAR_STATUS_ORDER, BOAR_STATUS_COLORS } from "@/lib/boarStatus";
+import {
+  BOAR_STATUS_LABELS,
+  BOAR_STATUS_ORDER,
+  BOAR_STATUS_COLORS,
+  BOAR_STATUS_NONE,
+} from "@/lib/boarStatus";
 import { ProductType, BoarStatus } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { SubagentTabs } from "@/components/SubagentTabs";

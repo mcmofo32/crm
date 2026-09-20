@@ -1,5 +1,8 @@
 import { BoarStatus } from "@/generated/prisma/client";
 
+/** Sentinelwaarde voor "boarStatus nog niet ingesteld" — Prisma's `null` kan niet als gewone select-waarde in een URL/formulier meegegeven worden. */
+export const BOAR_STATUS_NONE = "NONE" as const;
+
 export const BOAR_STATUS_LABELS: Record<BoarStatus, string> = {
   NOG_CONTACTEREN: "Nog contacteren",
   LEAD_DOORGEGEVEN: "Lead doorgegeven",

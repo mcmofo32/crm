@@ -11,10 +11,7 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import type { CustomerSortOption } from "@/lib/actions/leadProducts";
 import { backfillMissingPolicies } from "@/lib/actions/policies";
 import { defaultFollowUpStatus } from "@/lib/followUpStatusReset";
-import { BOAR_STATUS_ORDER } from "@/lib/boarStatus";
-
-/** Sentinelwaarde voor "boarStatus nog niet ingesteld" — Prisma's `null` kan niet als gewone select-waarde in een URL/formulier meegegeven worden. */
-export const BOAR_STATUS_NONE = "NONE" as const;
+import { BOAR_STATUS_ORDER, BOAR_STATUS_NONE } from "@/lib/boarStatus";
 
 /** `sortBy`-opties enkel voor "Klanten onder beheer" (bovenop de gedeelde CustomerSortOption). */
 export type ManagedCustomerSortOption = CustomerSortOption | "boarStatus";
