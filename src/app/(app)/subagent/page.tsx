@@ -478,6 +478,16 @@ export default async function SubagentKlantenPage({
 
                   <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
                     <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Totale premies</span>
+                      <span className="font-medium text-slate-900">
+                        {formatAmount(customer.totalAmount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Aantal eenheden</span>
+                      <span className="text-slate-700">{customer.totalUnits}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <span className="text-slate-500">Klant sinds</span>
                       <span className="text-slate-700">
                         {formatDate(customer.becameCustomerAt)}
@@ -541,16 +551,6 @@ export default async function SubagentKlantenPage({
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Totale premies</span>
-                      <span className="font-medium text-slate-900">
-                        {formatAmount(customer.totalAmount)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Aantal eenheden</span>
-                      <span className="text-slate-700">{customer.totalUnits}</span>
-                    </div>
                   </div>
                 </div>
               )
@@ -563,14 +563,14 @@ export default async function SubagentKlantenPage({
                 <tr>
                   <th className="px-6 py-3 font-medium">Klant sinds</th>
                   <th className="px-6 py-3 font-medium">Naam</th>
+                  <th className="px-6 py-3 font-medium text-right">Totale premies</th>
+                  <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
                   <th className="px-4 py-3 font-medium">Dossierbeheerder</th>
                   <th className="px-4 py-3 font-medium">Aanbrenger</th>
                   <th className="px-6 py-3 font-medium">Telefoonnummer</th>
                   <th className="px-6 py-3 font-medium">E-mailadres</th>
                   <th className="px-6 py-3 font-medium">Opvolging</th>
                   <th className="px-6 py-3 font-medium">BOAR</th>
-                  <th className="px-6 py-3 font-medium text-right">Totale premies</th>
-                  <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
                   <th className="px-6 py-3 font-medium"></th>
                 </tr>
               </thead>
@@ -600,6 +600,12 @@ export default async function SubagentKlantenPage({
                         {customer.company && (
                           <span className="ml-2 text-slate-400">{customer.company}</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-slate-900">
+                        {formatAmount(customer.totalAmount)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-slate-600">
+                        {customer.totalUnits}
                       </td>
                       <td className="px-4 py-4">
                         {canEditCustomerData ? (
@@ -662,12 +668,6 @@ export default async function SubagentKlantenPage({
                             {boarLabel}
                           </span>
                         )}
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-slate-900">
-                        {formatAmount(customer.totalAmount)}
-                      </td>
-                      <td className="px-6 py-4 text-right text-slate-600">
-                        {customer.totalUnits}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link
