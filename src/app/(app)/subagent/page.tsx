@@ -540,20 +540,20 @@ export default async function SubagentKlantenPage({
           </div>
 
           <div className="hidden rounded-lg border border-slate-200 bg-white sm:block">
-            <table className="w-full table-fixed text-xs">
+            <table className="w-full table-fixed text-sm">
               <thead className="bg-slate-50 text-left text-slate-500">
                 <tr>
-                  <th className="w-[9%] px-2 py-2 font-medium">Klant sinds</th>
-                  <th className="w-[15%] px-2 py-2 font-medium">Naam</th>
-                  <th className="w-[12%] px-2 py-2 font-medium">Dossierbeheerder</th>
-                  <th className="w-[10%] px-2 py-2 font-medium">Aanbrenger</th>
-                  <th className="w-[11%] px-2 py-2 font-medium">Telefoonnummer</th>
-                  <th className="w-[15%] px-2 py-2 font-medium">E-mailadres</th>
-                  <th className="w-[13%] px-2 py-2 font-medium">Opvolging</th>
-                  <th className="w-8 px-1 py-2 font-medium">BOAR</th>
-                  <th className="w-[9%] px-2 py-2 font-medium text-right">Premies</th>
-                  <th className="w-14 px-2 py-2 font-medium text-right">Eenh.</th>
-                  <th className="w-8 px-1 py-2 font-medium"></th>
+                  <th className="w-[8%] px-3 py-2.5 font-medium">Klant sinds</th>
+                  <th className="w-[15%] px-3 py-2.5 font-medium">Naam</th>
+                  <th className="w-[12%] px-3 py-2.5 font-medium">Dossierbeheerder</th>
+                  <th className="w-[10%] px-3 py-2.5 font-medium">Aanbrenger</th>
+                  <th className="w-[11%] px-3 py-2.5 font-medium">Telefoonnummer</th>
+                  <th className="w-[16%] px-3 py-2.5 font-medium">E-mailadres</th>
+                  <th className="w-[14%] px-3 py-2.5 font-medium">Opvolging</th>
+                  <th className="w-10 px-2 py-2.5 font-medium">BOAR</th>
+                  <th className="w-[9%] px-3 py-2.5 font-medium text-right">Totale premies</th>
+                  <th className="w-16 px-3 py-2.5 font-medium text-right">Aantal eenheden</th>
+                  <th className="w-9 px-2 py-2.5 font-medium"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -567,10 +567,10 @@ export default async function SubagentKlantenPage({
                     caseManagerOptions,
                   }) => (
                     <tr key={customer.id} className="hover:bg-slate-50">
-                      <td className="truncate px-2 py-1.5 text-slate-600">
+                      <td className="truncate px-3 py-2 text-slate-600">
                         {formatDate(customer.becameCustomerAt)}
                       </td>
-                      <td className="max-w-0 truncate px-2 py-1.5">
+                      <td className="max-w-0 truncate px-3 py-2">
                         <Link
                           href={`/leads/${customer.id}`}
                           title={`${customer.firstName} ${customer.lastName}`}
@@ -582,14 +582,14 @@ export default async function SubagentKlantenPage({
                           <span className="ml-1 text-slate-400">{customer.company}</span>
                         )}
                       </td>
-                      <td className="max-w-0 px-2 py-1.5">
+                      <td className="max-w-0 px-3 py-2">
                         {canEditCustomerData ? (
                           <InlineSelect
                             action={boundSetCaseManager}
                             name="subagentId"
                             value={customer.caseManagerSubagentId ?? ""}
                             options={caseManagerOptions}
-                            className="w-full truncate rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs disabled:opacity-60"
+                            className="w-full truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
                           />
                         ) : (
                           <span className="block truncate text-slate-600">
@@ -597,59 +597,59 @@ export default async function SubagentKlantenPage({
                           </span>
                         )}
                       </td>
-                      <td className="max-w-0 truncate px-2 py-1.5 text-slate-600">
+                      <td className="max-w-0 truncate px-3 py-2 text-slate-600">
                         {customer.owner.name}
                       </td>
-                      <td className="max-w-0 truncate px-2 py-1.5 text-slate-600">
+                      <td className="max-w-0 truncate px-3 py-2 text-slate-600">
                         {customer.phone || "—"}
                       </td>
                       <td
-                        className="max-w-0 truncate px-2 py-1.5 text-slate-600"
+                        className="max-w-0 truncate px-3 py-2 text-slate-600"
                         title={customer.email ?? undefined}
                       >
                         {customer.email || "—"}
                       </td>
-                      <td className="max-w-0 px-2 py-1.5">
+                      <td className="max-w-0 px-3 py-2">
                         {canEditCustomerData ? (
                           <InlineSelect
                             action={boundSetFollowUpStatus}
                             name="status"
                             value={customer.followUpStatusEffective}
                             options={followUpStatusOptions}
-                            className="w-full truncate rounded-md border-0 px-1.5 py-1 text-xs font-medium"
+                            className="w-full truncate rounded-md border-0 px-2 py-1.5 text-sm font-medium"
                             style={followUpStatusColors[customer.followUpStatusEffective]}
                           />
                         ) : (
                           <span
-                            className="inline-block max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                            className="inline-block max-w-full truncate rounded-full px-2.5 py-1 text-sm font-medium"
                             style={followUpStatusColors[customer.followUpStatusEffective]}
                           >
                             {followUpStatusLabelByValue.get(customer.followUpStatusEffective)}
                           </span>
                         )}
                       </td>
-                      <td className="px-1 py-1.5">
+                      <td className="px-2 py-2">
                         <span
                           title={boarLabel}
-                          className="mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
+                          className="mx-auto flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold"
                           style={boarStyle}
                         >
                           B
                         </span>
                       </td>
-                      <td className="px-2 py-1.5 text-right font-medium text-slate-900">
+                      <td className="px-3 py-2 text-right font-medium text-slate-900">
                         {formatAmount(customer.totalAmount)}
                       </td>
-                      <td className="px-2 py-1.5 text-right text-slate-600">
+                      <td className="px-3 py-2 text-right text-slate-600">
                         {customer.totalUnits}
                       </td>
-                      <td className="px-1 py-1.5 text-right">
+                      <td className="px-2 py-2 text-right">
                         <Link
                           href={`/leads/${customer.id}`}
                           title="Wijzigingen doorvoeren"
-                          className="inline-flex rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                          className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                         >
-                          <MoreVertical size={15} />
+                          <MoreVertical size={17} />
                         </Link>
                       </td>
                     </tr>
