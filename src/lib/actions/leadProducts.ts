@@ -17,7 +17,7 @@ import {
 } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
-import { BOAR_STATUS_ORDER } from "@/lib/boarStatus";
+import { BOAR_STATUS_ORDER, BOAR_STATUS_NONE } from "@/lib/boarStatus";
 
 async function requireUser() {
   const viewer = await getEffectiveViewer();
@@ -608,6 +608,39 @@ export async function setFollowUpStatusAction(
   });
 
   revalidatePath("/subagent");
+}
+
+/**
+ * Zet enkel de BOAR-status van een klant op "Klanten onder beheer" (snelle
+ * inline-wijziging in de tabel) — laat boarNotes/boarProductNotes (bewerkt
+ * via het klantenprofiel, zie updateBoarInfoAction) bewust ongemoeid.
+ */
+export async function setBoarStatusAction(leadId: string, formData: FormData) {
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId } }),
+  ]);
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
+  if (!(await canAccessOwner(user, lead.ownerId))) {
+    throw new Error("Geen toegang tot deze lead");
+  }
+  if (!canManageCustomerData(user)) {
+    throw new Error("Enkel subagenten mogen klantendata aanpassen");
+  }
+
+  const raw = String(formData.get("status") ?? "").trim();
+  const boarStatus =
+    raw !== BOAR_STATUS_NONE && BOAR_STATUS_ORDER.includes(raw as BoarStatus)
+      ? (raw as BoarStatus)
+      : null;
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { boarStatus },
+  });
+
+  revalidatePath("/subagent");
+  revalidatePath(`/leads/${leadId}`);
 }
 
 export type CustomerStats = {

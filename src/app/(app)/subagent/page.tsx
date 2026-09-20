@@ -14,6 +14,7 @@ import { getSubagents } from "@/lib/actions/subagents";
 import {
   setCaseManagerAction,
   setFollowUpStatusAction,
+  setBoarStatusAction,
 } from "@/lib/actions/leadProducts";
 import {
   getManagedCustomers,
@@ -204,6 +205,14 @@ export default async function SubagentKlantenPage({
   const followUpStatusLabelByValue = new Map(
     followUpStatusOptions.map((o) => [o.value, o.label])
   );
+  const boarStatusOptions = [
+    { value: BOAR_STATUS_NONE, label: BOAR_NONE_LABEL, style: BOAR_NONE_STYLE },
+    ...BOAR_STATUS_ORDER.map((s) => ({
+      value: s,
+      label: BOAR_STATUS_LABELS[s],
+      style: BOAR_STATUS_COLORS[s],
+    })),
+  ];
 
   // Eén keer per klant berekenen (i.p.v. inline in de .map()) zodat zowel de
   // kaartweergave (mobiel) als de tabel (desktop) dezelfde bindings/opties
@@ -212,6 +221,8 @@ export default async function SubagentKlantenPage({
     customer,
     boundSetCaseManager: setCaseManagerAction.bind(null, customer.id),
     boundSetFollowUpStatus: setFollowUpStatusAction.bind(null, customer.id),
+    boundSetBoarStatus: setBoarStatusAction.bind(null, customer.id),
+    boarValue: customer.boarStatus ?? BOAR_STATUS_NONE,
     boarLabel: customer.boarStatus ? BOAR_STATUS_LABELS[customer.boarStatus] : BOAR_NONE_LABEL,
     boarStyle: customer.boarStatus ? BOAR_STATUS_COLORS[customer.boarStatus] : BOAR_NONE_STYLE,
     caseManagerOptions: customer.caseManagerSubagentId
@@ -422,6 +433,8 @@ export default async function SubagentKlantenPage({
                 customer,
                 boundSetCaseManager,
                 boundSetFollowUpStatus,
+                boundSetBoarStatus,
+                boarValue,
                 boarLabel,
                 boarStyle,
                 caseManagerOptions,
@@ -510,12 +523,23 @@ export default async function SubagentKlantenPage({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500">BOAR</span>
-                      <span
-                        className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
-                        style={boarStyle}
-                      >
-                        {boarLabel}
-                      </span>
+                      {canEditCustomerData ? (
+                        <InlineSelect
+                          action={boundSetBoarStatus}
+                          name="status"
+                          value={boarValue}
+                          options={boarStatusOptions}
+                          className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                          style={boarStyle}
+                        />
+                      ) : (
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                          style={boarStyle}
+                        >
+                          {boarLabel}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500">Totale premies</span>
@@ -556,6 +580,8 @@ export default async function SubagentKlantenPage({
                     customer,
                     boundSetCaseManager,
                     boundSetFollowUpStatus,
+                    boundSetBoarStatus,
+                    boarValue,
                     boarLabel,
                     boarStyle,
                     caseManagerOptions,
@@ -619,12 +645,23 @@ export default async function SubagentKlantenPage({
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
-                          style={boarStyle}
-                        >
-                          {boarLabel}
-                        </span>
+                        {canEditCustomerData ? (
+                          <InlineSelect
+                            action={boundSetBoarStatus}
+                            name="status"
+                            value={boarValue}
+                            options={boarStatusOptions}
+                            className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
+                            style={boarStyle}
+                          />
+                        ) : (
+                          <span
+                            className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                            style={boarStyle}
+                          >
+                            {boarLabel}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right font-medium text-slate-900">
                         {formatAmount(customer.totalAmount)}
