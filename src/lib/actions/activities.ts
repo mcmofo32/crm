@@ -336,6 +336,8 @@ export async function updateActivityAction(
   let meetingLink = activity.meetingLink;
   let subagentId = activity.subagentId;
   let subagent = null;
+  let type = activity.type;
+  let subject = activity.subject;
 
   if (isRichMeeting) {
     if (!scheduledAt) return { error: "Kies een datum en uur voor de afspraak" };
@@ -384,17 +386,20 @@ export async function updateActivityAction(
     ) {
       return { error: "Duid een subagent aan om deze afspraak in te plannen" };
     }
+    // De titel bevat het uur (zie buildMeetingSubject) — zonder dit opnieuw
+    // op te bouwen bleef de oude titel (met het oude uur) staan nadat enkel
+    // het tijdstip van een afspraak gewijzigd werd.
+    subject = buildMeetingSubject(scheduledAt, bareType, lead.firstName, lead.lastName);
+  } else {
+    type = (formData.get("type") as ActivityType) ?? activity.type;
+    subject = String(formData.get("subject") ?? activity.subject);
   }
 
   const updated = await prisma.activity.update({
     where: { id: activityId },
     data: {
-      ...(isRichMeeting
-        ? {}
-        : {
-            type: (formData.get("type") as ActivityType) ?? activity.type,
-            subject: String(formData.get("subject") ?? activity.subject),
-          }),
+      type,
+      subject,
       // Leeg gelaten (nu optioneel) mag de bestaande notities niet wissen.
       notes: feedback || activity.notes,
       scheduledAt,
