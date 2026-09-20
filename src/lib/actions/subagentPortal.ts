@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { ProductType } from "@/generated/prisma/client";
+import { ProductType, BoarStatus } from "@/generated/prisma/client";
 import {
   canManageCustomerData,
   canManageUsers,
@@ -11,6 +11,16 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import type { CustomerSortOption } from "@/lib/actions/leadProducts";
 import { backfillMissingPolicies } from "@/lib/actions/policies";
 import { defaultFollowUpStatus } from "@/lib/followUpStatusReset";
+import { BOAR_STATUS_ORDER, BOAR_STATUS_NONE } from "@/lib/boarStatus";
+
+/** `sortBy`-opties enkel voor "Klanten onder beheer" (bovenop de gedeelde CustomerSortOption). */
+export type ManagedCustomerSortOption = CustomerSortOption | "boarStatus";
+
+/** Sorteervolgorde voor BOAR-fase: nog niet gestart (null) eerst, dan BOAR_STATUS_ORDER. */
+function boarStatusSortIndex(status: BoarStatus | null): number {
+  if (status === null) return -1;
+  return BOAR_STATUS_ORDER.indexOf(status);
+}
 
 async function requireSubagentPortalAccess() {
   const viewer = await getEffectiveViewer();
@@ -91,7 +101,7 @@ export async function getManagedCustomers(options: {
   userIds: string[] | null;
   search?: string;
   productType?: ProductType;
-  sortBy?: CustomerSortOption;
+  sortBy?: ManagedCustomerSortOption;
   /**
    * 1-12: enkel klanten tonen die in deze kalendermaand klant geworden zijn
    * (ongeacht het jaar) — voor de jaarlijkse opvolging op de verjaardag van
@@ -99,6 +109,8 @@ export async function getManagedCustomers(options: {
    * in januari opnieuw opvolgen).
    */
   followUpMonth?: number;
+  /** Exacte BOAR-status, of BOAR_STATUS_NONE voor klanten waar nog geen status ingesteld is. */
+  boarStatus?: BoarStatus | typeof BOAR_STATUS_NONE;
 }) {
   await requireSubagentPortalAccess();
   const trimmedSearch = options.search?.trim();
@@ -111,6 +123,11 @@ export async function getManagedCustomers(options: {
       ...(options.productType
         ? { products: { some: { type: options.productType } } }
         : {}),
+      ...(options.boarStatus === BOAR_STATUS_NONE
+        ? { boarStatus: null }
+        : options.boarStatus
+          ? { boarStatus: options.boarStatus }
+          : {}),
       ...(trimmedSearch
         ? {
             OR: [
@@ -167,6 +184,8 @@ export async function getManagedCustomers(options: {
 
   return monthFiltered.sort((a, b) => {
     switch (options.sortBy) {
+      case "boarStatus":
+        return boarStatusSortIndex(a.boarStatus) - boarStatusSortIndex(b.boarStatus);
       case "oldest":
         return a.becameCustomerAt.getTime() - b.becameCustomerAt.getTime();
       case "amount":

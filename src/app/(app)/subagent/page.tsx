@@ -14,13 +14,13 @@ import { getSubagents } from "@/lib/actions/subagents";
 import {
   setCaseManagerAction,
   setFollowUpStatusAction,
-  type CustomerSortOption,
 } from "@/lib/actions/leadProducts";
 import {
   getManagedCustomers,
   getManagedCustomerStats,
   getManagedScopePersons,
   resolveManagedUserIds,
+  type ManagedCustomerSortOption,
 } from "@/lib/actions/subagentPortal";
 import {
   getProductionStructureOptions,
@@ -30,9 +30,19 @@ import {
 import { canManageCustomerData, canManageUsers } from "@/lib/permissions";
 import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { MONTH_LABELS } from "@/lib/goalLabels";
-import { ProductType } from "@/generated/prisma/client";
+import {
+  BOAR_STATUS_LABELS,
+  BOAR_STATUS_ORDER,
+  BOAR_STATUS_COLORS,
+  BOAR_STATUS_NONE,
+} from "@/lib/boarStatus";
+import { ProductType, BoarStatus } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { SubagentTabs } from "@/components/SubagentTabs";
+
+/** Kleur voor de BOAR-badge zolang er nog geen status ingesteld is — zelfde grijstint als de NVT-opvolgingsstatus. */
+const BOAR_NONE_STYLE = { background: "#e2e8f0", color: "#475569" };
+const BOAR_NONE_LABEL = "Nog niet gestart";
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—";
@@ -64,19 +74,26 @@ export default async function SubagentKlantenPage({
     product?: string;
     sort?: string;
     followUpMonth?: string;
+    boar?: string;
   }>;
 }) {
-  const { scope, q, product, sort, followUpMonth } = await searchParams;
+  const { scope, q, product, sort, followUpMonth, boar } = await searchParams;
   const productType =
     product && (Object.values(ProductType) as string[]).includes(product)
       ? (product as ProductType)
       : undefined;
-  const sortBy: CustomerSortOption | undefined =
-    sort === "oldest" || sort === "amount" || sort === "units" ? sort : undefined;
+  const sortBy: ManagedCustomerSortOption | undefined =
+    sort === "oldest" || sort === "amount" || sort === "units" || sort === "boarStatus"
+      ? sort
+      : undefined;
   const followUpMonthNum = Number(followUpMonth);
   const followUpMonthValue =
     followUpMonth && followUpMonthNum >= 1 && followUpMonthNum <= 12
       ? followUpMonthNum
+      : undefined;
+  const boarStatusValue: BoarStatus | typeof BOAR_STATUS_NONE | undefined =
+    boar === BOAR_STATUS_NONE || (boar && (BOAR_STATUS_ORDER as string[]).includes(boar))
+      ? (boar as BoarStatus | typeof BOAR_STATUS_NONE)
       : undefined;
 
   const viewer = (await getEffectiveViewer())!;
@@ -125,6 +142,7 @@ export default async function SubagentKlantenPage({
       {followUpMonth && (
         <input type="hidden" name="followUpMonth" value={followUpMonth} />
       )}
+      {boar && <input type="hidden" name="boar" value={boar} />}
       <Users size={17} className="text-slate-400" />
       <label className="text-sm text-slate-600">
         Bekijk klanten onder beheer van:
@@ -165,6 +183,7 @@ export default async function SubagentKlantenPage({
       productType,
       sortBy,
       followUpMonth: followUpMonthValue,
+      boarStatus: boarStatusValue,
     }),
     getManagedCustomerStats(monthPeriod, yearPeriod, userIds),
   ]);
@@ -193,6 +212,8 @@ export default async function SubagentKlantenPage({
     customer,
     boundSetCaseManager: setCaseManagerAction.bind(null, customer.id),
     boundSetFollowUpStatus: setFollowUpStatusAction.bind(null, customer.id),
+    boarLabel: customer.boarStatus ? BOAR_STATUS_LABELS[customer.boarStatus] : BOAR_NONE_LABEL,
+    boarStyle: customer.boarStatus ? BOAR_STATUS_COLORS[customer.boarStatus] : BOAR_NONE_STYLE,
     caseManagerOptions: customer.caseManagerSubagentId
       ? subagents.map((s) => ({ value: s.id, label: s.name }))
       : [
@@ -203,7 +224,7 @@ export default async function SubagentKlantenPage({
         ],
   }));
 
-  const filtersActive = Boolean(product || sortBy || followUpMonthValue);
+  const filtersActive = Boolean(product || sortBy || followUpMonthValue || boarStatusValue);
   function clearFiltersHref() {
     const params = new URLSearchParams();
     if (scope) params.set("scope", scope);
@@ -322,6 +343,24 @@ export default async function SubagentKlantenPage({
                 <option value="oldest">Langst klant</option>
                 <option value="amount">Hoogste totaalbedrag</option>
                 <option value="units">Meeste eenheden</option>
+                <option value="boarStatus">BOAR-fase</option>
+              </select>
+
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                BOAR-status
+              </label>
+              <select
+                name="boar"
+                defaultValue={boar ?? ""}
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">Alle BOAR-statussen</option>
+                <option value={BOAR_STATUS_NONE}>{BOAR_NONE_LABEL}</option>
+                {BOAR_STATUS_ORDER.map((s) => (
+                  <option key={s} value={s}>
+                    {BOAR_STATUS_LABELS[s]}
+                  </option>
+                ))}
               </select>
 
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -379,7 +418,14 @@ export default async function SubagentKlantenPage({
               leesbaar zonder veel zijwaarts scrollen. */}
           <div className="flex flex-col gap-3 sm:hidden">
             {customerRows.map(
-              ({ customer, boundSetCaseManager, boundSetFollowUpStatus, caseManagerOptions }) => (
+              ({
+                customer,
+                boundSetCaseManager,
+                boundSetFollowUpStatus,
+                boarLabel,
+                boarStyle,
+                caseManagerOptions,
+              }) => (
                 <div
                   key={customer.id}
                   className="rounded-lg border border-slate-200 bg-white p-4"
@@ -463,6 +509,15 @@ export default async function SubagentKlantenPage({
                       )}
                     </div>
                     <div className="flex items-center justify-between">
+                      <span className="text-slate-500">BOAR</span>
+                      <span
+                        className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                        style={boarStyle}
+                      >
+                        {boarLabel}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <span className="text-slate-500">Totale premies</span>
                       <span className="font-medium text-slate-900">
                         {formatAmount(customer.totalAmount)}
@@ -489,6 +544,7 @@ export default async function SubagentKlantenPage({
                   <th className="px-6 py-3 font-medium">Telefoonnummer</th>
                   <th className="px-6 py-3 font-medium">E-mailadres</th>
                   <th className="px-6 py-3 font-medium">Opvolging</th>
+                  <th className="px-6 py-3 font-medium">BOAR</th>
                   <th className="px-6 py-3 font-medium text-right">Totale premies</th>
                   <th className="px-6 py-3 font-medium text-right">Aantal eenheden</th>
                   <th className="px-6 py-3 font-medium"></th>
@@ -496,7 +552,14 @@ export default async function SubagentKlantenPage({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {customerRows.map(
-                  ({ customer, boundSetCaseManager, boundSetFollowUpStatus, caseManagerOptions }) => (
+                  ({
+                    customer,
+                    boundSetCaseManager,
+                    boundSetFollowUpStatus,
+                    boarLabel,
+                    boarStyle,
+                    caseManagerOptions,
+                  }) => (
                     <tr key={customer.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 text-slate-600">
                         {formatDate(customer.becameCustomerAt)}
@@ -554,6 +617,14 @@ export default async function SubagentKlantenPage({
                             {followUpStatusLabelByValue.get(customer.followUpStatusEffective)}
                           </span>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
+                          style={boarStyle}
+                        >
+                          {boarLabel}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right font-medium text-slate-900">
                         {formatAmount(customer.totalAmount)}
