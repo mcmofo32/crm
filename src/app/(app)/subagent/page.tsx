@@ -448,19 +448,17 @@ export default async function SubagentKlantenPage({
                         <InlineSelect
                           action={boundSetFollowUpStatus}
                           name="status"
-                          value={customer.followUpStatus ?? "TODO"}
+                          value={customer.followUpStatusEffective}
                           options={followUpStatusOptions}
                           className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
-                          style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                          style={followUpStatusColors[customer.followUpStatusEffective]}
                         />
                       ) : (
                         <span
                           className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
-                          style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                          style={followUpStatusColors[customer.followUpStatusEffective]}
                         >
-                          {followUpStatusLabelByValue.get(
-                            customer.followUpStatus ?? "TODO"
-                          )}
+                          {followUpStatusLabelByValue.get(customer.followUpStatusEffective)}
                         </span>
                       )}
                     </div>
@@ -543,19 +541,17 @@ export default async function SubagentKlantenPage({
                           <InlineSelect
                             action={boundSetFollowUpStatus}
                             name="status"
-                            value={customer.followUpStatus ?? "TODO"}
+                            value={customer.followUpStatusEffective}
                             options={followUpStatusOptions}
                             className="rounded-md border-0 px-2 py-1.5 text-sm font-medium"
-                            style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                            style={followUpStatusColors[customer.followUpStatusEffective]}
                           />
                         ) : (
                           <span
                             className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium"
-                            style={followUpStatusColors[customer.followUpStatus ?? "TODO"]}
+                            style={followUpStatusColors[customer.followUpStatusEffective]}
                           >
-                            {followUpStatusLabelByValue.get(
-                              customer.followUpStatus ?? "TODO"
-                            )}
+                            {followUpStatusLabelByValue.get(customer.followUpStatusEffective)}
                           </span>
                         )}
                       </td>
