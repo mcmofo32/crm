@@ -25,7 +25,17 @@ export async function getSubagents() {
   if (!viewer) throw new Error("Niet ingelogd");
 
   return prisma.subagent.findMany({
-    where: { active: true },
+    where: {
+      active: true,
+      // Een auto-gesynchroniseerde subagent (gekoppeld aan een echt
+      // gebruikersaccount, zie userId) mag nooit kiesbaar blijven als die
+      // gebruiker ondertussen inactief gezet is — ook niet als
+      // syncSubagentForUser dat om een of andere reden nog niet doorgevoerd
+      // heeft. userId: null laat een manueel toegevoegde subagent (geen
+      // inlogaccount, dus geen actief/inactief-status om op te controleren)
+      // gewoon door.
+      OR: [{ userId: null }, { user: { active: true } }],
+    },
     include: { team: { select: { name: true } } },
     orderBy: { name: "asc" },
   });
