@@ -136,7 +136,7 @@ export default async function SubagentKlantenPage({
   const scopeSwitcher = canPickScope && (
     <form
       method="GET"
-      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
     >
       {q && <input type="hidden" name="q" value={q} />}
       {product && <input type="hidden" name="product" value={product} />}
@@ -145,14 +145,14 @@ export default async function SubagentKlantenPage({
         <input type="hidden" name="followUpMonth" value={followUpMonth} />
       )}
       {boar && <input type="hidden" name="boar" value={boar} />}
-      <Users size={17} className="text-slate-400" />
-      <label className="text-sm text-slate-600">
+      <Users size={17} className="text-slate-400 dark:text-slate-500" />
+      <label className="text-sm text-slate-600 dark:text-slate-400">
         Bekijk klanten onder beheer van:
       </label>
       <select
         name="scope"
         defaultValue={effectiveScope}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       >
         <option value="">Mezelf</option>
         <option value={ALL_OPTION}>Iedereen</option>
@@ -171,7 +171,7 @@ export default async function SubagentKlantenPage({
       </select>
       <button
         type="submit"
-        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
       >
         Bekijken
       </button>
@@ -241,13 +241,13 @@ export default async function SubagentKlantenPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600">
               <UserCheck size={20} />
             </span>
             Klanten onder beheer
           </h1>
-          <p className="mt-1 text-base text-slate-500">
+          <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
             Klanten waar jij (of de gekozen structuur/persoon) dossierbeheerder van bent.
           </p>
         </div>
@@ -293,14 +293,14 @@ export default async function SubagentKlantenPage({
           <div className="relative w-full sm:w-72">
             <Search
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             />
             <input
               type="search"
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
-              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base"
+              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
 
@@ -308,25 +308,25 @@ export default async function SubagentKlantenPage({
             <summary
               className={`flex cursor-pointer list-none items-center gap-1.5 rounded-md border px-4 py-2 text-base font-medium ${
                 filtersActive
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               }`}
             >
               Filter
               {filtersActive && (
-                <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900">
+                <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100">
                   •
                 </span>
               )}
             </summary>
-            <div className="absolute right-0 top-full z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+            <div className="absolute right-0 top-full z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Product
               </label>
               <select
                 name="product"
                 defaultValue={product ?? ""}
-                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="">Alle producten</option>
                 {PRODUCT_TYPE_ORDER.map((pt) => (
@@ -336,13 +336,13 @@ export default async function SubagentKlantenPage({
                 ))}
               </select>
 
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Sorteren op
               </label>
               <select
                 name="sort"
                 defaultValue={sort ?? "recent"}
-                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="recent">Meest recent klant</option>
                 <option value="oldest">Langst klant</option>
@@ -351,13 +351,13 @@ export default async function SubagentKlantenPage({
                 <option value="boarStatus">BOAR-fase</option>
               </select>
 
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 BOAR-status
               </label>
               <select
                 name="boar"
                 defaultValue={boar ?? ""}
-                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="">Alle BOAR-statussen</option>
                 <option value={BOAR_STATUS_NONE}>{BOAR_NONE_LABEL}</option>
@@ -368,13 +368,13 @@ export default async function SubagentKlantenPage({
                 ))}
               </select>
 
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Opvolging — verjaardagsmaand
               </label>
               <select
                 name="followUpMonth"
                 defaultValue={followUpMonthValue ? String(followUpMonthValue) : ""}
-                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="">Alle maanden</option>
                 {MONTH_LABELS.map((label, i) => (
@@ -383,7 +383,7 @@ export default async function SubagentKlantenPage({
                   </option>
                 ))}
               </select>
-              <p className="mb-3 -mt-2 text-xs text-slate-400">
+              <p className="mb-3 -mt-2 text-xs text-slate-400 dark:text-slate-500">
                 Toont enkel klanten die in deze kalendermaand klant geworden
                 zijn (elk jaar) — handig voor de jaarlijkse opvolging op hun
                 verjaardag.
@@ -392,14 +392,14 @@ export default async function SubagentKlantenPage({
               <div className="flex items-center gap-3">
                 <button
                   type="submit"
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
                 >
                   Filters toepassen
                 </button>
                 {filtersActive && (
                   <Link
                     href={clearFiltersHref()}
-                    className="text-sm text-slate-500 underline hover:text-slate-700"
+                    className="text-sm text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
                   >
                     Filters wissen
                   </Link>
@@ -411,7 +411,7 @@ export default async function SubagentKlantenPage({
       </div>
 
       {customerRows.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white px-6 py-8 text-center text-slate-400">
+        <div className="rounded-lg border border-slate-200 bg-white px-6 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500">
           {filtersActive || q
             ? "Geen klanten gevonden voor deze filters."
             : "Geen klanten onder beheer."}
@@ -433,24 +433,24 @@ export default async function SubagentKlantenPage({
               }) => (
                 <div
                   key={customer.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
+                  className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <Link
                         href={`/leads/${customer.id}`}
-                        className="font-medium text-slate-900 hover:underline"
+                        className="font-medium text-slate-900 hover:underline dark:text-slate-100"
                       >
                         {customer.firstName} {customer.lastName}
                       </Link>
                       {customer.company && (
-                        <p className="text-sm text-slate-400">{customer.company}</p>
+                        <p className="text-sm text-slate-400 dark:text-slate-500">{customer.company}</p>
                       )}
                     </div>
                     <Link
                       href={`/leads/${customer.id}`}
                       title="Wijzigingen doorvoeren"
-                      className="flex-shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      className="flex-shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                     >
                       <MoreVertical size={18} />
                     </Link>
@@ -459,42 +459,42 @@ export default async function SubagentKlantenPage({
                   {customer.phone && (
                     <a
                       href={`tel:${customer.phone}`}
-                      className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600"
+                      className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400"
                     >
                       {customer.phone}
                     </a>
                   )}
                   {customer.email && (
-                    <p className="mt-1 text-sm text-slate-500">{customer.email}</p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{customer.email}</p>
                   )}
 
-                  <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
+                  <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Klant sinds</span>
-                      <span className="text-slate-700">
+                      <span className="text-slate-500 dark:text-slate-400">Klant sinds</span>
+                      <span className="text-slate-700 dark:text-slate-300">
                         {formatDate(customer.becameCustomerAt)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Dossierbeheerder</span>
+                      <span className="text-slate-500 dark:text-slate-400">Dossierbeheerder</span>
                       {canEditCustomerData ? (
                         <InlineSelect
                           action={boundSetCaseManager}
                           name="subagentId"
                           value={customer.caseManagerSubagentId ?? ""}
                           options={caseManagerOptions}
-                          className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                          className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                         />
                       ) : (
-                        <span className="text-slate-700">{customer.caseManagerName}</span>
+                        <span className="text-slate-700 dark:text-slate-300">{customer.caseManagerName}</span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Aanbrenger</span>
-                      <span className="text-slate-700">{customer.owner.name}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Aanbrenger</span>
+                      <span className="text-slate-700 dark:text-slate-300">{customer.owner.name}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Opvolging</span>
+                      <span className="text-slate-500 dark:text-slate-400">Opvolging</span>
                       {canEditCustomerData ? (
                         <InlineSelect
                           action={boundSetFollowUpStatus}
@@ -514,7 +514,7 @@ export default async function SubagentKlantenPage({
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">BOAR</span>
+                      <span className="text-slate-500 dark:text-slate-400">BOAR</span>
                       <span
                         title={boarLabel}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold"
@@ -524,14 +524,14 @@ export default async function SubagentKlantenPage({
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Totale premies</span>
-                      <span className="font-medium text-slate-900">
+                      <span className="text-slate-500 dark:text-slate-400">Totale premies</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">
                         {formatAmount(customer.totalAmount)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Aantal eenheden</span>
-                      <span className="text-slate-700">{customer.totalUnits}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Aantal eenheden</span>
+                      <span className="text-slate-700 dark:text-slate-300">{customer.totalUnits}</span>
                     </div>
                   </div>
                 </div>
@@ -539,9 +539,9 @@ export default async function SubagentKlantenPage({
             )}
           </div>
 
-          <div className="hidden rounded-lg border border-slate-200 bg-white sm:block">
+          <div className="hidden rounded-lg border border-slate-200 bg-white sm:block dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full table-fixed text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
+              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="w-[8%] px-3 py-2.5 font-medium">Klant sinds</th>
                   <th className="w-[15%] px-3 py-2.5 font-medium">Naam</th>
@@ -556,7 +556,7 @@ export default async function SubagentKlantenPage({
                   <th className="w-9 px-2 py-2.5 font-medium"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {customerRows.map(
                   ({
                     customer,
@@ -566,20 +566,20 @@ export default async function SubagentKlantenPage({
                     boarStyle,
                     caseManagerOptions,
                   }) => (
-                    <tr key={customer.id} className="hover:bg-slate-50">
-                      <td className="truncate px-3 py-2 text-slate-600">
+                    <tr key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                      <td className="truncate px-3 py-2 text-slate-600 dark:text-slate-400">
                         {formatDate(customer.becameCustomerAt)}
                       </td>
                       <td className="max-w-0 truncate px-3 py-2">
                         <Link
                           href={`/leads/${customer.id}`}
                           title={`${customer.firstName} ${customer.lastName}`}
-                          className="font-medium text-slate-900 hover:underline"
+                          className="font-medium text-slate-900 hover:underline dark:text-slate-100"
                         >
                           {customer.firstName} {customer.lastName}
                         </Link>
                         {customer.company && (
-                          <span className="ml-1 text-slate-400">{customer.company}</span>
+                          <span className="ml-1 text-slate-400 dark:text-slate-500">{customer.company}</span>
                         )}
                       </td>
                       <td className="max-w-0 px-3 py-2">
@@ -589,22 +589,22 @@ export default async function SubagentKlantenPage({
                             name="subagentId"
                             value={customer.caseManagerSubagentId ?? ""}
                             options={caseManagerOptions}
-                            className="w-full truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                            className="w-full truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                           />
                         ) : (
-                          <span className="block truncate text-slate-600">
+                          <span className="block truncate text-slate-600 dark:text-slate-400">
                             {customer.caseManagerName}
                           </span>
                         )}
                       </td>
-                      <td className="max-w-0 truncate px-3 py-2 text-slate-600">
+                      <td className="max-w-0 truncate px-3 py-2 text-slate-600 dark:text-slate-400">
                         {customer.owner.name}
                       </td>
-                      <td className="max-w-0 truncate px-3 py-2 text-slate-600">
+                      <td className="max-w-0 truncate px-3 py-2 text-slate-600 dark:text-slate-400">
                         {customer.phone || "—"}
                       </td>
                       <td
-                        className="max-w-0 truncate px-3 py-2 text-slate-600"
+                        className="max-w-0 truncate px-3 py-2 text-slate-600 dark:text-slate-400"
                         title={customer.email ?? undefined}
                       >
                         {customer.email || "—"}
@@ -637,17 +637,17 @@ export default async function SubagentKlantenPage({
                           B
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-right font-medium text-slate-900">
+                      <td className="px-3 py-2 text-right font-medium text-slate-900 dark:text-slate-100">
                         {formatAmount(customer.totalAmount)}
                       </td>
-                      <td className="px-3 py-2 text-right text-slate-600">
+                      <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-400">
                         {customer.totalUnits}
                       </td>
                       <td className="px-2 py-2 text-right">
                         <Link
                           href={`/leads/${customer.id}`}
                           title="Wijzigingen doorvoeren"
-                          className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                          className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                         >
                           <MoreVertical size={17} />
                         </Link>
@@ -678,15 +678,15 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
       <span
         className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
       >
         <Icon size={20} />
       </span>
-      <p className="text-base text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-slate-900">{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      <p className="text-base text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
+      {hint && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
     </div>
   );
 }

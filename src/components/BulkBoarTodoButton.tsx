@@ -36,7 +36,7 @@ export function BulkBoarTodoButton({
           router.refresh();
         });
       }}
-      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
     >
       {pending ? "Bezig…" : "Alle klanten op BOAR: nog te doen"}
     </button>

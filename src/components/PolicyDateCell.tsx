@@ -23,8 +23,8 @@ export function PolicyDateEditToggle({ children }: { children: React.ReactNode }
             onClick={() => setEditMode((v) => !v)}
             className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium ${
               editMode
-                ? "border-slate-900 bg-slate-900 text-white"
-                : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+                : "border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             }`}
           >
             {editMode ? <Check size={15} /> : <Pencil size={15} />}
@@ -61,7 +61,7 @@ export function PolicyDateCell({
 }) {
   const editMode = useContext(PolicyDateEditContext);
   if (!editMode) {
-    return <span className="whitespace-nowrap px-1 text-slate-600">{formatDate(date)}</span>;
+    return <span className="whitespace-nowrap px-1 text-slate-600 dark:text-slate-400">{formatDate(date)}</span>;
   }
   return (
     <InlineTextField
@@ -69,7 +69,7 @@ export function PolicyDateCell({
       action={action}
       name={name}
       value={toDateInputValue(date)}
-      className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+      className="rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
     />
   );
 }
@@ -110,11 +110,11 @@ export function PolicyAmountCell({
   if (!editMode) {
     return (
       <span className="whitespace-nowrap px-1">
-        <span className={reducedAmount !== null ? "font-medium text-red-700" : "text-slate-600"}>
+        <span className={reducedAmount !== null ? "font-medium text-red-700 dark:text-red-400" : "text-slate-600 dark:text-slate-400"}>
           {formatAmount(effective)}
         </span>
         {reducedAmount !== null && (
-          <span className="ml-1.5 text-xs text-slate-400 line-through">
+          <span className="ml-1.5 text-xs text-slate-400 line-through dark:text-slate-500">
             {formatAmount(amount)}
           </span>
         )}
@@ -137,7 +137,7 @@ export function PolicyAmountCell({
       action={action}
       name={name}
       value={String(effective)}
-      className="w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+      className="w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
     />
   );
 }
