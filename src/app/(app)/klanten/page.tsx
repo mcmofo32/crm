@@ -139,7 +139,7 @@ export default async function KlantenPage({
   const ownerSwitcher = requiresSelection && (
     <form
       method="GET"
-      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
     >
       {q && <input type="hidden" name="q" value={q} />}
       {product && <input type="hidden" name="product" value={product} />}
@@ -147,11 +147,11 @@ export default async function KlantenPage({
       {to && <input type="hidden" name="to" value={to} />}
       {sort && <input type="hidden" name="sort" value={sort} />}
       <Users size={17} className="text-slate-400" />
-      <label className="text-sm text-slate-600">Bekijk klanten van:</label>
+      <label className="text-sm text-slate-600 dark:text-slate-400">Bekijk klanten van:</label>
       <select
         name="ownerId"
         defaultValue={selectedOwnerId}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       >
         <option value={ALL_OPTION}>Iedereen</option>
         {assignableUsers.map((u) => (
@@ -167,7 +167,7 @@ export default async function KlantenPage({
       </select>
       <button
         type="submit"
-        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
       >
         Bekijken
       </button>
@@ -245,20 +245,20 @@ export default async function KlantenPage({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600">
               <UserCheck size={20} />
             </span>
             Klanten
           </h1>
-          <p className="mt-1 text-base text-slate-500">
+          <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
             Overzicht van alle klanten en de producten die ze genomen hebben.
           </p>
         </div>
         {canEditCustomerData && (
           <Link
             href="/klanten/new"
-            className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             <Plus size={17} />
             Klant toevoegen
@@ -267,9 +267,9 @@ export default async function KlantenPage({
       </div>
 
       {customerId && (
-        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400">
           <span>Je bekijkt deze ene klant, rechtstreeks vanaf de lead.</span>
-          <Link href="/klanten" className="font-medium underline hover:text-blue-900">
+          <Link href="/klanten" className="font-medium underline hover:text-blue-900 dark:hover:text-blue-300">
             Bekijk alle klanten →
           </Link>
         </div>
@@ -321,7 +321,7 @@ export default async function KlantenPage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
-              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base sm:w-72"
+              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:w-72"
             />
           </div>
 
@@ -329,25 +329,25 @@ export default async function KlantenPage({
             <summary
               className={`flex cursor-pointer list-none items-center gap-1.5 rounded-md border px-4 py-2 text-base font-medium ${
                 filtersActive
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               }`}
             >
               Filter
               {filtersActive && (
-                <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900">
+                <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100">
                   •
                 </span>
               )}
             </summary>
-            <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+            <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
                 Product
               </label>
               <select
                 name="product"
                 defaultValue={product ?? ""}
-                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="">Alle producten</option>
                 {PRODUCT_TYPE_ORDER.map((pt) => (
@@ -365,14 +365,14 @@ export default async function KlantenPage({
                   type="date"
                   name="from"
                   defaultValue={from ?? ""}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
                 <span className="text-slate-400">t/m</span>
                 <input
                   type="date"
                   name="to"
                   defaultValue={to ?? ""}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
@@ -382,7 +382,7 @@ export default async function KlantenPage({
               <select
                 name="sort"
                 defaultValue={sort ?? "recent"}
-                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="recent">Meest recent klant</option>
                 <option value="oldest">Langst klant</option>
@@ -393,14 +393,14 @@ export default async function KlantenPage({
               <div className="flex items-center gap-3">
                 <button
                   type="submit"
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
                 >
                   Filters toepassen
                 </button>
                 {filtersActive && (
                   <Link
                     href={clearFiltersHref()}
-                    className="text-sm text-slate-500 underline hover:text-slate-700"
+                    className="text-sm text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                   >
                     Filters wissen
                   </Link>
@@ -425,13 +425,13 @@ export default async function KlantenPage({
           }) => (
             <div
               key={customer.id}
-              className="rounded-lg border border-slate-200 bg-white p-4"
+              className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <Link
                     href={`/leads/${customer.id}`}
-                    className="font-medium text-slate-900 hover:underline"
+                    className="font-medium text-slate-900 hover:underline dark:text-slate-100"
                   >
                     {customer.firstName} {customer.lastName}
                   </Link>
@@ -442,7 +442,7 @@ export default async function KlantenPage({
                 <Link
                   href={`/leads/${customer.id}`}
                   title="Wijzigingen doorvoeren"
-                  className="flex-shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  className="flex-shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 >
                   <MoreVertical size={18} />
                 </Link>
@@ -451,48 +451,48 @@ export default async function KlantenPage({
               {customer.phone && (
                 <a
                   href={`tel:${customer.phone}`}
-                  className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600"
+                  className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400"
                 >
                   {customer.phone}
                 </a>
               )}
               {customer.email && (
-                <p className="mt-1 text-sm text-slate-500">{customer.email}</p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{customer.email}</p>
               )}
 
-              <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
+              <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Klant sinds</span>
+                  <span className="text-slate-500 dark:text-slate-400">Klant sinds</span>
                   {canEditCustomerData ? (
                     <InlineTextField
                       type="date"
                       action={boundSetBecameCustomerAt}
                       name="becameCustomerAt"
                       value={toDateInputValue(customer.becameCustomerAt)}
-                      className="w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:opacity-60"
+                      className="w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   ) : (
-                    <span className="text-slate-700">
+                    <span className="text-slate-700 dark:text-slate-300">
                       {formatDate(customer.becameCustomerAt)}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Dossierbeheerder</span>
+                  <span className="text-slate-500 dark:text-slate-400">Dossierbeheerder</span>
                   {canEditCustomerData ? (
                     <InlineSelect
                       action={boundSetCaseManager}
                       name="subagentId"
                       value={customer.caseManagerSubagentId ?? ""}
                       options={caseManagerOptions}
-                      className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                      className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   ) : (
-                    <span className="text-slate-700">{customer.caseManagerName}</span>
+                    <span className="text-slate-700 dark:text-slate-300">{customer.caseManagerName}</span>
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Belastingsaangifte</span>
+                  <span className="text-slate-500 dark:text-slate-400">Belastingsaangifte</span>
                   {canEditCustomerData ? (
                     <InlineSelect
                       action={boundSetTaxStatus}
@@ -512,21 +512,21 @@ export default async function KlantenPage({
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Totale premies</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="text-slate-500 dark:text-slate-400">Totale premies</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
                     {formatAmount(customer.totalAmount)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Aantal eenheden</span>
-                  <span className="text-slate-700">{customer.totalUnits}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Aantal eenheden</span>
+                  <span className="text-slate-700 dark:text-slate-300">{customer.totalUnits}</span>
                 </div>
               </div>
             </div>
           )
         )}
         {customers.length === 0 && (
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400">
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-900">
             {filtersActive || q
               ? "Geen klanten gevonden voor deze filters."
               : "Nog geen klanten."}
@@ -534,9 +534,9 @@ export default async function KlantenPage({
         )}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white sm:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 sm:block">
         <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
             <tr>
               <th className="px-6 py-3 font-medium">Klant sinds</th>
               <th className="px-6 py-3 font-medium">Naam</th>
@@ -549,7 +549,7 @@ export default async function KlantenPage({
               <th className="px-6 py-3 font-medium"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {customerRows.map(
               ({
                 customer,
@@ -558,15 +558,15 @@ export default async function KlantenPage({
                 boundSetBecameCustomerAt,
                 caseManagerOptions,
               }) => (
-                <tr key={customer.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 text-slate-600">
+                <tr key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                     {canEditCustomerData ? (
                       <InlineTextField
                         type="date"
                         action={boundSetBecameCustomerAt}
                         name="becameCustomerAt"
                         value={toDateInputValue(customer.becameCustomerAt)}
-                        className="rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:opacity-60"
+                        className="rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     ) : (
                       formatDate(customer.becameCustomerAt)
@@ -575,7 +575,7 @@ export default async function KlantenPage({
                   <td className="px-6 py-4">
                     <Link
                       href={`/leads/${customer.id}`}
-                      className="font-medium text-slate-900 hover:underline"
+                      className="font-medium text-slate-900 hover:underline dark:text-slate-100"
                     >
                       {customer.firstName} {customer.lastName}
                     </Link>
@@ -590,18 +590,18 @@ export default async function KlantenPage({
                         name="subagentId"
                         value={customer.caseManagerSubagentId ?? ""}
                         options={caseManagerOptions}
-                        className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+                        className="w-36 truncate rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     ) : (
-                      <span className="text-slate-600">
+                      <span className="text-slate-600 dark:text-slate-400">
                         {customer.caseManagerName}
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                     {customer.phone || "—"}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                     {customer.email || "—"}
                   </td>
                   <td className="px-6 py-4">
@@ -625,17 +625,17 @@ export default async function KlantenPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right font-medium text-slate-900">
+                  <td className="px-6 py-4 text-right font-medium text-slate-900 dark:text-slate-100">
                     {formatAmount(customer.totalAmount)}
                   </td>
-                  <td className="px-6 py-4 text-right text-slate-600">
+                  <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-400">
                     {customer.totalUnits}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Link
                       href={`/leads/${customer.id}`}
                       title="Wijzigingen doorvoeren"
-                      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                     >
                       <MoreVertical size={18} />
                     </Link>
@@ -676,14 +676,14 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
       <span
         className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
       >
         <Icon size={20} />
       </span>
-      <p className="text-base text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-slate-900">{value}</p>
+      <p className="text-base text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
       {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
     </div>
   );

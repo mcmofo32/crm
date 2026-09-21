@@ -73,8 +73,8 @@ export function NavLinks({ items }: { items: NavItem[] }) {
               href={item.href}
               className={`flex items-center gap-1 rounded-md px-2 py-3 text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               }`}
             >
               {Icon && <Icon size={15} strokeWidth={2} />}
@@ -104,15 +104,15 @@ export function NavLinks({ items }: { items: NavItem[] }) {
                   valt vóór hij het paneel bereikt; padding blijft deel van de
                   hoverbare box, dus de hover blijft onafgebroken behouden. */}
               <div className="invisible absolute left-0 top-full z-50 w-52 pt-1 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100">
-                <div className="rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+                <div className="rounded-md border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-800">
                   {item.children.map((child) => (
                     <Link
                       key={child.href}
                       href={child.href}
                       className={`block rounded-md px-3 py-2 text-sm ${
                         pathname.startsWith(child.href)
-                          ? "bg-slate-100 font-medium text-slate-900"
-                          : "text-slate-600 hover:bg-slate-50"
+                          ? "bg-slate-100 font-medium text-slate-900 dark:bg-slate-700 dark:text-slate-100"
+                          : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700/60"
                       }`}
                     >
                       {child.label}
@@ -135,13 +135,13 @@ export function NavLinks({ items }: { items: NavItem[] }) {
         onClick={() => setMobileOpen((v) => !v)}
         aria-expanded={mobileOpen}
         aria-label={mobileOpen ? "Menu sluiten" : "Menu openen"}
-        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 sm:hidden"
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 sm:hidden"
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       {mobileOpen && (
-        <div className="absolute inset-x-0 top-full z-50 max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-slate-200 bg-white p-3 shadow-lg sm:hidden">
+        <div className="absolute inset-x-0 top-full z-50 max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-slate-200 bg-white p-3 shadow-lg dark:border-slate-800 dark:bg-slate-900 sm:hidden">
           <nav className="flex flex-col gap-1">
             {items.map((item) => {
               const Icon = ICONS[item.href];
@@ -152,8 +152,8 @@ export function NavLinks({ items }: { items: NavItem[] }) {
                     href={item.href}
                     className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-base font-medium ${
                       isActive
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-700 hover:bg-slate-100"
+                        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                        : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                     }`}
                   >
                     {Icon && <Icon size={17} strokeWidth={2} />}
@@ -165,15 +165,15 @@ export function NavLinks({ items }: { items: NavItem[] }) {
                     )}
                   </Link>
                   {item.children && (
-                    <div className="ml-6 mt-0.5 flex flex-col gap-0.5 border-l border-slate-100 pl-3">
+                    <div className="ml-6 mt-0.5 flex flex-col gap-0.5 border-l border-slate-100 pl-3 dark:border-slate-800">
                       {item.children.map((child) => (
                         <Link
                           key={child.href}
                           href={child.href}
                           className={`rounded-md px-3 py-2 text-sm ${
                             pathname.startsWith(child.href)
-                              ? "bg-slate-100 font-medium text-slate-900"
-                              : "text-slate-500 hover:bg-slate-50"
+                              ? "bg-slate-100 font-medium text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                              : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/60"
                           }`}
                         >
                           {child.label}
