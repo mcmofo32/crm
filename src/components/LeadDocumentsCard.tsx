@@ -14,6 +14,7 @@ import {
   LEAD_DOCUMENT_KIND_LABELS,
   LEAD_DOCUMENT_KIND_HINTS,
   LEAD_DOCUMENT_KIND_ACCEPT,
+  LEAD_DOCUMENT_KIND_ALLOWS_PHOTO,
 } from "@/lib/leadDocuments";
 import { useToastAction } from "@/components/toast/useToastAction";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -36,11 +37,11 @@ function formatFileSize(bytes: number) {
 }
 
 /**
- * De 3 vaste documentvakken op een klantprofiel (fiche financiële analyse,
- * budgettering, portefeuille) — zelfde Vercel Blob-opslag als Bibliotheek,
- * maar hier per klant hoogstens één bestand per vak, en met "Bekijken" die
- * het document zoveel mogelijk rechtstreeks in de CRM toont i.p.v. enkel
- * downloaden (zie getLeadDocumentPreviewAction).
+ * De 3 vaste documentvakken op een leadprofiel (fiche financiële analyse,
+ * budgettering, portefeuille) — zowel voor leads als klanten, zelfde Vercel
+ * Blob-opslag als Bibliotheek, maar hier per lead hoogstens één bestand per
+ * vak, en met "Bekijken" die het document zoveel mogelijk rechtstreeks in
+ * de CRM toont i.p.v. enkel downloaden (zie getLeadDocumentPreviewAction).
  */
 export function LeadDocumentsCard({
   leadId,
@@ -236,6 +237,9 @@ function LeadDocumentSlot({
             ref={fileInputRef}
             type="file"
             accept={LEAD_DOCUMENT_KIND_ACCEPT[kind]}
+            // Laat mobiel meteen de camera voorstellen naast de gewone
+            // bestandskiezer/-galerij (enkel zinvol waar een foto mag).
+            capture={LEAD_DOCUMENT_KIND_ALLOWS_PHOTO[kind] ? "environment" : undefined}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleFile(file);
@@ -291,6 +295,14 @@ function DocumentPreviewModal({
             <div
               className="lead-document-preview"
               dangerouslySetInnerHTML={{ __html: data.html }}
+            />
+          )}
+          {data.type === "image" && (
+            // eslint-disable-next-line @next/next/no-img-element -- privé Blob-bestand achter een auth-route, geen optimaliseerbare publieke URL.
+            <img
+              src={data.viewUrl}
+              alt={title}
+              className="mx-auto max-h-[70vh] max-w-full object-contain"
             />
           )}
           {data.type === "unsupported" && (

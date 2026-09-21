@@ -266,13 +266,11 @@ export default async function LeadDetailPage({
             />
           )}
 
-          {lead.status === "WON" && (
-            <LeadDocumentsCard
-              leadId={lead.id}
-              documents={documents}
-              canEdit={canManageCustomerData(user)}
-            />
-          )}
+          <LeadDocumentsCard
+            leadId={lead.id}
+            documents={documents}
+            canEdit
+          />
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-6">
