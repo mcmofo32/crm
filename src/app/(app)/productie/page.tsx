@@ -125,11 +125,11 @@ export default async function ProductiePage({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
             <TrendingUp size={24} />
             Cijfers
           </h1>
-          <p className="mt-1 text-base text-slate-500">
+          <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
             Ranglijst van iedereen: gesprekken deze week, en productie per maand.
           </p>
         </div>
@@ -144,8 +144,8 @@ export default async function ProductiePage({
           href={`/productie?tab=productie${structureSuffix}`}
           className={`rounded-full px-4 py-1.5 ${
             activeTab === "productie"
-              ? "bg-slate-900 text-white"
-              : "bg-white text-slate-600 border border-slate-200"
+              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+              : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
           }`}
         >
           Productie
@@ -154,8 +154,8 @@ export default async function ProductiePage({
           href={`/productie?tab=gesprekken${structureSuffix}`}
           className={`rounded-full px-4 py-1.5 ${
             activeTab === "gesprekken"
-              ? "bg-slate-900 text-white"
-              : "bg-white text-slate-600 border border-slate-200"
+              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+              : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
           }`}
         >
           Gesprekken
@@ -164,8 +164,8 @@ export default async function ProductiePage({
           href={`/productie?tab=aanbevelingen${structureSuffix}`}
           className={`rounded-full px-4 py-1.5 ${
             activeTab === "aanbevelingen"
-              ? "bg-slate-900 text-white"
-              : "bg-white text-slate-600 border border-slate-200"
+              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+              : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
           }`}
         >
           Aanbevelingen
@@ -175,15 +175,15 @@ export default async function ProductiePage({
       {structureOptions.length > 0 && (
         <form
           method="GET"
-          className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
         >
           <input type="hidden" name="tab" value={activeTab} />
-          <Users size={17} className="text-slate-400" />
-          <label className="text-sm text-slate-600">Bekijk structuur:</label>
+          <Users size={17} className="text-slate-400 dark:text-slate-500" />
+          <label className="text-sm text-slate-600 dark:text-slate-400">Bekijk structuur:</label>
           <select
             name="structureId"
             defaultValue={structureId ?? ""}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             {structureOptions.map((s) => (
               <option key={s.id} value={s.id}>
@@ -193,7 +193,7 @@ export default async function ProductiePage({
           </select>
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Bekijken
           </button>
@@ -205,21 +205,21 @@ export default async function ProductiePage({
           <div className="flex items-center gap-3">
             <Link
               href={`/productie?tab=productie&year=${prev.year}&month=${prev.month}${structureSuffix}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronLeft size={16} />
             </Link>
-            <span className="min-w-40 text-center text-base font-medium text-slate-900">
+            <span className="min-w-40 text-center text-base font-medium text-slate-900 dark:text-slate-100">
               Productiemaand {String(month).padStart(2, "0")}
               {isCurrentMonth && (
-                <span className="ml-1.5 text-xs font-normal text-slate-400">
+                <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                   (huidige)
                 </span>
               )}
             </span>
             <Link
               href={`/productie?tab=productie&year=${next.year}&month=${next.month}${structureSuffix}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronRight size={16} />
             </Link>
@@ -266,7 +266,7 @@ export default async function ProductiePage({
           {canEditGoals && (
             <Link
               href="/beheer/doelen/productie"
-              className="inline-flex w-fit items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 hover:underline"
+              className="inline-flex w-fit items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-slate-300"
             >
               Begin-/einddatums van de productiemaanden instellen →
             </Link>
@@ -279,27 +279,27 @@ export default async function ProductiePage({
           <div className="flex items-center gap-3">
             <Link
               href={`/productie?tab=gesprekken&weekOffset=${weekOffset - 1}${structureSuffix}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronLeft size={16} />
             </Link>
-            <span className="min-w-48 text-center text-base font-medium text-slate-900">
+            <span className="min-w-48 text-center text-base font-medium text-slate-900 dark:text-slate-100">
               Week {formatWeekLabel(conversationsContext.weekStart, conversationsContext.weekEnd)}
               {weekOffset === 0 && (
-                <span className="ml-1.5 text-xs font-normal text-slate-400">
+                <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                   (huidige week)
                 </span>
               )}
             </span>
             <Link
               href={`/productie?tab=gesprekken&weekOffset=${weekOffset + 1}${structureSuffix}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronRight size={16} />
             </Link>
           </div>
 
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-400 dark:text-slate-500">
             {formatDate(conversationsContext.weekStart)} –{" "}
             {formatDate(conversationsContext.weekEnd)} · doel afgeleid van het
             maandelijkse gesprekken-doel voor productiemaand{" "}
@@ -309,7 +309,7 @@ export default async function ProductiePage({
 
           <div
             id="cijfers-export-tabel"
-            className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+            className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
           >
             <CijfersPosterHeader
               title="Cijfers — Gesprekken"
@@ -317,7 +317,7 @@ export default async function ProductiePage({
             />
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
+              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-3 py-3 font-medium">#</th>
                   <th className="px-3 py-3 font-medium">Naam</th>
@@ -331,22 +331,22 @@ export default async function ProductiePage({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {conversationsRows.map((row, i) => (
-                  <tr key={row.id} className="hover:bg-slate-50">
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
                     <td className="px-3 py-2.5">
                       <Position position={i + 1} />
                     </td>
-                    <td className="px-3 py-2.5 font-medium text-slate-900">
+                    <td className="px-3 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                       {row.name}
                     </td>
-                    <td className="px-3 py-2.5 text-slate-600">
+                    <td className="px-3 py-2.5 text-slate-600 dark:text-slate-400">
                       {row.jobFunction ?? "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-center text-slate-900">
+                    <td className="px-3 py-2.5 text-center text-slate-900 dark:text-slate-100">
                       {row.actual}
                     </td>
-                    <td className="px-3 py-2.5 text-center text-slate-600">
+                    <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-400">
                       {row.target || "—"}
                     </td>
                     <td className="px-3 py-2.5 text-center">
@@ -355,22 +355,22 @@ export default async function ProductiePage({
                     <td
                       className={`px-3 py-2.5 text-center font-medium ${
                         row.growth > 0
-                          ? "text-green-600"
+                          ? "text-green-600 dark:text-green-400"
                           : row.growth < 0
-                          ? "text-red-600"
-                          : "text-slate-500"
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
                       {row.growth > 0 ? `+${row.growth}` : row.growth}
                     </td>
-                    <td className="px-3 py-2.5 text-center text-slate-600">
+                    <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-400">
                       {row.toBePlanned}
                     </td>
                   </tr>
                 ))}
                 {conversationsRows.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                       Geen gebruikers gevonden.
                     </td>
                   </tr>
@@ -413,34 +413,34 @@ export default async function ProductiePage({
           <div className="flex items-center gap-3">
             <Link
               href={`/productie?tab=aanbevelingen&aYear=${aPrev.year}&aMonth=${aPrev.month}${structureSuffix}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronLeft size={16} />
             </Link>
-            <span className="min-w-40 text-center text-base font-medium text-slate-900">
+            <span className="min-w-40 text-center text-base font-medium text-slate-900 dark:text-slate-100">
               Productiemaand {String(aMonth).padStart(2, "0")}
               {isCurrentAanbevelingenMonth && (
-                <span className="ml-1.5 text-xs font-normal text-slate-400">
+                <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                   (huidige)
                 </span>
               )}
             </span>
             <Link
               href={`/productie?tab=aanbevelingen&aYear=${aNext.year}&aMonth=${aNext.month}${structureSuffix}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronRight size={16} />
             </Link>
           </div>
 
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-400 dark:text-slate-500">
             Productiemaand {String(aMonth).padStart(2, "0")}/{aYear}
             {isCurrentAanbevelingenMonth && " (huidige)"}
           </p>
 
           <div
             id="cijfers-export-tabel"
-            className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+            className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
           >
             <CijfersPosterHeader
               title="Cijfers — Aanbevelingen"
@@ -448,7 +448,7 @@ export default async function ProductiePage({
             />
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
+              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-3 py-3 font-medium">#</th>
                   <th className="px-3 py-3 font-medium">Naam</th>
@@ -465,22 +465,22 @@ export default async function ProductiePage({
                   <th className="px-3 py-3 text-center font-medium">% Doel RG</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {recommendationsRows.map((row, i) => (
-                  <tr key={row.id} className="hover:bg-slate-50">
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
                     <td className="px-3 py-2.5">
                       <Position position={i + 1} />
                     </td>
-                    <td className="px-3 py-2.5 font-medium text-slate-900">
+                    <td className="px-3 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                       {row.name}
                     </td>
-                    <td className="px-3 py-2.5 text-slate-600">
+                    <td className="px-3 py-2.5 text-slate-600 dark:text-slate-400">
                       {row.jobFunction ?? "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-center text-slate-600">
+                    <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-400">
                       {row.targetFaLeads || "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-center text-slate-900">
+                    <td className="px-3 py-2.5 text-center text-slate-900 dark:text-slate-100">
                       {row.actualFaLeads}
                     </td>
                     <td className="px-3 py-2.5 text-center">
@@ -492,10 +492,10 @@ export default async function ProductiePage({
                         }
                       />
                     </td>
-                    <td className="px-3 py-2.5 text-center text-slate-600">
+                    <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-400">
                       {row.targetRgLeads || "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-center text-slate-900">
+                    <td className="px-3 py-2.5 text-center text-slate-900 dark:text-slate-100">
                       {row.actualRgLeads}
                     </td>
                     <td className="px-3 py-2.5 text-center">
@@ -511,7 +511,7 @@ export default async function ProductiePage({
                 ))}
                 {recommendationsRows.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={9} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                       Geen gebruikers gevonden.
                     </td>
                   </tr>

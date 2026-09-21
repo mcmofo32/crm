@@ -46,15 +46,15 @@ export function ProductionTable({
             onClick={() => setEditing((v) => !v)}
             className={`inline-flex w-fit items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium ${
               editing
-                ? "bg-slate-900 text-white hover:bg-slate-800"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             }`}
           >
             <Pencil size={14} />
             {editing ? "Klaar met wijzigen" : "Doelen/behaald wijzigen"}
           </button>
           {editing && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Behaald KL/EH aanpassen overschrijft de automatische berekening
               — handig om data van vóór dit CRM in te voeren. Veld leegmaken
               herstelt de automatische berekening.
@@ -65,12 +65,12 @@ export function ProductionTable({
 
       <div
         id="cijfers-export-tabel"
-        className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+        className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
       >
         <CijfersPosterHeader title="Cijfers — Productie" subtitle={periodLabel} />
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
             <tr>
               <th className="px-3 py-3 font-medium">#</th>
               <th className="px-3 py-3 font-medium">Naam</th>
@@ -84,22 +84,22 @@ export function ProductionTable({
               <th className="px-3 py-3 text-center font-medium">% Doel EH</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {rows.map((row, i) => (
-              <tr key={row.id} className="hover:bg-slate-50">
+              <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
                 <td className="px-3 py-2.5">
                   <Position position={i + 1} />
                 </td>
-                <td className="px-3 py-2.5 font-medium text-slate-900">
+                <td className="px-3 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                   {row.name}
                 </td>
-                <td className="px-3 py-2.5 text-slate-600">
+                <td className="px-3 py-2.5 text-slate-600 dark:text-slate-400">
                   {row.jobFunction ?? "—"}
                 </td>
-                <td className="px-3 py-2.5 text-slate-600">
+                <td className="px-3 py-2.5 text-slate-600 dark:text-slate-400">
                   {row.coachName ?? "—"}
                 </td>
-                <td className="px-3 py-2.5 text-center text-slate-600">
+                <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-400">
                   {showInputs ? (
                     <InlineTextField
                       type="number"
@@ -108,13 +108,13 @@ export function ProductionTable({
                       name="target"
                       value={row.targetCustomers ? String(row.targetCustomers) : ""}
                       action={row.setCustomersGoal}
-                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                     />
                   ) : (
                     row.targetCustomers || "—"
                   )}
                 </td>
-                <td className="px-3 py-2.5 text-center text-slate-900">
+                <td className="px-3 py-2.5 text-center text-slate-900 dark:text-slate-100">
                   {showInputs ? (
                     <InlineTextField
                       type="number"
@@ -123,7 +123,7 @@ export function ProductionTable({
                       name="actual"
                       value={row.actualCustomers ? String(row.actualCustomers) : ""}
                       action={row.setCustomersActual}
-                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                     />
                   ) : (
                     row.actualCustomers
@@ -132,7 +132,7 @@ export function ProductionTable({
                 <td className="px-3 py-2.5 text-center">
                   <PercentBadge percent={row.percentCustomers} />
                 </td>
-                <td className="px-3 py-2.5 text-center text-slate-600">
+                <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-400">
                   {showInputs ? (
                     <InlineTextField
                       type="number"
@@ -141,13 +141,13 @@ export function ProductionTable({
                       name="target"
                       value={row.targetUnits ? String(row.targetUnits) : ""}
                       action={row.setUnitsGoal}
-                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                     />
                   ) : (
                     row.targetUnits || "—"
                   )}
                 </td>
-                <td className="px-3 py-2.5 text-center text-slate-900">
+                <td className="px-3 py-2.5 text-center text-slate-900 dark:text-slate-100">
                   {showInputs ? (
                     <InlineTextField
                       type="number"
@@ -156,7 +156,7 @@ export function ProductionTable({
                       name="actual"
                       value={row.actualUnits ? String(row.actualUnits) : ""}
                       action={row.setUnitsActual}
-                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60"
+                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                     />
                   ) : (
                     row.actualUnits
@@ -169,7 +169,7 @@ export function ProductionTable({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={10} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                   Geen gebruikers gevonden.
                 </td>
               </tr>
