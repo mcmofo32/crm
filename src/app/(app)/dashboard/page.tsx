@@ -274,6 +274,7 @@ export default async function DashboardPage({
             icon={GOAL_ICONS[goal.metric]}
             percentPosition="below"
             accent="blue"
+            emptyLabel="N.v.t."
           />
         ))}
       </div>
@@ -318,6 +319,7 @@ export default async function DashboardPage({
               icon={KPI_ICONS[kpi.metric]}
               percentPosition="below"
               accent="amber"
+              emptyLabel="N.v.t."
             />
           ))}
           <GoalCard
@@ -326,7 +328,7 @@ export default async function DashboardPage({
             icon={Gauge}
             percentPosition="below"
             accent="amber"
-            emptyLabel="Onvoldoende data"
+            emptyLabel="N.v.t."
           />
         </div>
       </div>

@@ -146,11 +146,27 @@ export type KpiProgress = {
  *   bevestigde Seminarie- resp. Belsessie-evenementen dit jaar waarop de
  *   gebruiker effectief aanwezig was (zie Evenementen) — geen van de 4
  *   jaarlijkse KPI's is nog manueel in te vullen.
+ * - Wie nog in opleiding is (User.inTraining) telt nergens in mee — net als
+ *   bij de productiecijfers/leaderboards blijven de KPI's dan op "N.v.t."
+ *   (percent null) tot de opleiding afgerond is.
  */
 export async function getYearlyKpiProgress(
   userId: string,
   year: number
 ): Promise<KpiProgress[]> {
+  const viewedUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { inTraining: true },
+  });
+  if (viewedUser?.inTraining) {
+    return KPI_METRIC_ORDER.map((metric) => ({
+      metric,
+      actual: 0,
+      target: 0,
+      percent: null,
+    }));
+  }
+
   const [seminarAttendance, callingSessionAttendance, monthlyAchievements] =
     await Promise.all([
       getEventAttendancePercent(userId, year, "SEMINAR"),
