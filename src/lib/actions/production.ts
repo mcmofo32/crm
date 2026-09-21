@@ -1246,6 +1246,11 @@ export type MonthlyGoalAchievement = {
   conversationsAchieved: boolean | null;
   unitsPercent: number | null;
   conversationsPercent: number | null;
+  /** Ruwe doel-/behaalde waarden, enkel voor weergave (bv. "2/5" op de doelenpagina) — null zolang unitsAchieved/conversationsAchieved dat ook is. */
+  unitsTarget: number | null;
+  unitsActual: number | null;
+  conversationsTarget: number | null;
+  conversationsActual: number | null;
 };
 
 /**
@@ -1272,6 +1277,10 @@ export async function getMonthlyGoalAchievements(
           conversationsAchieved: null,
           unitsPercent: null,
           conversationsPercent: null,
+          unitsTarget: null,
+          unitsActual: null,
+          conversationsTarget: null,
+          conversationsActual: null,
         };
       }
 
@@ -1348,6 +1357,10 @@ export async function getMonthlyGoalAchievements(
             ? Math.round((conversations / conversationsTarget) * 100)
             : 100
           : null,
+        unitsTarget: hasUnitsTarget ? unitsTarget : null,
+        unitsActual: hasUnitsTarget ? units : null,
+        conversationsTarget: hasConversationsTarget ? conversationsTarget : null,
+        conversationsActual: hasConversationsTarget ? conversations : null,
       };
     })
   );
@@ -1450,6 +1463,10 @@ export async function getMonthlyGoalAchievementsForUsers(
           conversationsAchieved: null,
           unitsPercent: null,
           conversationsPercent: null,
+          unitsTarget: null,
+          unitsActual: null,
+          conversationsTarget: null,
+          conversationsActual: null,
         });
         continue;
       }
@@ -1490,6 +1507,10 @@ export async function getMonthlyGoalAchievementsForUsers(
             ? Math.round((conversations / conversationsTarget) * 100)
             : 100
           : null,
+        unitsTarget: hasUnitsTarget ? unitsTarget : null,
+        unitsActual: hasUnitsTarget ? units : null,
+        conversationsTarget: hasConversationsTarget ? conversationsTarget : null,
+        conversationsActual: hasConversationsTarget ? conversations : null,
       });
     }
     result.set(userId, achievements);
