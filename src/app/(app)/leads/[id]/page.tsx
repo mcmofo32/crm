@@ -17,6 +17,7 @@ import {
   getVisibleUserIds,
 } from "@/lib/permissions";
 import { getSubagents } from "@/lib/actions/subagents";
+import { getLeadDocuments } from "@/lib/actions/leadDocuments";
 import { setCustomerOwnerAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
 import { ActivityButtons } from "@/components/ActivityButtons";
@@ -28,6 +29,7 @@ import { LeadDetailsCard } from "@/components/LeadDetailsCard";
 import { LeadProductsCard } from "@/components/LeadProductsCard";
 import { FollowUpContractsCard } from "@/components/FollowUpContractsCard";
 import { BoarCard } from "@/components/BoarCard";
+import { LeadDocumentsCard } from "@/components/LeadDocumentsCard";
 import { InlineSelect } from "@/components/InlineSelect";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
@@ -103,7 +105,7 @@ export default async function LeadDetailPage({
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())[0];
 
   const visibleUserIds = await getVisibleUserIds(user);
-  const [stages, assignableUsers, subagents] = await Promise.all([
+  const [stages, assignableUsers, subagents, documents] = await Promise.all([
     prisma.funnelStage.findMany({
       where: { leadType: lead.leadType },
       orderBy: { order: "asc" },
@@ -114,6 +116,7 @@ export default async function LeadDetailPage({
       orderBy: { name: "asc" },
     }),
     getSubagents(),
+    getLeadDocuments(lead.id),
   ]);
 
   return (
@@ -259,6 +262,14 @@ export default async function LeadDetailPage({
               boarStatus={lead.boarStatus}
               boarNotes={lead.boarNotes}
               boarProductNotes={lead.boarProductNotes}
+              canEdit={canManageCustomerData(user)}
+            />
+          )}
+
+          {lead.status === "WON" && (
+            <LeadDocumentsCard
+              leadId={lead.id}
+              documents={documents}
               canEdit={canManageCustomerData(user)}
             />
           )}
