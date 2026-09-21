@@ -34,6 +34,7 @@ const AFSPRAAK_SUBJECTS = [
   "Carrièregesprek",
   "Belastingsaangifte",
   "Opvolggesprek",
+  "Jaarlijkse opvolging",
 ];
 
 function typeForSubject(category: Category, subject: string) {

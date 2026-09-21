@@ -1315,23 +1315,39 @@ export async function getMonthlyGoalAchievements(
       const targetByMetric = new Map(
         targets.map((t) => [t.metric, Number(t.target)])
       );
+      const hasUnitsTarget = targetByMetric.has(GoalMetric.UNITS);
+      const hasConversationsTarget = targetByMetric.has(GoalMetric.CONVERSATIONS);
       const unitsTarget = targetByMetric.get(GoalMetric.UNITS) ?? 0;
       const conversationsTarget = targetByMetric.get(GoalMetric.CONVERSATIONS) ?? 0;
 
       const computedUnits = unitsThisMonth.reduce((sum, p) => sum + p.units, 0);
       const units = unitsOverride ? Number(unitsOverride.value) : computedUnits;
 
+      // Een expliciet ingesteld doel van 0 is triviaal gehaald (100%) — enkel
+      // wanneer er helemaal geen doel is ingesteld telt de maand niet mee
+      // (unitsAchieved/conversationsAchieved blijft dan null).
       return {
         month,
-        unitsAchieved: unitsTarget > 0 ? units >= unitsTarget : null,
-        conversationsAchieved:
-          conversationsTarget > 0 ? conversations >= conversationsTarget : null,
-        unitsPercent:
-          unitsTarget > 0 ? Math.round((units / unitsTarget) * 100) : null,
-        conversationsPercent:
-          conversationsTarget > 0
+        unitsAchieved: hasUnitsTarget
+          ? unitsTarget > 0
+            ? units >= unitsTarget
+            : true
+          : null,
+        conversationsAchieved: hasConversationsTarget
+          ? conversationsTarget > 0
+            ? conversations >= conversationsTarget
+            : true
+          : null,
+        unitsPercent: hasUnitsTarget
+          ? unitsTarget > 0
+            ? Math.round((units / unitsTarget) * 100)
+            : 100
+          : null,
+        conversationsPercent: hasConversationsTarget
+          ? conversationsTarget > 0
             ? Math.round((conversations / conversationsTarget) * 100)
-            : null,
+            : 100
+          : null,
       };
     })
   );
@@ -1438,26 +1454,42 @@ export async function getMonthlyGoalAchievementsForUsers(
         continue;
       }
 
-      const unitsTarget = targetByKey.get(`${userId}_${month}_${GoalMetric.UNITS}`) ?? 0;
-      const conversationsTarget =
-        targetByKey.get(`${userId}_${month}_${GoalMetric.CONVERSATIONS}`) ?? 0;
+      const unitsKey = `${userId}_${month}_${GoalMetric.UNITS}`;
+      const conversationsKey = `${userId}_${month}_${GoalMetric.CONVERSATIONS}`;
+      const hasUnitsTarget = targetByKey.has(unitsKey);
+      const hasConversationsTarget = targetByKey.has(conversationsKey);
+      const unitsTarget = targetByKey.get(unitsKey) ?? 0;
+      const conversationsTarget = targetByKey.get(conversationsKey) ?? 0;
 
       const computedUnits = unitsByKey.get(`${userId}_${month}`) ?? 0;
       const override = overrideByKey.get(`${userId}_${month}`);
       const units = override ?? computedUnits;
       const conversations = conversationsByKey.get(`${userId}_${month}`) ?? 0;
 
+      // Een expliciet ingesteld doel van 0 is triviaal gehaald (100%) — enkel
+      // wanneer er helemaal geen doel is ingesteld telt de maand niet mee.
       achievements.push({
         month,
-        unitsAchieved: unitsTarget > 0 ? units >= unitsTarget : null,
-        conversationsAchieved:
-          conversationsTarget > 0 ? conversations >= conversationsTarget : null,
-        unitsPercent:
-          unitsTarget > 0 ? Math.round((units / unitsTarget) * 100) : null,
-        conversationsPercent:
-          conversationsTarget > 0
+        unitsAchieved: hasUnitsTarget
+          ? unitsTarget > 0
+            ? units >= unitsTarget
+            : true
+          : null,
+        conversationsAchieved: hasConversationsTarget
+          ? conversationsTarget > 0
+            ? conversations >= conversationsTarget
+            : true
+          : null,
+        unitsPercent: hasUnitsTarget
+          ? unitsTarget > 0
+            ? Math.round((units / unitsTarget) * 100)
+            : 100
+          : null,
+        conversationsPercent: hasConversationsTarget
+          ? conversationsTarget > 0
             ? Math.round((conversations / conversationsTarget) * 100)
-            : null,
+            : 100
+          : null,
       });
     }
     result.set(userId, achievements);
