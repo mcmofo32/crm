@@ -12,8 +12,8 @@ export function FollowUpCallField({
   onChange: (value: FollowUpCallValue) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-slate-50 p-3">
-      <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
+    <div className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/60">
+      <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
         <PhoneCall size={13} />
         Terugbelmoment inplannen (optioneel)
       </label>
@@ -21,16 +21,16 @@ export function FollowUpCallField({
         type="datetime-local"
         value={value.scheduledAt}
         onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       />
       <textarea
         value={value.notes}
         onChange={(e) => onChange({ ...value, notes: e.target.value })}
         placeholder="Notities (optioneel) — komen mee in de beschrijving van het agenda-item"
         rows={2}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       />
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         Plant een uitgaand telefoongesprek op dit moment, automatisch in de
         Google Agenda van de eigenaar.
       </p>

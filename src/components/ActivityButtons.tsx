@@ -122,7 +122,7 @@ export function ActivityButtons({
           });
         }
       }}
-      className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+      className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60 dark:text-slate-500 dark:hover:bg-red-950"
     >
       <Trash2 size={14} />
     </button>
@@ -141,10 +141,10 @@ export function ActivityButtons({
           onChange={(e) => setReportNotes(e.target.value)}
           placeholder="Wat is er besproken? (bv. telefoongesprek gehad over ..., klant wil ..., volgende stap is ...)"
           rows={2}
-          className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+          className="rounded-md border border-slate-300 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         {type === "CALL" && (
-          <label className="flex items-center gap-1.5 text-xs text-slate-600">
+          <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
             <input
               type="checkbox"
               checked={wasVoicemail}
@@ -166,7 +166,7 @@ export function ActivityButtons({
                 setMode("idle");
               })
             }
-            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Bevestigen
           </button>
@@ -174,7 +174,7 @@ export function ActivityButtons({
             type="button"
             disabled={pending}
             onClick={() => setMode("idle")}
-            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Annuleren
           </button>
@@ -201,7 +201,7 @@ export function ActivityButtons({
           onChange={(e) => setRichEditNotes(e.target.value)}
           rows={2}
           placeholder="Reden van wijziging (optioneel)"
-          className="mt-2 w-full rounded-md border border-slate-300 px-2 py-1 text-xs"
+          className="mt-2 w-full rounded-md border border-slate-300 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         <div className="mt-2 flex gap-2">
           <button
@@ -230,7 +230,7 @@ export function ActivityButtons({
                 router.refresh();
               });
             }}
-            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Opslaan
           </button>
@@ -238,7 +238,7 @@ export function ActivityButtons({
             type="button"
             disabled={pending}
             onClick={() => setMode("idle")}
-            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Sluiten
           </button>
@@ -262,7 +262,7 @@ export function ActivityButtons({
         <select
           name="type"
           defaultValue={type}
-          className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+          className="col-span-2 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           {ACTIVITY_TYPE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -273,7 +273,7 @@ export function ActivityButtons({
         <select
           value={subjectPreset}
           onChange={(e) => setSubjectPreset(e.target.value)}
-          className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+          className="col-span-2 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           {ACTIVITY_SUBJECT_SUGGESTIONS.map((s) => (
             <option key={s} value={s}>
@@ -288,7 +288,7 @@ export function ActivityButtons({
             value={customSubject}
             onChange={(e) => setCustomSubject(e.target.value)}
             required
-            className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+            className="col-span-2 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         ) : (
           <input type="hidden" name="subject" value={subjectPreset} />
@@ -298,12 +298,12 @@ export function ActivityButtons({
           name="scheduledAt"
           defaultValue={toDatetimeLocalValue(scheduledAt)}
           required
-          className="rounded-md border border-slate-300 px-2 py-1"
+          className="rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         <select
           name="durationMinutes"
           defaultValue={String(durationMinutes ?? 15)}
-          className="rounded-md border border-slate-300 px-2 py-1"
+          className="rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           <option value="15">15 min</option>
           <option value="30">30 min</option>
@@ -314,13 +314,13 @@ export function ActivityButtons({
           name="notes"
           rows={2}
           placeholder="Reden van wijziging (optioneel)"
-          className="col-span-2 rounded-md border border-slate-300 px-2 py-1"
+          className="col-span-2 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         <div className="col-span-2 flex gap-2">
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Opslaan
           </button>
@@ -328,7 +328,7 @@ export function ActivityButtons({
             type="button"
             disabled={pending}
             onClick={() => setMode("idle")}
-            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Sluiten
           </button>
@@ -347,7 +347,7 @@ export function ActivityButtons({
           setMode("editing");
         }}
         title="Wijzigen"
-        className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <Pencil size={12} />
         Wijzigen
@@ -356,7 +356,7 @@ export function ActivityButtons({
         type="button"
         disabled={pending}
         onClick={() => setMode("reporting")}
-        className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         Afgerond
       </button>
@@ -368,7 +368,7 @@ export function ActivityButtons({
             cancelActivityAction(activityId);
           })
         }
-        className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+        className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-950"
       >
         Annuleren
       </button>

@@ -73,8 +73,8 @@ export function LeadProductsCard({
 
   if (editing) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
-        <h2 className="mb-3 font-medium text-slate-900">Producten bewerken</h2>
+      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-3 font-medium text-slate-900 dark:text-slate-100">Producten bewerken</h2>
         <ProductFields value={value} onChange={setValue} />
         <div className="mt-3 flex gap-2">
           <button
@@ -89,7 +89,7 @@ export function LeadProductsCard({
                 setEditing(false);
               })
             }
-            className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Opslaan
           </button>
@@ -100,7 +100,7 @@ export function LeadProductsCard({
               setValue(stateFromProducts(products));
               setEditing(false);
             }}
-            className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Annuleren
           </button>
@@ -110,15 +110,15 @@ export function LeadProductsCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-medium text-slate-900">Producten</h2>
+        <h2 className="font-medium text-slate-900 dark:text-slate-100">Producten</h2>
         {canEdit && (
           <button
             type="button"
             onClick={() => setEditing(true)}
             title="Bewerken"
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <Pencil size={13} />
             Bewerken
@@ -126,12 +126,12 @@ export function LeadProductsCard({
         )}
       </div>
       {sortedProducts.length === 0 ? (
-        <p className="text-slate-400">Nog geen producten toegevoegd.</p>
+        <p className="text-slate-400 dark:text-slate-500">Nog geen producten toegevoegd.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {sortedProducts.map((p) => (
             <li key={p.type} className="flex items-center justify-between gap-2">
-              <span className="text-slate-600">{PRODUCT_TYPE_LABELS[p.type]}</span>
+              <span className="text-slate-600 dark:text-slate-400">{PRODUCT_TYPE_LABELS[p.type]}</span>
               <PolicyQuickActions
                 policyId={p.policyId}
                 amount={p.amount}
@@ -143,14 +143,14 @@ export function LeadProductsCard({
               />
             </li>
           ))}
-          <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900">
+          <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900 dark:border-slate-800 dark:text-slate-100">
             <span>Totaal</span>
             <span>
               {formatAmount(totalAmount)}/maand · {totalUnits} eenh.
             </span>
           </li>
           {totalLumpSum > 0 && (
-            <li className="flex items-center justify-between text-xs text-slate-400">
+            <li className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
               <span>Waarvan koopsom (niet in incasso)</span>
               <span>{formatAmount(totalLumpSum)}</span>
             </li>

@@ -83,8 +83,8 @@ export function LeadDocumentsCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
-      <p className="mb-3 font-medium text-slate-900">Documenten</p>
+    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="mb-3 font-medium text-slate-900 dark:text-slate-100">Documenten</p>
       <div className="flex flex-col gap-3">
         {LEAD_DOCUMENT_KIND_ORDER.map((kind) => (
           <LeadDocumentSlot
@@ -162,12 +162,12 @@ function LeadDocumentSlot({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3">
+    <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 dark:border-slate-800">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
           {LEAD_DOCUMENT_KIND_LABELS[kind]}
         </span>
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-slate-400 dark:text-slate-500">
           {LEAD_DOCUMENT_KIND_HINTS[kind]}
         </span>
       </div>
@@ -175,15 +175,15 @@ function LeadDocumentSlot({
       {doc ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <FileText size={15} className="flex-shrink-0 text-slate-400" />
+            <FileText size={15} className="flex-shrink-0 text-slate-400 dark:text-slate-500" />
             <div className="min-w-0">
               <p
-                className="truncate font-medium text-slate-900"
+                className="truncate font-medium text-slate-900 dark:text-slate-100"
                 title={doc.fileName}
               >
                 {doc.fileName}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 {formatFileSize(doc.fileSize)} · {doc.uploadedBy.name}
               </p>
             </div>
@@ -194,7 +194,7 @@ function LeadDocumentSlot({
               disabled={viewing}
               onClick={onView}
               title="Bekijken in de CRM"
-              className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <Eye size={13} />
               {viewing ? "…" : "Bekijken"}
@@ -202,7 +202,7 @@ function LeadDocumentSlot({
             <a
               href={`/api/lead-documents/${doc.id}?download=1`}
               title="Downloaden"
-              className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <Download size={13} />
             </a>
@@ -220,7 +220,7 @@ function LeadDocumentSlot({
                     );
                   });
                 }}
-                className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+                className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60 dark:text-slate-500 dark:hover:bg-red-950"
               >
                 <Trash2 size={13} />
               </button>
@@ -228,7 +228,7 @@ function LeadDocumentSlot({
           </div>
         </div>
       ) : (
-        <p className="text-slate-400">Nog geen bestand toegevoegd.</p>
+        <p className="text-slate-400 dark:text-slate-500">Nog geen bestand toegevoegd.</p>
       )}
 
       {canEdit && (
@@ -251,7 +251,7 @@ function LeadDocumentSlot({
             type="button"
             disabled={pending}
             onClick={() => fileInputRef.current?.click()}
-            className="flex w-fit items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            className="flex w-fit items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <Upload size={13} />
             {pending ? "Bezig…" : doc ? "Vervangen" : "Uploaden"}
@@ -277,15 +277,15 @@ function DocumentPreviewModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl"
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <p className="font-medium text-slate-900">{title}</p>
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+          <p className="font-medium text-slate-900 dark:text-slate-100">{title}</p>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
           >
             <X size={18} />
           </button>
@@ -306,10 +306,10 @@ function DocumentPreviewModal({
             />
           )}
           {data.type === "unsupported" && (
-            <p className="text-sm text-slate-500">{data.reason}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{data.reason}</p>
           )}
           {data.type === "pdf" && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Dit bestand wordt in een nieuw tabblad geopend.
             </p>
           )}

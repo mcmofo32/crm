@@ -42,23 +42,23 @@ export function BoarCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
-      <p className="mb-3 font-medium text-slate-900">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="mb-3 font-medium text-slate-900 dark:text-slate-100">
         BOAR
-        <span className="ml-1.5 font-normal text-slate-400">
+        <span className="ml-1.5 font-normal text-slate-400 dark:text-slate-500">
           (Brand, Ongevallen en Andere Risico&apos;s)
         </span>
       </p>
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
             Status
           </span>
           <select
             value={status}
             disabled={!canEdit || pending}
             onChange={(e) => setStatus(e.target.value as BoarStatus)}
-            className="rounded-md border border-slate-300 px-2 py-1.5 font-medium disabled:opacity-60"
+            className="rounded-md border border-slate-300 px-2 py-1.5 font-medium disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             style={status ? BOAR_STATUS_COLORS[status] : undefined}
           >
             <option value="">— Kies status —</option>
@@ -72,7 +72,7 @@ export function BoarCard({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Notities
             </span>
             <textarea
@@ -80,11 +80,11 @@ export function BoarCard({
               disabled={!canEdit || pending}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="rounded-md border border-slate-300 px-2 py-1.5 disabled:bg-slate-50"
+              className="rounded-md border border-slate-300 px-2 py-1.5 disabled:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800/60"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Producten
             </span>
             <textarea
@@ -93,7 +93,7 @@ export function BoarCard({
               onChange={(e) => setProductNotes(e.target.value)}
               rows={3}
               placeholder="bv. welke polissen/verzekeringen"
-              className="rounded-md border border-slate-300 px-2 py-1.5 disabled:bg-slate-50"
+              className="rounded-md border border-slate-300 px-2 py-1.5 disabled:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800/60"
             />
           </label>
         </div>
@@ -103,7 +103,7 @@ export function BoarCard({
             type="button"
             disabled={pending}
             onClick={submit}
-            className="self-start rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="self-start rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Opslaan
           </button>
