@@ -66,7 +66,8 @@ export default async function UserDoelenPage({
             </h2>
             <p className="text-sm text-slate-500">
               ✓ = doel gehaald, ✗ = niet gehaald, — = maand nog niet
-              afgelopen of geen doel ingesteld.
+              afgelopen of geen doel ingesteld (bij een doel van exact 0
+              telt de maand als gehaald). Cijfertje eronder = behaald/doel.
             </p>
           </div>
           <YearSwitcher basePath={`/beheer/doelen/${id}`} year={year} options={yearOptions} />
@@ -94,7 +95,14 @@ export default async function UserDoelenPage({
                     key={m.month}
                     className="px-1 py-1 text-center text-sm text-slate-500"
                   >
-                    {m.unitsAchieved === null ? "—" : m.unitsAchieved ? "✓" : "✗"}
+                    <div>
+                      {m.unitsAchieved === null ? "—" : m.unitsAchieved ? "✓" : "✗"}
+                    </div>
+                    {m.unitsTarget !== null && (
+                      <div className="text-[10px] text-slate-400">
+                        {m.unitsActual}/{m.unitsTarget}
+                      </div>
+                    )}
                   </td>
                 ))}
               </tr>
@@ -107,11 +115,18 @@ export default async function UserDoelenPage({
                     key={m.month}
                     className="px-1 py-1 text-center text-sm text-slate-500"
                   >
-                    {m.conversationsAchieved === null
-                      ? "—"
-                      : m.conversationsAchieved
-                      ? "✓"
-                      : "✗"}
+                    <div>
+                      {m.conversationsAchieved === null
+                        ? "—"
+                        : m.conversationsAchieved
+                        ? "✓"
+                        : "✗"}
+                    </div>
+                    {m.conversationsTarget !== null && (
+                      <div className="text-[10px] text-slate-400">
+                        {m.conversationsActual}/{m.conversationsTarget}
+                      </div>
+                    )}
                   </td>
                 ))}
               </tr>
