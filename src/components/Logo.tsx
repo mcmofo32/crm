@@ -7,11 +7,20 @@
  * viewBox is verticaal bijgeknipt tot net rond de tekst (i.p.v. het volle
  * 64x64-vierkant) zodat er geen witruimte boven/onder overblijft — `size`
  * bepaalt daardoor de breedte, met de hoogte proportioneel daaraan.
+ *
+ * `themed`: laat het logo in donkere modus wit i.p.v. marineblauw renderen.
+ * Bewust opt-in (i.p.v. altijd via de globale .dark-klasse) — CijfersPoster-
+ * Header zet het logo bv. in een vaste witte doos voor betrouwbare export
+ * (html-to-image), ongeacht het thema van wie exporteert; daar zou een
+ * automatisch wit logo onzichtbaar worden. Enkel gebruiken op plekken die
+ * zelf al volledig dark-mode-gestyled zijn.
  */
 const VIEWBOX_HEIGHT = 42;
 const VIEWBOX_WIDTH = 64;
 
-export function Logo({ size = 32 }: { size?: number }) {
+export function Logo({ size = 32, themed = false }: { size?: number; themed?: boolean }) {
+  const textClassName = themed ? "fill-[#0f2a52] dark:fill-white" : "fill-[#0f2a52]";
+  const lineClassName = themed ? "stroke-[#2f5fa8] dark:stroke-white" : "stroke-[#2f5fa8]";
   return (
     <svg
       width={size}
@@ -29,11 +38,11 @@ export function Logo({ size = 32 }: { size?: number }) {
         fontWeight="700"
         fontSize="7.5"
         letterSpacing="1"
-        fill="#0f2a52"
+        className={textClassName}
       >
         STRUCTUUR
       </text>
-      <line x1="22" y1="34" x2="42" y2="34" stroke="#2f5fa8" strokeWidth="0.75" />
+      <line x1="22" y1="34" x2="42" y2="34" strokeWidth="0.75" className={lineClassName} />
       <text
         x="32"
         y="53"
@@ -41,7 +50,7 @@ export function Logo({ size = 32 }: { size?: number }) {
         fontFamily="Arial, Helvetica, sans-serif"
         fontWeight="800"
         fontSize="20"
-        fill="#0f2a52"
+        className={textClassName}
       >
         A
       </text>

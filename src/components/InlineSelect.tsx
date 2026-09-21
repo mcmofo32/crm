@@ -35,7 +35,7 @@ export function InlineSelect({
       }}
       className={
         className ??
-        "rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60"
+        "rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       }
       style={style}
     >

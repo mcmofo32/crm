@@ -123,7 +123,7 @@ export default async function LeadDetailPage({
     <div className="flex flex-col gap-8">
       <ToastOnParam param="created" message="Aangemaakt" />
       {duplicateName && duplicateOwner && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
           Let op: <strong>{duplicateName}</strong> staat al als lead
           geregistreerd bij <strong>{duplicateOwner}</strong> (zelfde
           e-mailadres of telefoonnummer). Deze nieuwe lead is wel aangemaakt —
@@ -132,10 +132,10 @@ export default async function LeadDetailPage({
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
             {lead.firstName} {lead.lastName}
           </h1>
-          <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+          <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
             <Avatar name={lead.owner.name} photoUrl={avatarUrl(lead.owner)} />
             Eigenaar:{" "}
             {lead.status === "WON" && canManageUsers(user) ? (
@@ -154,15 +154,15 @@ export default async function LeadDetailPage({
                         })),
                       ]
                 }
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm disabled:opacity-60"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             ) : (
               lead.owner.name
             )}
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Laatste contact:{" "}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-slate-700 dark:text-slate-300">
               {lead.lastContactedAt
                 ? lead.lastContactedAt.toLocaleString("nl-BE", {
                     dateStyle: "medium",
@@ -173,7 +173,7 @@ export default async function LeadDetailPage({
             </span>
             {" · "}
             Volgend contact:{" "}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-slate-700 dark:text-slate-300">
               {nextContact
                 ? nextContact.scheduledAt.toLocaleString("nl-BE", {
                     dateStyle: "medium",
@@ -283,7 +283,7 @@ export default async function LeadDetailPage({
 
           <div>
             <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-medium text-slate-900">
+              <h2 className="text-sm font-medium text-slate-900 dark:text-slate-100">
                 Communicatiegeschiedenis
               </h2>
               <div className="flex items-center gap-1.5">
@@ -295,7 +295,7 @@ export default async function LeadDetailPage({
                 />
               </div>
             </div>
-            <p className="mb-3 text-xs text-slate-400">
+            <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">
               Alle contactmomenten en geplande opvolging voor deze lead, nieuwste eerst.
             </p>
             <ul className="flex flex-col gap-2">
@@ -304,16 +304,16 @@ export default async function LeadDetailPage({
                 return (
                   <li
                     key={activity.id}
-                    className="rounded-lg border border-slate-200 bg-white p-3 text-sm"
+                    className="rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex items-start gap-2.5">
-                        <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                        <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                           <Icon size={15} />
                         </span>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-medium text-slate-900">
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
                               {activity.subject}
                             </span>
                             <Badge
@@ -327,7 +327,7 @@ export default async function LeadDetailPage({
                               <Badge variant="amber">Voicemail</Badge>
                             )}
                           </div>
-                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
                             <Avatar
                               name={activity.assignee.name}
                               size="sm"
@@ -353,7 +353,7 @@ export default async function LeadDetailPage({
                       />
                     </div>
                     {activity.scheduledAt && (
-                      <p className="ml-[42px] mt-1 text-slate-500">
+                      <p className="ml-[42px] mt-1 text-slate-500 dark:text-slate-400">
                         {activity.scheduledAt.toLocaleString("nl-BE", {
                           dateStyle: "medium",
                           timeStyle: "short",
@@ -362,12 +362,12 @@ export default async function LeadDetailPage({
                       </p>
                     )}
                     {activity.notes && (
-                      <p className="ml-[42px] mt-1 whitespace-pre-wrap text-slate-600">
+                      <p className="ml-[42px] mt-1 whitespace-pre-wrap text-slate-600 dark:text-slate-400">
                         {activity.notes}
                       </p>
                     )}
                     {activity.googleSyncError && (
-                      <p className="ml-[42px] mt-1 text-xs text-red-600">
+                      <p className="ml-[42px] mt-1 text-xs text-red-600 dark:text-red-400">
                         Google Agenda-synchronisatie mislukt:{" "}
                         {activity.googleSyncError}
                       </p>
@@ -376,7 +376,7 @@ export default async function LeadDetailPage({
                 );
               })}
               {lead.activities.length === 0 && (
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-slate-400 dark:text-slate-500">
                   Nog geen communicatie gelogd voor deze lead.
                 </p>
               )}

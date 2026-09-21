@@ -109,36 +109,36 @@ export function FollowUpContractsCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="font-medium text-slate-900">
+        <span className="font-medium text-slate-900 dark:text-slate-100">
           Contracten uit opvolging
           {contracts.length > 0 && (
-            <span className="ml-1.5 font-normal text-slate-400">
+            <span className="ml-1.5 font-normal text-slate-400 dark:text-slate-500">
               ({contracts.length})
             </span>
           )}
         </span>
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-slate-400 dark:text-slate-500">
           {open ? "Verbergen" : "Bekijken"}
         </span>
       </button>
 
       {open && (
-        <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3">
+        <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
           {sortedContracts.length === 0 ? (
-            <p className="text-slate-400">Nog geen vervolgcontracten toegevoegd.</p>
+            <p className="text-slate-400 dark:text-slate-500">Nog geen vervolgcontracten toegevoegd.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {sortedContracts.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-2">
                   <div className="flex flex-col">
-                    <span className="text-slate-600">{PRODUCT_TYPE_LABELS[c.type]}</span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-slate-600 dark:text-slate-400">{PRODUCT_TYPE_LABELS[c.type]}</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
                       {formatDate(c.contractDate)}
                     </span>
                   </div>
@@ -164,7 +164,7 @@ export function FollowUpContractsCard({
                             });
                           }
                         }}
-                        className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                        className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30 dark:text-slate-500 dark:hover:bg-red-950"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -172,14 +172,14 @@ export function FollowUpContractsCard({
                   </div>
                 </li>
               ))}
-              <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900">
+              <li className="mt-1 flex items-center justify-between border-t border-slate-100 pt-2 font-medium text-slate-900 dark:border-slate-800 dark:text-slate-100">
                 <span>Totaal</span>
                 <span>
                   {formatAmount(totalAmount)}/maand · {totalUnits} eenh.
                 </span>
               </li>
               {totalLumpSum > 0 && (
-                <li className="flex items-center justify-between text-xs text-slate-400">
+                <li className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
                   <span>Waarvan koopsom (niet in incasso)</span>
                   <span>{formatAmount(totalLumpSum)}</span>
                 </li>
@@ -189,11 +189,11 @@ export function FollowUpContractsCard({
 
           {canEdit &&
             (adding ? (
-              <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3">
+              <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 dark:border-slate-800">
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as ProductType)}
-                  className="rounded-md border border-slate-300 px-2 py-1.5"
+                  className="rounded-md border border-slate-300 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 >
                   {PRODUCT_TYPE_ORDER.map((t) => (
                     <option key={t} value={t}>
@@ -209,7 +209,7 @@ export function FollowUpContractsCard({
                     placeholder="Bedrag/maand (€)"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="rounded-md border border-slate-300 px-2 py-1.5"
+                    className="rounded-md border border-slate-300 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                   <input
                     type="number"
@@ -218,7 +218,7 @@ export function FollowUpContractsCard({
                     placeholder="Eenheden"
                     value={units}
                     onChange={(e) => setUnits(e.target.value)}
-                    className="rounded-md border border-slate-300 px-2 py-1.5"
+                    className="rounded-md border border-slate-300 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                   <input
                     type="number"
@@ -228,16 +228,16 @@ export function FollowUpContractsCard({
                     title="Eenmalige koopsom — telt niet mee in het maandelijkse incasso"
                     value={lumpSumAmount}
                     onChange={(e) => setLumpSumAmount(e.target.value)}
-                    className="col-span-2 rounded-md border border-slate-300 px-2 py-1.5"
+                    className="col-span-2 rounded-md border border-slate-300 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </div>
-                <label className="flex flex-col gap-1 text-xs text-slate-500">
+                <label className="flex flex-col gap-1 text-xs text-slate-500 dark:text-slate-400">
                   Datum
                   <input
                     type="date"
                     value={contractDate}
                     onChange={(e) => setContractDate(e.target.value)}
-                    className="rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-900"
+                    className="rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </label>
                 <div className="flex gap-2">
@@ -248,7 +248,7 @@ export function FollowUpContractsCard({
                       (!(Number(amount) > 0) && !(Number(lumpSumAmount) > 0))
                     }
                     onClick={submit}
-                    className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                    className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
                   >
                     Toevoegen
                   </button>
@@ -256,7 +256,7 @@ export function FollowUpContractsCard({
                     type="button"
                     disabled={pending}
                     onClick={resetForm}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
+                    className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
                     Annuleren
                   </button>
@@ -266,7 +266,7 @@ export function FollowUpContractsCard({
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="flex items-center gap-1.5 self-start rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-slate-600 hover:bg-slate-50"
+                className="flex items-center gap-1.5 self-start rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
               >
                 <Plus size={15} />
                 Contract toevoegen

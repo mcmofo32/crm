@@ -72,3 +72,14 @@ body {
 .dark .lead-document-preview th {
   border-color: #334155;
 }
+
+/* Funnelbord-fasekop (FunnelBoard.tsx): de per-fase accentkleur komt uit
+   stageAccent() als een halfdoorzichtige inline stijl, bedoeld om als pastel
+   te ogen op een witte kaart — op een donkere kaart wordt diezelfde
+   doorzichtige tint bijna zwart, met de vaste donkere inkttekst erbovenop
+   onleesbaar. !important is hier nodig omdat een inline style anders wint
+   van elke class-regel. */
+.dark .funnel-stage-header {
+  background-color: rgb(30 41 59 / 0.6) !important;
+  color: rgb(203 213 225) !important;
+}

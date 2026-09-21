@@ -24,8 +24,8 @@ export function QuickCallLogButton({ leadId }: { leadId: string }) {
   if (open) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-        <div className="flex w-full max-w-md flex-col gap-2 rounded-lg bg-white p-4 shadow-xl">
-          <label className="text-sm font-medium text-slate-700">
+        <div className="flex w-full max-w-md flex-col gap-2 rounded-lg bg-white p-4 shadow-xl dark:bg-slate-900">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
             Telefoongesprek loggen
           </label>
           <textarea
@@ -34,9 +34,9 @@ export function QuickCallLogButton({ leadId }: { leadId: string }) {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Wat is er besproken? (optioneel)"
-            className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            className="rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
-          <label className="flex items-center gap-1.5 text-sm text-slate-600">
+          <label className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
             <input
               type="checkbox"
               checked={wasVoicemail}
@@ -64,7 +64,7 @@ export function QuickCallLogButton({ leadId }: { leadId: string }) {
                   router.refresh();
                 })
               }
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
             >
               Bevestigen
             </button>
@@ -72,7 +72,7 @@ export function QuickCallLogButton({ leadId }: { leadId: string }) {
               type="button"
               disabled={pending}
               onClick={reset}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Annuleren
             </button>
@@ -88,7 +88,7 @@ export function QuickCallLogButton({ leadId }: { leadId: string }) {
       disabled={pending}
       onClick={() => setOpen(true)}
       title="Telefoongesprek loggen"
-      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-60"
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-60 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300"
     >
       <Phone size={14} />
     </button>

@@ -75,15 +75,15 @@ export function StageSelect({
 
   if (open) {
     const formContent = (
-      <div className="flex w-full flex-col gap-2 rounded-md border border-slate-300 bg-slate-50 p-2 text-sm">
-        <label className="text-slate-600">
+      <div className="flex w-full flex-col gap-2 rounded-md border border-slate-300 bg-slate-50 p-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+        <label className="text-slate-600 dark:text-slate-400">
           Wat moet er met deze lead gebeuren?
         </label>
         <select
           aria-label="Volgende fase"
           value={targetStageId}
           onChange={(e) => setTargetStageId(e.target.value)}
-          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           <option value="">Kies fase…</option>
           {otherStages.map((stage) => (
@@ -98,11 +98,11 @@ export function StageSelect({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Wat is er besproken/gebeurd? (bv. financiële analyse afgerond, klant tekent volgende week)"
-          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         {targetStage && wantsEmailPrompt(targetStage.label) && !leadEmail && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
-            <label className="mb-1 block text-xs text-amber-800">
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-2 dark:border-amber-900 dark:bg-amber-950">
+            <label className="mb-1 block text-xs text-amber-800 dark:text-amber-400">
               Nog geen e-mailadres. Voeg er één toe (optioneel):
             </label>
             <input
@@ -110,7 +110,7 @@ export function StageSelect({
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="naam@voorbeeld.be"
-              className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+              className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
         )}
@@ -165,7 +165,6 @@ export function StageSelect({
                   // Opvolggesprek) vóór de lead effectief verplaatst wordt —
                   // anders kan een lead in een "...ingepland"-fase belanden
                   // zonder dat er ooit iets ingepland werd.
-                  let justScheduledActivityId: string | undefined;
                   if (targetStage && isPlanningStage(targetStage.label) && meetingFormData) {
                     const result = await planStageMeetingAction(
                       leadId,
@@ -173,9 +172,6 @@ export function StageSelect({
                       meetingFormData
                     );
                     if (result && "error" in result) throw new Error(result.error);
-                    if (result && "activityId" in result) {
-                      justScheduledActivityId = result.activityId;
-                    }
                   }
                   if (targetStage && isFollowUpStage(targetStage.label) && followUpFormData) {
                     const result = await planFollowUpCallAction(
@@ -184,16 +180,8 @@ export function StageSelect({
                       followUpFormData
                     );
                     if (result && "error" in result) throw new Error(result.error);
-                    if (result && "activityId" in result) {
-                      justScheduledActivityId = result.activityId;
-                    }
                   }
-                  const stageResult = await updateLeadStageAction(
-                    leadId,
-                    targetStageId,
-                    notes,
-                    justScheduledActivityId
-                  );
+                  const stageResult = await updateLeadStageAction(leadId, targetStageId, notes);
                   if (stageResult?.error) throw new Error(stageResult.error);
                   if (targetStage?.isWon && hasAnyProduct(products)) {
                     await saveLeadProductsAction(leadId, buildProductsFormData(products));
@@ -209,7 +197,7 @@ export function StageSelect({
                 router.refresh();
               });
             }}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Bevestigen
           </button>
@@ -225,7 +213,7 @@ export function StageSelect({
               setEmailInput("");
               setProducts(emptyProductsState());
             }}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Annuleren
           </button>
@@ -236,7 +224,7 @@ export function StageSelect({
     if (variant === "icon") {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-3 shadow-xl">
+          <div className="w-full max-w-md rounded-lg bg-white p-3 shadow-xl dark:bg-slate-900">
             {formContent}
           </div>
         </div>
@@ -252,7 +240,7 @@ export function StageSelect({
         disabled={pending}
         onClick={() => setOpen(true)}
         title="Afspraak inplannen / fase wijzigen"
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-60"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-60 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300"
       >
         <Plus size={16} />
       </button>
@@ -265,12 +253,12 @@ export function StageSelect({
         <Link
           href={`/klanten?customerId=${leadId}`}
           title="Bekijk deze klant op de Klanten-pagina"
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:underline"
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:underline dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           {currentStage.label}
         </Link>
       ) : (
-        <span className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+        <span className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
           {currentStage?.label}
         </span>
       )}
@@ -278,7 +266,7 @@ export function StageSelect({
         type="button"
         disabled={pending}
         onClick={() => setOpen(true)}
-        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
       >
         Afgerond
       </button>

@@ -136,27 +136,27 @@ export function ScheduleActivityForm({
     subject.trim().length > 0;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="mb-3 text-sm font-medium text-slate-900">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <h2 className="mb-3 text-sm font-medium text-slate-900 dark:text-slate-100">
         Volgend gesprek inplannen
       </h2>
       <div className="grid grid-cols-2 gap-3 text-sm">
         <select
           value={category}
           onChange={(e) => handleCategoryChange(e.target.value as Category)}
-          className="col-span-2 rounded-md border border-slate-300 px-3 py-2 font-medium"
+          className="col-span-2 rounded-md border border-slate-300 px-3 py-2 font-medium dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           <option value="OPVOLGING">Opvolging (enkel voor jezelf)</option>
           <option value="AFSPRAAK">Afspraak (klant wordt uitgenodigd)</option>
         </select>
 
         {category === "OPVOLGING" && (
-          <label className="col-span-2 flex items-center gap-2 text-slate-600">
+          <label className="col-span-2 flex items-center gap-2 text-slate-600 dark:text-slate-400">
             <input
               type="checkbox"
               checked={skipCalendar}
               onChange={(e) => setSkipCalendar(e.target.checked)}
-              className="rounded border-slate-300"
+              className="rounded border-slate-300 dark:border-slate-700"
             />
             Niet in de Google Agenda, enkel als taak
           </label>
@@ -165,7 +165,7 @@ export function ScheduleActivityForm({
         <select
           value={assigneeId}
           onChange={(e) => setAssigneeId(e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           {assignableUsers.map((u) => (
             <option key={u.id} value={u.id}>
@@ -178,7 +178,7 @@ export function ScheduleActivityForm({
         <select
           value={subjectPreset}
           onChange={(e) => setSubjectPreset(e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           {subjectOptions.map((s) => (
             <option key={s} value={s}>
@@ -193,7 +193,7 @@ export function ScheduleActivityForm({
             onChange={(e) => setCustomSubject(e.target.value)}
             placeholder="Onderwerp"
             required
-            className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
+            className="col-span-2 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         )}
 
@@ -217,12 +217,12 @@ export function ScheduleActivityForm({
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
               required
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
             <select
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="15">15 min</option>
               <option value="30">30 min</option>
@@ -237,19 +237,19 @@ export function ScheduleActivityForm({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Notities"
           rows={2}
-          className="col-span-2 rounded-md border border-slate-300 px-3 py-2"
+          className="col-span-2 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
 
         <button
           type="button"
           disabled={pending || !canSubmit}
           onClick={submit}
-          className="col-span-2 mt-1 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+          className="col-span-2 mt-1 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           Inplannen
         </button>
       </div>
-      <p className="mt-2 text-xs text-slate-400">
+      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
         Wanneer de toegewezen gebruiker zijn Google Agenda gekoppeld heeft (zie
         Instellingen), wordt dit automatisch als agenda-item aangemaakt.
       </p>

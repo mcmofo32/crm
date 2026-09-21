@@ -6,10 +6,10 @@ export function positionBadgeClass(position: number) {
 }
 
 export function percentColor(percent: number | null) {
-  if (percent === null) return "text-slate-400";
-  if (percent >= 100) return "text-green-600";
-  if (percent >= 60) return "text-amber-600";
-  return "text-red-600";
+  if (percent === null) return "text-slate-400 dark:text-slate-500";
+  if (percent >= 100) return "text-green-600 dark:text-green-400";
+  if (percent >= 60) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
 }
 
 /** Gekleurde pil-achtergrond voor een percentage — levendiger dan enkel gekleurde tekst, fijn voor export/screenshots. */

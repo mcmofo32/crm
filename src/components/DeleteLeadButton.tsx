@@ -40,7 +40,7 @@ export function DeleteLeadButton({
         type="button"
         disabled={pending}
         onClick={handleClick}
-        className="flex items-center gap-1.5 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+        className="flex items-center gap-1.5 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
       >
         <Trash2 size={15} />
         Lead verwijderen
@@ -54,7 +54,7 @@ export function DeleteLeadButton({
       disabled={pending}
       onClick={handleClick}
       title="Lead verwijderen"
-      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-60 dark:text-slate-500 dark:hover:bg-red-950"
     >
       <Trash2 size={16} />
     </button>

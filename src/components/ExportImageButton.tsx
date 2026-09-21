@@ -49,12 +49,12 @@ export function ExportImageButton({
         type="button"
         disabled={pending}
         onClick={handleClick}
-        className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-base font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-base font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <Camera size={17} />
         {pending ? "Bezig..." : "Exporteren als foto"}
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }

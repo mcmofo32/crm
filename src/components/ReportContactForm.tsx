@@ -34,7 +34,7 @@ export function ReportContactForm({
         type="button"
         onClick={() => setOpen(true)}
         title="Contact rapporteren"
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300"
       >
         <Plus size={14} />
       </button>
@@ -52,11 +52,11 @@ export function ReportContactForm({
             router.refresh();
           })
         }
-        className="flex w-full max-w-md flex-col gap-3 rounded-lg bg-white p-4 shadow-xl"
+        className="flex w-full max-w-md flex-col gap-3 rounded-lg bg-white p-4 shadow-xl dark:bg-slate-900"
       >
         <FormToast message="Contact gerapporteerd" />
         <input type="hidden" name="leadId" value={leadId} />
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
           Contact rapporteren
         </label>
 
@@ -64,7 +64,7 @@ export function ReportContactForm({
           <select
             name="type"
             defaultValue="CALL"
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             {TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -76,7 +76,7 @@ export function ReportContactForm({
             <select
               name="assigneeId"
               defaultValue={currentUserId}
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               {assignableUsers.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -94,14 +94,14 @@ export function ReportContactForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Wat is er besproken? (bv. telefoongesprek gehad over de offerte, klant twijfelt nog over de prijs, terugbellen volgende week)"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
 
         <div className="flex gap-2">
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Bevestigen
           </button>
@@ -109,7 +109,7 @@ export function ReportContactForm({
             type="button"
             disabled={pending}
             onClick={() => setOpen(false)}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Annuleren
           </button>

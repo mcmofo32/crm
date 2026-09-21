@@ -236,14 +236,14 @@ export default async function PipelinePage({
   const ownerSwitcher = requiresSelection && (
     <form
       method="GET"
-      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
     >
-      <Users size={17} className="text-slate-400" />
-      <label className="text-sm text-slate-600">Bekijk pipeline van:</label>
+      <Users size={17} className="text-slate-400 dark:text-slate-500" />
+      <label className="text-sm text-slate-600 dark:text-slate-400">Bekijk pipeline van:</label>
       <select
         name="ownerId"
         defaultValue={ownerParam}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       >
         {canViewEveryone && <option value={ALL_OPTION}>Iedereen</option>}
         {assignableUsers.map((u) => (
@@ -256,7 +256,7 @@ export default async function PipelinePage({
       <input type="hidden" name="view" value={resolvedView} />
       <button
         type="submit"
-        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
       >
         Bekijken
       </button>
@@ -301,26 +301,26 @@ export default async function PipelinePage({
       <ToastOnParam param="created" message="Leads aangemaakt" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
               <Phone size={20} />
             </span>
             {TITLES[type]}
           </h1>
-          <p className="mt-1 text-base text-slate-500">
+          <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
             Eerste contactopvolging vóór een afspraak wordt ingepland.
           </p>
         </div>
         <Link
           href={`/leads/new?type=${leadType}`}
-          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           <Plus size={17} />
           Nieuwe lead
         </Link>
       </div>
 
-      <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-base text-blue-800">
+      <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-base text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400">
         <Megaphone size={20} className="flex-shrink-0" />
         <span>
           <strong>{stats.openReferrals}</strong> openstaande aanbevelingen —
@@ -367,8 +367,8 @@ export default async function PipelinePage({
             href={categoryHref(c)}
             className={`rounded-full px-4 py-1.5 font-medium ${
               c === resolvedView
-                ? "bg-slate-700 text-white"
-                : "bg-white text-slate-600 border border-slate-200"
+                ? "bg-slate-700 text-white dark:bg-slate-200 dark:text-slate-900"
+                : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
             }`}
           >
             {label}
@@ -385,14 +385,14 @@ export default async function PipelinePage({
           <div className="relative w-full sm:w-auto">
             <Search
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             />
             <input
               type="search"
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
-              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base sm:w-72"
+              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-base dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:w-72"
             />
           </div>
         </form>
@@ -407,13 +407,13 @@ export default async function PipelinePage({
         {sortedLeads.map((lead) => (
           <div
             key={lead.id}
-            className="rounded-lg border border-slate-200 bg-white p-4"
+            className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
                 <Link
                   href={`/leads/${lead.id}`}
-                  className="font-medium text-slate-900 hover:underline"
+                  className="font-medium text-slate-900 hover:underline dark:text-slate-100"
                 >
                   {lead.firstName} {lead.lastName}
                 </Link>
@@ -422,7 +422,7 @@ export default async function PipelinePage({
                   action={setLeadCreatedAtAction.bind(null, lead.id)}
                   name="createdAt"
                   value={toDateInputValue(lead.createdAt)}
-                  className="mt-0.5 w-36 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-600"
+                  className="mt-0.5 w-36 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                 />
               </div>
               <div className="flex flex-shrink-0 items-center gap-1.5">
@@ -442,19 +442,19 @@ export default async function PipelinePage({
             {lead.phone && (
               <a
                 href={`tel:${lead.phone}`}
-                className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600"
+                className="mt-2 flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400"
               >
                 <Phone size={14} />
                 {lead.phone}
               </a>
             )}
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Aanbevolen door: {lead.source || "—"}
             </p>
 
             {isRecrutering ? (
-              <div className="mt-3 border-t border-slate-100 pt-3">
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+              <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Kenmerken
                 </p>
                 <InlineTextField
@@ -465,19 +465,19 @@ export default async function PipelinePage({
                 />
               </div>
             ) : (
-              <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
+              <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Status</span>
-                  <span className="font-medium text-slate-700">{lead.statusLabel}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Status</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{lead.statusLabel}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Cijfer op 10</span>
+                  <span className="text-slate-500 dark:text-slate-400">Cijfer op 10</span>
                   <InlineSelect
                     action={setLeadQualityScoreAction.bind(null, lead.id)}
                     name="qualityScore"
                     value={lead.qualityScore != null ? String(lead.qualityScore) : ""}
                     options={[{ value: "", label: "—" }, ...SCORE_OPTIONS]}
-                    className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                    className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                     style={
                       lead.qualityScore != null
                         ? SCORE_COLORS[String(lead.qualityScore)]
@@ -486,12 +486,12 @@ export default async function PipelinePage({
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Laatste contact</span>
-                  <span className="text-slate-700">{formatDate(lead.lastContactedAt)}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Laatste contact</span>
+                  <span className="text-slate-700 dark:text-slate-300">{formatDate(lead.lastContactedAt)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Aantal keer gebeld</span>
-                  <span className="text-slate-700">{lead.callCount}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Aantal keer gebeld</span>
+                  <span className="text-slate-700 dark:text-slate-300">{lead.callCount}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <InlineCheckbox
@@ -499,20 +499,20 @@ export default async function PipelinePage({
                     name="isInformed"
                     checked={lead.isInformed}
                   />
-                  <span className="text-slate-500">Op de hoogte</span>
+                  <span className="text-slate-500 dark:text-slate-400">Op de hoogte</span>
                   <InlineCheckbox
                     action={setLeadMessageSentAction.bind(null, lead.id)}
                     name="messageSent"
                     checked={lead.messageSent}
                   />
-                  <span className="text-slate-500">Bericht verstuurd</span>
+                  <span className="text-slate-500 dark:text-slate-400">Bericht verstuurd</span>
                 </div>
               </div>
             )}
           </div>
         ))}
         {sortedLeads.length === 0 && (
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400">
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500">
             {q || category
               ? "Geen leads gevonden voor deze filters."
               : "Nog geen leads."}
@@ -520,9 +520,9 @@ export default async function PipelinePage({
         )}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white sm:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white sm:block dark:border-slate-800 dark:bg-slate-900">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
             <tr>
               <SortableHeader
                 label="Datum"
@@ -601,25 +601,25 @@ export default async function PipelinePage({
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {sortedLeads.map((lead) => (
-              <tr key={lead.id} className="hover:bg-slate-50">
+              <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
                 <td className="px-4 py-2.5 whitespace-nowrap">
                   <InlineTextField
                     type="date"
                     action={setLeadCreatedAtAction.bind(null, lead.id)}
                     name="createdAt"
                     value={toDateInputValue(lead.createdAt)}
-                    className="w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-600"
+                    className="w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                   />
                 </td>
-                <td className="px-4 py-2.5 font-medium text-slate-900">
+                <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                   <Link href={`/leads/${lead.id}`} className="hover:underline">
                     {lead.firstName} {lead.lastName}
                   </Link>
                 </td>
-                <td className="px-4 py-2.5 text-slate-600">{lead.phone || "—"}</td>
-                <td className="px-4 py-2.5 text-slate-600">{lead.source || "—"}</td>
+                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{lead.phone || "—"}</td>
+                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{lead.source || "—"}</td>
                 {isRecrutering ? (
                   <td className="px-4 py-2.5">
                     <InlineTextField
@@ -651,7 +651,7 @@ export default async function PipelinePage({
                         name="qualityScore"
                         value={lead.qualityScore != null ? String(lead.qualityScore) : ""}
                         options={[{ value: "", label: "—" }, ...SCORE_OPTIONS]}
-                        className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                        className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                         style={
                           lead.qualityScore != null
                             ? SCORE_COLORS[String(lead.qualityScore)]
@@ -659,11 +659,11 @@ export default async function PipelinePage({
                         }
                       />
                     </td>
-                    <td className="px-4 py-2.5 text-slate-600">
+                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">
                       {formatDate(lead.lastContactedAt)}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-600">{lead.statusLabel}</td>
-                    <td className="px-4 py-2.5 text-center text-slate-600">
+                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{lead.statusLabel}</td>
+                    <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-400">
                       {lead.callCount}
                     </td>
                   </>
@@ -688,7 +688,7 @@ export default async function PipelinePage({
               <tr>
                 <td
                   colSpan={isRecrutering ? 6 : 11}
-                  className="px-4 py-8 text-center text-slate-400"
+                  className="px-4 py-8 text-center text-slate-400 dark:text-slate-500"
                 >
                   {q || category
                     ? "Geen leads gevonden voor deze filters."
@@ -718,7 +718,7 @@ function SortableHeader({
 }) {
   return (
     <th className={`px-4 py-3 font-medium ${className ?? ""}`}>
-      <Link href={href} className="inline-flex items-center gap-1 hover:text-slate-900">
+      <Link href={href} className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-100">
         {label}
         {isActive && (dir === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
       </Link>
@@ -738,14 +738,14 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
       <span
         className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
       >
         <Icon size={20} />
       </span>
-      <p className="text-base text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-slate-900">{value}</p>
+      <p className="text-base text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
     </div>
   );
 }

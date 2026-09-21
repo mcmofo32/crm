@@ -164,14 +164,14 @@ function LeadCard({
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md active:cursor-grabbing ${
+      className={`cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md active:cursor-grabbing dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 ${
         dragged ? "opacity-40" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <Link
           href={`/leads/${lead.id}`}
-          className="font-medium text-slate-900 hover:underline"
+          className="font-medium text-slate-900 hover:underline dark:text-slate-100"
         >
           {lead.firstName} {lead.lastName}
         </Link>
@@ -193,7 +193,7 @@ function LeadCard({
           />
         )}
       </div>
-      {lead.company && <p className="text-sm text-slate-400">{lead.company}</p>}
+      {lead.company && <p className="text-sm text-slate-400 dark:text-slate-500">{lead.company}</p>}
 
       <div className="mt-1.5 flex flex-col gap-1 text-sm">
         {lead.phone ? (
@@ -201,20 +201,20 @@ function LeadCard({
             href={`tel:${lead.phone}`}
             onClick={(e) => e.stopPropagation()}
             draggable={false}
-            className="flex items-center gap-1.5 text-slate-600 hover:underline"
+            className="flex items-center gap-1.5 text-slate-600 hover:underline dark:text-slate-400"
           >
-            <Phone size={12} className="shrink-0 text-slate-400" />
+            <Phone size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
             {lead.phone}
           </a>
         ) : (
-          <span className="flex items-center gap-1.5 text-slate-300">
+          <span className="flex items-center gap-1.5 text-slate-300 dark:text-slate-600">
             <Phone size={12} className="shrink-0" />
             Geen telefoon
           </span>
         )}
         {lead.source && (
-          <span className="flex items-center gap-1.5 text-slate-500">
-            <Tag size={12} className="shrink-0 text-slate-400" />
+          <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+            <Tag size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
             {lead.source}
           </span>
         )}
@@ -222,11 +222,11 @@ function LeadCard({
 
       <div className="mt-2 flex items-center gap-1.5">
         <Avatar name={lead.owner.name} size="sm" photoUrl={avatarUrl(lead.owner)} />
-        <span className="text-sm text-slate-500">{lead.owner.name}</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">{lead.owner.name}</span>
       </div>
 
       {(lastContact || upcoming) && (
-        <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs text-slate-400">
+        <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
           {lastContact && (
             <span className="flex items-center gap-1.5">
               <Clock size={12} />
@@ -234,7 +234,7 @@ function LeadCard({
             </span>
           )}
           {upcoming && (
-            <span className="flex items-center gap-1.5 text-amber-600">
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
               <CalendarClock size={12} />
               Volgend contact: {upcoming}
             </span>
@@ -423,27 +423,15 @@ export function FunnelBoard({
         // bv. de verplichte subagent bij Adviesgesprek/Opvolggesprek) vóór
         // de lead effectief verplaatst wordt — anders kan een lead in een
         // "...ingepland"-fase belanden zonder dat er ooit iets ingepland werd.
-        let justScheduledActivityId: string | undefined;
         if (isPlanningStage(toStageLabel) && meetingFormData) {
           const result = await planStageMeetingAction(leadId, toStageId, meetingFormData);
           if (result && "error" in result) throw new Error(result.error);
-          if (result && "activityId" in result) {
-            justScheduledActivityId = result.activityId;
-          }
         }
         if (isFollowUpStage(toStageLabel) && followUpFormData) {
           const result = await planFollowUpCallAction(leadId, toStageId, followUpFormData);
           if (result && "error" in result) throw new Error(result.error);
-          if (result && "activityId" in result) {
-            justScheduledActivityId = result.activityId;
-          }
         }
-        const stageResult = await updateLeadStageAction(
-          leadId,
-          toStageId,
-          trimmedNotes,
-          justScheduledActivityId
-        );
+        const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
         if (stageResult?.error) throw new Error(stageResult.error);
         if (toStageIsWon && hasAnyProduct(products)) {
           await saveLeadProductsAction(leadId, buildProductsFormData(products));
@@ -469,32 +457,32 @@ export function FunnelBoard({
           onClick={() => setFilterOpen((v) => !v)}
           className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium ${
             filtersActive
-              ? "border-slate-900 bg-slate-900 text-white"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           }`}
         >
           <Filter size={15} />
           Filter
           {filtersActive && (
-            <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900">
+            <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100">
               •
             </span>
           )}
         </button>
         {filterOpen && (
-          <div className="absolute left-0 top-full z-20 mt-2 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
-            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="absolute left-0 top-full z-20 mt-2 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Sorteren op
             </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="recent">Meest recent toegevoegd</option>
               <option value="stale">Langst geen contact</option>
             </select>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={onlyNoContact}
@@ -509,7 +497,7 @@ export function FunnelBoard({
                   setSortBy("recent");
                   setOnlyNoContact(false);
                 }}
-                className="mt-3 text-sm text-slate-500 underline hover:text-slate-700"
+                className="mt-3 text-sm text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
               >
                 Filters wissen
               </button>
@@ -538,17 +526,17 @@ export function FunnelBoard({
                 e.preventDefault();
                 handleDrop(stage);
               }}
-              className={`flex min-w-64 flex-1 flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm transition-colors ${
+              className={`flex min-w-64 flex-1 flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm transition-colors dark:bg-slate-900 ${
                 isDragOver
-                  ? "border-slate-400 ring-2 ring-slate-300"
-                  : "border-slate-200"
+                  ? "border-slate-400 ring-2 ring-slate-300 dark:border-slate-500 dark:ring-slate-600"
+                  : "border-slate-200 dark:border-slate-800"
               }`}
             >
               <div
-                className="flex items-center justify-between rounded-lg px-3 py-2"
+                className="funnel-stage-header flex items-center justify-between rounded-lg px-3 py-2"
                 style={{ backgroundColor: accent.soft }}
               >
-                <span className="text-sm font-semibold" style={{ color: accent.ink }}>
+                <span className="funnel-stage-header text-sm font-semibold" style={{ color: accent.ink }}>
                   {stage.label}
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -560,7 +548,7 @@ export function FunnelBoard({
                         setPickerStageId(stage.id);
                         setPickerQuery("");
                       }}
-                      className="flex h-6 w-6 items-center justify-center rounded-full bg-white/70 text-slate-600 hover:bg-white"
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-white/70 text-slate-600 hover:bg-white dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900"
                     >
                       <Plus size={14} />
                     </button>
@@ -588,7 +576,7 @@ export function FunnelBoard({
                   />
                 ))}
                 {visibleLeads.length === 0 && (
-                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-200 py-6 text-slate-300">
+                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-200 py-6 text-slate-300 dark:border-slate-700 dark:text-slate-600">
                     <Inbox size={18} />
                     <p className="text-xs">
                       {stage.leads.length === 0
@@ -604,7 +592,7 @@ export function FunnelBoard({
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
           Afgerond &amp; geparkeerd
         </p>
         <div className="flex flex-wrap gap-3">
@@ -627,19 +615,19 @@ export function FunnelBoard({
                   e.preventDefault();
                   handleDrop(stage);
                 }}
-                className={`flex min-w-64 flex-1 flex-col gap-2 rounded-xl border bg-white p-2 shadow-sm transition-colors ${
+                className={`flex min-w-64 flex-1 flex-col gap-2 rounded-xl border bg-white p-2 shadow-sm transition-colors dark:bg-slate-900 ${
                   isDragOver
-                    ? "border-slate-400 ring-2 ring-slate-300"
-                    : "border-slate-200"
+                    ? "border-slate-400 ring-2 ring-slate-300 dark:border-slate-500 dark:ring-slate-600"
+                    : "border-slate-200 dark:border-slate-800"
                 }`}
               >
                 <button
                   type="button"
                   onClick={() => toggleExpanded(stage.id)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2"
+                  className="funnel-stage-header flex w-full items-center justify-between rounded-lg px-3 py-2"
                   style={{ backgroundColor: accent.soft }}
                 >
-                  <span className="text-sm font-semibold" style={{ color: accent.ink }}>
+                  <span className="funnel-stage-header text-sm font-semibold" style={{ color: accent.ink }}>
                     {stage.label}
                   </span>
                   <span className="flex items-center gap-2">
@@ -651,7 +639,7 @@ export function FunnelBoard({
                     </span>
                     <ChevronDown
                       size={15}
-                      className={`text-slate-400 transition-transform ${
+                      className={`text-slate-400 transition-transform dark:text-slate-500 ${
                         isExpanded ? "rotate-180" : ""
                       }`}
                     />
@@ -672,7 +660,7 @@ export function FunnelBoard({
                       />
                     ))}
                     {visibleLeads.length === 0 && (
-                      <p className="px-1 py-2 text-center text-xs text-slate-300">
+                      <p className="px-1 py-2 text-center text-xs text-slate-300 dark:text-slate-600">
                         {stage.leads.length === 0
                           ? "Geen leads"
                           : "Geen leads na filter"}
@@ -688,9 +676,9 @@ export function FunnelBoard({
 
       {pickerStage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="flex max-h-[80vh] w-full max-w-md flex-col rounded-lg bg-white p-6 shadow-xl">
+          <div className="flex max-h-[80vh] w-full max-w-md flex-col rounded-lg bg-white p-6 shadow-xl dark:bg-slate-900">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-medium text-slate-900">
+              <h2 className="text-lg font-medium text-slate-900 dark:text-slate-100">
                 Lead inplannen bij &quot;{pickerStage.label}&quot;
               </h2>
               <button
@@ -699,7 +687,7 @@ export function FunnelBoard({
                   setPickerStageId(null);
                   setPickerQuery("");
                 }}
-                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
               >
                 <X size={18} />
               </button>
@@ -707,7 +695,7 @@ export function FunnelBoard({
             <div className="relative mb-3">
               <Search
                 size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
               />
               <input
                 autoFocus
@@ -715,7 +703,7 @@ export function FunnelBoard({
                 value={pickerQuery}
                 onChange={(e) => setPickerQuery(e.target.value)}
                 placeholder="Zoek op naam…"
-                className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-sm"
+                className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
             <div className="flex flex-col gap-1 overflow-y-auto">
@@ -724,19 +712,19 @@ export function FunnelBoard({
                   key={lead.id}
                   type="button"
                   onClick={() => pickLead(lead)}
-                  className="flex flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left hover:bg-slate-50"
+                  className="flex flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
                     {lead.firstName} {lead.lastName}
                   </span>
-                  <span className="flex flex-wrap gap-x-3 text-xs text-slate-500">
+                  <span className="flex flex-wrap gap-x-3 text-xs text-slate-500 dark:text-slate-400">
                     <span>{lead.phone || "Geen telefoon"}</span>
                     {lead.source && <span>Aanbevolen door: {lead.source}</span>}
                   </span>
                 </button>
               ))}
               {pickerResults.length === 0 && (
-                <p className="px-3 py-6 text-center text-sm text-slate-400">
+                <p className="px-3 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
                   Geen leads gevonden.
                 </p>
               )}
@@ -747,16 +735,16 @@ export function FunnelBoard({
 
       {pendingMove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h2 className="mb-1 text-lg font-medium text-slate-900">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-900">
+            <h2 className="mb-1 text-lg font-medium text-slate-900 dark:text-slate-100">
               Lead verplaatsen
             </h2>
-            <p className="mb-4 text-sm text-slate-500">
+            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
               <strong>{pendingMove.leadName}</strong> van &quot;
               {pendingMove.fromStageLabel}&quot; naar &quot;
               {pendingMove.toStageLabel}&quot;.
             </p>
-            <label className="mb-1 block text-sm text-slate-600">
+            <label className="mb-1 block text-sm text-slate-600 dark:text-slate-400">
               Wat is er besproken/gebeurd?
             </label>
             <textarea
@@ -765,12 +753,12 @@ export function FunnelBoard({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Bv. financiële analyse afgerond, klant tekent volgende week"
-              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
             {wantsEmailPrompt(pendingMove.toStageLabel) &&
               !pendingMove.leadEmail && (
-                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3">
-                  <label className="mb-1 block text-sm text-amber-800">
+                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+                  <label className="mb-1 block text-sm text-amber-800 dark:text-amber-400">
                     Deze lead heeft nog geen e-mailadres. Voeg er één toe zodat
                     we later kunnen uitnodigen voor afspraken (optioneel).
                   </label>
@@ -779,7 +767,7 @@ export function FunnelBoard({
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="naam@voorbeeld.be"
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </div>
               )}
@@ -819,7 +807,7 @@ export function FunnelBoard({
                   setEmailInput("");
                   setProducts(emptyProductsState());
                 }}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Annuleren
               </button>
@@ -827,7 +815,7 @@ export function FunnelBoard({
                 type="button"
                 disabled={pending}
                 onClick={confirmMove}
-                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
               >
                 Bevestigen
               </button>
