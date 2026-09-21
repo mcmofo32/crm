@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { getTheme } from "@/lib/actions/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,17 +40,21 @@ export const viewport: Viewport = {
   themeColor: "#0f2a52",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Server-side gelezen (cookie, zie lib/actions/theme.ts) vóór de eerste
+  // render — zo geen flits van het verkeerde thema bij het laden, i.t.t.
+  // een client-side toggle die pas na hydratie zou schakelen.
+  const theme = await getTheme();
   return (
     <html
       lang="nl"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased ${theme === "dark" ? "dark" : ""}`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         {children}
         <Analytics />
         <SpeedInsights />

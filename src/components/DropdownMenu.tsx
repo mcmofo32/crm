@@ -17,14 +17,14 @@ export function DropdownMenu({
 
   return (
     <details ref={detailsRef} className="group relative">
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-1 py-1 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-1 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 [&::-webkit-details-marker]:hidden">
         {trigger}
       </summary>
       <div
         onClick={() => {
           if (detailsRef.current) detailsRef.current.open = false;
         }}
-        className="absolute right-0 z-50 mt-2 w-60 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg"
+        className="absolute right-0 z-50 mt-2 w-60 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-800"
       >
         {children}
       </div>

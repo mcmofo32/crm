@@ -60,10 +60,10 @@ function formatValue(value: number) {
 }
 
 function percentColor(percent: number | null) {
-  if (percent === null) return "text-slate-400";
-  if (percent >= 100) return "text-green-600";
-  if (percent >= 60) return "text-amber-600";
-  return "text-red-600";
+  if (percent === null) return "text-slate-400 dark:text-slate-500";
+  if (percent >= 100) return "text-green-600 dark:text-green-400";
+  if (percent >= 60) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
 }
 
 function formatDate(date: Date) {
@@ -168,10 +168,10 @@ export default async function DashboardPage({
   return (
     <div className="flex flex-col gap-10">
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
           Welkom, {user.name}
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Hier is een overzicht van je doelen en opvolging.
         </p>
       </div>
@@ -179,7 +179,7 @@ export default async function DashboardPage({
       {ownOverdueTasks > 0 && (
         <Link
           href="/taken"
-          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100"
+          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900/60"
         >
           <AlertTriangle size={20} className="flex-shrink-0" />
           <span>
@@ -195,7 +195,7 @@ export default async function DashboardPage({
       {showGroupGoals && teamOverdueTasks > 0 && (
         <Link
           href="/taken?ownerId=groep"
-          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100"
+          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900/60"
         >
           <AlertTriangle size={20} className="flex-shrink-0" />
           <span>
@@ -211,7 +211,7 @@ export default async function DashboardPage({
       {unverifiedEvents.length > 0 && (
         <Link
           href={`/evenementen/${unverifiedEvents[0].id}`}
-          className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-800 hover:bg-amber-100"
+          className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400 dark:hover:bg-amber-900/60"
         >
           <AlertTriangle size={20} className="flex-shrink-0" />
           <span>
@@ -227,7 +227,7 @@ export default async function DashboardPage({
       {crossOwnerDuplicates.length > 0 && (
         <Link
           href="/beheer/duplicaten"
-          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100"
+          className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900/60"
         >
           <AlertTriangle size={20} className="flex-shrink-0" />
           <span>
@@ -250,10 +250,10 @@ export default async function DashboardPage({
       )}
 
       <div>
-        <h2 className="mb-1 text-xl font-medium text-slate-900">
+        <h2 className="mb-1 text-xl font-medium text-slate-900 dark:text-slate-100">
           Maandelijkse individuele doelen
         </h2>
-        <div className="-mb-2 flex flex-col gap-0.5 text-sm text-slate-400">
+        <div className="-mb-2 flex flex-col gap-0.5 text-sm text-slate-400 dark:text-slate-500">
           <p>
             Productiemaand {String(productionGoals.month).padStart(2, "0")} —{" "}
             {formatDate(productionGoals.periodStart)}
@@ -281,9 +281,9 @@ export default async function DashboardPage({
 
       {showGroupGoals && groupProductionGoals && (
         <div>
-          <h2 className="mb-4 text-xl font-medium text-slate-900">
+          <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Maandelijkse groepsdoelen
-            <span className="ml-1.5 text-base font-normal text-slate-400">
+            <span className="ml-1.5 text-base font-normal text-slate-400 dark:text-slate-500">
               — totaal van {isBeheerder(user) ? "iedereen" : "je team"}
             </span>
           </h2>
@@ -305,7 +305,7 @@ export default async function DashboardPage({
       )}
 
       <div>
-        <h2 className="mb-4 text-xl font-medium text-slate-900">
+        <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
           Jaarlijkse KPI&apos;s
         </h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
@@ -336,22 +336,22 @@ export default async function DashboardPage({
       {compactProductionRows.length > 0 && (
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-medium text-slate-900">
+            <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
               Productie &amp; gesprekken
-              <span className="ml-1.5 text-base font-normal text-slate-400">
+              <span className="ml-1.5 text-base font-normal text-slate-400 dark:text-slate-500">
                 — productiemaand {String(currentProductionMonth.month).padStart(2, "0")}
               </span>
             </h2>
             <Link
               href="/productie"
-              className="text-sm text-slate-500 hover:text-slate-700 hover:underline"
+              className="text-sm text-slate-500 hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-slate-200"
             >
               Volledige ranglijst →
             </Link>
           </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
+              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-3 py-2 font-medium">#</th>
                   <th className="px-3 py-2 font-medium">Naam</th>
@@ -362,13 +362,13 @@ export default async function DashboardPage({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {compactProductionRows.map((row, i) => (
-                  <tr key={row.id} className="hover:bg-slate-50">
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
                     <td className="px-3 py-2">
                       <Position position={i + 1} />
                     </td>
-                    <td className="px-3 py-2 font-medium text-slate-900">
+                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-100">
                       {row.name}
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -416,8 +416,8 @@ export default async function DashboardPage({
                 href={`/dashboard?team=${team.teamId}`}
                 className={`rounded-full px-4 py-1.5 ${
                   team.teamId === activeTeam.teamId
-                    ? "bg-slate-900 text-white"
-                    : "bg-white text-slate-600 border border-slate-200"
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                    : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700"
                 }`}
               >
                 {team.teamName}
@@ -443,13 +443,13 @@ function TeamOverviewTable({
 }) {
   return (
     <div>
-      <h2 className="mb-4 flex items-center gap-1.5 text-xl font-medium text-slate-900">
+      <h2 className="mb-4 flex items-center gap-1.5 text-xl font-medium text-slate-900 dark:text-slate-100">
         <Users2 size={19} />
         {title}
       </h2>
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
             <tr>
               <th className="px-6 py-3 font-medium">Naam</th>
               <th className="px-6 py-3 font-medium">Leads</th>
@@ -458,23 +458,23 @@ function TeamOverviewTable({
               <th className="px-6 py-3 font-medium">Afgeronde contacten</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {members.map((member) => (
-              <tr key={member.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-900">
+              <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
                     <Avatar name={member.name} photoUrl={member.photoUrl} />
                     {member.name}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-slate-700">{member.totalLeads}</td>
-                <td className="px-6 py-4 text-slate-700">{member.won}</td>
+                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{member.totalLeads}</td>
+                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{member.won}</td>
                 <td className="px-6 py-4">
                   <Badge variant={conversionBadgeVariant(member.conversionRate)}>
                     {member.conversionRate === null ? "—" : `${member.conversionRate}%`}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 text-slate-700">
+                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
                   {member.activitiesCompleted}
                 </td>
               </tr>
@@ -528,14 +528,14 @@ function GoalCard({
   const hasCount = actual !== undefined && target !== undefined;
   return (
     <div
-      className={`rounded-xl border border-slate-200 ${accentClasses.border} bg-white p-6 shadow-sm`}
+      className={`rounded-xl border border-slate-200 ${accentClasses.border} bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none`}
     >
       <span
         className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${accentClasses.icon}`}
       >
         <Icon size={20} />
       </span>
-      <p className="text-base text-slate-500">{label}</p>
+      <p className="text-base text-slate-500 dark:text-slate-400">{label}</p>
       <div
         className={
           percentPosition === "beside"
@@ -544,9 +544,9 @@ function GoalCard({
         }
       >
         {hasCount && (
-          <p className="text-3xl font-semibold text-slate-900">
+          <p className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
             {formatValue(actual)}
-            <span className="text-lg font-normal text-slate-400">
+            <span className="text-lg font-normal text-slate-400 dark:text-slate-500">
               {" "}
               / {formatValue(target)}
             </span>
@@ -578,8 +578,8 @@ function LeaderboardCell({
 }) {
   return (
     <span className="whitespace-nowrap">
-      <span className="font-medium text-slate-900">{actual}</span>
-      <span className="text-slate-400"> / {target || "—"}</span>
+      <span className="font-medium text-slate-900 dark:text-slate-100">{actual}</span>
+      <span className="text-slate-400 dark:text-slate-500"> / {target || "—"}</span>
       {percent !== null && (
         <span className={`ml-1.5 font-medium ${percentColor(percent)}`}>
           {percent}%

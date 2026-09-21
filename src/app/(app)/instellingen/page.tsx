@@ -5,7 +5,9 @@ import {
   updateMyAvatarAction,
   removeMyAvatarAction,
 } from "@/lib/actions/profile";
+import { getTheme } from "@/lib/actions/theme";
 import { Avatar } from "@/components/Avatar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { FormToast } from "@/components/toast/FormToast";
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
@@ -25,39 +27,54 @@ export default async function SettingsPage({
 }) {
   const { google_connected, google_error, google_error_detail } =
     await searchParams;
-  const viewer = (await getEffectiveViewer())!;
+  const [viewer, theme] = await Promise.all([
+    getEffectiveViewer().then((v) => v!),
+    getTheme(),
+  ]);
   const user = await prisma.user.findUnique({
     where: { id: viewer.id },
   });
 
   return (
     <div className="max-w-lg">
-      <h1 className="mb-4 text-3xl font-semibold text-slate-900">
+      <h1 className="mb-4 text-3xl font-semibold text-slate-900 dark:text-slate-100">
         Instellingen
       </h1>
 
       {google_connected && (
-        <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+        <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950 dark:text-green-400">
           Google Agenda succesvol gekoppeld.
         </p>
       )}
       {google_error && (
-        <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
           <p>
             {GOOGLE_ERROR_MESSAGES[google_error] ??
               "Koppelen van Google Agenda is mislukt. Probeer opnieuw."}
           </p>
           {google_error_detail && (
-            <p className="mt-1 text-xs text-red-500">
+            <p className="mt-1 text-xs text-red-500 dark:text-red-400/80">
               Foutmelding: {google_error_detail}
             </p>
           )}
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
-        <h2 className="mb-2 font-medium text-slate-900">Mijn profielfoto</h2>
-        <p className="mb-3 text-slate-500">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 font-medium text-slate-900 dark:text-slate-100">
+          Thema
+        </h2>
+        <p className="mb-3 text-slate-500 dark:text-slate-400">
+          Donkere modus is prettiger voor de ogen bij avond-/nachtwerk.
+        </p>
+        <ThemeToggle theme={theme} />
+      </div>
+
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 font-medium text-slate-900 dark:text-slate-100">
+          Mijn profielfoto
+        </h2>
+        <p className="mb-3 text-slate-500 dark:text-slate-400">
           Deze foto wordt getoond naast je naam, o.a. rechtsboven en op
           plekken waar je als eigenaar of teamlid vermeld staat.
         </p>
@@ -81,11 +98,11 @@ export default async function SettingsPage({
               name="photo"
               accept="image/jpeg,image/png,image/webp"
               required
-              className="flex-1 cursor-pointer text-sm text-slate-500 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-slate-800"
+              className="flex-1 cursor-pointer text-sm text-slate-500 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-slate-800 dark:text-slate-400 dark:file:bg-slate-100 dark:file:text-slate-900 dark:hover:file:bg-slate-300"
             />
             <button
               type="submit"
-              className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
             >
               Uploaden
             </button>
@@ -94,7 +111,7 @@ export default async function SettingsPage({
             <form action={removeMyAvatarAction}>
               <button
                 type="submit"
-                className="rounded-md border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50"
+                className="rounded-md border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Verwijderen
               </button>
@@ -103,22 +120,24 @@ export default async function SettingsPage({
         </div>
       </div>
 
-      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
-        <h2 className="mb-2 font-medium text-slate-900">Google Agenda</h2>
-        <p className="mb-3 text-slate-500">
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 font-medium text-slate-900 dark:text-slate-100">
+          Google Agenda
+        </h2>
+        <p className="mb-3 text-slate-500 dark:text-slate-400">
           Koppel je Google Agenda zodat ingeplande telefoongesprekken en
           afspraken automatisch als agenda-item worden aangemaakt.
         </p>
 
         {user?.googleCalendarConnected ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-green-700">
+            <span className="text-green-700 dark:text-green-400">
               Gekoppeld{user.googleCalendarEmail ? ` — ${user.googleCalendarEmail}` : ""}
             </span>
             <form action="/api/google/disconnect" method="post">
               <button
                 type="submit"
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Ontkoppelen
               </button>
@@ -127,16 +146,18 @@ export default async function SettingsPage({
         ) : (
           <a
             href="/api/google/connect"
-            className="inline-block rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+            className="inline-block rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Google Agenda koppelen
           </a>
         )}
       </div>
 
-      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
-        <h2 className="mb-2 font-medium text-slate-900">Mijn Zoom-link</h2>
-        <p className="mb-3 text-slate-500">
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 font-medium text-slate-900 dark:text-slate-100">
+          Mijn Zoom-link
+        </h2>
+        <p className="mb-3 text-slate-500 dark:text-slate-400">
           Je eigen, persoonlijke Zoom-ruimte. Wanneer je via de
           planning-widget een online-afspraak inplant, wordt deze link
           automatisch in de omschrijving gezet (tenzij je daar kiest voor
@@ -149,11 +170,11 @@ export default async function SettingsPage({
             name="zoomLink"
             defaultValue={user?.zoomLink ?? ""}
             placeholder="https://zoom.us/j/..."
-            className="flex-1 rounded-md border border-slate-300 px-3 py-2"
+            className="flex-1 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+            className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Opslaan
           </button>

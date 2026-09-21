@@ -57,30 +57,30 @@ export function ViewAsEmployeeModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[70vh] w-full max-w-sm flex-col rounded-lg border border-slate-200 bg-white shadow-xl"
+        className="flex max-h-[70vh] w-full max-w-sm flex-col rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h2 className="text-base font-medium text-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+          <h2 className="text-base font-medium text-slate-900 dark:text-slate-100">
             Bekijk als medewerker
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
           >
             <X size={16} />
           </button>
         </div>
-        <div className="border-b border-slate-100 p-3">
-          <div className="flex items-center gap-2 rounded-md border border-slate-300 px-2.5 py-1.5">
+        <div className="border-b border-slate-100 p-3 dark:border-slate-800">
+          <div className="flex items-center gap-2 rounded-md border border-slate-300 px-2.5 py-1.5 dark:border-slate-700">
             <Search size={14} className="text-slate-400" />
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Zoek op naam..."
-              className="w-full text-sm outline-none"
+              className="w-full text-sm outline-none dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
         </div>
@@ -96,7 +96,7 @@ export function ViewAsEmployeeModal({
                 type="button"
                 disabled={pending}
                 onClick={() => handleSelect(employee.id, employee.name)}
-                className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-60 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <span>{employee.name}</span>
                 <span className="text-xs text-slate-400">{employee.roleLabel}</span>

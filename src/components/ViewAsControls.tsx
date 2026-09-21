@@ -54,7 +54,7 @@ export function ViewAsControls({
         type="button"
         disabled={pending}
         onClick={handleReset}
-        className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+        className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-800 dark:bg-slate-900 dark:text-amber-400 dark:hover:bg-amber-950"
       >
         <RotateCcw size={14} />
         {viewingAsName ? "Terug naar mezelf" : "Terug naar Beheerder"}
@@ -75,8 +75,10 @@ export function ViewAsControls({
             type="button"
             disabled={pending}
             onClick={() => handleSelect(role)}
-            className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-slate-100 disabled:opacity-60 ${
-              active ? "bg-slate-100 font-medium text-slate-900" : "text-slate-700"
+            className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-slate-700 ${
+              active
+                ? "bg-slate-100 font-medium text-slate-900 dark:bg-slate-700 dark:text-slate-100"
+                : "text-slate-700 dark:text-slate-300"
             }`}
           >
             <Eye size={14} />
@@ -88,8 +90,10 @@ export function ViewAsControls({
         type="button"
         disabled={pending}
         onClick={() => setEmployeeModalOpen(true)}
-        className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-slate-100 disabled:opacity-60 ${
-          viewingAsName ? "bg-slate-100 font-medium text-slate-900" : "text-slate-700"
+        className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-slate-700 ${
+          viewingAsName
+            ? "bg-slate-100 font-medium text-slate-900 dark:bg-slate-700 dark:text-slate-100"
+            : "text-slate-700 dark:text-slate-300"
         }`}
       >
         <UserCog size={14} />
@@ -100,7 +104,7 @@ export function ViewAsControls({
           type="button"
           disabled={pending}
           onClick={handleReset}
-          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-60"
+          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-60 dark:text-blue-400 dark:hover:bg-blue-950"
         >
           <RotateCcw size={14} />
           {viewingAsName ? "Terug naar mezelf" : "Terug naar Beheerder"}
