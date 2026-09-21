@@ -24,7 +24,12 @@ export async function GET(req: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 300,
+    // Ruim bemeten: bij een niet-geverifieerde app toont Google eerst een
+    // waarschuwingsscherm ("Doorgaan naar ... (onveilig)") vóór de
+    // eigenlijke toestemmingsvraag — 5 minuten bleek voor sommige
+    // gebruikers (account kiezen, waarschuwing lezen, 2FA) te krap, met
+    // "invalid_state" (deze cookie al verlopen bij het terugkeren) tot gevolg.
+    maxAge: 600,
     path: "/",
   });
   return res;

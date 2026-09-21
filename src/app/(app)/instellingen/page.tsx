@@ -17,9 +17,14 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ google_connected?: string; google_error?: string }>;
+  searchParams: Promise<{
+    google_connected?: string;
+    google_error?: string;
+    google_error_detail?: string;
+  }>;
 }) {
-  const { google_connected, google_error } = await searchParams;
+  const { google_connected, google_error, google_error_detail } =
+    await searchParams;
   const viewer = (await getEffectiveViewer())!;
   const user = await prisma.user.findUnique({
     where: { id: viewer.id },
@@ -37,10 +42,17 @@ export default async function SettingsPage({
         </p>
       )}
       {google_error && (
-        <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {GOOGLE_ERROR_MESSAGES[google_error] ??
-            "Koppelen van Google Agenda is mislukt. Probeer opnieuw."}
-        </p>
+        <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p>
+            {GOOGLE_ERROR_MESSAGES[google_error] ??
+              "Koppelen van Google Agenda is mislukt. Probeer opnieuw."}
+          </p>
+          {google_error_detail && (
+            <p className="mt-1 text-xs text-red-500">
+              Foutmelding: {google_error_detail}
+            </p>
+          )}
+        </div>
       )}
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
