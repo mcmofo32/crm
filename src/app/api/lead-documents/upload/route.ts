@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canAccessOwner, canManageCustomerData } from "@/lib/permissions";
+import { canAccessOwner } from "@/lib/permissions";
 import { LeadDocumentKind } from "@/generated/prisma/client";
 import { LEAD_DOCUMENT_MAX_BYTES } from "@/lib/leadDocuments";
 
@@ -12,9 +12,10 @@ export const runtime = "nodejs";
 
 /**
  * Autoriseert een upload vanuit LeadDocumentSlot (@vercel/blob/client) — i.t.t.
- * /api/library/upload (waar iedere Beheerder/Admin elk document mag
- * toevoegen) moet dit ook nog per lead nagaan of de kijker toegang heeft
- * tot precies déze klant (clientPayload draagt leadId/kind mee).
+ * /api/library/upload (waar enkel Beheerder/Admin documenten mag
+ * toevoegen) volstaat hier gewone toegang tot déze lead (clientPayload
+ * draagt leadId/kind mee) — zelfde grens als de leadpagina zelf, zie
+ * requireLeadDocumentAccess in lib/actions/leadDocuments.ts.
  */
 export async function POST(request: Request) {
   const body = (await request.json()) as HandleUploadBody;
@@ -25,8 +26,8 @@ export async function POST(request: Request) {
       request,
       onBeforeGenerateToken: async (_pathname, clientPayload) => {
         const viewer = await getEffectiveViewer();
-        if (!viewer || !canManageCustomerData(viewer)) {
-          throw new Error("Je hebt geen rechten om documenten toe te voegen");
+        if (!viewer) {
+          throw new Error("Niet ingelogd");
         }
 
         let leadId = "";
@@ -52,9 +53,9 @@ export async function POST(request: Request) {
           where: { id: leadId },
           select: { ownerId: true, deletedAt: true },
         });
-        if (!lead || lead.deletedAt) throw new Error("Klant niet gevonden");
+        if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
         if (!(await canAccessOwner(viewer, lead.ownerId))) {
-          throw new Error("Geen toegang tot deze klant");
+          throw new Error("Geen toegang tot deze lead");
         }
 
         return {

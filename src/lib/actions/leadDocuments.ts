@@ -4,16 +4,20 @@ import { revalidatePath } from "next/cache";
 import { del, get } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { canAccessOwner, canManageCustomerData } from "@/lib/permissions";
+import { canAccessOwner } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { LeadDocumentKind } from "@/generated/prisma/client";
 import { LEAD_DOCUMENT_KIND_LABELS } from "@/lib/leadDocuments";
 import type ExcelJS from "exceljs";
 
-async function requireLeadDocumentAccess(
-  leadId: string,
-  opts: { write?: boolean } = {}
-) {
+/**
+ * Documenten horen bij de lead zelf, niet bij een specifieke klantbeheer-
+ * actie — wie deze lead/klant mag zien (canAccessOwner, zelfde grens als de
+ * leadpagina) mag er dus ook documenten aan toevoegen/verwijderen, ongeacht
+ * of hij daarnaast ook klantendata (producten/BOAR/dossierbeheerder) mag
+ * aanpassen. Dat laatste blijft wel apart afgeschermd via canManageCustomerData.
+ */
+async function requireLeadDocumentAccess(leadId: string) {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
 
@@ -21,17 +25,14 @@ async function requireLeadDocumentAccess(
     where: { id: leadId },
     select: { id: true, ownerId: true, deletedAt: true },
   });
-  if (!lead || lead.deletedAt) throw new Error("Klant niet gevonden");
+  if (!lead || lead.deletedAt) throw new Error("Lead niet gevonden");
   if (!(await canAccessOwner(viewer, lead.ownerId))) {
-    throw new Error("Geen toegang tot deze klant");
-  }
-  if (opts.write && !canManageCustomerData(viewer)) {
-    throw new Error("Je hebt geen rechten om documenten toe te voegen");
+    throw new Error("Geen toegang tot deze lead");
   }
   return { viewer, lead };
 }
 
-/** De (hoogstens 3) documenten van een klant, voor het klantprofiel. */
+/** De (hoogstens 3) documenten van een lead/klant, voor het leadprofiel. */
 export async function getLeadDocuments(leadId: string) {
   await requireLeadDocumentAccess(leadId);
 
@@ -65,9 +66,7 @@ export async function saveLeadDocumentAction(params: {
   mimeType: string;
   fileSize: number;
 }) {
-  const { viewer, lead } = await requireLeadDocumentAccess(params.leadId, {
-    write: true,
-  });
+  const { viewer, lead } = await requireLeadDocumentAccess(params.leadId);
 
   const existing = await prisma.leadDocument.findUnique({
     where: { leadId_kind: { leadId: lead.id, kind: params.kind } },
@@ -122,9 +121,7 @@ export async function deleteLeadDocumentAction(
   leadId: string,
   kind: LeadDocumentKind
 ) {
-  const { viewer, lead } = await requireLeadDocumentAccess(leadId, {
-    write: true,
-  });
+  const { viewer, lead } = await requireLeadDocumentAccess(leadId);
 
   const doc = await prisma.leadDocument.findUnique({
     where: { leadId_kind: { leadId: lead.id, kind } },
@@ -147,6 +144,7 @@ export async function deleteLeadDocumentAction(
 
 export type LeadDocumentPreview =
   | { type: "pdf"; viewUrl: string }
+  | { type: "image"; viewUrl: string }
   | { type: "html"; html: string }
   | { type: "unsupported"; reason: string };
 
@@ -203,11 +201,11 @@ function renderSheetsAsHtml(sheets: ExcelJS.Worksheet[]): string {
 
 /**
  * Bouwt een weergave op voor "bekijken" van een klantdocument zonder
- * download: PDF wordt rechtstreeks inline getoond (native browserviewer via
- * /api/lead-documents/[id]), Word (.docx) wordt server-side naar HTML
- * omgezet (mammoth), Excel/CSV naar een HTML-tabel (exceljs) — voor oudere
- * formaten (.doc/.xls) of iets anders bestaat geen inline-weergave, dan
- * blijft enkel downloaden over.
+ * download: PDF en foto's (bv. van de FA-fiche) worden rechtstreeks inline
+ * getoond (native browserviewer via /api/lead-documents/[id]), Word (.docx)
+ * wordt server-side naar HTML omgezet (mammoth), Excel/CSV naar een
+ * HTML-tabel (exceljs) — voor oudere formaten (.doc/.xls) of iets anders
+ * bestaat geen inline-weergave, dan blijft enkel downloaden over.
  */
 export async function getLeadDocumentPreviewAction(
   leadId: string,
@@ -222,6 +220,9 @@ export async function getLeadDocumentPreviewAction(
 
   if (doc.mimeType === "application/pdf") {
     return { type: "pdf", viewUrl: `/api/lead-documents/${doc.id}` };
+  }
+  if (doc.mimeType.startsWith("image/")) {
+    return { type: "image", viewUrl: `/api/lead-documents/${doc.id}` };
   }
 
   const lowerName = doc.fileName.toLowerCase();
@@ -239,7 +240,7 @@ export async function getLeadDocumentPreviewAction(
     return {
       type: "unsupported",
       reason:
-        "Weergave in de CRM wordt enkel ondersteund voor PDF, Word (.docx) en Excel (.xlsx/.csv) — download het bestand om het te bekijken.",
+        "Weergave in de CRM wordt enkel ondersteund voor PDF, foto's, Word (.docx) en Excel (.xlsx/.csv) — download het bestand om het te bekijken.",
     };
   }
 

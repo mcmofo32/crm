@@ -1067,19 +1067,19 @@ model LibraryDocument {
 }
 
 // ---------------------------------------------------------------------------
-// Klantdocumenten (profiel van een klant, "Klanten onder beheer")
+// Leaddocumenten (profiel van een lead/klant)
 // ---------------------------------------------------------------------------
 
-/// De 3 vaste documentvakken op een klantprofiel — elke klant heeft hoogstens
-/// één document per soort (zie @@unique op LeadDocument), een nieuwe upload
-/// vervangt het vorige bestand.
+/// De 3 vaste documentvakken op een leadprofiel — elke lead/klant heeft
+/// hoogstens één document per soort (zie @@unique op LeadDocument), een
+/// nieuwe upload vervangt het vorige bestand.
 enum LeadDocumentKind {
   FA_FICHE
   BUDGETTERING
   PORTEFEUILLE
 }
 
-/// Document in een vast vak op een klantprofiel (fiche financiële analyse,
+/// Document in een vast vak op een leadprofiel (fiche financiële analyse,
 /// budgettering, portefeuille) — zelfde opzet als LibraryDocument (bestand
 /// zelf in Vercel Blob storage, enkel de URL/metadata hier), zodat het ook
 /// in de CRM zelf getoond kan worden i.p.v. enkel gedownload (zie
