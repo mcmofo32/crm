@@ -70,7 +70,7 @@ function flatten(p: PositionedNode, acc: PositionedNode[] = []) {
 
 function NodeCard({ node }: { node: OrgNode }) {
   return (
-    <div className="relative flex w-full flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center shadow-sm">
+    <div className="relative flex w-full flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
       {node.agentType === "SUBAGENT" && (
         <span
           title="Subagent"
@@ -87,7 +87,7 @@ function NodeCard({ node }: { node: OrgNode }) {
             : null
         }
       />
-      <span className="line-clamp-1 text-sm font-medium text-slate-900">
+      <span className="line-clamp-1 text-sm font-medium text-slate-900 dark:text-slate-100">
         {node.name}
       </span>
       {node.jobFunction ? (
@@ -147,18 +147,18 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
           type="button"
           title="Uitzoomen"
           onClick={() => setScale((s) => Math.max(0.3, s - 0.1))}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ZoomOut size={15} />
         </button>
-        <span className="w-12 text-center text-sm text-slate-500">
+        <span className="w-12 text-center text-sm text-slate-500 dark:text-slate-400">
           {Math.round(scale * 100)}%
         </span>
         <button
           type="button"
           title="Inzoomen"
           onClick={() => setScale((s) => Math.min(2, s + 0.1))}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ZoomIn size={15} />
         </button>
@@ -166,7 +166,7 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
           type="button"
           title="Passend maken"
           onClick={fitToScreen}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <Maximize2 size={14} />
         </button>
@@ -174,7 +174,7 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
 
       <div
         ref={containerRef}
-        className="overflow-auto rounded-lg border border-slate-200 bg-slate-50"
+        className="overflow-auto rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900"
         style={{ maxHeight: "calc(100vh - 180px)", minHeight: "70vh" }}
       >
         <div
@@ -211,8 +211,9 @@ export function OrgChartCanvas({ roots }: { roots: OrgNode[] }) {
                       key={`${p.node.id}-${child.node.id}`}
                       d={`M ${startX} ${startY} V ${midY} H ${endX} V ${endY}`}
                       fill="none"
-                      stroke="#cbd5e1"
+                      stroke="currentColor"
                       strokeWidth={2}
+                      className="text-slate-300 dark:text-slate-700"
                     />
                   );
                 })
