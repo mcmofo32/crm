@@ -165,7 +165,6 @@ export function StageSelect({
                   // Opvolggesprek) vóór de lead effectief verplaatst wordt —
                   // anders kan een lead in een "...ingepland"-fase belanden
                   // zonder dat er ooit iets ingepland werd.
-                  let justScheduledActivityId: string | undefined;
                   if (targetStage && isPlanningStage(targetStage.label) && meetingFormData) {
                     const result = await planStageMeetingAction(
                       leadId,
@@ -173,9 +172,6 @@ export function StageSelect({
                       meetingFormData
                     );
                     if (result && "error" in result) throw new Error(result.error);
-                    if (result && "activityId" in result) {
-                      justScheduledActivityId = result.activityId;
-                    }
                   }
                   if (targetStage && isFollowUpStage(targetStage.label) && followUpFormData) {
                     const result = await planFollowUpCallAction(
@@ -184,16 +180,8 @@ export function StageSelect({
                       followUpFormData
                     );
                     if (result && "error" in result) throw new Error(result.error);
-                    if (result && "activityId" in result) {
-                      justScheduledActivityId = result.activityId;
-                    }
                   }
-                  const stageResult = await updateLeadStageAction(
-                    leadId,
-                    targetStageId,
-                    notes,
-                    justScheduledActivityId
-                  );
+                  const stageResult = await updateLeadStageAction(leadId, targetStageId, notes);
                   if (stageResult?.error) throw new Error(stageResult.error);
                   if (targetStage?.isWon && hasAnyProduct(products)) {
                     await saveLeadProductsAction(leadId, buildProductsFormData(products));

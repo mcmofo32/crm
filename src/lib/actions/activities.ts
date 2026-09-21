@@ -531,20 +531,11 @@ export async function cancelActivityAction(activityId: string) {
  */
 export type PlanMeetingResult = { error: string } | undefined;
 
-/**
- * Zelfde als PlanMeetingResult, maar dan voor de acties die bij succes ook
- * de id van de zonet aangemaakte activiteit teruggeven (planStageMeetingAction/
- * planFollowUpCallAction) — zodat de aanroeper die kan doorgeven aan
- * updateLeadStageAction, dat anders per ongeluk deze fonkelnieuwe taak zelf
- * meteen weer zou annuleren bij een verplaatsing naar "Geen klant"/"Opvolging".
- */
-export type PlanActivityResult = { error: string } | { activityId: string } | undefined;
-
 export async function planStageMeetingAction(
   leadId: string,
   toStageId: string,
   formData: FormData
-): Promise<PlanActivityResult> {
+): Promise<PlanMeetingResult> {
   const { user, lead } = await requireLeadAccess(leadId);
 
   const [freshLead, toStage] = await Promise.all([
@@ -675,8 +666,6 @@ export async function planStageMeetingAction(
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/taken");
   revalidatePath("/dashboard");
-
-  return { activityId: activity.id };
 }
 
 /**
@@ -691,7 +680,7 @@ export async function planFollowUpCallAction(
   leadId: string,
   toStageId: string,
   formData: FormData
-): Promise<PlanActivityResult> {
+): Promise<PlanMeetingResult> {
   const { user, lead } = await requireLeadAccess(leadId);
 
   const [freshLead, toStage] = await Promise.all([
@@ -760,6 +749,4 @@ export async function planFollowUpCallAction(
   revalidatePath("/pipeline/recrutering");
   revalidatePath("/taken");
   revalidatePath("/dashboard");
-
-  return { activityId: activity.id };
 }

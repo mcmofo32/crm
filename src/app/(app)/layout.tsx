@@ -135,10 +135,10 @@ export default async function AppLayout({
               <span className="flex flex-shrink-0 items-center">
                 <span className="sr-only">Structuur A</span>
                 <span className="sm:hidden">
-                  <Logo size={64} />
+                  <Logo size={64} themed />
                 </span>
                 <span className="hidden sm:block">
-                  <Logo size={112} />
+                  <Logo size={112} themed />
                 </span>
               </span>
               <NavLinks items={navItems} />
