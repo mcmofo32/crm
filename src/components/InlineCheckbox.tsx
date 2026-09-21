@@ -26,7 +26,7 @@ export function InlineCheckbox({
           action(formData);
         });
       }}
-      className="h-4 w-4 rounded border-slate-300"
+      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 dark:bg-slate-900"
     />
   );
 }

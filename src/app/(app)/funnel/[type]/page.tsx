@@ -51,14 +51,14 @@ export default async function FunnelPage({
   const ownerSwitcher = requiresSelection && (
     <form
       method="GET"
-      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
+      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
     >
-      <Users size={17} className="text-slate-400" />
-      <label className="text-sm text-slate-600">Bekijk funnel van:</label>
+      <Users size={17} className="text-slate-400 dark:text-slate-500" />
+      <label className="text-sm text-slate-600 dark:text-slate-400">Bekijk funnel van:</label>
       <select
         name="ownerId"
         defaultValue={selectedOwnerId}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       >
         <option value={ALL_OPTION}>Structuur A</option>
         {assignableUsers.map((u) => (
@@ -69,7 +69,7 @@ export default async function FunnelPage({
       </select>
       <button
         type="submit"
-        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
       >
         Bekijken
       </button>
@@ -146,7 +146,7 @@ export default async function FunnelPage({
 
   if (stages.length === 0) {
     return (
-      <p className="text-base text-slate-500">
+      <p className="text-base text-slate-500 dark:text-slate-400">
         Er zijn nog geen funnel-stages geconfigureerd voor{" "}
         {LEAD_TYPE_LABELS[leadType]}.
       </p>
@@ -178,14 +178,14 @@ export default async function FunnelPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
           {leadType} Funnel
         </h1>
       </div>
 
       {ownerSwitcher}
 
-      <p className="-mt-2 text-sm text-slate-400">
+      <p className="-mt-2 text-sm text-slate-400 dark:text-slate-500">
         Sleep een lead naar een andere kolom om de fase te wijzigen.
       </p>
 
