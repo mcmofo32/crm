@@ -850,6 +850,8 @@ export type GoalProgress = {
  * worden allemaal beoordeeld over de volledige lopende productiemaand
  * (doel = het maanddoel) — dus ook Gesprekken hier, in tegenstelling tot de
  * aparte "Gesprekken"-ranglijst op de Productie-tab, die wél per week werkt.
+ * Wie nog in opleiding is (User.inTraining) telt nergens in mee — zelfde
+ * regel als de jaarlijkse KPI's, zie getYearlyKpiProgress.
  */
 export async function getProductionMonthGoalProgress(userId: string): Promise<{
   year: number;
@@ -861,6 +863,25 @@ export async function getProductionMonthGoalProgress(userId: string): Promise<{
   await requireViewer();
   const { year, month } = await getCurrentProductionMonth();
   const { start, end } = await getProductionMonthRange(year, month);
+
+  const viewedUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { inTraining: true },
+  });
+  if (viewedUser?.inTraining) {
+    return {
+      year,
+      month,
+      periodStart: start,
+      periodEnd: new Date(end.getTime() - 1),
+      rows: GOAL_METRIC_ORDER.map((metric) => ({
+        metric,
+        actual: 0,
+        target: 0,
+        percent: null,
+      })),
+    };
+  }
 
   const [targets, wonThisMonth, unitsThisMonth, conversationsThisMonth, newFaLeads, newRgLeads] =
     await Promise.all([
