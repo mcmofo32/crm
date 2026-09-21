@@ -46,6 +46,18 @@ export function isOpvolggesprekType(meetingType: string) {
   return meetingTypeFromStageLabel(meetingType).toLowerCase() === "opvolggesprek";
 }
 
+/**
+ * Jaarlijkse opvolging: het jaarlijkse check-in-gesprek met een bestaande
+ * klant (geen fase in de verkoopfunnel, dus geen "...ingepland"-fase-move,
+ * i.t.t. Adviesgesprek/Opvolggesprek) — maar wel dezelfde rijke
+ * planning-widget (Van/Tot, fysiek/online, subagent uitnodigen).
+ */
+export function isJaarlijkseOpvolgingType(meetingType: string) {
+  return (
+    meetingTypeFromStageLabel(meetingType).toLowerCase() === "jaarlijkse opvolging"
+  );
+}
+
 /** Bij Financiële analyse vragen we een e-mailadres als dat nog ontbreekt. */
 export function isFinancieleAnalyseType(meetingType: string) {
   return (
@@ -78,7 +90,8 @@ export function wantsEmailPrompt(meetingType: string) {
     isAdviesgesprekType(meetingType) ||
     isOpvolggesprekType(meetingType) ||
     isKennismakingsgesprekType(meetingType) ||
-    isCarrieregesprekType(meetingType)
+    isCarrieregesprekType(meetingType) ||
+    isJaarlijkseOpvolgingType(meetingType)
   );
 }
 
@@ -87,7 +100,8 @@ export function isRichMeetingType(meetingType: string) {
   return (
     isAdviesgesprekType(meetingType) ||
     isFinancieleAnalyseType(meetingType) ||
-    isOpvolggesprekType(meetingType)
+    isOpvolggesprekType(meetingType) ||
+    isJaarlijkseOpvolgingType(meetingType)
   );
 }
 
@@ -110,7 +124,8 @@ export function subjectInvitesLead(subject: string) {
     lower.includes("kennismakingsgesprek") ||
     lower.includes("carrièregesprek") ||
     lower.includes("belastingsaangifte") ||
-    lower.includes("opvolggesprek")
+    lower.includes("opvolggesprek") ||
+    lower.includes("jaarlijkse opvolging")
   );
 }
 
@@ -133,6 +148,7 @@ export function isFinancieleAnalyseSubject(subject: string) {
 export function bareMeetingType(subject: string): string {
   const lower = subject.toLowerCase();
   if (lower.includes("opvolggesprek")) return "Opvolggesprek";
+  if (lower.includes("jaarlijkse opvolging")) return "Jaarlijkse opvolging";
   if (lower.includes("financiële analyse")) return "Financiële analyse";
   if (lower.includes("adviesgesprek")) return "Adviesgesprek";
   if (lower.includes("kennismakingsgesprek")) return "Kennismakingsgesprek";

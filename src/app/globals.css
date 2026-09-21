@@ -22,3 +22,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Server-side gerenderde klantdocument-preview (mammoth voor Word, exceljs
+   voor Excel/CSV, zie leadDocuments.ts) — ongestylede HTML zonder
+   Tailwind-klassen, dus hier expliciet opgemaakt i.p.v. via utility-klassen. */
+.lead-document-preview {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #334155;
+}
+.lead-document-preview h1,
+.lead-document-preview h2,
+.lead-document-preview h3 {
+  margin: 1em 0 0.5em;
+  font-weight: 600;
+  color: #0f172a;
+}
+.lead-document-preview p {
+  margin: 0.5em 0;
+}
+.lead-document-preview ul,
+.lead-document-preview ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.lead-document-preview table {
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  min-width: 100%;
+}
+.lead-document-preview-table {
+  font-size: 0.8125rem;
+}
+.lead-document-preview td,
+.lead-document-preview th {
+  border: 1px solid #e2e8f0;
+  padding: 0.25em 0.6em;
+  white-space: nowrap;
+}
