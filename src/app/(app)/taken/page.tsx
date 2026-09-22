@@ -10,9 +10,14 @@ import {
 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
-import { canDeleteActivities, canManageUsers } from "@/lib/permissions";
+import {
+  canDeleteActivities,
+  canManageCustomerData,
+  canManageUsers,
+} from "@/lib/permissions";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getSubagents } from "@/lib/actions/subagents";
+import { mainFunnelStageKeys } from "@/lib/funnelStages";
 import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 import { LeadType, Role } from "@/generated/prisma/client";
 import { ActivityButtons } from "@/components/ActivityButtons";
@@ -71,7 +76,7 @@ export default async function TakenPage({
     ? { ownerId: { in: assignableUsers.map((u) => u.id) } }
     : { ownerId: selectedOwnerId };
 
-  const [tasks, subagents] = await Promise.all([
+  const [tasks, subagents, stages] = await Promise.all([
     prisma.activity.findMany({
       where: {
         status: "PLANNED",
@@ -84,6 +89,7 @@ export default async function TakenPage({
             firstName: true,
             lastName: true,
             leadType: true,
+            stageId: true,
             lastContactedAt: true,
           },
         },
@@ -92,7 +98,11 @@ export default async function TakenPage({
       orderBy: { scheduledAt: "asc" },
     }),
     getSubagents(),
+    prisma.funnelStage.findMany({
+      select: { id: true, key: true, label: true, isWon: true, isLost: true, leadType: true },
+    }),
   ]);
+  const canCloseDeals = canManageCustomerData(user);
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -274,6 +284,11 @@ export default async function TakenPage({
                           meetingLink={task.meetingLink}
                           subagentId={task.subagentId}
                           subagents={subagents}
+                          leadId={task.lead.id}
+                          stages={stages.filter((s) => s.leadType === task.lead.leadType)}
+                          currentStageId={task.lead.stageId}
+                          mainStageKeys={mainFunnelStageKeys(task.lead.leadType)}
+                          canCloseDeals={canCloseDeals}
                         />
                       </li>
                     );

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
+import { mainFunnelStageKeys } from "@/lib/funnelStages";
 import {
   canAccessOwner,
   canDeleteLeads,
@@ -95,6 +96,8 @@ export default async function LeadDetailPage({
 
   if (!lead || lead.deletedAt) notFound();
   if (!(await canAccessOwner(user, lead.ownerId))) notFound();
+
+  const mainStageKeys = mainFunnelStageKeys(lead.leadType);
 
   const now = new Date();
   const nextContact = lead.activities
@@ -350,6 +353,11 @@ export default async function LeadDetailPage({
                         meetingLink={activity.meetingLink}
                         subagentId={activity.subagentId}
                         subagents={subagents}
+                        leadId={lead.id}
+                        stages={stages}
+                        currentStageId={lead.stageId}
+                        mainStageKeys={mainStageKeys}
+                        canCloseDeals={canManageCustomerData(user)}
                       />
                     </div>
                     {activity.scheduledAt && (
