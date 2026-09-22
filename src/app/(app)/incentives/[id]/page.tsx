@@ -59,10 +59,10 @@ export default async function IncentiveDetailPage({
       <ToastOnParam param="created" message="Incentive aangemaakt" />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
             {incentive.title}
           </h1>
-          <p className="mt-1 text-base text-slate-500">
+          <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
             {incentive.startDate.toLocaleDateString("nl-BE", {
               timeZone: "Europe/Brussels",
             })}{" "}
@@ -80,7 +80,7 @@ export default async function IncentiveDetailPage({
       </div>
 
       {hasPoster && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           {isImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -90,14 +90,14 @@ export default async function IncentiveDetailPage({
             />
           ) : (
             <div className="flex flex-col items-center gap-3 p-10">
-              <p className="text-base text-slate-500">
+              <p className="text-base text-slate-500 dark:text-slate-400">
                 De poster is een PDF-bestand.
               </p>
               <a
                 href={`/api/incentives/${incentive.id}/poster`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md bg-slate-900 px-4 py-2 text-base font-medium text-white hover:bg-slate-800"
+                className="rounded-md bg-slate-900 px-4 py-2 text-base font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
               >
                 Poster openen
               </a>
@@ -106,14 +106,14 @@ export default async function IncentiveDetailPage({
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="mb-2 text-lg font-medium text-slate-900">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 text-lg font-medium text-slate-900 dark:text-slate-100">
           Vereisten om te winnen
         </h2>
-        <p className="whitespace-pre-wrap text-base text-slate-600">
+        <p className="whitespace-pre-wrap text-base text-slate-600 dark:text-slate-400">
           {incentive.description}
         </p>
-        <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
+        <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
           {incentive.mode === IncentiveMode.TOP_N ? (
             <>
               <div>
@@ -137,7 +137,7 @@ export default async function IncentiveDetailPage({
       </div>
 
       <div>
-        <h2 className="mb-3 flex items-center gap-1.5 text-lg font-medium text-slate-900">
+        <h2 className="mb-3 flex items-center gap-1.5 text-lg font-medium text-slate-900 dark:text-slate-100">
           <Trophy size={19} className="text-amber-500" />
           Ranglijst
         </h2>
@@ -147,8 +147,8 @@ export default async function IncentiveDetailPage({
               key={entry.userId}
               className={`flex flex-col gap-2 rounded-lg border p-4 ${
                 entry.achieved
-                  ? "border-amber-300 bg-amber-50"
-                  : "border-slate-200 bg-white"
+                  ? "border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950"
+                  : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -157,32 +157,32 @@ export default async function IncentiveDetailPage({
                     {index < 3 ? (
                       <Medal size={18} color={MEDAL_COLORS[index]} />
                     ) : (
-                      <span className="font-semibold text-slate-400">
+                      <span className="font-semibold text-slate-400 dark:text-slate-500">
                         {index + 1}
                       </span>
                     )}
                   </span>
                   <Avatar name={entry.name} photoUrl={entry.photoUrl} />
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
                     {entry.name}
                   </span>
                   {entry.achieved && (
                     <Crown size={18} className="text-amber-500" />
                   )}
                 </div>
-                <span className="text-lg font-semibold text-slate-900">
+                <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {entry.progressPercent}%
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                 <div
                   className={`h-full rounded-full ${
-                    entry.achieved ? "bg-amber-500" : "bg-slate-900"
+                    entry.achieved ? "bg-amber-500" : "bg-slate-900 dark:bg-slate-100"
                   }`}
                   style={{ width: `${Math.min(entry.progressPercent, 100)}%` }}
                 />
               </div>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {entry.categories && entry.categories.length > 0
                   ? entry.categories
                       .map((c) => `${c.label}: ${c.raw}/${c.target}`)
@@ -192,7 +192,7 @@ export default async function IncentiveDetailPage({
             </li>
           ))}
           {leaderboard.length === 0 && (
-            <p className="text-base text-slate-400">
+            <p className="text-base text-slate-400 dark:text-slate-500">
               Nog geen gebruikers om te tonen.
             </p>
           )}
@@ -203,7 +203,7 @@ export default async function IncentiveDetailPage({
         <form action={boundDelete}>
           <button
             type="submit"
-            className="w-fit rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            className="w-fit rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
           >
             Evenement verwijderen
           </button>

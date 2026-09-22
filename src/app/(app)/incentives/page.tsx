@@ -24,20 +24,20 @@ export default async function IncentivesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
               <Trophy size={20} />
             </span>
             Incentives
           </h1>
-          <p className="mt-1 text-base text-slate-500">
+          <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
             Evenementen en wedstrijden om het team te motiveren.
           </p>
         </div>
         {canManageIncentives(user) && (
           <Link
             href="/incentives/new"
-            className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             <Plus size={17} />
             Nieuw evenement
@@ -46,7 +46,7 @@ export default async function IncentivesPage() {
       </div>
 
       {incentives.length === 0 ? (
-        <p className="text-base text-slate-500">Nog geen incentives.</p>
+        <p className="text-base text-slate-500 dark:text-slate-400">Nog geen incentives.</p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {incentives.map((incentive) => {
@@ -58,9 +58,9 @@ export default async function IncentivesPage() {
               <Link
                 key={incentive.id}
                 href={`/incentives/${incentive.id}`}
-                className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300"
+                className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
               >
-                <div className="flex h-40 items-center justify-center bg-slate-100">
+                <div className="flex h-40 items-center justify-center bg-slate-100 dark:bg-slate-800/60">
                   {hasPoster && isImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -69,24 +69,24 @@ export default async function IncentivesPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : hasPoster ? (
-                    <span className="flex items-center gap-1.5 text-base text-slate-500">
+                    <span className="flex items-center gap-1.5 text-base text-slate-500 dark:text-slate-400">
                       <FileText size={18} />
                       PDF-poster
                     </span>
                   ) : (
-                    <span className="text-base text-slate-400">Geen poster</span>
+                    <span className="text-base text-slate-400 dark:text-slate-500">Geen poster</span>
                   )}
                 </div>
                 <div className="flex flex-1 flex-col gap-2 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-lg font-medium text-slate-900">
+                    <h2 className="text-lg font-medium text-slate-900 dark:text-slate-100">
                       {incentive.title}
                     </h2>
                     <Badge variant={STATUS_BADGE_VARIANT[status]}>
                       {INCENTIVE_STATUS_LABELS[status]}
                     </Badge>
                   </div>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {incentive.startDate.toLocaleDateString("nl-BE", {
                       timeZone: "Europe/Brussels",
                     })}{" "}
@@ -95,7 +95,7 @@ export default async function IncentivesPage() {
                       timeZone: "Europe/Brussels",
                     })}
                   </p>
-                  <p className="line-clamp-2 text-base text-slate-600">
+                  <p className="line-clamp-2 text-base text-slate-600 dark:text-slate-400">
                     {incentive.description}
                   </p>
                 </div>

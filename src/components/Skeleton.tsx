@@ -4,7 +4,7 @@ function cx(...classes: (string | false | undefined)[]) {
 
 export function SkeletonBlock({ className }: { className?: string }) {
   return (
-    <div className={cx("animate-pulse rounded-md bg-slate-200", className)} />
+    <div className={cx("animate-pulse rounded-md bg-slate-200 dark:bg-slate-800", className)} />
   );
 }
 
@@ -18,19 +18,19 @@ export function SkeletonHeader({
   return (
     <div>
       <SkeletonBlock className={titleClassName} />
-      <SkeletonBlock className={cx("mt-2 bg-slate-100", subtitleClassName)} />
+      <SkeletonBlock className={cx("mt-2 bg-slate-100 dark:bg-slate-800/60", subtitleClassName)} />
     </div>
   );
 }
 
 export function SkeletonTable({ rows = 6 }: { rows?: number }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="h-11 animate-pulse bg-slate-50" />
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div className="h-11 animate-pulse bg-slate-50 dark:bg-slate-800/60" />
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="h-14 animate-pulse border-t border-slate-100 bg-slate-100/60"
+          className="h-14 animate-pulse border-t border-slate-100 bg-slate-100/60 dark:border-slate-800 dark:bg-slate-800/40"
         />
       ))}
     </div>
@@ -51,7 +51,7 @@ export function SkeletonCardGrid({
       {Array.from({ length: cards }).map((_, i) => (
         <SkeletonBlock
           key={i}
-          className={cx("rounded-xl border border-slate-200", cardClassName)}
+          className={cx("rounded-xl border border-slate-200 dark:border-slate-800", cardClassName)}
         />
       ))}
     </div>
@@ -60,10 +60,10 @@ export function SkeletonCardGrid({
 
 export function SkeletonForm({ fields = 5 }: { fields?: number }) {
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
+    <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
       {Array.from({ length: fields }).map((_, i) => (
         <div key={i} className="flex flex-col gap-1.5">
-          <SkeletonBlock className="h-4 w-32 bg-slate-100" />
+          <SkeletonBlock className="h-4 w-32 bg-slate-100 dark:bg-slate-800/60" />
           <SkeletonBlock className="h-10 w-full" />
         </div>
       ))}

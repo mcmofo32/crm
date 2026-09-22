@@ -21,10 +21,10 @@ export default async function BulkNewCustomerPage() {
   return (
     <div className="max-w-xl">
       <div className="mb-4">
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
           Klanten in bulk toevoegen
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Download je klantenlijst uit Google Sheets als Excel (.xlsx) en
           upload ze hier — elke rij wordt één klant, meteen met de juiste
           producten. Heeft je bestand per medewerker een apart tabblad, dan

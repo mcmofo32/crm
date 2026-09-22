@@ -38,17 +38,17 @@ export function IncentiveForm() {
       className="flex flex-col gap-4 text-sm"
     >
       <div className="flex flex-col gap-1">
-        <label className="font-medium text-slate-700">Titel</label>
+        <label className="font-medium text-slate-700 dark:text-slate-300">Titel</label>
         <input
           name="title"
           required
           placeholder="bv. Zomerpush FA"
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="font-medium text-slate-700">
+        <label className="font-medium text-slate-700 dark:text-slate-300">
           Vereisten om te winnen
         </label>
         <textarea
@@ -56,13 +56,13 @@ export function IncentiveForm() {
           required
           rows={4}
           placeholder="bv. Wie de richtcijfers haalt wint een cadeaubon."
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="font-medium text-slate-700">Ranglijst-modus</label>
-        <div className="flex flex-col gap-2 rounded-md border border-slate-300 p-3 sm:flex-row sm:gap-6">
+        <label className="font-medium text-slate-700 dark:text-slate-300">Ranglijst-modus</label>
+        <div className="flex flex-col gap-2 rounded-md border border-slate-300 p-3 sm:flex-row sm:gap-6 dark:border-slate-700">
           <label className="flex items-center gap-2">
             <input
               type="radio"
@@ -88,7 +88,7 @@ export function IncentiveForm() {
 
       {mode === "THRESHOLD" ? (
         <div className="flex flex-col gap-2">
-          <label className="font-medium text-slate-700">
+          <label className="font-medium text-slate-700 dark:text-slate-300">
             Ranglijst gebaseerd op (met richtcijfer per categorie)
           </label>
           {rows.map((row) => (
@@ -96,7 +96,7 @@ export function IncentiveForm() {
               <select
                 name="categoryMetric"
                 defaultValue="CLIENTS_WON"
-                className="flex-1 rounded-md border border-slate-300 px-3 py-2"
+                className="flex-1 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 {METRIC_OPTIONS.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -107,7 +107,7 @@ export function IncentiveForm() {
               <select
                 name="categoryLeadType"
                 defaultValue=""
-                className="rounded-md border border-slate-300 px-3 py-2"
+                className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="">FA + RG</option>
                 <option value="FA">Enkel FA</option>
@@ -119,14 +119,14 @@ export function IncentiveForm() {
                 min={1}
                 required
                 placeholder="Richtcijfer"
-                className="w-32 rounded-md border border-slate-300 px-3 py-2"
+                className="w-32 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
               <button
                 type="button"
                 onClick={() => removeRow(row.key)}
                 disabled={rows.length === 1}
                 title="Categorie verwijderen"
-                className="rounded-md border border-slate-300 p-2 text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+                className="rounded-md border border-slate-300 p-2 text-slate-500 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
               >
                 <X size={15} />
               </button>
@@ -135,7 +135,7 @@ export function IncentiveForm() {
           <button
             type="button"
             onClick={addRow}
-            className="flex w-fit items-center gap-1.5 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-slate-600 hover:bg-slate-50"
+            className="flex w-fit items-center gap-1.5 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <Plus size={15} />
             Categorie toevoegen
@@ -144,13 +144,13 @@ export function IncentiveForm() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-1">
-            <label className="font-medium text-slate-700">
+            <label className="font-medium text-slate-700 dark:text-slate-300">
               Ranglijst gebaseerd op
             </label>
             <select
               name="rankingMetric"
               defaultValue="CLIENTS_WON"
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               {METRIC_OPTIONS.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -160,11 +160,11 @@ export function IncentiveForm() {
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="font-medium text-slate-700">Funnel</label>
+            <label className="font-medium text-slate-700 dark:text-slate-300">Funnel</label>
             <select
               name="rankingLeadType"
               defaultValue=""
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">FA + RG</option>
               <option value="FA">Enkel FA</option>
@@ -172,11 +172,11 @@ export function IncentiveForm() {
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="font-medium text-slate-700">Wint</label>
+            <label className="font-medium text-slate-700 dark:text-slate-300">Wint</label>
             <select
               name="topN"
               defaultValue="5"
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
@@ -190,40 +190,40 @@ export function IncentiveForm() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Startdatum</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Startdatum</label>
           <input
             name="startDate"
             type="date"
             required
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Einddatum</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Einddatum</label>
           <input
             name="endDate"
             type="date"
             required
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         </div>
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="font-medium text-slate-700">
+        <label className="font-medium text-slate-700 dark:text-slate-300">
           Poster (JPEG of PDF, max 8 MB)
         </label>
         <input
           name="poster"
           type="file"
           accept="image/jpeg,application/pdf"
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
       </div>
 
       <button
         type="submit"
-        className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+        className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
       >
         Evenement aanmaken
       </button>

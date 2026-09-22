@@ -55,13 +55,13 @@ export default async function EventDetailPage({
       <div>
         <Link
           href="/evenementen"
-          className="mb-2 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700"
+          className="mb-2 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
         >
           <ArrowLeft size={15} />
           Terug naar overzicht
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-semibold text-slate-900">
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
             {event.title}
           </h1>
           <Badge variant={TYPE_BADGE_VARIANTS[event.type]}>
@@ -70,9 +70,9 @@ export default async function EventDetailPage({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-6">
-        <p className="flex items-center gap-2 text-base text-slate-700">
-          <CalendarDays size={17} className="text-slate-400" />
+      <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <p className="flex items-center gap-2 text-base text-slate-700 dark:text-slate-300">
+          <CalendarDays size={17} className="text-slate-400 dark:text-slate-500" />
           {event.date.toLocaleString("nl-BE", {
             dateStyle: "full",
             timeStyle: "short",
@@ -85,29 +85,29 @@ export default async function EventDetailPage({
             })}`}
         </p>
         {event.location && (
-          <p className="flex items-center gap-2 text-base text-slate-700">
-            <MapPin size={17} className="text-slate-400" />
+          <p className="flex items-center gap-2 text-base text-slate-700 dark:text-slate-300">
+            <MapPin size={17} className="text-slate-400 dark:text-slate-500" />
             {event.location}
           </p>
         )}
         {event.description && (
-          <p className="mt-2 whitespace-pre-line text-base text-slate-600">
+          <p className="mt-2 whitespace-pre-line text-base text-slate-600 dark:text-slate-400">
             {event.description}
           </p>
         )}
       </div>
 
       {event.canManage && event.googleSyncError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
           Google Agenda-synchronisatie mislukt: {event.googleSyncError}
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 className="mb-3 text-lg font-medium text-slate-900">
+      <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-100">
           Jouw aanwezigheid
         </h2>
-        <p className="mb-3 text-sm text-slate-500">
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
           Huidige status:{" "}
           <strong>{ATTENDANCE_STATUS_LABELS[event.myStatus]}</strong>
         </p>
@@ -119,7 +119,7 @@ export default async function EventDetailPage({
             className={`rounded-md px-4 py-2 text-sm font-medium ${
               event.myStatus === "GOING"
                 ? "bg-green-600 text-white"
-                : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+                : "border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             }`}
           >
             Aanwezig
@@ -131,7 +131,7 @@ export default async function EventDetailPage({
             className={`rounded-md px-4 py-2 text-sm font-medium ${
               event.myStatus === "NOT_GOING"
                 ? "bg-red-600 text-white"
-                : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+                : "border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             }`}
           >
             Niet aanwezig
@@ -140,14 +140,14 @@ export default async function EventDetailPage({
       </div>
 
       {event.canManage && verificationRows && (
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
+        <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-slate-400" />
-            <h2 className="text-lg font-medium text-slate-900">
+            <ShieldCheck size={18} className="text-slate-400 dark:text-slate-500" />
+            <h2 className="text-lg font-medium text-slate-900 dark:text-slate-100">
               Aanwezigheid bevestigen
             </h2>
           </div>
-          <p className="mb-4 text-sm text-slate-500">
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
             {event.verifiedAt ? (
               <>
                 Bevestigd op{" "}
@@ -179,12 +179,12 @@ export default async function EventDetailPage({
       )}
 
       {event.canManage && !verificationRows && (
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h2 className="mb-3 text-lg font-medium text-slate-900">
+        <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-100">
             Aanwezigheid teamleden
           </h2>
           {event.attendances.length === 0 ? (
-            <p className="text-sm text-slate-400">Nog geen reacties.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500">Nog geen reacties.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {event.attendances.map((a) => (
@@ -192,7 +192,7 @@ export default async function EventDetailPage({
                   key={a.userId}
                   className="flex flex-wrap items-center justify-between gap-3"
                 >
-                  <span className="flex items-center gap-2 text-sm text-slate-700">
+                  <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                     <Avatar name={a.name} photoUrl={a.photoUrl} />
                     {a.name}
                   </span>
@@ -215,15 +215,15 @@ export default async function EventDetailPage({
       )}
 
       {event.canManage && event.invitedSubagents.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h2 className="mb-3 text-lg font-medium text-slate-900">
+        <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-100">
             Uitgenodigde subagenten ({event.invitedSubagents.length})
           </h2>
           <ul className="flex flex-wrap gap-2">
             {event.invitedSubagents.map((s) => (
               <li
                 key={s.subagentId}
-                className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
+                className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300"
               >
                 <Avatar name={s.name} size="sm" />
                 {s.name}
@@ -234,15 +234,15 @@ export default async function EventDetailPage({
       )}
 
       {event.canManage && event.nonResponders.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-          <h2 className="mb-3 text-lg font-medium text-amber-900">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-900 dark:bg-amber-950">
+          <h2 className="mb-3 text-lg font-medium text-amber-900 dark:text-amber-400">
             Nog niet gereageerd ({event.nonResponders.length})
           </h2>
           <ul className="flex flex-wrap gap-2">
             {event.nonResponders.map((u) => (
               <li
                 key={u.userId}
-                className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm text-slate-700"
+                className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-300"
               >
                 <Avatar name={u.name} size="sm" photoUrl={u.photoUrl} />
                 {u.name}
