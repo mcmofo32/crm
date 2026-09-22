@@ -5,6 +5,7 @@ import {
   getConversationsLeaderboard,
   getRecommendationsLeaderboard,
   getCurrentProductionMonth,
+  getCurrentProductionMonthRange,
   getCurrentConversationsContext,
   getProductionStructureOptions,
   resolveProductionUserIds,
@@ -35,6 +36,16 @@ function formatDate(date: Date) {
     dateStyle: "medium",
     timeZone: "Europe/Brussels",
   });
+}
+
+/** Resterende dagen t.e.m. `end` (kalenderdagen), vandaag zelf inbegrepen. */
+function daysRemainingInclusive(now: Date, end: Date) {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfEndDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  const diffDays = Math.round(
+    (startOfEndDay.getTime() - startOfToday.getTime()) / 86_400_000
+  );
+  return Math.max(0, diffDays + 1);
 }
 
 export default async function ProductiePage({
@@ -91,6 +102,13 @@ export default async function ProductiePage({
   const productionRows =
     activeTab === "productie"
       ? await getProductionLeaderboard(year, month, scopeUserIds)
+      : null;
+  // Enkel voor de huidige productiemaand: "resterende dagen" heeft geen
+  // zinvolle betekenis bij het terugbladeren naar een afgelopen of nog niet
+  // gestarte productiemaand.
+  const daysRemaining =
+    activeTab === "productie" && isCurrentMonth
+      ? daysRemainingInclusive(new Date(), (await getCurrentProductionMonthRange()).endDate)
       : null;
   const [conversationsRows, conversationsContext] =
     activeTab === "gesprekken"
@@ -262,6 +280,7 @@ export default async function ProductiePage({
               ),
             }))}
             canEditGoals={canEditGoals}
+            daysRemaining={daysRemaining}
           />
           {canEditGoals && (
             <Link
