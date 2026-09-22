@@ -96,16 +96,16 @@ export default async function EditUserPage({
   return (
     <div className="max-w-3xl flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
           {canEdit ? "Medewerker bewerken" : "Medewerker bekijken"}
         </h1>
-        <p className="text-sm text-slate-500">
-          {target.email || <span className="text-slate-300">Geen e-mailadres</span>}
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {target.email || <span className="text-slate-300 dark:text-slate-600">Geen e-mailadres</span>}
         </p>
       </div>
 
       {!canEdit && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
           Enkel de Beheerder mag dit profiel bewerken. Je kan het wel bekijken.
         </div>
       )}
@@ -116,46 +116,46 @@ export default async function EditUserPage({
           behouden — defaultValue wordt door React enkel bij mount toegepast. */}
       <EditUserForm key={target.updatedAt.getTime()} action={boundUpdate}>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Naam</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Naam</label>
           <input
             name="name"
             defaultValue={target.name}
             required
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">E-mail</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">E-mail</label>
           <input
             name="email"
             type="email"
             defaultValue={target.email ?? ""}
             required
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Telefoon <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Telefoon <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <input
             name="phone"
             type="tel"
             defaultValue={target.phone ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Rol</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Rol</label>
           <select
             name="role"
             defaultValue={target.role}
             required
             disabled={!canEditRole}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           >
             {assignableRoles.map((role) => (
               <option key={role} value={role}>
@@ -168,20 +168,20 @@ export default async function EditUserPage({
               crashen) zodra enkel andere velden bewerkt worden. */}
           {!canEditRole && <input type="hidden" name="role" value={target.role} />}
           {canEdit && !canEditRole && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Enkel de Beheerder mag de rol van dit profiel aanpassen.
             </p>
           )}
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Functie <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Functie <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <select
             name="jobFunction"
             defaultValue={target.jobFunction ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           >
             <option value="">Geen</option>
             {JOB_FUNCTIONS.map((jf) => (
@@ -192,12 +192,12 @@ export default async function EditUserPage({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Type</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Type</label>
           <select
             name="agentType"
             defaultValue={target.agentType}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           >
             {Object.values(AgentType).map((type) => (
               <option key={type} value={type}>
@@ -207,14 +207,14 @@ export default async function EditUserPage({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
+          <label className="font-medium text-slate-700 dark:text-slate-300">
             Team (voor rol &quot;User&quot; of &quot;Coach&quot;)
           </label>
           <select
             name="teamId"
             defaultValue={target.teamId ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           >
             <option value="">Geen team</option>
             {teams
@@ -225,95 +225,95 @@ export default async function EditUserPage({
                 </option>
               ))}
           </select>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Kies dit voor een Coach om aan te geven dat die zelf ook
             rapporteert aan de coach van dit team (meerlaagse structuur).
           </p>
         </div>
 
-        <hr className="my-1 border-slate-100" />
-        <p className="-mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+        <hr className="my-1 border-slate-100 dark:border-slate-800" />
+        <p className="-mb-2 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
           Makelaarskantoor
         </p>
 
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Aanbrengnummer <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Aanbrengnummer <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <input
             name="referralNumber"
             defaultValue={target.referralNumber ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            OVB-nummer <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            OVB-nummer <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <input
             name="ovbNumber"
             defaultValue={target.ovbNumber ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Naam onderneming <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Naam onderneming <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <input
             name="companyName"
             defaultValue={target.companyName ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Ondernemingsnummer <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Ondernemingsnummer <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <input
             name="companyRegistrationNumber"
             defaultValue={target.companyRegistrationNumber ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Maatschappelijke zetel <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Maatschappelijke zetel <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <input
             name="registeredOffice"
             defaultValue={target.registeredOffice ?? ""}
             disabled={!canEdit}
-            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+            className="rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
           />
         </div>
 
         {canEdit && (
           <button
             type="submit"
-            className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+            className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Wijzigingen opslaan
           </button>
         )}
       </EditUserForm>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-1 text-sm font-medium text-slate-900">FSMA-modules</h2>
-        <p className="mb-3 text-sm text-slate-500">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-1 text-sm font-medium text-slate-900 dark:text-slate-100">FSMA-modules</h2>
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
           Status van de verplichte vakbekwaamheidsmodules voor deze medewerker.
         </p>
-        <div className="flex flex-col divide-y divide-slate-100">
+        <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
           {fsmaModules.map((row) => (
             <div
               key={row.module}
               className="grid grid-cols-[1fr_auto] items-center gap-4 py-2.5"
             >
-              <span className="text-slate-700">{FSMA_MODULE_LABELS[row.module]}</span>
+              <span className="text-slate-700 dark:text-slate-300">{FSMA_MODULE_LABELS[row.module]}</span>
               <InlineSelect
                 action={setFsmaModuleStatusAction.bind(null, target.id, row.module)}
                 name="status"
@@ -327,9 +327,9 @@ export default async function EditUserPage({
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-medium text-slate-900">Status</h2>
-        <p className="mb-3 text-sm text-slate-500">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">Status</h2>
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
           {target.active
             ? "Deze gebruiker is actief en kan inloggen."
             : "Deze gebruiker is inactief en kan niet meer inloggen."}
@@ -341,8 +341,8 @@ export default async function EditUserPage({
               type="submit"
               className={
                 target.active
-                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
+                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-900 dark:text-green-400 dark:hover:bg-green-950"
               }
             >
               {target.active ? "Account inactief zetten" : "Account activeren"}
@@ -351,11 +351,11 @@ export default async function EditUserPage({
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-medium text-slate-900">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
           Opleiding
         </h2>
-        <p className="mb-3 text-sm text-slate-500">
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
           {target.inTraining
             ? "Deze gebruiker is in opleiding en telt niet mee in de productiecijfers/leaderboards/KPI-heatmap."
             : "Deze gebruiker telt mee in de productiecijfers/leaderboards/KPI-heatmap."}
@@ -367,8 +367,8 @@ export default async function EditUserPage({
               type="submit"
               className={
                 target.inTraining
-                  ? "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
-                  : "rounded-md border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50"
+                  ? "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-900 dark:text-green-400 dark:hover:bg-green-950"
+                  : "rounded-md border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:hover:bg-amber-950"
               }
             >
               {target.inTraining ? "Telt weer mee in cijfers" : "Op in opleiding zetten"}
@@ -377,9 +377,9 @@ export default async function EditUserPage({
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-medium text-slate-900">Management</h2>
-        <p className="mb-3 text-sm text-slate-500">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">Management</h2>
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
           {target.isManagement
             ? "Deze gebruiker ziet het Management-tabblad in de Bibliotheek."
             : "Deze gebruiker ziet het Management-tabblad in de Bibliotheek niet (tenzij via rol Beheerder/Admin)."}
@@ -391,8 +391,8 @@ export default async function EditUserPage({
               type="submit"
               className={
                 target.isManagement
-                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
+                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-900 dark:text-green-400 dark:hover:bg-green-950"
               }
             >
               {target.isManagement ? "Uit management halen" : "Bij management voegen"}
@@ -402,11 +402,11 @@ export default async function EditUserPage({
       </div>
 
       {isBeheerder(viewer) && !isSelf && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="mb-2 text-sm font-medium text-slate-900">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
             Bekijk als medewerker
           </h2>
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             {target.canViewAsEmployee
               ? "Deze gebruiker mag, net als de Beheerder, de CRM als een collega bekijken (voor gericht support/troubleshooting). Kan zelf enkel Coach/User-rol-collega's bekijken, nooit een Beheerder/Admin."
               : "Deze gebruiker mag de CRM niet als een collega bekijken (tenzij later via rol Beheerder)."}
@@ -417,8 +417,8 @@ export default async function EditUserPage({
               type="submit"
               className={
                 target.canViewAsEmployee
-                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50"
+                  ? "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                  : "rounded-md border border-green-300 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-900 dark:text-green-400 dark:hover:bg-green-950"
               }
             >
               {target.canViewAsEmployee ? "Toegang intrekken" : "Toegang geven"}
@@ -428,11 +428,11 @@ export default async function EditUserPage({
       )}
 
       {isBeheerder(viewer) && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="mb-2 text-sm font-medium text-slate-900">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
             Sessie beëindigen
           </h2>
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             Beëindigt de huidige ingelogde sessie van deze gebruiker meteen —
             die persoon moet dan opnieuw via Google inloggen bij de
             eerstvolgende paginanavigatie. Enkel zichtbaar voor de Beheerder.
@@ -440,7 +440,7 @@ export default async function EditUserPage({
           <form action={boundForceLogout}>
             <button
               type="submit"
-              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
             >
               Sessie beëindigen
             </button>
@@ -449,12 +449,12 @@ export default async function EditUserPage({
       )}
 
       {canEdit && !isSelf && deletionImpact && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <h2 className="mb-2 text-sm font-medium text-red-900">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
+          <h2 className="mb-2 text-sm font-medium text-red-900 dark:text-red-400">
             Gevarenzone — profiel verwijderen
           </h2>
           {deletionImpact.coachesTeam ? (
-            <p className="text-sm text-red-800">
+            <p className="text-sm text-red-800 dark:text-red-400">
               Deze gebruiker coacht nog een team. Verwijder of herverdeel dat
               team eerst via{" "}
               <Link href="/beheer/teams" className="underline">
@@ -464,7 +464,7 @@ export default async function EditUserPage({
             </p>
           ) : (
             <>
-              <p className="mb-3 text-sm text-red-800">
+              <p className="mb-3 text-sm text-red-800 dark:text-red-400">
                 Het account kan nadien niet meer inloggen en verdwijnt uit
                 alle keuzelijsten. Alle bestaande historiek (activiteiten,
                 logboek, klanten/leads, ...) blijft gewoon bewaard, ook als
