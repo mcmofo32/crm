@@ -112,19 +112,19 @@ export function BulkLeadForm() {
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
             Funnel (standaard)
           </label>
           <select
             value={leadType}
             onChange={(e) => setLeadType(e.target.value as LeadType)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             <option value="FA">{LEAD_TYPE_LABELS.FA}</option>
             <option value="RG">{LEAD_TYPE_LABELS.RG}</option>
           </select>
         </div>
-        <p className="max-w-md text-sm text-slate-500">
+        <p className="max-w-md text-sm text-slate-500 dark:text-slate-400">
           Tip: plak gerust een selectie uit Excel/Sheets direct in de tabel.
           Elke rij wordt automatisch aan jezelf toegewezen. De kolommen
           Achternaam en Type zijn optioneel per rij — Achternaam kan later nog
@@ -133,7 +133,7 @@ export function BulkLeadForm() {
         </p>
       </div>
 
-      <label className="flex w-fit items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <label className="flex w-fit items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-300">
         <input
           type="checkbox"
           name="excludeFromStats"
@@ -144,32 +144,32 @@ export function BulkLeadForm() {
         <span>
           Dit zijn oude/historische leads — niet laten meetellen in de
           cijfers (Aanbevelingen/ABV)
-          <span className="block text-xs text-slate-400">
+          <span className="block text-xs text-slate-400 dark:text-slate-500">
             Onaangevinkt (standaard) tellen deze leads gewoon mee, net als
             een lead die je één voor één toevoegt.
           </span>
         </span>
       </label>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
         <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-700">
+          <thead className="bg-slate-50 text-left text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
             <tr>
               {COLUMNS.map((col) => (
                 <th key={col} className="px-3 py-2 font-semibold">
                   {COLUMN_LABELS[col]}
                   {REQUIRED_COLUMNS.has(col) && (
-                    <span className="text-red-500"> *</span>
+                    <span className="text-red-500 dark:text-red-400"> *</span>
                   )}
                   {(OPTIONAL_COLUMNS.has(col) || OPTIONAL_OVERRIDE_COLUMNS.has(col)) && (
-                    <span className="font-normal text-slate-500"> (optioneel)</span>
+                    <span className="font-normal text-slate-500 dark:text-slate-400"> (optioneel)</span>
                   )}
                 </th>
               ))}
               <th className="w-10 px-2 py-2"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {rows.map((row, rowIndex) => (
               <tr key={row.key}>
                 {COLUMNS.map((col, colIndex) => (
@@ -179,7 +179,7 @@ export function BulkLeadForm() {
                       value={row[col]}
                       onChange={(e) => updateCell(rowIndex, col, e.target.value)}
                       onPaste={(e) => handlePaste(rowIndex, colIndex, e)}
-                      className="w-full rounded border border-transparent px-2.5 py-2 text-slate-900 hover:border-slate-200 focus:border-slate-400 focus:outline-none"
+                      className="w-full rounded border border-transparent px-2.5 py-2 text-slate-900 hover:border-slate-200 focus:border-slate-400 focus:outline-none dark:text-slate-100 dark:hover:border-slate-700 dark:focus:border-slate-500"
                     />
                   </td>
                 ))}
@@ -189,7 +189,7 @@ export function BulkLeadForm() {
                     onClick={() => removeRow(row.key)}
                     disabled={rows.length === 1}
                     title="Rij verwijderen"
-                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30 dark:text-slate-500 dark:hover:bg-red-950 dark:hover:text-red-400"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -204,14 +204,14 @@ export function BulkLeadForm() {
         <button
           type="button"
           onClick={addRow}
-          className="flex items-center gap-1.5 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+          className="flex items-center gap-1.5 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <Plus size={15} />
           Rij toevoegen
         </button>
         <SubmitButton
           disabled={filledCount === 0}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           {filledCount > 0 ? `${filledCount} leads aanmaken` : "Leads aanmaken"}
         </SubmitButton>

@@ -124,8 +124,8 @@ export default async function TakenPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Taken</h1>
-        <p className="mt-1 text-base text-slate-500">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Taken</h1>
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Alle geplande opvolging over Leads FA en Leads RG, op één plek.
         </p>
       </div>
@@ -143,8 +143,8 @@ export default async function TakenPage({
                 href={qs ? `/taken?${qs}` : "/taken"}
                 className={`rounded-full px-4 py-1.5 ${
                   (t === "ALLE" && !leadType) || t === leadType
-                    ? "bg-slate-900 text-white"
-                    : "bg-white text-slate-600 border border-slate-200"
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                    : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
                 }`}
               >
                 {t === "ALLE" ? "Alle" : LEAD_TYPE_LABELS[t]}
@@ -156,15 +156,15 @@ export default async function TakenPage({
         {canFilterScope && (
           <form
             method="GET"
-            className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900"
           >
             {leadType && <input type="hidden" name="type" value={leadType} />}
-            <Users size={17} className="text-slate-400" />
-            <label className="text-slate-600">Bekijk taken van:</label>
+            <Users size={17} className="text-slate-400 dark:text-slate-500" />
+            <label className="text-slate-600 dark:text-slate-400">Bekijk taken van:</label>
             <select
               name="ownerId"
               defaultValue={selectedOwnerId}
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value={user.id}>Mezelf</option>
               <option value={GROUP_OPTION}>
@@ -180,7 +180,7 @@ export default async function TakenPage({
             </select>
             <button
               type="submit"
-              className="rounded-md bg-slate-900 px-3 py-2 font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-slate-900 px-3 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
             >
               Bekijken
             </button>
@@ -189,7 +189,7 @@ export default async function TakenPage({
       </div>
 
       {tasks.length === 0 ? (
-        <p className="text-base text-slate-500">
+        <p className="text-base text-slate-500 dark:text-slate-400">
           Geen openstaande taken. Alles is opgevolgd.
         </p>
       ) : (
@@ -201,13 +201,13 @@ export default async function TakenPage({
                 <h2
                   className={`mb-3 flex items-center gap-1.5 text-lg font-medium ${
                     bucket.label === "Verlopen"
-                      ? "text-red-600"
-                      : "text-slate-900"
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-slate-900 dark:text-slate-100"
                   }`}
                 >
                   {bucket.label === "Verlopen" && <AlertTriangle size={17} />}
                   {bucket.label}{" "}
-                  <span className="text-base font-normal text-slate-400">
+                  <span className="text-base font-normal text-slate-400 dark:text-slate-500">
                     ({bucket.tasks.length})
                   </span>
                 </h2>
@@ -217,26 +217,26 @@ export default async function TakenPage({
                     return (
                       <li
                         key={task.id}
-                        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 text-base"
+                        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 text-base dark:border-slate-800 dark:bg-slate-900"
                       >
                         <div className="flex items-start gap-3">
-                          <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                          <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                             <Icon size={16} />
                           </span>
                           <div>
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/leads/${task.lead.id}`}
-                                className="font-medium text-slate-900 hover:underline"
+                                className="font-medium text-slate-900 hover:underline dark:text-slate-100"
                               >
                                 {task.lead.firstName} {task.lead.lastName}
                               </Link>
                             </div>
-                            <p className="text-slate-500">
+                            <p className="text-slate-500 dark:text-slate-400">
                               {ACTIVITY_TYPE_LABELS[task.type]} · {task.subject} ·{" "}
                               {task.assignee.name}
                             </p>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-slate-400 dark:text-slate-500">
                               Laatste contact:{" "}
                               {task.lead.lastContactedAt
                                 ? task.lead.lastContactedAt.toLocaleString(

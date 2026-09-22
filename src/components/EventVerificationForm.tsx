@@ -47,10 +47,10 @@ export function EventVerificationForm({
               key={row.userId}
               className="flex items-center justify-between gap-3"
             >
-              <span className="flex items-center gap-2 text-sm text-slate-700">
+              <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <Avatar name={row.name} photoUrl={row.photoUrl} />
                 {row.name}
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-400 dark:text-slate-500">
                   (gaf zelf op: {ATTENDANCE_STATUS_LABELS[row.status]})
                 </span>
               </span>
@@ -63,7 +63,7 @@ export function EventVerificationForm({
                     [row.userId]: e.target.value as ActualStatus,
                   }))
                 }
-                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
               >
                 <option value="GOING">Aanwezig</option>
                 <option value="NOT_GOING">Niet aanwezig</option>
@@ -74,7 +74,7 @@ export function EventVerificationForm({
         <div>
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             {submitLabel}
           </button>
@@ -98,18 +98,18 @@ function AttendanceColumn({
 }) {
   const dotClass = variant === "green" ? "bg-green-500" : "bg-red-500";
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <h3 className="mb-3 text-sm font-medium text-slate-900">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
+      <h3 className="mb-3 text-sm font-medium text-slate-900 dark:text-slate-100">
         {title} ({rows.length})
       </h3>
       {rows.length === 0 ? (
-        <p className="text-xs text-slate-400">Niemand</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">Niemand</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((row) => (
             <li
               key={row.userId}
-              className="flex items-center gap-2 text-sm text-slate-700"
+              className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
             >
               <span
                 className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${dotClass}`}

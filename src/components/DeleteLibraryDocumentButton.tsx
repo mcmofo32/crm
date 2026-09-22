@@ -34,7 +34,7 @@ export function DeleteLibraryDocumentButton({
       disabled={pending}
       onClick={handleClick}
       title="Document verwijderen"
-      className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+      className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
     >
       <Trash2 size={14} />
       Verwijderen

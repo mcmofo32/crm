@@ -28,7 +28,7 @@ export default async function NewLeadPage({
     <div className="max-w-xl">
       <ToastOnParam param="created" message="Lead aangemaakt" />
       {duplicateName && duplicateOwner && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
           Let op: <strong>{duplicateName}</strong> staat al als lead
           geregistreerd bij <strong>{duplicateOwner}</strong> (zelfde
           e-mailadres of telefoonnummer). Deze nieuwe lead is wel aangemaakt —
@@ -36,12 +36,12 @@ export default async function NewLeadPage({
         </div>
       )}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
           Nieuwe lead
         </h1>
         <Link
           href="/leads/bulk"
-          className="text-sm text-slate-500 underline hover:text-slate-700"
+          className="text-sm text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
         >
           Meerdere leads in bulk toevoegen
         </Link>
@@ -58,13 +58,13 @@ export default async function NewLeadPage({
         </div>
         {assignableUsers.length > 1 && (
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Eigenaar
             </label>
             <select
               name="ownerId"
               defaultValue={viewer.id}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               {assignableUsers.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -78,24 +78,24 @@ export default async function NewLeadPage({
         <Field label="Bron" name="source" placeholder="bv. website, doorverwijzing" />
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
             Notities
           </label>
           <textarea
             name="notes"
             rows={3}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2">
-          <SubmitButton className="self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60">
+          <SubmitButton className="self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300">
             Lead aanmaken
           </SubmitButton>
           <SubmitButton
             name="intent"
             value="createAnother"
-            className="self-start rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            className="self-start rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Opslaan en nog een lead aanmaken
           </SubmitButton>
@@ -120,7 +120,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={name} className="text-sm font-medium text-slate-700">
+      <label htmlFor={name} className="text-sm font-medium text-slate-700 dark:text-slate-300">
         {label}
       </label>
       <input
@@ -129,7 +129,7 @@ function Field({
         type={type}
         required={required}
         placeholder={placeholder}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       />
     </div>
   );

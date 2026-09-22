@@ -9,7 +9,7 @@ export default async function NewIncentivePage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="mb-4 text-3xl font-semibold text-slate-900">
+      <h1 className="mb-4 text-3xl font-semibold text-slate-900 dark:text-slate-100">
         Nieuw evenement
       </h1>
       <IncentiveForm />

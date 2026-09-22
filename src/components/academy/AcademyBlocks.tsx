@@ -13,7 +13,7 @@ export function AcademyBlocks({ blocks }: { blocks: AcademyBlock[] }) {
     (_, i) => blocks.slice(0, i + 1).filter((b) => b[0] === "shot").length
   );
   return (
-    <div className="max-w-[88ch] space-y-4 text-[15px] leading-relaxed text-slate-700">
+    <div className="max-w-[88ch] space-y-4 text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
       {blocks.map((block, i) => (
         <AcademyBlockView key={i} block={block} shotNumber={shotNumbers[i]} />
       ))}
@@ -36,7 +36,7 @@ function AcademyBlockView({
 
   if (kind === "h3") {
     return (
-      <h3 className="!mt-8 text-lg font-semibold text-slate-900">
+      <h3 className="!mt-8 text-lg font-semibold text-slate-900 dark:text-slate-100">
         {renderInline(block[1])}
       </h3>
     );
@@ -64,7 +64,7 @@ function AcademyBlockView({
 
   if (kind === "note") {
     return (
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
         {renderInline(block[1])}
       </div>
     );
@@ -72,7 +72,7 @@ function AcademyBlockView({
 
   if (kind === "warn") {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
         {renderInline(block[1])}
       </div>
     );
@@ -88,11 +88,11 @@ function AcademyBlockView({
         <img
           src={`/academy/${filename}`}
           alt={caption}
-          className="w-full rounded-lg border border-slate-200 shadow-sm"
+          className="w-full rounded-lg border border-slate-200 shadow-sm dark:border-slate-800"
         />
         <figcaption>
-          <p className="font-semibold text-slate-900">{caption}</p>
-          <p className="text-sm text-slate-500">{desc}</p>
+          <p className="font-semibold text-slate-900 dark:text-slate-100">{caption}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{desc}</p>
         </figcaption>
       </figure>
     );
@@ -101,18 +101,18 @@ function AcademyBlockView({
   if (kind === "shot") {
     const [, caption, desc] = block;
     return (
-      <div className="flex gap-3 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3.5">
-        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400">
+      <div className="flex gap-3 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 dark:border-slate-700 dark:bg-slate-800/60">
+        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
           <Camera size={17} />
         </span>
         <div>
-          <p className="mb-0.5 font-semibold text-slate-900">
-            <span className="mr-2 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-slate-400">
+          <p className="mb-0.5 font-semibold text-slate-900 dark:text-slate-100">
+            <span className="mr-2 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
               Schermafbeelding {shotNumber}
             </span>
             {caption}
           </p>
-          <p className="text-sm text-slate-500">{desc}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{desc}</p>
         </div>
       </div>
     );
@@ -121,9 +121,9 @@ function AcademyBlockView({
   if (kind === "table") {
     const [, headers, rows] = block;
     return (
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:bg-slate-800/60 dark:text-slate-500">
             <tr>
               {headers.map((h, i) => (
                 <th key={i} className="whitespace-nowrap px-3.5 py-2.5">
@@ -132,7 +132,7 @@ function AcademyBlockView({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {rows.map((row, ri) => (
               <tr key={ri}>
                 {row.map((cell, ci) => (

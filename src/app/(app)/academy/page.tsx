@@ -30,14 +30,14 @@ export default async function AcademyPage() {
 
       <div className="min-w-0 space-y-10">
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
             <GraduationCap size={26} />
             {content.courseTitle}
           </h1>
-          <p className="mt-1 max-w-2xl text-base text-slate-500">
+          <p className="mt-1 max-w-2xl text-base text-slate-500 dark:text-slate-400">
             {content.courseSubtitle}.
           </p>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400 dark:text-slate-500">
             <span>{chapters.length} hoofdstukken</span>
             <span>·</span>
             <span>{totalPhotos} echte screenshots uit het CRM</span>
@@ -45,15 +45,15 @@ export default async function AcademyPage() {
         </div>
 
         {chapters.map((ch) => (
-          <section key={ch.id} id={ch.id} className="scroll-mt-20 border-t border-slate-200 pt-8">
+          <section key={ch.id} id={ch.id} className="scroll-mt-20 border-t border-slate-200 pt-8 dark:border-slate-800">
             <div className="mb-4 flex items-start gap-3">
-              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-sm font-semibold tabular-nums text-slate-500">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-sm font-semibold tabular-nums text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400">
                 {ch.num}
               </span>
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">{ch.title}</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{ch.title}</h2>
                 {ch.audience && (
-                  <p className="mt-0.5 text-xs font-medium text-amber-600">{ch.audience}</p>
+                  <p className="mt-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">{ch.audience}</p>
                 )}
               </div>
             </div>
@@ -61,9 +61,9 @@ export default async function AcademyPage() {
           </section>
         ))}
 
-        <div className="border-t border-slate-200 pt-6 text-sm text-slate-400">
+        <div className="border-t border-slate-200 pt-6 text-sm text-slate-400 dark:border-slate-800 dark:text-slate-500">
           Voor een offline/afdrukbare versie: zie de{" "}
-          <Link href="/bibliotheek" className="text-slate-600 underline hover:text-slate-900">
+          <Link href="/bibliotheek" className="text-slate-600 underline hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
             Bibliotheek
           </Link>
           .
