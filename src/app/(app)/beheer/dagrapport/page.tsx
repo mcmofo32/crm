@@ -83,11 +83,11 @@ export default async function DagrapportPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
           <Newspaper size={26} />
           Dagrapport
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Hoeveel leads naar elke funnel-fase verhuisden op de gekozen dag —
           per team en per medewerker. Enkel zichtbaar voor Beheerder/Admin.
         </p>
@@ -96,21 +96,21 @@ export default async function DagrapportPage({
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href={`/beheer/dagrapport?date=${toDateParam(prev)}`}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ChevronLeft size={16} />
         </Link>
-        <span className="min-w-64 text-center text-base font-medium capitalize text-slate-900">
+        <span className="min-w-64 text-center text-base font-medium capitalize text-slate-900 dark:text-slate-100">
           {formatDayLabel(date)}
           {isYesterday && (
-            <span className="ml-1.5 text-xs font-normal text-slate-400">
+            <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
               (gisteren)
             </span>
           )}
         </span>
         <Link
           href={`/beheer/dagrapport?date=${toDateParam(next)}`}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ChevronRight size={16} />
         </Link>
@@ -144,39 +144,39 @@ function NewLeadsSection({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-medium text-slate-900">
+      <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
         Ontvangen aanbevelingen — {title}
       </h2>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <p className="mb-3 text-sm font-medium text-slate-700">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">
           Totaal nieuw toegevoegd vandaag: {grandTotal}
         </p>
         {grandTotal > 0 ? (
           <BarList items={teamItems} />
         ) : (
-          <p className="text-sm text-slate-400">Geen nieuwe aanbevelingen op deze dag.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">Geen nieuwe aanbevelingen op deze dag.</p>
         )}
       </div>
 
       {report.byPerson.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-500">Per medewerker</p>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Per medewerker</p>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
+              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Medewerker</th>
                   <th className="px-4 py-3 font-medium">Team</th>
                   <th className="px-3 py-3 text-center font-medium">Aantal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {report.byPerson.map((row) => (
-                  <tr key={row.userId} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 font-medium text-slate-900">{row.name}</td>
-                    <td className="px-4 py-2.5 text-slate-500">{row.teamName}</td>
-                    <td className="px-3 py-2.5 text-center font-semibold text-slate-900">
+                  <tr key={row.userId} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                    <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">{row.name}</td>
+                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{row.teamName}</td>
+                    <td className="px-3 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
                       {row.total}
                     </td>
                   </tr>
@@ -212,11 +212,11 @@ function StageFlowSection({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-medium text-slate-900">{title}</h2>
+      <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">{title}</h2>
 
       {grandTotal > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="mb-3 text-sm font-medium text-slate-700">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">
             Totaal per fase vandaag
           </p>
           <BarList items={stageTotals} />
@@ -224,10 +224,10 @@ function StageFlowSection({
       )}
 
       <div>
-        <p className="mb-2 text-sm font-medium text-slate-500">Per team</p>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Per team</p>
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
+            <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Team</th>
                 {flow.columns.map((col) => (
@@ -238,18 +238,18 @@ function StageFlowSection({
                 <th className="px-3 py-3 text-center font-medium">Totaal</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {flow.rows.map((row) => (
-                <tr key={row.teamName} className="hover:bg-slate-50">
-                  <td className="px-4 py-2.5 font-medium text-slate-900">
+                <tr key={row.teamName} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                  <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                     {row.teamName}
                   </td>
                   {flow.columns.map((col) => (
-                    <td key={col.key} className="px-3 py-2.5 text-center text-slate-700">
+                    <td key={col.key} className="px-3 py-2.5 text-center text-slate-700 dark:text-slate-300">
                       {row.counts[col.key] ?? 0}
                     </td>
                   ))}
-                  <td className="px-3 py-2.5 text-center font-semibold text-slate-900">
+                  <td className="px-3 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
                     {row.total}
                   </td>
                 </tr>
@@ -258,7 +258,7 @@ function StageFlowSection({
                 <tr>
                   <td
                     colSpan={flow.columns.length + 2}
-                    className="px-4 py-8 text-center text-slate-400"
+                    className="px-4 py-8 text-center text-slate-400 dark:text-slate-500"
                   >
                     Geen fase-wijzigingen op deze dag.
                   </td>
@@ -284,12 +284,12 @@ function StageFlowSection({
 
       {flow.byPerson.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-500">
+          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
             Per medewerker — iedereen die zelf een fase-wijziging deed
           </p>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500">
+              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Medewerker</th>
                   <th className="px-4 py-3 font-medium">Team</th>
@@ -301,19 +301,19 @@ function StageFlowSection({
                   <th className="px-3 py-3 text-center font-medium">Totaal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {flow.byPerson.map((row) => (
-                  <tr key={row.userId} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 font-medium text-slate-900">
+                  <tr key={row.userId} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                    <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                       {row.name}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-500">{row.teamName}</td>
+                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{row.teamName}</td>
                     {flow.columns.map((col) => (
-                      <td key={col.key} className="px-3 py-2.5 text-center text-slate-700">
+                      <td key={col.key} className="px-3 py-2.5 text-center text-slate-700 dark:text-slate-300">
                         {row.counts[col.key] ?? 0}
                       </td>
                     ))}
-                    <td className="px-3 py-2.5 text-center font-semibold text-slate-900">
+                    <td className="px-3 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
                       {row.total}
                     </td>
                   </tr>
