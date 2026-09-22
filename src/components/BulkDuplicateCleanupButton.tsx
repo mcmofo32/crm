@@ -40,13 +40,13 @@ export function BulkDuplicateCleanupButton() {
       <button
         type="submit"
         disabled={pending}
-        className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <Sparkles size={15} />
         {pending ? "Bezig..." : "Ruim exacte duplicaten op"}
       </button>
       {state && state.skippedGroups > 0 && (
-        <p className="mt-1.5 text-xs text-slate-400">
+        <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
           {state.skippedGroups} groep{state.skippedGroups === 1 ? "" : "en"} overgeslagen
           (namen verschillen) — controleer hieronder manueel.
         </p>

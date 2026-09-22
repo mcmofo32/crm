@@ -54,7 +54,7 @@ export function DeleteUserButton({
     <div className="flex flex-col gap-3">
       {hasLeads && (
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-red-900">
+          <label className="text-sm font-medium text-red-900 dark:text-red-400">
             Deze gebruiker heeft nog {leadsCount}{" "}
             {leadsCount === 1 ? "klant/lead" : "klanten/leads"}. Optioneel:
             zet deze over naar — laat leeg om ze gewoon bij dit
@@ -63,7 +63,7 @@ export function DeleteUserButton({
           <select
             value={newOwnerId}
             onChange={(e) => setNewOwnerId(e.target.value)}
-            className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm"
+            className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm dark:border-red-800 dark:bg-red-900 dark:text-red-100"
           >
             <option value="">Niet overzetten</option>
             {reassignableUsers.map((u) => (
@@ -76,18 +76,18 @@ export function DeleteUserButton({
       )}
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-red-900">
+        <label className="text-sm font-medium text-red-900 dark:text-red-400">
           Typ de naam &quot;{userName}&quot; om te bevestigen:
         </label>
         <input
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
           placeholder={userName}
-          className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm"
+          className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm dark:border-red-800 dark:bg-red-900 dark:text-red-100"
         />
       </div>
 
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-sm text-red-700 dark:text-red-400">{error}</p>}
 
       <button
         type="button"

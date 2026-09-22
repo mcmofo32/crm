@@ -57,11 +57,11 @@ function TeamCard({
     .filter((t): t is TeamWithMembers => Boolean(t));
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6">
+    <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-medium text-slate-900">{team.name}</h3>
-          <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+          <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">{team.name}</h3>
+          <div className="mt-1 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Avatar name={team.coach.name} photoUrl={avatarUrl(team.coach)} />
             Coach: {team.coach.name}
           </div>
@@ -69,13 +69,13 @@ function TeamCard({
         <details className="group/menu relative">
           <summary
             title="Team-opties"
-            className="flex cursor-pointer list-none rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 [&::-webkit-details-marker]:hidden"
+            className="flex cursor-pointer list-none rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 [&::-webkit-details-marker]:hidden dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
           >
             <MoreVertical size={18} />
           </summary>
-          <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+          <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900">
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
                 <UserPlus size={14} />
                 Medewerker toevoegen onder {team.coach.name}
               </summary>
@@ -88,7 +88,7 @@ function TeamCard({
                   name="userId"
                   required
                   defaultValue=""
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 >
                   <option value="" disabled>
                     Kies gebruiker
@@ -102,27 +102,27 @@ function TeamCard({
                 </select>
                 <button
                   type="submit"
-                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
                 >
                   Toevoegen
                 </button>
               </form>
               {coachSubordinateCandidates.length === 0 && (
-                <p className="px-2 pb-2 text-xs text-slate-400">
+                <p className="px-2 pb-2 text-xs text-slate-400 dark:text-slate-500">
                   Niemand beschikbaar om toe te voegen.
                 </p>
               )}
             </details>
             <Link
               href={`/beheer/gebruikers/new?under=${team.coachId}`}
-              className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
+              className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <UserRoundPlus size={14} />
               Nieuwe gebruiker toevoegen
             </Link>
-            <hr className="my-1 border-slate-100" />
+            <hr className="my-1 border-slate-100 dark:border-slate-800" />
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
                 <Pencil size={14} />
                 Naam wijzigen
               </summary>
@@ -135,19 +135,19 @@ function TeamCard({
                   name="name"
                   defaultValue={team.name}
                   required
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="submit"
-                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
                 >
                   Opslaan
                 </button>
               </form>
             </details>
-            <hr className="my-1 border-slate-100" />
+            <hr className="my-1 border-slate-100 dark:border-slate-800" />
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
                 <Pencil size={14} />
                 Coach wijzigen
               </summary>
@@ -160,7 +160,7 @@ function TeamCard({
                   name="coachId"
                   required
                   defaultValue=""
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 >
                   <option value="" disabled>
                     Kies nieuwe coach
@@ -174,18 +174,18 @@ function TeamCard({
                 </select>
                 <button
                   type="submit"
-                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
                 >
                   Wijzigen
                 </button>
               </form>
               {coachChangeCandidates.length === 0 && (
-                <p className="px-2 pb-2 text-xs text-slate-400">
+                <p className="px-2 pb-2 text-xs text-slate-400 dark:text-slate-500">
                   Niemand beschikbaar om als nieuwe coach aan te duiden.
                 </p>
               )}
             </details>
-            <hr className="my-1 border-slate-100" />
+            <hr className="my-1 border-slate-100 dark:border-slate-800" />
             <DeleteTeamButton
               teamId={team.id}
               teamName={team.name}
@@ -204,13 +204,13 @@ function TeamCard({
           return (
             <div
               key={member.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800/60"
             >
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Avatar name={member.name} photoUrl={avatarUrl(member)} />
-                <span className="text-sm text-slate-700">{member.name}</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">{member.name}</span>
                 {teamByCoachId.has(member.id) && (
-                  <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                  <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
                     Heeft zelf ook een team
                   </span>
                 )}
@@ -218,13 +218,13 @@ function TeamCard({
               <details className="group/menu relative flex-shrink-0">
                 <summary
                   title="Opties"
-                  className="flex cursor-pointer list-none rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 [&::-webkit-details-marker]:hidden"
+                  className="flex cursor-pointer list-none rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 [&::-webkit-details-marker]:hidden dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-300"
                 >
                   <MoreVertical size={16} />
                 </summary>
-                <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+                <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900">
                   <details className="group">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
                       <UserPlus size={14} />
                       Medewerker toevoegen onder {member.name}
                     </summary>
@@ -237,7 +237,7 @@ function TeamCard({
                         name="userId"
                         required
                         defaultValue=""
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                       >
                         <option value="" disabled>
                           Kies gebruiker
@@ -251,29 +251,29 @@ function TeamCard({
                       </select>
                       <button
                         type="submit"
-                        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                        className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
                       >
                         Toevoegen
                       </button>
                     </form>
                     {subordinateCandidates.length === 0 && (
-                      <p className="px-2 pb-2 text-xs text-slate-400">
+                      <p className="px-2 pb-2 text-xs text-slate-400 dark:text-slate-500">
                         Niemand beschikbaar om toe te voegen.
                       </p>
                     )}
                   </details>
                   <Link
                     href={`/beheer/gebruikers/new?under=${member.id}`}
-                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
                     <UserRoundPlus size={14} />
                     Nieuwe gebruiker toevoegen
                   </Link>
-                  <hr className="my-1 border-slate-100" />
+                  <hr className="my-1 border-slate-100 dark:border-slate-800" />
                   <form action={boundRemove}>
                     <button
                       type="submit"
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                     >
                       <X size={14} />
                       Verwijder uit team
@@ -285,20 +285,20 @@ function TeamCard({
           );
         })}
         {team.members.length === 0 && (
-          <p className="text-sm text-slate-400">Nog geen teamleden.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">Nog geen teamleden.</p>
         )}
       </div>
 
       <form
         action={boundAddMember}
-        className="flex items-center gap-2 border-t border-slate-100 pt-3"
+        className="flex items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800"
       >
         <FormToast message="Toegevoegd" />
         <select
           name="userId"
           required
           defaultValue=""
-          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           <option value="" disabled>
             Kies gebruiker
@@ -313,16 +313,16 @@ function TeamCard({
         </select>
         <button
           type="submit"
-          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           <UserPlus size={16} />
           Toevoegen
         </button>
       </form>
 
-      <div className="border-t border-slate-100 pt-3">
-        <h4 className="mb-2 text-sm font-medium text-slate-900">Subagenten</h4>
-        <p className="mb-2 text-xs text-slate-400">
+      <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
+        <h4 className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">Subagenten</h4>
+        <p className="mb-2 text-xs text-slate-400 dark:text-slate-500">
           Kunnen bij een adviesgesprek mee uitgenodigd worden om te closen.
           Zet iemands Type op &quot;Subagent&quot; op zijn gebruikersprofiel om hem
           hier te laten verschijnen.
@@ -334,21 +334,21 @@ function TeamCard({
             return (
               <div
                 key={subagent.id}
-                className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+                className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800/60"
               >
-                <div className="text-sm text-slate-700">
+                <div className="text-sm text-slate-700 dark:text-slate-300">
                   <div className="flex items-center gap-1.5 font-medium">
                     {subagent.name}
                     {isLinked && (
                       <span
                         title='Automatisch gekoppeld via Type "Subagent" op dit gebruikersaccount — wijzig of verwijder via het profiel, niet hier.'
-                        className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+                        className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-400"
                       >
                         Gekoppeld aan account
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-slate-400 dark:text-slate-500">
                     {subagent.email}
                     {subagent.phone ? ` · ${subagent.phone}` : ""}
                   </div>
@@ -356,7 +356,7 @@ function TeamCard({
                 {isLinked ? (
                   <span
                     title='Wijzig het Type op het gebruikersprofiel om dit hier te verwijderen.'
-                    className="p-1 text-slate-300"
+                    className="p-1 text-slate-300 dark:text-slate-600"
                   >
                     <X size={16} />
                   </span>
@@ -365,7 +365,7 @@ function TeamCard({
                     <button
                       type="submit"
                       title="Subagent verwijderen"
-                      className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                      className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600 dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-red-400"
                     >
                       <X size={16} />
                     </button>
@@ -375,17 +375,17 @@ function TeamCard({
             );
           })}
           {teamSubagents.length === 0 && (
-            <p className="text-sm text-slate-400">Nog geen subagenten.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500">Nog geen subagenten.</p>
           )}
         </div>
       </div>
 
       {subTeams.length > 0 && (
-        <details className="group border-t border-slate-100 pt-3">
-          <summary className="mb-3 flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-900">
+        <details className="group border-t border-slate-100 pt-3 dark:border-slate-800">
+          <summary className="mb-3 flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
             <ChevronRight
               size={15}
-              className="text-slate-400 transition-transform group-open:rotate-90"
+              className="text-slate-400 transition-transform group-open:rotate-90 dark:text-slate-500"
             />
             Iedereen in deze structuur ({structureMembers.length})
           </summary>
@@ -393,12 +393,12 @@ function TeamCard({
             {structureMembers.map((m) => (
               <span
                 key={m.id}
-                className="flex items-center gap-1.5 rounded-full bg-slate-50 py-1 pl-1 pr-2.5 text-xs text-slate-600"
+                className="flex items-center gap-1.5 rounded-full bg-slate-50 py-1 pl-1 pr-2.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400"
               >
                 <Avatar name={m.name} size="sm" photoUrl={avatarUrl(m)} />
                 {m.name}
                 {teamByCoachId.has(m.id) && (
-                  <span className="text-amber-600">· heeft eigen team</span>
+                  <span className="text-amber-600 dark:text-amber-400">· heeft eigen team</span>
                 )}
               </span>
             ))}
@@ -407,15 +407,15 @@ function TeamCard({
       )}
 
       {subTeams.length > 0 && (
-        <details className="group border-t border-slate-100 pt-3">
-          <summary className="mb-3 flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-900">
+        <details className="group border-t border-slate-100 pt-3 dark:border-slate-800">
+          <summary className="mb-3 flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
             <ChevronRight
               size={15}
-              className="text-slate-400 transition-transform group-open:rotate-90"
+              className="text-slate-400 transition-transform group-open:rotate-90 dark:text-slate-500"
             />
             Sub-structuren ({subTeams.length})
           </summary>
-          <div className="flex flex-col gap-4 border-l-2 border-slate-200 pl-4">
+          <div className="flex flex-col gap-4 border-l-2 border-slate-200 pl-4 dark:border-slate-700">
             {subTeams.map((subTeam) => (
               <TeamCard
                 key={subTeam.id}
@@ -453,8 +453,8 @@ export default async function TeamsPage() {
     <div className="flex flex-col gap-6">
       <ToastOnParam param="created" message="Gebruiker aangemaakt" />
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Teams</h1>
-        <p className="text-base text-slate-500">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Teams</h1>
+        <p className="text-base text-slate-500 dark:text-slate-400">
           Maak teams aan, duid een coach aan en voeg gebruikers toe als
           teamlid. Een teamlid die zelf ook coach is, wordt genest getoond
           onder zijn eigen structuur. Via de 3 puntjes naast een naam kan je
@@ -462,8 +462,8 @@ export default async function TeamsPage() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 className="mb-3 text-lg font-medium text-slate-900">
+      <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-100">
           Nieuw team aanmaken
         </h2>
         <form
@@ -475,13 +475,13 @@ export default async function TeamsPage() {
             name="name"
             placeholder="Teamnaam"
             required
-            className="rounded-md border border-slate-300 px-3 py-2 text-base"
+            className="rounded-md border border-slate-300 px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
           <select
             name="coachId"
             required
             defaultValue=""
-            className="rounded-md border border-slate-300 px-3 py-2 text-base"
+            className="rounded-md border border-slate-300 px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             <option value="" disabled>
               Kies coach
@@ -494,13 +494,13 @@ export default async function TeamsPage() {
           </select>
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2 text-base font-medium text-white hover:bg-slate-800"
+            className="rounded-md bg-slate-900 px-4 py-2 text-base font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             Team aanmaken
           </button>
         </form>
         {coachCandidates.length === 0 && (
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-slate-400 dark:text-slate-500">
             Er zijn geen gebruikers meer beschikbaar om als coach aan te
             duiden — elke geschikte gebruiker leidt al een team.
           </p>
@@ -518,7 +518,7 @@ export default async function TeamsPage() {
           />
         ))}
         {rootTeams.length === 0 && (
-          <p className="text-base text-slate-400">Nog geen teams.</p>
+          <p className="text-base text-slate-400 dark:text-slate-500">Nog geen teams.</p>
         )}
       </div>
     </div>

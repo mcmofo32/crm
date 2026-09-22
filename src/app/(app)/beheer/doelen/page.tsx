@@ -41,11 +41,11 @@ export default async function DoelenPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
           <Target size={24} />
           Doelen
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Doelen per gebruiker voor de gekozen productiemaand. Eenheden,
           Klanten, Gesprekken, ABV verkoop en ABV RG geef je enkel hier door.
         </p>
@@ -54,21 +54,21 @@ export default async function DoelenPage({
       <div className="flex items-center gap-3">
         <Link
           href={`/beheer/doelen?year=${prev.year}&month=${prev.month}`}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ChevronLeft size={16} />
         </Link>
-        <span className="min-w-40 text-center text-base font-medium text-slate-900">
+        <span className="min-w-40 text-center text-base font-medium text-slate-900 dark:text-slate-100">
           Productiemaand {String(month).padStart(2, "0")}
           {isCurrentMonth && (
-            <span className="ml-1.5 text-xs font-normal text-slate-400">
+            <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
               (huidige)
             </span>
           )}
         </span>
         <Link
           href={`/beheer/doelen?year=${next.year}&month=${next.month}`}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ChevronRight size={16} />
         </Link>
@@ -80,9 +80,9 @@ export default async function DoelenPage({
         className="flex flex-col gap-3"
       >
         <FormToast message="Doelen opgeslagen" />
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
+            <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
               <tr>
                 <th className="whitespace-nowrap px-4 py-3 font-medium">
                   Naam
@@ -98,15 +98,15 @@ export default async function DoelenPage({
                 <th className="px-3 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50">
-                  <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900">
+                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                  <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                     <div className="flex items-center gap-2">
                       <Avatar name={u.name} photoUrl={u.photoUrl} />
                       <div className="flex flex-col leading-tight">
                         <span>{u.name}</span>
-                        <span className="text-xs font-normal text-slate-400">
+                        <span className="text-xs font-normal text-slate-400 dark:text-slate-500">
                           {ROLE_LABELS[u.role]}
                         </span>
                       </div>
@@ -120,7 +120,7 @@ export default async function DoelenPage({
                         min="0"
                         name={`monthlyGoal_${u.id}_${metric}`}
                         defaultValue={u.targetByMetric.get(metric) ?? ""}
-                        className="w-24 rounded-md border border-slate-300 px-2 py-1.5 text-center text-sm"
+                        className="w-24 rounded-md border border-slate-300 px-2 py-1.5 text-center text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                       />
                     </td>
                   ))}
@@ -128,7 +128,7 @@ export default async function DoelenPage({
                     <Link
                       href={`/beheer/doelen/${u.id}`}
                       title="Jaarlijkse KPI's bekijken"
-                      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                     >
                       <Settings2 size={16} />
                     </Link>
@@ -139,7 +139,7 @@ export default async function DoelenPage({
                 <tr>
                   <td
                     colSpan={MONTHLY_GOAL_METRICS.length + 2}
-                    className="px-4 py-8 text-center text-slate-400"
+                    className="px-4 py-8 text-center text-slate-400 dark:text-slate-500"
                   >
                     Geen gebruikers gevonden.
                   </td>
@@ -153,7 +153,7 @@ export default async function DoelenPage({
           <div>
             <button
               type="submit"
-              className="rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
             >
               Doelen opslaan voor productiemaand {String(month).padStart(2, "0")}
             </button>
@@ -161,7 +161,7 @@ export default async function DoelenPage({
         )}
       </form>
 
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-slate-400 dark:text-slate-500">
         Het doel Gesprekken hierboven is een totaal voor de hele
         productiemaand. Op het dashboard wordt Gesprekken (net als
         Eenheden, Klanten, ABV verkoop en ABV RG) vergeleken tegen dat volle
@@ -175,7 +175,7 @@ export default async function DoelenPage({
 
       <Link
         href="/beheer/doelen/productie"
-        className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <Settings2 size={16} />
         Productiemaanden: begin-/einddatums per maand instellen

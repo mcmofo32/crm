@@ -10,10 +10,10 @@ export default async function LeadsExcelUpdatePage() {
   return (
     <div className="max-w-4xl">
       <div className="mb-4">
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
           Leads bijwerken vanuit Excel
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Upload een Excel-export (bv. vanuit Google Sheets) om bestaande
           leads bij te werken — er worden nooit nieuwe leads aangemaakt, enkel
           bestaande aangepast. Elke rij wordt gematcht op telefoonnummer, dan

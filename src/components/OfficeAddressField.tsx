@@ -12,7 +12,7 @@ export function OfficeAddressField({ defaultValue }: { defaultValue: string }) {
       onChange={setValue}
       name="address"
       placeholder="Straat, nummer, postcode, gemeente"
-      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
     />
   );
 }

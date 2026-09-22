@@ -88,11 +88,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-medium text-slate-900">{title}</h2>
-          {hint && <p className="mt-0.5 text-sm text-slate-500">{hint}</p>}
+          <h2 className="text-lg font-medium text-slate-900 dark:text-slate-100">{title}</h2>
+          {hint && <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{hint}</p>}
         </div>
         {action}
       </div>
@@ -112,9 +112,9 @@ function StatTile({
 }) {
   return (
     <div>
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-slate-400">{hint}</p>}
+      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
     </div>
   );
 }
@@ -131,7 +131,7 @@ function DeltaBadge({ delta }: { delta: number | null }) {
   return (
     <span
       className={`ml-2 text-xs font-medium ${
-        flat ? "text-slate-400" : positive ? "text-green-600" : "text-red-600"
+        flat ? "text-slate-400 dark:text-slate-500" : positive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
       }`}
     >
       {flat ? "±0%" : `${positive ? "+" : ""}${delta}% t.o.v. vorige maand`}
@@ -282,24 +282,24 @@ export default async function AnalysePage({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
           <BarChart3 size={26} />
           Analyse
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Conversie en prestaties. Enkel zichtbaar voor de Beheerder.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2 text-sm">
             <Link
               href="/beheer/analyse"
               className={`rounded-full px-3 py-1.5 ${
                 !personFilter && (!teamFilter || teamFilter === "alle")
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-600"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
               }`}
             >
               Alle teams
@@ -310,8 +310,8 @@ export default async function AnalysePage({
                 href={`/beheer/analyse?team=${team.id}`}
                 className={`rounded-full px-3 py-1.5 ${
                   !personFilter && teamFilter === team.id
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-600"
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                    : "border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                 }`}
               >
                 {team.name}
@@ -321,8 +321,8 @@ export default async function AnalysePage({
               href="/beheer/analyse?team=geen"
               className={`rounded-full px-3 py-1.5 ${
                 !personFilter && teamFilter === "geen"
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-600"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
               }`}
             >
               Zonder team
@@ -332,7 +332,7 @@ export default async function AnalysePage({
             <select
               name="person"
               defaultValue={personFilter ?? ""}
-              className="rounded-md border border-slate-300 px-3 py-1.5"
+              className="rounded-md border border-slate-300 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">Alle medewerkers</option>
               {allEmployees.map((e) => (
@@ -343,13 +343,13 @@ export default async function AnalysePage({
             </select>
             <button
               type="submit"
-              className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
             >
               Bekijken
             </button>
           </form>
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           Filtert alle cijfers hieronder tot dit team of deze medewerker
           (persoon overschrijft team).
         </p>
@@ -361,9 +361,9 @@ export default async function AnalysePage({
           return (
             <div
               key={type}
-              className="rounded-xl border border-slate-200 bg-white p-6"
+              className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
             >
-              <h2 className="mb-4 text-lg font-medium text-slate-900">
+              <h2 className="mb-4 text-lg font-medium text-slate-900 dark:text-slate-100">
                 {LEAD_TYPE_LABELS[type]}
               </h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -372,14 +372,14 @@ export default async function AnalysePage({
                 <StatTile label="Gewonnen" value={String(stats.won)} />
                 <StatTile label="Verloren" value={String(stats.lost)} />
               </div>
-              <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-                <span className="text-sm text-slate-500">Conversieratio</span>
+              <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                <span className="text-sm text-slate-500 dark:text-slate-400">Conversieratio</span>
                 <Badge variant={conversionBadgeVariant(stats.conversionRate)}>
                   {stats.conversionRate === null
                     ? "Nog geen beslissing"
                     : `${stats.conversionRate}%`}
                 </Badge>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-400 dark:text-slate-500">
                   (gewonnen / gewonnen+verloren)
                 </span>
               </div>
@@ -395,10 +395,10 @@ export default async function AnalysePage({
               key={`${bucket.leadType}:${bucket.label}`}
               className="flex items-center gap-3"
             >
-              <span className="w-40 flex-shrink-0 text-sm text-slate-600">
+              <span className="w-40 flex-shrink-0 text-sm text-slate-600 dark:text-slate-400">
                 {bucket.label}
               </span>
-              <div className="h-3 flex-1 rounded-full bg-slate-100">
+              <div className="h-3 flex-1 rounded-full bg-slate-100 dark:bg-slate-800">
                 <div
                   className="h-3 rounded-full"
                   style={{
@@ -407,13 +407,13 @@ export default async function AnalysePage({
                   }}
                 />
               </div>
-              <span className="w-8 flex-shrink-0 text-right text-sm font-medium text-slate-700">
+              <span className="w-8 flex-shrink-0 text-right text-sm font-medium text-slate-700 dark:text-slate-300">
                 {bucket.count}
               </span>
             </div>
           ))}
           {stageDistribution.length === 0 && (
-            <p className="text-sm text-slate-400">Geen open leads.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500">Geen open leads.</p>
           )}
         </div>
       </Section>
@@ -436,7 +436,7 @@ export default async function AnalysePage({
               }));
             return (
               <div key={type} className="mb-4 last:mb-0">
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   {LEAD_TYPE_LABELS[type]}
                 </p>
                 <BarList items={items} />
@@ -463,7 +463,7 @@ export default async function AnalysePage({
               }));
             return (
               <div key={type} className="mb-4 last:mb-0">
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   {LEAD_TYPE_LABELS[type]}
                 </p>
                 <BarList items={items} />
@@ -473,11 +473,11 @@ export default async function AnalysePage({
         </Section>
       </div>
 
-      <div id="trends" className="scroll-mt-6 rounded-xl border border-slate-200 bg-white p-6">
+      <div id="trends" className="scroll-mt-6 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-medium text-slate-900">Trend over tijd</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+            <h2 className="text-lg font-medium text-slate-900 dark:text-slate-100">Trend over tijd</h2>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
               Nieuwe, gewonnen en verloren leads per maand.
             </p>
           </div>
@@ -489,8 +489,8 @@ export default async function AnalysePage({
                   href={trendHref({ trendType: t === "alle" ? "" : t })}
                   className={`rounded-full px-3 py-1.5 ${
                     (t === "alle" && !trendType) || trendType === t
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 bg-white text-slate-600"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                      : "border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                   }`}
                 >
                   {t === "alle" ? "Alle" : LEAD_TYPE_LABELS[t]}
@@ -504,8 +504,8 @@ export default async function AnalysePage({
                   href={trendHref({ trendMonths: String(m) })}
                   className={`rounded-full px-3 py-1.5 ${
                     trendMonths === m
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 bg-white text-slate-600"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                      : "border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                   }`}
                 >
                   {m}m
@@ -525,7 +525,7 @@ export default async function AnalysePage({
         />
 
         {leadTrend.length >= 2 && (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
             Nieuwe leads deze maand: {leadTrend[leadTrend.length - 1].newLeads}
             <DeltaBadge
               delta={momDelta(
@@ -566,8 +566,8 @@ export default async function AnalysePage({
                   href={seasonHref(m.key)}
                   className={`rounded-full px-3 py-1.5 ${
                     seasonMetric === m.key
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 bg-white text-slate-600"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                      : "border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                   }`}
                 >
                   {m.label}
@@ -586,7 +586,7 @@ export default async function AnalysePage({
             }))}
           />
           {seasonMax <= 1 && (
-            <p className="mt-2 text-xs text-slate-400">Nog te weinig data voor een duidelijk patroon.</p>
+            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">Nog te weinig data voor een duidelijk patroon.</p>
           )}
         </Section>
       </div>
@@ -666,25 +666,25 @@ export default async function AnalysePage({
         </Section>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-medium text-slate-900">Omzet per productiemaand</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+            <h2 className="text-lg font-medium text-slate-900 dark:text-slate-100">Omzet per productiemaand</h2>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
               Omzet van nieuwe klanten per productiemaand van {year}.
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Link
               href={`/beheer/analyse?year=${year - 1}#omzet`}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronLeft size={15} />
             </Link>
-            <span className="font-medium text-slate-900">{year}</span>
+            <span className="font-medium text-slate-900 dark:text-slate-100">{year}</span>
             <Link
               href={`/beheer/analyse?year=${year + 1}#omzet`}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronRight size={15} />
             </Link>
@@ -701,7 +701,7 @@ export default async function AnalysePage({
             },
           ]}
         />
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
           Totaal {year}: {formatAmount(revenueByMonth.reduce((s, m) => s + m.revenue, 0))} ·{" "}
           {revenueByMonth.reduce((s, m) => s + m.units, 0)} eenheden
         </p>
@@ -712,19 +712,19 @@ export default async function AnalysePage({
         hint="Lopende en recent afgelopen incentives, met top 3 en aantal dat de vereisten haalt."
       >
         {incentiveOverview.length === 0 ? (
-          <p className="text-sm text-slate-400">Geen (recente) incentives.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">Geen (recente) incentives.</p>
         ) : (
           <div className="flex flex-col gap-4">
             {incentiveOverview.map((incentive) => (
               <div
                 key={incentive.incentiveId}
-                className="rounded-lg border border-slate-100 p-4"
+                className="rounded-lg border border-slate-100 p-4 dark:border-slate-800"
               >
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/incentives/${incentive.incentiveId}`}
-                      className="font-medium text-slate-900 hover:underline"
+                      className="font-medium text-slate-900 hover:underline dark:text-slate-100"
                     >
                       {incentive.title}
                     </Link>
@@ -732,7 +732,7 @@ export default async function AnalysePage({
                       {INCENTIVE_OVERVIEW_STATUS_LABELS[incentive.status]}
                     </Badge>
                   </div>
-                  <span className="text-sm text-slate-500">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
                     {incentive.achievedCount}/{incentive.totalParticipants} halen de vereisten
                   </span>
                 </div>
@@ -742,15 +742,15 @@ export default async function AnalysePage({
                       key={entry.userId}
                       className="flex items-center justify-between text-sm"
                     >
-                      <span className="flex items-center gap-2 text-slate-700">
-                        <span className="w-4 text-xs text-slate-400">#{i + 1}</span>
+                      <span className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                        <span className="w-4 text-xs text-slate-400 dark:text-slate-500">#{i + 1}</span>
                         {entry.name}
                       </span>
-                      <span className="text-slate-500">{entry.progressPercent}%</span>
+                      <span className="text-slate-500 dark:text-slate-400">{entry.progressPercent}%</span>
                     </div>
                   ))}
                   {incentive.topEntries.length === 0 && (
-                    <p className="text-sm text-slate-400">Nog geen deelnemers met score.</p>
+                    <p className="text-sm text-slate-400 dark:text-slate-500">Nog geen deelnemers met score.</p>
                   )}
                 </div>
               </div>
@@ -773,8 +773,8 @@ export default async function AnalysePage({
                   href={kpiHref({ kpiView: v })}
                   className={`rounded-full px-3 py-1.5 ${
                     kpiView === v
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 bg-white text-slate-600"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                      : "border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                   }`}
                 >
                   {v === "month" ? "Maand" : "Week"}
@@ -783,14 +783,14 @@ export default async function AnalysePage({
             </div>
             <Link
               href={kpiHref({ year: year - 1 })}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronLeft size={15} />
             </Link>
-            <span className="font-medium text-slate-900">{year}</span>
+            <span className="font-medium text-slate-900 dark:text-slate-100">{year}</span>
             <Link
               href={kpiHref({ year: year + 1 })}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <ChevronRight size={15} />
             </Link>
@@ -800,7 +800,7 @@ export default async function AnalysePage({
         <div id="kpi" className="scroll-mt-6 flex flex-col gap-6">
           {heatmapMetrics.map((metric) => (
             <div key={metric}>
-              <p className="mb-2 text-sm font-medium text-slate-700">
+              <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 {KPI_METRIC_LABELS[metric]}
               </p>
               <Heatmap
@@ -845,15 +845,15 @@ export default async function AnalysePage({
         </Section>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-100 p-6 pb-4">
-          <h2 className="text-lg font-medium text-slate-900">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="border-b border-slate-100 p-6 pb-4 dark:border-slate-800">
+          <h2 className="text-lg font-medium text-slate-900 dark:text-slate-100">
             Overzicht per medewerker
           </h2>
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
             <tr>
               <th className="px-6 py-3 font-medium">Naam</th>
               <th className="px-6 py-3 font-medium">Rol</th>
@@ -865,10 +865,10 @@ export default async function AnalysePage({
               <th className="px-6 py-3 font-medium">Afgeronde contacten</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {perEmployee.map((employee) => (
-              <tr key={employee.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-900">
+              <tr key={employee.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
                     <Avatar name={employee.name} photoUrl={employee.photoUrl} />
                     {employee.name}
@@ -879,14 +879,14 @@ export default async function AnalysePage({
                     {ROLE_LABELS[employee.role]}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 text-slate-500">
+                <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                   {employee.teamName ?? "—"}
                 </td>
-                <td className="px-6 py-4 text-slate-700">
+                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
                   {employee.totalLeads}
                 </td>
-                <td className="px-6 py-4 text-slate-700">{employee.won}</td>
-                <td className="px-6 py-4 text-slate-700">{employee.lost}</td>
+                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{employee.won}</td>
+                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{employee.lost}</td>
                 <td className="px-6 py-4">
                   <Badge variant={conversionBadgeVariant(employee.conversionRate)}>
                     {employee.conversionRate === null
@@ -894,7 +894,7 @@ export default async function AnalysePage({
                       : `${employee.conversionRate}%`}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 text-slate-700">
+                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
                   {employee.activitiesCompleted}
                 </td>
               </tr>
@@ -903,7 +903,7 @@ export default async function AnalysePage({
               <tr>
                 <td
                   colSpan={8}
-                  className="px-6 py-8 text-center text-slate-400"
+                  className="px-6 py-8 text-center text-slate-400 dark:text-slate-500"
                 >
                   Geen gebruikers in dit team.
                 </td>

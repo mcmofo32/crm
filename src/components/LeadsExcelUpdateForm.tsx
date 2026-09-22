@@ -40,19 +40,19 @@ export function LeadsExcelUpdateForm() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
           Excel-bestand (.xlsx)
         </label>
         <input
           type="file"
           accept=".xlsx,.xls"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
       </div>
 
       {state?.error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
           {state.error}
         </div>
       )}
@@ -62,7 +62,7 @@ export function LeadsExcelUpdateForm() {
           type="button"
           onClick={() => submit("preview")}
           disabled={pending || !file}
-          className="self-start rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          className="self-start rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           {pending ? "Bezig…" : "Voorbeeld bekijken"}
         </button>
@@ -71,7 +71,7 @@ export function LeadsExcelUpdateForm() {
             type="button"
             onClick={() => submit("commit")}
             disabled={pending || !file}
-            className="self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             {pending
               ? "Bezig…"
@@ -79,19 +79,19 @@ export function LeadsExcelUpdateForm() {
           </button>
         )}
       </div>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         Bekijk eerst het voorbeeld — er wordt pas iets aangepast in de
         database nadat je op &quot;Bevestigen&quot; klikt.
       </p>
 
       {state?.mode === "committed" && (
-        <div className="flex flex-col gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+        <div className="flex flex-col gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
           <span>
             <strong>{state.appliedCount}</strong>{" "}
             {state.appliedCount === 1 ? "lead" : "leads"} bijgewerkt.
           </span>
           {state.failed && state.failed.length > 0 && (
-            <div className="text-red-700">
+            <div className="text-red-700 dark:text-red-400">
               <p className="font-medium">
                 {state.failed.length} mislukt:
               </p>
@@ -109,12 +109,12 @@ export function LeadsExcelUpdateForm() {
 
       {state?.confirmed && state.confirmed.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
             Rechtstreeks uit de database, meteen na het schrijven:
           </p>
-          <div className="max-h-[400px] overflow-auto rounded-lg border border-slate-200 bg-white">
+          <div className="max-h-[400px] overflow-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
+              <thead className="sticky top-0 bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-3 py-2 font-medium">Rij</th>
                   <th className="px-3 py-2 font-medium">Lead</th>
@@ -122,19 +122,19 @@ export function LeadsExcelUpdateForm() {
                   <th className="px-3 py-2 font-medium">Status na write</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {state.confirmed.map((c, i) => (
                   <tr key={i}>
-                    <td className="whitespace-nowrap px-3 py-2 text-slate-400">
+                    <td className="whitespace-nowrap px-3 py-2 text-slate-400 dark:text-slate-500">
                       {c.sheet} · {c.row}
                     </td>
-                    <td className="px-3 py-2 font-medium text-slate-900">
+                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-100">
                       {c.matchedLeadName}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-medium text-slate-900">
+                    <td className="whitespace-nowrap px-3 py-2 font-medium text-slate-900 dark:text-slate-100">
                       {formatDate(c.dateAfterWrite)}
                     </td>
-                    <td className="px-3 py-2 text-slate-600">{c.statusAfterWrite}</td>
+                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{c.statusAfterWrite}</td>
                   </tr>
                 ))}
               </tbody>
@@ -144,7 +144,7 @@ export function LeadsExcelUpdateForm() {
       )}
 
       {state?.diagnostics && state.diagnostics.length > 0 && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400">
           <p className="font-medium">Herkende datumkolom per tabblad:</p>
           <ul className="mt-1 list-inside list-disc">
             {state.diagnostics.map((d, i) => (
@@ -159,7 +159,7 @@ export function LeadsExcelUpdateForm() {
 
       {hasPreview && (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             <strong>{changesCount}</strong> lead
             {changesCount === 1 ? "" : "s"} gevonden met een aanpassing.
             {state.unmatched && state.unmatched.length > 0 && (
@@ -173,15 +173,15 @@ export function LeadsExcelUpdateForm() {
           </p>
 
           {changesCount === 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400">
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500">
               Geen enkele rij leidt tot een aanpassing.
             </div>
           )}
 
           {changesCount > 0 && (
-            <div className="max-h-[500px] overflow-auto rounded-lg border border-slate-200 bg-white">
+            <div className="max-h-[500px] overflow-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
+                <thead className="sticky top-0 bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                   <tr>
                     <th className="px-3 py-2 font-medium">Rij</th>
                     <th className="px-3 py-2 font-medium">Lead</th>
@@ -192,22 +192,22 @@ export function LeadsExcelUpdateForm() {
                     <th className="px-3 py-2 font-medium">Rapportering</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {state.matched!.map((m, i) => (
-                    <tr key={i} className={m.markLost ? "bg-red-50" : undefined}>
-                      <td className="whitespace-nowrap px-3 py-2 text-slate-400">
+                    <tr key={i} className={m.markLost ? "bg-red-50 dark:bg-red-950/40" : undefined}>
+                      <td className="whitespace-nowrap px-3 py-2 text-slate-400 dark:text-slate-500">
                         {m.sheet} · {m.row}
                       </td>
-                      <td className="px-3 py-2 font-medium text-slate-900">
+                      <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-100">
                         {m.matchedLeadName}
                         {m.name !== m.matchedLeadName && (
-                          <span className="ml-1 font-normal text-slate-400">
+                          <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">
                             ({m.name} in bestand)
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-slate-500">{m.matchedOn}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                      <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{m.matchedOn}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-400">
                         {m.dateTo ? (
                           <>
                             {formatDate(m.dateFrom)} →{" "}
@@ -217,19 +217,19 @@ export function LeadsExcelUpdateForm() {
                           "—"
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-500">
+                      <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-500 dark:text-slate-400">
                         {m.rawDateCell || "(leeg)"}
                       </td>
                       <td className="px-3 py-2">
                         {m.markLost ? (
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
                             {m.currentlyWon ? "Klant → Geen klant" : "Geen klant"}
                           </span>
                         ) : (
                           "—"
                         )}
                       </td>
-                      <td className="max-w-xs truncate px-3 py-2 text-slate-600">
+                      <td className="max-w-xs truncate px-3 py-2 text-slate-600 dark:text-slate-400">
                         {m.notePreview ?? "—"}
                       </td>
                     </tr>
@@ -242,7 +242,7 @@ export function LeadsExcelUpdateForm() {
       )}
 
       {state?.unmatched && state.unmatched.length > 0 && (
-        <details className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <details className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
           <summary className="cursor-pointer font-medium">
             {state.unmatched.length} rij
             {state.unmatched.length === 1 ? "" : "en"} overgeslagen

@@ -16,7 +16,7 @@ export function BarList({
   emptyLabel?: string;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-slate-400">{emptyLabel}</p>;
+    return <p className="text-sm text-slate-400 dark:text-slate-500">{emptyLabel}</p>;
   }
   const max = Math.max(1, ...items.map((i) => i.value));
 
@@ -24,13 +24,13 @@ export function BarList({
     <div className="flex flex-col gap-3">
       {items.map((item) => (
         <div key={item.key} className="flex items-center gap-3">
-          <span className="w-40 flex-shrink-0 text-sm text-slate-600">
+          <span className="w-40 flex-shrink-0 text-sm text-slate-600 dark:text-slate-400">
             {item.label}
             {item.sublabel && (
-              <span className="ml-1 text-xs text-slate-400">{item.sublabel}</span>
+              <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">{item.sublabel}</span>
             )}
           </span>
-          <div className="h-3 flex-1 rounded-full bg-slate-100">
+          <div className="h-3 flex-1 rounded-full bg-slate-100 dark:bg-slate-800">
             <div
               className="h-3 rounded-full"
               style={{
@@ -39,7 +39,7 @@ export function BarList({
               }}
             />
           </div>
-          <span className="w-16 flex-shrink-0 text-right text-sm font-medium text-slate-700">
+          <span className="w-16 flex-shrink-0 text-right text-sm font-medium text-slate-700 dark:text-slate-300">
             {item.displayValue}
           </span>
         </div>

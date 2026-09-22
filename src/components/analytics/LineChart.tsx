@@ -38,7 +38,7 @@ export function LineChart({
         height={height}
         role="img"
         aria-label="Lijngrafiek"
-        className="min-w-full"
+        className="min-w-full text-slate-400 dark:text-slate-600"
       >
         {gridLines.map((v) => (
           <g key={v}>
@@ -47,14 +47,14 @@ export function LineChart({
               x2={width - padding.right}
               y1={yFor(v)}
               y2={yFor(v)}
-              stroke="#e2e8f0"
+              stroke="currentColor"
               strokeWidth={1}
             />
             <text
               x={padding.left}
               y={yFor(v) - 4}
               fontSize={10}
-              fill="#94a3b8"
+              fill="currentColor"
             >
               {v.toLocaleString("nl-BE")}
               {valueSuffix}
@@ -68,7 +68,7 @@ export function LineChart({
             x={xFor(i)}
             y={height - 8}
             fontSize={10}
-            fill="#94a3b8"
+            fill="currentColor"
             textAnchor="middle"
           >
             {label}
@@ -109,7 +109,7 @@ export function LineChart({
         ))}
       </svg>
       {series.length > 1 && (
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-slate-500">
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-slate-500 dark:text-slate-400">
           {series.map((s) => (
             <span key={s.key} className="flex items-center gap-1.5">
               <span

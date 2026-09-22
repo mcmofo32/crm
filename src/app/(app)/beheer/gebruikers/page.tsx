@@ -40,10 +40,10 @@ export default async function UsersPage({
     <div className="flex flex-col gap-6">
       <ToastOnParam param="created" message="Gebruiker aangemaakt" />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold text-slate-900">Medewerkers</h1>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Medewerkers</h1>
         <Link
           href="/beheer/gebruikers/new"
-          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2.5 text-base font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           <Plus size={17} />
           Nieuwe medewerker
@@ -53,7 +53,7 @@ export default async function UsersPage({
       {inactiveCount > 0 && (
         <Link
           href={showInactive ? "/beheer/gebruikers" : "/beheer/gebruikers?inactief=1"}
-          className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           {showInactive ? <EyeOff size={15} /> : <Eye size={15} />}
           {showInactive
@@ -63,7 +63,7 @@ export default async function UsersPage({
       )}
 
       {duplicateNameCount > 0 && (
-        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
           <TriangleAlert size={16} className="flex-shrink-0" />
           {duplicateNameCount === 1
             ? "Er zijn 2 of meer accounts met exact dezelfde naam (zie ⚠ hieronder) — vermoedelijk per ongeluk dubbel aangemaakt."
@@ -77,7 +77,7 @@ export default async function UsersPage({
           <button
             type="submit"
             title='Voor iedereen met Type "Subagent" opnieuw controleren of ze kiesbaar zijn bij het inplannen van een adviesgesprek'
-            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <RefreshCw size={15} />
             Subagenten synchroniseren
@@ -88,7 +88,7 @@ export default async function UsersPage({
           <button
             type="submit"
             title="Herschrijft alle Belgische mobiele nummers (04xx, +324xx, 324xx, in eender welke schrijfwijze) van leads en medewerkers naar het vaste formaat 32 4xx xx xx xx. Andere nummers (bv. +31) blijven ongewijzigd."
-            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <Phone size={15} />
             Telefoonnummers normaliseren
@@ -106,23 +106,23 @@ export default async function UsersPage({
             <Link
               key={u.id}
               href={`/beheer/gebruikers/${u.id}`}
-              className="rounded-lg border border-slate-200 bg-white p-4"
+              className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 font-medium text-slate-900">
+                <div className="flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
                   <Avatar name={u.name} photoUrl={avatarUrl(u)} />
                   {u.name}
                 </div>
-                <MoreVertical size={18} className="flex-shrink-0 text-slate-400" />
+                <MoreVertical size={18} className="flex-shrink-0 text-slate-400 dark:text-slate-500" />
               </div>
               {isDuplicateName && (
-                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
                   <TriangleAlert size={12} />
                   Dubbel?
                 </span>
               )}
-              <p className="mt-2 text-sm text-slate-500">{u.email || "—"}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{u.email || "—"}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
                 <Badge variant={ROLE_BADGE_VARIANT[u.role]}>
                   {ROLE_LABELS[u.role]}
                 </Badge>
@@ -130,7 +130,7 @@ export default async function UsersPage({
                   {u.active ? "Actief" : "Inactief"}
                 </Badge>
                 {u.inTraining && <Badge variant="amber">In opleiding</Badge>}
-                <span className="text-sm text-slate-500">
+                <span className="text-sm text-slate-500 dark:text-slate-400">
                   {u.coachedTeam?.name ?? u.team?.name ?? "—"}
                 </span>
               </div>
@@ -139,9 +139,9 @@ export default async function UsersPage({
         })}
       </div>
 
-      <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white sm:block">
+      <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white sm:block dark:border-slate-800 dark:bg-slate-900">
         <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
             <tr>
               <th className="px-6 py-3 font-medium">Naam</th>
               <th className="px-6 py-3 font-medium">E-mail</th>
@@ -151,12 +151,12 @@ export default async function UsersPage({
               <th className="px-6 py-3 font-medium"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {users.map((u) => {
               const isDuplicateName = (nameCounts.get(normalizedName(u.name)) ?? 0) > 1;
               return (
-              <tr key={u.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-900">
+              <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
                   <Link
                     href={`/beheer/gebruikers/${u.id}`}
                     className="flex items-center gap-2 hover:underline"
@@ -166,7 +166,7 @@ export default async function UsersPage({
                     {isDuplicateName && (
                       <span
                         title="Nog een account met exact dezelfde naam"
-                        className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
+                        className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400"
                       >
                         <TriangleAlert size={12} />
                         Dubbel?
@@ -174,13 +174,13 @@ export default async function UsersPage({
                     )}
                   </Link>
                 </td>
-                <td className="px-6 py-4 text-slate-500">{u.email || "—"}</td>
+                <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{u.email || "—"}</td>
                 <td className="px-6 py-4">
                   <Badge variant={ROLE_BADGE_VARIANT[u.role]}>
                     {ROLE_LABELS[u.role]}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 text-slate-500">
+                <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                   {u.coachedTeam?.name ?? u.team?.name ?? "—"}
                 </td>
                 <td className="px-6 py-4">
@@ -195,7 +195,7 @@ export default async function UsersPage({
                   <Link
                     href={`/beheer/gebruikers/${u.id}`}
                     title="Instellingen"
-                    className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                   >
                     <MoreVertical size={18} />
                   </Link>
