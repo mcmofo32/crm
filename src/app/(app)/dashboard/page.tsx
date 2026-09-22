@@ -26,8 +26,6 @@ import {
   getProductionMonthGoalProgress,
   getGroupProductionMonthGoalProgress,
   getCurrentProductionMonth,
-  getProductionLeaderboard,
-  getConversationsLeaderboard,
 } from "@/lib/actions/production";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
@@ -36,7 +34,6 @@ import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MIXED_KPI_LABEL } from "@/lib/go
 import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
-import { Position } from "@/components/ProductionShared";
 
 const GOAL_ICONS: Record<string, LucideIcon> = {
   UNITS: Boxes,
@@ -86,14 +83,12 @@ export default async function DashboardPage({
   // Groepsdoelen (totaal van het team/iedereen) enkel tonen aan wie ook
   // effectief een groep heeft: Coach (zijn team), Admin/Beheerder (iedereen).
   const showGroupGoals = canManageUsers(user) || user.role === Role.COACH;
-  // getProductionLeaderboard hieronder heeft year/month als expliciete
-  // argumenten nodig, dus dit moet vóór de Promise.all opgelost zijn. Zit
-  // wel achter cache() (zie production.ts), dus alle andere plekken die
-  // hieronder óók getCurrentProductionMonth() aanroepen (via
-  // getProductionMonthGoalProgress, getGroupProductionMonthGoalProgress,
-  // getConversationsLeaderboard, ...) hergebruiken dit resultaat i.p.v. elk
-  // hun eigen, identieke query te doen.
-  const currentProductionMonth = await getCurrentProductionMonth();
+  // getProductionMonthGoalProgress/getGroupProductionMonthGoalProgress
+  // roepen hieronder via de Promise.all allebei getCurrentProductionMonth()
+  // aan; die zit achter cache() (zie production.ts), dus door 'm hier al op
+  // te lossen hergebruiken ze hetzelfde resultaat i.p.v. elk hun eigen,
+  // identieke query te doen.
+  await getCurrentProductionMonth();
 
   const [
     ownOverdueTasks,
@@ -105,8 +100,6 @@ export default async function DashboardPage({
     allTeamOverviews,
     unverifiedEvents,
     crossOwnerDuplicates,
-    productionRows,
-    conversationsRows,
   ] = await Promise.all([
     // Enkel de eigen verlopen taken van de ingelogde gebruiker — zelfde
     // logica als het badge-cijfer naast "Taken" in de layout.
@@ -143,8 +136,6 @@ export default async function DashboardPage({
     isBeheerder(user) ? getAllTeamOverviews() : Promise.resolve(null),
     getUnverifiedPastVerifiableEvents(),
     getCrossOwnerDuplicateGroups(),
-    getProductionLeaderboard(currentProductionMonth.year, currentProductionMonth.month),
-    getConversationsLeaderboard(),
   ]);
   const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
 
@@ -152,18 +143,6 @@ export default async function DashboardPage({
     allTeamOverviews?.find((t) => t.teamId === selectedTeamId) ??
     allTeamOverviews?.[0] ??
     null;
-
-  // Compact overzicht op het dashboard: alle actieve medewerkers, met de
-  // Gesprekken-doel/percentage erbij gemengd zodat je in één tabelletje
-  // zowel Productie als Gesprekken ziet (net als de aparte tabbladen). De
-  // lijst zelf toont iedereen — enkel de tabel krijgt een vaste (scrollbare)
-  // hoogte zodat het dashboard niet te lang wordt.
-  const conversationsByUserId = new Map(conversationsRows.map((r) => [r.id, r]));
-  const compactProductionRows = productionRows.map((row) => ({
-    ...row,
-    conversationsTarget: conversationsByUserId.get(row.id)?.target ?? 0,
-    conversationsPercent: conversationsByUserId.get(row.id)?.percent ?? null,
-  }));
 
   return (
     <div className="flex flex-col gap-10">
@@ -333,73 +312,6 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {compactProductionRows.length > 0 && (
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
-              Productie &amp; gesprekken
-              <span className="ml-1.5 text-base font-normal text-slate-400 dark:text-slate-500">
-                — productiemaand {String(currentProductionMonth.month).padStart(2, "0")}
-              </span>
-            </h2>
-            <Link
-              href="/productie"
-              className="text-sm text-slate-500 hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-slate-200"
-            >
-              Volledige ranglijst →
-            </Link>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
-                <tr>
-                  <th className="px-3 py-2 font-medium">#</th>
-                  <th className="px-3 py-2 font-medium">Naam</th>
-                  <th className="px-3 py-2 text-center font-medium">Klanten</th>
-                  <th className="px-3 py-2 text-center font-medium">Eenheden</th>
-                  <th className="px-3 py-2 text-center font-medium">
-                    Gesprekken/week
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {compactProductionRows.map((row, i) => (
-                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                    <td className="px-3 py-2">
-                      <Position position={i + 1} />
-                    </td>
-                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-100">
-                      {row.name}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <LeaderboardCell
-                        actual={row.actualCustomers}
-                        target={row.targetCustomers}
-                        percent={row.percentCustomers}
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <LeaderboardCell
-                        actual={row.actualUnits}
-                        target={row.targetUnits}
-                        percent={row.percentUnits}
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <LeaderboardCell
-                        actual={row.conversationsPerWeek}
-                        target={row.conversationsTarget}
-                        percent={row.conversationsPercent}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {teamOverview && (
         <TeamOverviewTable
           title={`Mijn team — ${teamOverview.teamName}`}
@@ -563,28 +475,5 @@ function GoalCard({
         </p>
       </div>
     </div>
-  );
-}
-
-/** Compacte "behaald / doel · %"-weergave voor de mini-productietabel op het dashboard. */
-function LeaderboardCell({
-  actual,
-  target,
-  percent,
-}: {
-  actual: number;
-  target: number;
-  percent: number | null;
-}) {
-  return (
-    <span className="whitespace-nowrap">
-      <span className="font-medium text-slate-900 dark:text-slate-100">{actual}</span>
-      <span className="text-slate-400 dark:text-slate-500"> / {target || "—"}</span>
-      {percent !== null && (
-        <span className={`ml-1.5 font-medium ${percentColor(percent)}`}>
-          {percent}%
-        </span>
-      )}
-    </span>
   );
 }
