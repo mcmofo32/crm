@@ -18,10 +18,13 @@ export function ProductionTable({
   rows,
   canEditGoals,
   periodLabel,
+  daysRemaining = null,
 }: {
   rows: ProductionTableRow[];
   canEditGoals: boolean;
   periodLabel: string;
+  /** Resterende dagen in de productiemaand (vandaag inbegrepen), of null buiten de huidige productiemaand — verbergt dan ook de 3 tegels hieronder. */
+  daysRemaining?: number | null;
 }) {
   const [editing, setEditing] = useState(false);
   const showInputs = canEditGoals && editing;
@@ -37,8 +40,45 @@ export function ProductionTable({
   const totalPercentUnits =
     totalTargetUnits > 0 ? Math.round((totalActualUnits / totalTargetUnits) * 100) : null;
 
+  const remainingUnits = Math.max(0, totalTargetUnits - totalActualUnits);
+  const unitsPerDayNeeded =
+    daysRemaining !== null ? Math.ceil(remainingUnits / Math.max(1, daysRemaining)) : null;
+  const unitsPerPersonNeeded =
+    daysRemaining !== null && rows.length > 0
+      ? Math.ceil(remainingUnits / rows.length)
+      : null;
+
   return (
     <div className="flex flex-col gap-3">
+      {daysRemaining !== null && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Resterende dagen
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              {daysRemaining}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Eenheden/dag nodig voor maanddoel
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              {unitsPerDayNeeded}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Eenheden/persoon nodig voor maanddoel
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              {unitsPerPersonNeeded}
+            </p>
+          </div>
+        </div>
+      )}
+
       {canEditGoals && (
         <div className="flex flex-col gap-1.5">
           <button
