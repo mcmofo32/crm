@@ -15,14 +15,6 @@ async function requireReportAccess() {
   return viewer;
 }
 
-function dayRange(date: Date) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return { start, end };
-}
-
 export type DailyStageColumn = { key: string; label: string };
 export type DailyStageFlowRow = {
   teamName: string;
@@ -181,14 +173,14 @@ async function buildNewLeadsReport(
 }
 
 /**
- * Dagrapport: per team, hoeveel leads op de gekozen dag naar elke
+ * Dagrapport: per team, hoeveel leads in de gekozen periode naar elke
  * funnel-fase verhuisden (bv. hoeveel nieuwe FA's ingepland, hoeveel
  * doorgestroomd naar Adviesgesprek, hoeveel Klant/Geen klant geworden).
- * Standaard gisteren, maar elke dag is op te vragen.
+ * De periode (dag/week/maand/vrij gekozen) wordt door de caller bepaald;
+ * `start` is inclusief, `end` exclusief.
  */
-export async function getDailyStageReport(date: Date): Promise<DailyReport> {
+export async function getDailyStageReport(start: Date, end: Date): Promise<DailyReport> {
   await requireReportAccess();
-  const { start, end } = dayRange(date);
 
   const changes = await prisma.leadStageChange.findMany({
     where: { changedAt: { gte: start, lt: end }, lead: { deletedAt: null } },

@@ -23,15 +23,25 @@ const STAGE_COLORS = [
   "#d97706",
 ];
 
-function toDateOnly(value: string | undefined): Date {
-  if (value) {
-    const parsed = new Date(`${value}T00:00:00`);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
-  return yesterday;
+type RangeMode = "day" | "week" | "month" | "custom";
+
+const RANGE_TABS: { key: RangeMode; label: string }[] = [
+  { key: "day", label: "Dag" },
+  { key: "week", label: "Week" },
+  { key: "month", label: "Maand" },
+  { key: "custom", label: "Periode" },
+];
+
+function startOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function parseDateParam(value: string | undefined): Date | null {
+  if (!value) return null;
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function toDateParam(date: Date) {
@@ -44,41 +54,132 @@ function shiftDay(date: Date, delta: number) {
   return d;
 }
 
+function shiftMonthAnchor(date: Date, delta: number) {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+}
+
+function dayRange(date: Date) {
+  const start = startOfDay(date);
+  return { start, end: shiftDay(start, 1) };
+}
+
+/** Maandag 00:00 t.e.m. de volgende maandag 00:00 van de week waarin `date` valt. */
+function weekRange(date: Date) {
+  const day = date.getDay(); // 0 = zondag
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = startOfDay(shiftDay(date, diffToMonday));
+  return { start, end: shiftDay(start, 7) };
+}
+
+/** 1e t.e.m. de 1e van de volgende maand van de kalendermaand waarin `date` valt. */
+function monthRange(date: Date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  return { start, end: new Date(date.getFullYear(), date.getMonth() + 1, 1) };
+}
+
 function formatDayLabel(date: Date) {
-  return date.toLocaleDateString("nl-BE", {
+  const label = date.toLocaleDateString("nl-BE", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
     timeZone: "Europe/Brussels",
   });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function formatShortDate(date: Date) {
+  return date.toLocaleDateString("nl-BE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Europe/Brussels",
+  });
+}
+
+function formatMonthLabel(date: Date) {
+  const label = date.toLocaleDateString("nl-BE", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Brussels",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export default async function DagrapportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{
+    range?: string;
+    date?: string;
+    start?: string;
+    end?: string;
+  }>;
 }) {
   const viewer = await getEffectiveViewer();
   if (!viewer) redirect("/login");
   if (!canViewBeheerderTools(viewer)) redirect("/dashboard");
 
-  const { date: dateParam } = await searchParams;
-  const date = toDateOnly(dateParam);
-  const prev = shiftDay(date, -1);
-  const next = shiftDay(date, 1);
-  const isYesterday =
-    toDateParam(date) ===
-    toDateParam(
-      (() => {
-        const y = new Date();
-        y.setDate(y.getDate() - 1);
-        y.setHours(0, 0, 0, 0);
-        return y;
-      })()
-    );
+  const {
+    range: rangeParam,
+    date: dateParam,
+    start: startParam,
+    end: endParam,
+  } = await searchParams;
+  const mode: RangeMode =
+    rangeParam === "week" || rangeParam === "month" || rangeParam === "custom"
+      ? rangeParam
+      : "day";
 
-  const report = await getDailyStageReport(date);
+  const today = startOfDay(new Date());
+  const defaultYesterday = shiftDay(today, -1);
+
+  let periodStart: Date;
+  let periodEnd: Date;
+  let label: string;
+  let badge: string | null = null;
+  let prevHref: string | null = null;
+  let nextHref: string | null = null;
+
+  if (mode === "week") {
+    const anchor = parseDateParam(dateParam) ?? today;
+    const { start, end } = weekRange(anchor);
+    periodStart = start;
+    periodEnd = end;
+    label = `Week ${formatShortDate(start)} – ${formatShortDate(shiftDay(end, -1))}`;
+    badge = weekRange(today).start.getTime() === start.getTime() ? "deze week" : null;
+    prevHref = `/beheer/dagrapport?range=week&date=${toDateParam(shiftDay(start, -7))}`;
+    nextHref = `/beheer/dagrapport?range=week&date=${toDateParam(shiftDay(start, 7))}`;
+  } else if (mode === "month") {
+    const anchor = parseDateParam(dateParam) ?? today;
+    const { start, end } = monthRange(anchor);
+    periodStart = start;
+    periodEnd = end;
+    label = formatMonthLabel(start);
+    badge = monthRange(today).start.getTime() === start.getTime() ? "deze maand" : null;
+    prevHref = `/beheer/dagrapport?range=month&date=${toDateParam(shiftMonthAnchor(start, -1))}`;
+    nextHref = `/beheer/dagrapport?range=month&date=${toDateParam(shiftMonthAnchor(start, 1))}`;
+  } else if (mode === "custom") {
+    const customStart = startOfDay(parseDateParam(startParam) ?? shiftDay(today, -6));
+    const customEndInput = startOfDay(parseDateParam(endParam) ?? today);
+    // Verdedigend: een eind vóór het begin zou anders stilzwijgend een lege
+    // periode opleveren (geen crash, maar wel verwarrend voor wie zich typt).
+    const customEnd = customEndInput < customStart ? customStart : customEndInput;
+    periodStart = customStart;
+    periodEnd = shiftDay(customEnd, 1);
+    label = `${formatShortDate(customStart)} – ${formatShortDate(customEnd)}`;
+  } else {
+    const anchor = parseDateParam(dateParam) ?? defaultYesterday;
+    const { start, end } = dayRange(anchor);
+    periodStart = start;
+    periodEnd = end;
+    label = formatDayLabel(start);
+    badge = toDateParam(start) === toDateParam(defaultYesterday) ? "gisteren" : null;
+    prevHref = `/beheer/dagrapport?date=${toDateParam(shiftDay(start, -1))}`;
+    nextHref = `/beheer/dagrapport?date=${toDateParam(shiftDay(start, 1))}`;
+  }
+
+  const report = await getDailyStageReport(periodStart, periodEnd);
 
   return (
     <div className="flex flex-col gap-6">
@@ -88,33 +189,85 @@ export default async function DagrapportPage({
           Dagrapport
         </h1>
         <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
-          Hoeveel leads naar elke funnel-fase verhuisden op de gekozen dag —
-          per team en per medewerker. Enkel zichtbaar voor Beheerder/Admin.
+          Hoeveel leads naar elke funnel-fase verhuisden in de gekozen
+          periode — per team en per medewerker. Enkel zichtbaar voor
+          Beheerder/Admin.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href={`/beheer/dagrapport?date=${toDateParam(prev)}`}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
-        >
-          <ChevronLeft size={16} />
-        </Link>
-        <span className="min-w-64 text-center text-base font-medium capitalize text-slate-900 dark:text-slate-100">
-          {formatDayLabel(date)}
-          {isYesterday && (
-            <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
-              (gisteren)
-            </span>
-          )}
-        </span>
-        <Link
-          href={`/beheer/dagrapport?date=${toDateParam(next)}`}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
-        >
-          <ChevronRight size={16} />
-        </Link>
+      <div className="flex flex-wrap gap-2 text-base">
+        {RANGE_TABS.map((t) => (
+          <Link
+            key={t.key}
+            href={`/beheer/dagrapport?range=${t.key}`}
+            className={`rounded-full px-4 py-1.5 ${
+              mode === t.key
+                ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
       </div>
+
+      {mode === "custom" ? (
+        <form
+          method="GET"
+          className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+        >
+          <input type="hidden" name="range" value="custom" />
+          <div className="flex flex-col gap-1">
+            <label className="text-slate-600 dark:text-slate-400">Van</label>
+            <input
+              type="date"
+              name="start"
+              defaultValue={toDateParam(periodStart)}
+              required
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-slate-600 dark:text-slate-400">Tot en met</label>
+            <input
+              type="date"
+              name="end"
+              defaultValue={toDateParam(shiftDay(periodEnd, -1))}
+              required
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </div>
+          <button
+            type="submit"
+            className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+          >
+            Tonen
+          </button>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href={prevHref ?? "#"}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <ChevronLeft size={16} />
+          </Link>
+          <span className="min-w-72 text-center text-base font-medium text-slate-900 dark:text-slate-100">
+            {label}
+            {badge && (
+              <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
+                ({badge})
+              </span>
+            )}
+          </span>
+          <Link
+            href={nextHref ?? "#"}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <ChevronRight size={16} />
+          </Link>
+        </div>
+      )}
 
       <NewLeadsSection title="FA" report={report.newLeadsFa} />
       <StageFlowSection title="FA" flow={report.fa} />
