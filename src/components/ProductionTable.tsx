@@ -43,10 +43,8 @@ export function ProductionTable({
   const remainingUnits = Math.max(0, totalTargetUnits - totalActualUnits);
   const unitsPerDayNeeded =
     daysRemaining !== null ? Math.ceil(remainingUnits / Math.max(1, daysRemaining)) : null;
-  const unitsPerPersonNeeded =
-    daysRemaining !== null && rows.length > 0
-      ? Math.ceil(remainingUnits / rows.length)
-      : null;
+  const averageActualUnitsPerPerson =
+    rows.length > 0 ? totalActualUnits / rows.length : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -70,10 +68,12 @@ export function ProductionTable({
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Eenheden/persoon nodig voor maanddoel
+              Gemiddelde productie per medewerker
             </p>
             <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              {unitsPerPersonNeeded}
+              {averageActualUnitsPerPerson !== null
+                ? averageActualUnitsPerPerson.toFixed(1)
+                : "—"}
             </p>
           </div>
         </div>
