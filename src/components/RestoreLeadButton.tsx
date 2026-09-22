@@ -16,7 +16,7 @@ export function RestoreLeadButton({ leadId }: { leadId: string }) {
           restoreLeadAction(leadId);
         })
       }
-      className="flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+      className="flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
     >
       <RotateCcw size={14} />
       Herstellen

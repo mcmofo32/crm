@@ -22,21 +22,21 @@ export default async function FsmaOverviewPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
           <GraduationCap size={26} />
           FSMA
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Status van de verplichte vakbekwaamheidsmodules, per medewerker.
         </p>
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-base text-slate-500">Geen actieve medewerkers gevonden.</p>
+        <p className="text-base text-slate-500 dark:text-slate-400">Geen actieve medewerkers gevonden.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
+            <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Naam</th>
                 {FSMA_MODULE_ORDER.map((module) => (
@@ -50,10 +50,10 @@ export default async function FsmaOverviewPage() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {rows.map((row) => (
-                <tr key={row.userId} className="hover:bg-slate-50">
-                  <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900">
+                <tr key={row.userId} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                  <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
                     <Link href={`/beheer/gebruikers/${row.userId}`} className="hover:underline">
                       {row.name}
                     </Link>
@@ -74,10 +74,10 @@ export default async function FsmaOverviewPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
         {FSMA_MODULE_ORDER.map((module) => (
           <span key={module}>
-            <strong className="text-slate-700">{FSMA_MODULE_SHORT_LABELS[module]}</strong>
+            <strong className="text-slate-700 dark:text-slate-300">{FSMA_MODULE_SHORT_LABELS[module]}</strong>
             {" — "}
             {FSMA_MODULE_LABELS[module].replace(/^Module [\d.]+ — /, "")}
           </span>

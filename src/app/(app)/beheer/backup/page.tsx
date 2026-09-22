@@ -63,11 +63,11 @@ export default async function BackupPage({
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
           <CloudUpload size={24} />
           Google Sheets back-up
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Alle CRM-data wordt automatisch (nachtelijks) weggeschreven naar één
           Google Sheets-bestand — één tabblad per onderdeel, met een
           verzorgde opmaak.
@@ -75,28 +75,28 @@ export default async function BackupPage({
       </div>
 
       {connected && (
-        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950 dark:text-green-400">
           Google Sheets back-up succesvol gekoppeld.
         </p>
       )}
       {error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
           {ERROR_MESSAGES[error] ??
             "Koppelen van Google Sheets back-up is mislukt. Probeer opnieuw."}
         </p>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
         {status.connected ? (
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-green-700">
+              <span className="text-green-700 dark:text-green-400">
                 Gekoppeld{status.email ? ` — ${status.email}` : ""}
               </span>
               <form action="/api/google-sheets-backup/disconnect" method="post">
                 <button
                   type="submit"
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   Ontkoppelen
                 </button>
@@ -104,7 +104,7 @@ export default async function BackupPage({
             </div>
 
             {isStale && status.lastSyncedAt && (
-              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-400">
                 ⚠️ Laatste geslaagde synchronisatie is{" "}
                 {formatRelativeAge(hoursSince(status.lastSyncedAt))} geleden — normaal
                 gebeurt dit elke nacht. Klik hieronder op &quot;Nu synchroniseren&quot;
@@ -113,10 +113,10 @@ export default async function BackupPage({
               </p>
             )}
 
-            <div className="flex flex-col gap-1 text-slate-500">
+            <div className="flex flex-col gap-1 text-slate-500 dark:text-slate-400">
               <span>Laatst gesynchroniseerd: {formatDateTime(status.lastSyncedAt)}</span>
               {status.lastSyncError && (
-                <span className="text-red-600">
+                <span className="text-red-600 dark:text-red-400">
                   Laatste sync-fout: {status.lastSyncError}
                 </span>
               )}
@@ -125,7 +125,7 @@ export default async function BackupPage({
                   href={status.spreadsheetUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex w-fit items-center gap-1 text-blue-600 hover:underline"
+                  className="flex w-fit items-center gap-1 text-blue-600 hover:underline dark:text-blue-400"
                 >
                   Open het back-up-sheet
                   <ExternalLink size={13} />
@@ -142,7 +142,7 @@ export default async function BackupPage({
               <FormToast message="Synchronisatie gestart" />
               <button
                 type="submit"
-                className="w-fit rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                className="w-fit rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
               >
                 Nu synchroniseren
               </button>
@@ -150,7 +150,7 @@ export default async function BackupPage({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <p className="text-slate-500">
+            <p className="text-slate-500 dark:text-slate-400">
               Nog niet gekoppeld. Verbind een Google-account (Beheerder) om de
               automatische back-up te activeren — de nachtelijke sync en de
               knop hierboven gebruiken daarna dat ene account, ongeacht wie
@@ -158,7 +158,7 @@ export default async function BackupPage({
             </p>
             <Link
               href="/api/google-sheets-backup/connect"
-              className="w-fit rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="w-fit rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
             >
               Verbind Google Sheets
             </Link>
@@ -166,7 +166,7 @@ export default async function BackupPage({
         )}
       </div>
 
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-slate-400 dark:text-slate-500">
         Elke sync herschrijft elk tabblad volledig (headerrij, opmaak en
         databereik) — pas dus niets manueel aan in het sheet, want dat gaat
         bij de volgende sync verloren. Het Auditlog-tabblad beperkt zich tot

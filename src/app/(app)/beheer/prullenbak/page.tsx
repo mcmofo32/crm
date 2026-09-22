@@ -19,18 +19,18 @@ export default async function PrullenbakPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
+        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
           <Trash2 size={26} />
           Prullenbak
         </h1>
-        <p className="mt-1 text-base text-slate-500">
+        <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Verwijderde leads.
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
             <tr>
               <th className="px-6 py-3 font-medium">Naam</th>
               <th className="px-6 py-3 font-medium">Type</th>
@@ -40,13 +40,13 @@ export default async function PrullenbakPage() {
               <th className="px-6 py-3 font-medium"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {leads.map((lead) => (
-              <tr key={lead.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-900">
+              <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
                   {lead.firstName} {lead.lastName}
                   {lead.company && (
-                    <span className="ml-2 font-normal text-slate-400">
+                    <span className="ml-2 font-normal text-slate-400 dark:text-slate-500">
                       {lead.company}
                     </span>
                   )}
@@ -59,13 +59,13 @@ export default async function PrullenbakPage() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <Avatar name={lead.owner.name} photoUrl={avatarUrl(lead.owner)} />
-                    <span className="text-slate-700">{lead.owner.name}</span>
+                    <span className="text-slate-700 dark:text-slate-300">{lead.owner.name}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-slate-600">
+                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                   {lead.deletedBy?.name ?? "—"}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400">
                   {lead.deletedAt?.toLocaleString("nl-BE", {
                     dateStyle: "medium",
                     timeStyle: "short",
@@ -81,7 +81,7 @@ export default async function PrullenbakPage() {
               <tr>
                 <td
                   colSpan={6}
-                  className="px-6 py-8 text-center text-slate-400"
+                  className="px-6 py-8 text-center text-slate-400 dark:text-slate-500"
                 >
                   De prullenbak is leeg.
                 </td>

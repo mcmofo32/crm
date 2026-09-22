@@ -36,46 +36,46 @@ export default async function NewUserPage({
 
   return (
     <div className="max-w-lg">
-      <h1 className="mb-4 text-3xl font-semibold text-slate-900">
+      <h1 className="mb-4 text-3xl font-semibold text-slate-900 dark:text-slate-100">
         Nieuwe medewerker
       </h1>
       <RoleConfirmForm action={createUserAction} className="flex flex-col gap-4 text-sm">
         {underPerson && <input type="hidden" name="underId" value={underPerson.id} />}
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Naam</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Naam</label>
           <input
             name="name"
             required
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            E-mail <span className="font-normal text-slate-400">(optioneel, mag later toegevoegd worden)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            E-mail <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel, mag later toegevoegd worden)</span>
           </label>
           <input
             name="email"
             type="email"
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Telefoon <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Telefoon <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <input
             name="phone"
             type="tel"
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Rol</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Rol</label>
           <select
             name="role"
             required
             defaultValue={Role.USER}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             {assignableRoles.map((role) => (
               <option key={role} value={role}>
@@ -85,13 +85,13 @@ export default async function NewUserPage({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">
-            Functie <span className="font-normal text-slate-400">(optioneel)</span>
+          <label className="font-medium text-slate-700 dark:text-slate-300">
+            Functie <span className="font-normal text-slate-400 dark:text-slate-500">(optioneel)</span>
           </label>
           <select
             name="jobFunction"
             defaultValue=""
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             <option value="">Geen</option>
             {JOB_FUNCTIONS.map((jf) => (
@@ -102,11 +102,11 @@ export default async function NewUserPage({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="font-medium text-slate-700">Type</label>
+          <label className="font-medium text-slate-700 dark:text-slate-300">Type</label>
           <select
             name="agentType"
             defaultValue={AgentType.ANALYST}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             {Object.values(AgentType).map((type) => (
               <option key={type} value={type}>
@@ -116,17 +116,17 @@ export default async function NewUserPage({
           </select>
         </div>
         {underPerson ? (
-          <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
             Wordt automatisch geplaatst onder <strong>{underPerson.name}</strong>.
           </p>
         ) : (
           <div className="flex flex-col gap-1">
-            <label className="font-medium text-slate-700">
+            <label className="font-medium text-slate-700 dark:text-slate-300">
               Team (voor rol &quot;User&quot; of &quot;Coach&quot;)
             </label>
             <select
               name="teamId"
-              className="rounded-md border border-slate-300 px-3 py-2"
+              className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">Geen team</option>
               {teams.map((team) => (
@@ -137,20 +137,20 @@ export default async function NewUserPage({
             </select>
           </div>
         )}
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           Kies je &quot;Coach&quot; als rol, dan wordt automatisch een nieuw
           team voor deze coach aangemaakt. Kies je hierboven ook nog een team,
           dan wordt deze coach zelf lid van dat team — zo bouw je een
           meerlaagse structuur op (bv. een coach die op zijn beurt rapporteert
           aan een andere coach).
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           Tijdelijk wachtwoord: <code>veranderditwachtwoord123</code>. De
           gebruiker wijzigt dit best zelf na de eerste login.
         </p>
         <button
           type="submit"
-          className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
+          className="mt-2 self-start rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           Gebruiker aanmaken
         </button>
