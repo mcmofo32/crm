@@ -56,7 +56,20 @@ export async function findOwnLeadWithSamePhone(ownerId: string, phone: string | 
   return ownLeads.find((l) => normalizePhone(l.phone) === target) ?? null;
 }
 
-export async function createLeadAction(formData: FormData) {
+export type CreateLeadState = { error: string } | null;
+
+/**
+ * Retourneert `{ error }` i.p.v. te gooien bij een herstelbare fout (bv. een
+ * dubbele lead) — een gegooide Error wordt in productie door Next.js
+ * geredigeerd tot een generieke melding zonder detail (enkel zichtbaar in de
+ * Vercel-logs), zodat de gebruiker zelf niets kan oplossen. Via
+ * `useActionState` (zie CreateLeadForm) krijgt de gebruiker de échte melding
+ * meteen inline te zien.
+ */
+export async function createLeadAction(
+  _prevState: CreateLeadState,
+  formData: FormData
+): Promise<CreateLeadState> {
   const user = await requireUser();
 
   const leadType = formData.get("leadType") as LeadType;
@@ -68,9 +81,9 @@ export async function createLeadAction(formData: FormData) {
   const phone = formatBelgianPhone((formData.get("phone") as string) || null);
   const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);
   if (existingOwnLead) {
-    throw new Error(
-      `Bestaat al: ${existingOwnLead.firstName} ${existingOwnLead.lastName} heeft dit telefoonnummer al bij jouw leads.`
-    );
+    return {
+      error: `Bestaat al: ${existingOwnLead.firstName} ${existingOwnLead.lastName} heeft dit telefoonnummer al bij jouw leads.`,
+    };
   }
 
   const email = (formData.get("email") as string) || null;
@@ -241,17 +254,25 @@ export async function createWonLeadRecord(params: {
   return lead;
 }
 
+export type CreateCustomerState = { error: string } | null;
+
 /**
  * Maakt een lead rechtstreeks aan als klant (fase "Klant"/"Medewerker",
  * status WON) mét producten, in één stap — vooral bedoeld om bestaande
  * klanten uit een oud systeem over te zetten, zonder ze eerst door de hele
  * funnel te moeten laten lopen. Zelfde rechten als een deal effectief
  * afsluiten: enkel subagenten (of Beheerder/Admin).
+ *
+ * Retourneert `{ error }` i.p.v. te gooien bij een herstelbare fout (bv. een
+ * dubbele lead) — zie createLeadAction hierboven voor de uitleg waarom.
  */
-export async function createCustomerAction(formData: FormData) {
+export async function createCustomerAction(
+  _prevState: CreateCustomerState,
+  formData: FormData
+): Promise<CreateCustomerState> {
   const user = await requireUser();
   if (!canManageCustomerData(user)) {
-    throw new Error("Enkel subagenten mogen een klant rechtstreeks aanmaken");
+    return { error: "Enkel subagenten mogen een klant rechtstreeks aanmaken" };
   }
 
   const leadType = formData.get("leadType") as LeadType;
@@ -273,15 +294,15 @@ export async function createCustomerAction(formData: FormData) {
     ? availableSubagents.find((s) => s.id === requestedCaseManagerSubagentId)?.id ?? null
     : null;
   if (availableSubagents.length > 0 && !caseManagerSubagentId) {
-    throw new Error("Kies een dossierbeheerder (kan enkel een subagent zijn)");
+    return { error: "Kies een dossierbeheerder (kan enkel een subagent zijn)" };
   }
 
   const phone = formatBelgianPhone((formData.get("phone") as string) || null);
   const existingOwnLead = await findOwnLeadWithSamePhone(ownerId, phone);
   if (existingOwnLead) {
-    throw new Error(
-      `Bestaat al: ${existingOwnLead.firstName} ${existingOwnLead.lastName} heeft dit telefoonnummer al bij jouw leads.`
-    );
+    return {
+      error: `Bestaat al: ${existingOwnLead.firstName} ${existingOwnLead.lastName} heeft dit telefoonnummer al bij jouw leads.`,
+    };
   }
 
   const email = (formData.get("email") as string) || null;
@@ -310,14 +331,14 @@ export async function createCustomerAction(formData: FormData) {
     }
   }
   if (products.length === 0) {
-    throw new Error("Voeg minstens één product met een bedrag of koopsom toe");
+    return { error: "Voeg minstens één product met een bedrag of koopsom toe" };
   }
 
   await ensureFunnelStages(leadType);
   const wonStage = await prisma.funnelStage.findFirst({
     where: { leadType, isWon: true },
   });
-  if (!wonStage) throw new Error("Kon de klant-fase niet vinden");
+  if (!wonStage) return { error: "Kon de klant-fase niet vinden" };
 
   // "Klant sinds" bepaalt in welke productiemaand deze klant meetelt. Enkel
   // relevant om te verifiëren dat het niet in de toekomst ligt (achteraf een
