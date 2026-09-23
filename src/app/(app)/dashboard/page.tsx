@@ -17,7 +17,6 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { conversionBadgeVariant } from "@/lib/roleLabels";
 import {
   getTeamOverviewForCoach,
-  getAllTeamOverviews,
   type EmployeeStats,
 } from "@/lib/actions/analytics";
 import { isBeheerder } from "@/lib/permissions";
@@ -70,12 +69,7 @@ function formatDate(date: Date) {
   });
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ team?: string }>;
-}) {
-  const { team: selectedTeamId } = await searchParams;
+export default async function DashboardPage() {
   const user = (await getEffectiveViewer())!;
   const ids = await getVisibleUserIds(user);
   const now = new Date();
@@ -97,7 +91,6 @@ export default async function DashboardPage({
     groupProductionGoals,
     yearlyKpis,
     teamOverview,
-    allTeamOverviews,
     unverifiedEvents,
     crossOwnerDuplicates,
   ] = await Promise.all([
@@ -133,16 +126,10 @@ export default async function DashboardPage({
       : Promise.resolve(null),
     getYearlyKpiProgress(user.id, currentYear),
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
-    isBeheerder(user) ? getAllTeamOverviews() : Promise.resolve(null),
     getUnverifiedPastVerifiableEvents(),
     getCrossOwnerDuplicateGroups(),
   ]);
   const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
-
-  const activeTeam =
-    allTeamOverviews?.find((t) => t.teamId === selectedTeamId) ??
-    allTeamOverviews?.[0] ??
-    null;
 
   return (
     <div className="flex flex-col gap-10">
@@ -317,30 +304,6 @@ export default async function DashboardPage({
           title={`Mijn team — ${teamOverview.teamName}`}
           members={teamOverview.members}
         />
-      )}
-
-      {allTeamOverviews && allTeamOverviews.length > 0 && activeTeam && (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap gap-2 text-base">
-            {allTeamOverviews.map((team) => (
-              <Link
-                key={team.teamId}
-                href={`/dashboard?team=${team.teamId}`}
-                className={`rounded-full px-4 py-1.5 ${
-                  team.teamId === activeTeam.teamId
-                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                    : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700"
-                }`}
-              >
-                {team.teamName}
-              </Link>
-            ))}
-          </div>
-          <TeamOverviewTable
-            title={`${activeTeam.teamName} — coach ${activeTeam.coachName}`}
-            members={activeTeam.members}
-          />
-        </div>
       )}
     </div>
   );
