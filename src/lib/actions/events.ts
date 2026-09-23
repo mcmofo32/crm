@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { AttendanceStatus, EventType } from "@/generated/prisma/client";
 import { canManageEvents } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
+import { EVENT_TYPES, VERIFIABLE_EVENT_TYPES } from "@/lib/eventTypes";
 import { parseLocalDateTime } from "@/lib/datetime";
 import { syncEventToGoogleCalendar } from "@/lib/googleCalendar";
 import { avatarUrl } from "@/lib/avatarUrl";
@@ -31,14 +31,6 @@ async function requireEventManager() {
   }
   return user;
 }
-
-const EVENT_TYPES: EventType[] = [
-  "MEETING",
-  "SEMINAR",
-  "BELSESSIE",
-  "MANAGEMENTMEETING",
-  "STRUCTUURMEETING",
-];
 
 function parseEventType(raw: FormDataEntryValue | null | undefined): EventType {
   return EVENT_TYPES.includes(raw as EventType) ? (raw as EventType) : "MEETING";

@@ -17,6 +17,7 @@ import { isoWeeksOfYear } from "@/lib/productionMonth";
 import { computeIncentiveLeaderboard, type LeaderboardEntry } from "@/lib/actions/incentives";
 import { MONTH_LABELS } from "@/lib/goalLabels";
 import { getIncentiveStatus, type IncentiveStatus } from "@/lib/incentiveMetrics";
+import { EVENT_TYPE_LABELS } from "@/lib/eventTypes";
 
 async function requireBeheerder() {
   const viewer = await getEffectiveViewer();
@@ -1141,14 +1142,6 @@ export async function getKpiHeatmapWeekly(year: number): Promise<KpiHeatmapWeekR
     return { userId: u.id, name: u.name, cells };
   });
 }
-
-const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  MEETING: "Vergadering",
-  SEMINAR: "Seminarie",
-  BELSESSIE: "Belsessie",
-  MANAGEMENTMEETING: "Managementmeeting",
-  STRUCTUURMEETING: "Structuur meeting",
-};
 
 export type EventAttendanceStats = {
   byEventType: {

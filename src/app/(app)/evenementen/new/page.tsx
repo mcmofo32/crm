@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { canManageEvents } from "@/lib/permissions";
 import { createEventAction, getEventInviteOptions } from "@/lib/actions/events";
+import { EVENT_TYPE_LABELS } from "@/lib/eventTypes";
 import { EventInviteField } from "@/components/EventInviteField";
 
 export default async function NewEventPage() {
@@ -36,11 +37,11 @@ export default async function NewEventPage() {
             defaultValue="MEETING"
             className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
-            <option value="MEETING">Vergadering</option>
-            <option value="SEMINAR">Seminarie</option>
-            <option value="BELSESSIE">Belsessie</option>
-            <option value="MANAGEMENTMEETING">Managementmeeting</option>
-            <option value="STRUCTUURMEETING">Structuur meeting</option>
+            {Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </label>
 
