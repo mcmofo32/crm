@@ -14,6 +14,7 @@ import {
   canDeleteActivities,
   canManageCustomerData,
   canManageUsers,
+  getVisibleUserIds,
 } from "@/lib/permissions";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getSubagents } from "@/lib/actions/subagents";
@@ -64,7 +65,9 @@ export default async function TakenPage({
   // medewerker (of iedereen/heel hun team) te zien; standaard — en voor een
   // gewone User altijd — zie je enkel je eigen taken.
   const canFilterScope = canManageUsers(user) || user.role === Role.COACH;
-  const assignableUsers = canFilterScope ? await getAssignableUsers() : [];
+  const [assignableUsers, visibleUserIds] = canFilterScope
+    ? await Promise.all([getAssignableUsers(), getVisibleUserIds(user)])
+    : [[], null];
   const selectedOwnerId =
     canFilterScope &&
     ownerId &&
@@ -72,15 +75,26 @@ export default async function TakenPage({
       ? ownerId
       : user.id;
   const isGroupView = selectedOwnerId === GROUP_OPTION;
-  const ownerWhere = isGroupView
-    ? { ownerId: { in: assignableUsers.map((u) => u.id) } }
-    : { ownerId: selectedOwnerId };
+  // Op wie een taak toegewezen is (assigneeId), niet wie de lead bezit — een
+  // subagent voert bv. een Adviesgesprek uit op een lead die niet van hem is,
+  // en die afspraak hoort dan op ZIJN takenlijst thuis, net als hoe de
+  // "verlopen taken"-teller op het dashboard dit al telt. Geen filter op
+  // actief/inactief hier (in tegenstelling tot assignableUsers, dat de
+  // keuzelijst hieronder vult) — anders verdwijnt een verlopen taak
+  // toegewezen aan iemand die intussen inactief is gewoon stilzwijgend uit
+  // "Iedereen".
+  const assigneeWhere = isGroupView
+    ? visibleUserIds
+      ? { assigneeId: { in: visibleUserIds } }
+      : {}
+    : { assigneeId: selectedOwnerId };
 
   const [tasks, subagents, stages] = await Promise.all([
     prisma.activity.findMany({
       where: {
         status: "PLANNED",
-        lead: { deletedAt: null, ...ownerWhere, ...(leadType ? { leadType } : {}) },
+        ...assigneeWhere,
+        lead: { deletedAt: null, ...(leadType ? { leadType } : {}) },
       },
       include: {
         lead: {
