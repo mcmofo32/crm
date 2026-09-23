@@ -9,18 +9,29 @@
  * bepaalt daardoor de breedte, met de hoogte proportioneel daaraan.
  *
  * `themed`: laat het logo in donkere modus wit i.p.v. marineblauw renderen.
- * Bewust opt-in (i.p.v. altijd via de globale .dark-klasse) — CijfersPoster-
- * Header zet het logo bv. in een vaste witte doos voor betrouwbare export
- * (html-to-image), ongeacht het thema van wie exporteert; daar zou een
- * automatisch wit logo onzichtbaar worden. Enkel gebruiken op plekken die
- * zelf al volledig dark-mode-gestyled zijn.
+ * Bewust opt-in (i.p.v. altijd via de globale .dark-klasse) — enkel
+ * gebruiken op plekken die zelf al volledig dark-mode-gestyled zijn.
+ *
+ * `color`: forceert een vaste kleur (hex) via inline SVG-attributen i.p.v.
+ * een Tailwind-klasse, en overschrijft `themed`. Nodig op plekken die
+ * betrouwbaar via html-to-image geëxporteerd moeten worden (zie
+ * CijfersPosterHeader) — class-based SVG fill/stroke valt daar soms weg
+ * omdat de rasterizer de Tailwind-stylesheet niet altijd meeneemt.
  */
 const VIEWBOX_HEIGHT = 42;
 const VIEWBOX_WIDTH = 64;
 
-export function Logo({ size = 32, themed = false }: { size?: number; themed?: boolean }) {
-  const textClassName = themed ? "fill-[#0f2a52] dark:fill-white" : "fill-[#0f2a52]";
-  const lineClassName = themed ? "stroke-[#2f5fa8] dark:stroke-white" : "stroke-[#2f5fa8]";
+export function Logo({
+  size = 32,
+  themed = false,
+  color,
+}: {
+  size?: number;
+  themed?: boolean;
+  color?: string;
+}) {
+  const textClassName = color ? undefined : themed ? "fill-[#0f2a52] dark:fill-white" : "fill-[#0f2a52]";
+  const lineClassName = color ? undefined : themed ? "stroke-[#2f5fa8] dark:stroke-white" : "stroke-[#2f5fa8]";
   return (
     <svg
       width={size}
@@ -39,10 +50,19 @@ export function Logo({ size = 32, themed = false }: { size?: number; themed?: bo
         fontSize="7.5"
         letterSpacing="1"
         className={textClassName}
+        fill={color}
       >
         STRUCTUUR
       </text>
-      <line x1="22" y1="34" x2="42" y2="34" strokeWidth="0.75" className={lineClassName} />
+      <line
+        x1="22"
+        y1="34"
+        x2="42"
+        y2="34"
+        strokeWidth="0.75"
+        className={lineClassName}
+        stroke={color}
+      />
       <text
         x="32"
         y="53"
@@ -51,6 +71,7 @@ export function Logo({ size = 32, themed = false }: { size?: number; themed?: bo
         fontWeight="800"
         fontSize="20"
         className={textClassName}
+        fill={color}
       >
         A
       </text>

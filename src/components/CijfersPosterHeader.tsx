@@ -28,12 +28,7 @@ export function CijfersPosterHeader({
       style={{ background: "linear-gradient(135deg, #0f2a52 0%, #2f5fa8 100%)" }}
     >
       <div className="flex items-center gap-3">
-        <div
-          className="flex items-center justify-center rounded-lg px-3 py-2"
-          style={{ background: "#ffffff" }}
-        >
-          <Logo size={56} />
-        </div>
+        <Logo size={56} color="#ffffff" />
         <div>
           <p className="text-lg font-semibold" style={{ color: "#ffffff" }}>
             {title}
