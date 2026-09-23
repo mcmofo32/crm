@@ -1,4 +1,25 @@
 import { EventType, AttendanceStatus } from "@/generated/prisma/client";
+import type { BadgeVariant } from "@/components/Badge";
+
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  MEETING: "Vergadering",
+  SEMINAR: "Seminarie",
+  BELSESSIE: "Belsessie",
+  MANAGEMENTMEETING: "Managementmeeting",
+  STRUCTUURMEETING: "Structuur meeting",
+  OPLEIDING: "Opleiding",
+};
+
+export const EVENT_TYPE_BADGE_VARIANTS: Record<EventType, BadgeVariant> = {
+  MEETING: "blue",
+  SEMINAR: "purple",
+  BELSESSIE: "green",
+  MANAGEMENTMEETING: "amber",
+  STRUCTUURMEETING: "slate",
+  OPLEIDING: "red",
+};
+
+export const EVENT_TYPES: EventType[] = Object.keys(EVENT_TYPE_LABELS) as EventType[];
 
 /**
  * Evenementtypes waarvan de aanwezigheid achteraf door Beheerder/Admin

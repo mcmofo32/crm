@@ -880,6 +880,7 @@ enum EventType {
   BELSESSIE
   MANAGEMENTMEETING
   STRUCTUURMEETING
+  OPLEIDING
 }
 
 enum AttendanceStatus {

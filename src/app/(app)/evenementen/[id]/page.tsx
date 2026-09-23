@@ -7,28 +7,17 @@ import {
   setMyAttendanceAction,
   verifyEventAttendanceAction,
 } from "@/lib/actions/events";
-import { VERIFIABLE_EVENT_TYPES, ATTENDANCE_STATUS_LABELS } from "@/lib/eventTypes";
-import { Badge, type BadgeVariant } from "@/components/Badge";
+import {
+  VERIFIABLE_EVENT_TYPES,
+  ATTENDANCE_STATUS_LABELS,
+  EVENT_TYPE_LABELS as TYPE_LABELS,
+  EVENT_TYPE_BADGE_VARIANTS as TYPE_BADGE_VARIANTS,
+} from "@/lib/eventTypes";
+import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { EventVerificationForm } from "@/components/EventVerificationForm";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
-
-const TYPE_LABELS = {
-  MEETING: "Vergadering",
-  SEMINAR: "Seminarie",
-  BELSESSIE: "Belsessie",
-  MANAGEMENTMEETING: "Managementmeeting",
-  STRUCTUURMEETING: "Structuur meeting",
-} as const;
-
-const TYPE_BADGE_VARIANTS: Record<keyof typeof TYPE_LABELS, BadgeVariant> = {
-  MEETING: "blue",
-  SEMINAR: "purple",
-  BELSESSIE: "green",
-  MANAGEMENTMEETING: "amber",
-  STRUCTUURMEETING: "slate",
-};
 
 export default async function EventDetailPage({
   params,

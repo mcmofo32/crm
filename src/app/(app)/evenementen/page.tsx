@@ -4,24 +4,9 @@ import { getEffectiveViewer } from "@/lib/impersonation";
 import { getEventsForCurrentUser } from "@/lib/actions/events";
 import { setMyAttendanceAction } from "@/lib/actions/events";
 import { canManageEvents } from "@/lib/permissions";
-import { Badge, type BadgeVariant } from "@/components/Badge";
+import { Badge } from "@/components/Badge";
 import { FormToast } from "@/components/toast/FormToast";
-
-const TYPE_LABELS = {
-  MEETING: "Vergadering",
-  SEMINAR: "Seminarie",
-  BELSESSIE: "Belsessie",
-  MANAGEMENTMEETING: "Managementmeeting",
-  STRUCTUURMEETING: "Structuur meeting",
-} as const;
-
-const TYPE_BADGE_VARIANTS: Record<keyof typeof TYPE_LABELS, BadgeVariant> = {
-  MEETING: "blue",
-  SEMINAR: "purple",
-  BELSESSIE: "green",
-  MANAGEMENTMEETING: "amber",
-  STRUCTUURMEETING: "slate",
-};
+import { EVENT_TYPE_LABELS as TYPE_LABELS, EVENT_TYPE_BADGE_VARIANTS as TYPE_BADGE_VARIANTS } from "@/lib/eventTypes";
 
 export default async function EvenementenPage() {
   const user = (await getEffectiveViewer())!;
