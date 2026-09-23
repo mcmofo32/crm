@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Clock, CalendarClock, Inbox, ChevronDown, Filter, Phone, Tag, Plus, Search, X } from "lucide-react";
@@ -292,6 +292,12 @@ export function FunnelBoard({
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
   const [expandedStageIds, setExpandedStageIds] = useState<Set<string>>(new Set());
+  // De 3 actieve fases staan standaard uitgeklapt (i.t.t. expandedStageIds
+  // hierboven, dat standaard dichtgeklapt is) — dit laat toe om een fase met
+  // veel leads (bv. 9 in Financiële analyse) tijdelijk in te klappen zodat
+  // wat daaronder staat (Klant/Geen klant/Opvolging) bereikbaar is zonder
+  // eindeloos te moeten scrollen.
+  const [collapsedMainStageIds, setCollapsedMainStageIds] = useState<Set<string>>(new Set());
   const [pickerStageId, setPickerStageId] = useState<string | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
   const [pendingMove, setPendingMove] = useState<{
@@ -330,6 +336,55 @@ export function FunnelBoard({
       return next;
     });
   }
+
+  function toggleMainCollapsed(stageId: string) {
+    setCollapsedMainStageIds((current) => {
+      const next = new Set(current);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      return next;
+    });
+  }
+
+  // Native HTML5 drag-and-drop scrollt de pagina niet vanzelf als je tijdens
+  // het slepen naar de rand van het scherm gaat — zonder dit kan je dus
+  // nooit naar iets slepen dat niet al op het scherm staat. Luistert op
+  // window-niveau (i.p.v. enkel op de kolommen) zodat dit ook blijft werken
+  // als de cursor boven een leeg stuk pagina hangt, en houdt de laatst
+  // gekende cursor-Y bij via een ref zodat het scrollen blijft doorlopen
+  // (via requestAnimationFrame) zelfs als de cursor even stilstaat.
+  const dragPointerY = useRef<number | null>(null);
+  useEffect(() => {
+    if (!draggedLeadId) return;
+
+    function handleDragOver(e: DragEvent) {
+      dragPointerY.current = e.clientY;
+    }
+    window.addEventListener("dragover", handleDragOver);
+
+    const EDGE_ZONE = 120;
+    const MAX_SPEED = 22;
+    let frameId = requestAnimationFrame(function tick() {
+      const y = dragPointerY.current;
+      if (y !== null) {
+        if (y < EDGE_ZONE) {
+          window.scrollBy(0, -Math.ceil(((EDGE_ZONE - y) / EDGE_ZONE) * MAX_SPEED));
+        } else if (y > window.innerHeight - EDGE_ZONE) {
+          window.scrollBy(
+            0,
+            Math.ceil(((y - (window.innerHeight - EDGE_ZONE)) / EDGE_ZONE) * MAX_SPEED)
+          );
+        }
+      }
+      frameId = requestAnimationFrame(tick);
+    });
+
+    return () => {
+      window.removeEventListener("dragover", handleDragOver);
+      cancelAnimationFrame(frameId);
+      dragPointerY.current = null;
+    };
+  }, [draggedLeadId]);
 
   function startMove(lead: BoardLead, targetStage: BoardStage) {
     const fromStage = stages.find((s) => s.id === lead.stageId);
@@ -511,6 +566,7 @@ export function FunnelBoard({
           const accent = stageAccent(stage, leadType, activeStageIds.indexOf(stage.id));
           const showPicker = stageIndex < 2;
           const isDragOver = dragOverStageId === stage.id;
+          const isCollapsed = collapsedMainStageIds.has(stage.id);
           const visibleLeads = applyLeadFilters(stage.leads, { sortBy, onlyNoContact });
           return (
             <div
@@ -559,33 +615,46 @@ export function FunnelBoard({
                   >
                     {visibleLeads.length}
                   </span>
+                  <button
+                    type="button"
+                    title={isCollapsed ? "Uitklappen" : "Inklappen"}
+                    onClick={() => toggleMainCollapsed(stage.id)}
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-white/70 text-slate-600 hover:bg-white dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900"
+                  >
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform ${isCollapsed ? "" : "rotate-180"}`}
+                    />
+                  </button>
                 </span>
               </div>
 
-              <div className="flex flex-col gap-2.5">
-                {visibleLeads.map((lead) => (
-                  <LeadCard
-                    key={lead.id}
-                    lead={lead}
-                    stages={stages}
-                    subagents={subagents}
-                    canCloseDeals={canCloseDeals}
-                    dragged={draggedLeadId === lead.id}
-                    onDragStart={() => setDraggedLeadId(lead.id)}
-                    onDragEnd={() => setDraggedLeadId(null)}
-                  />
-                ))}
-                {visibleLeads.length === 0 && (
-                  <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-200 py-6 text-slate-300 dark:border-slate-700 dark:text-slate-600">
-                    <Inbox size={18} />
-                    <p className="text-xs">
-                      {stage.leads.length === 0
-                        ? "Geen leads"
-                        : "Geen leads na filter"}
-                    </p>
-                  </div>
-                )}
-              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col gap-2.5">
+                  {visibleLeads.map((lead) => (
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      stages={stages}
+                      subagents={subagents}
+                      canCloseDeals={canCloseDeals}
+                      dragged={draggedLeadId === lead.id}
+                      onDragStart={() => setDraggedLeadId(lead.id)}
+                      onDragEnd={() => setDraggedLeadId(null)}
+                    />
+                  ))}
+                  {visibleLeads.length === 0 && (
+                    <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-200 py-6 text-slate-300 dark:border-slate-700 dark:text-slate-600">
+                      <Inbox size={18} />
+                      <p className="text-xs">
+                        {stage.leads.length === 0
+                          ? "Geen leads"
+                          : "Geen leads na filter"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
