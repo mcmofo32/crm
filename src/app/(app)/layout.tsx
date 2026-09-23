@@ -105,7 +105,6 @@ export default async function AppLayout({
     { href: "/klanten", label: "Klanten" },
     { href: "/incentives", label: "Incentives" },
     { href: "/evenementen", label: "Evenementen" },
-    { href: "/organigram", label: "Organigram" },
     { href: "/productie", label: "Cijfers" },
     // Enkel zichtbaar voor subagenten en Beheerder/Admin (zelfde
     // toegangsregel als de klantendata-bewerkrechten elders).

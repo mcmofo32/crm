@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   CalendarClock,
   Presentation,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -194,6 +195,9 @@ export function ProfileMenu({
       {(showUserManagement || showEmployeeGoals || showBeheerderTools) && (
         <hr className="my-1.5 border-slate-100 dark:border-slate-800" />
       )}
+      <MenuLink href="/organigram" icon={Network}>
+        Organigram
+      </MenuLink>
       <MenuLink href="/academy" icon={Presentation}>
         Academy
       </MenuLink>
