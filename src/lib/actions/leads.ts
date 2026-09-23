@@ -659,6 +659,72 @@ export async function updateLeadStageAction(
   revalidatePath("/dashboard");
 }
 
+/**
+ * Wisselt het funneltype (FA <-> RG) van een lead in-place — zonder de lead
+ * te moeten verwijderen en opnieuw aan te maken (dat verliest alle
+ * activiteiten/geschiedenis en veroorzaakt dubbels, zie SwitchLeadTypeButton).
+ * Verplaatst de lead naar de fase op dezelfde positie (`order`) in de andere
+ * funnel, bv. van "Financiële analyse" (FA, order 0) naar
+ * "Kennismakingsgesprek" (RG, order 0) — beide specs hebben dezelfde
+ * 6-fasenstructuur, zie funnelStages.ts. Niet toegestaan voor een klant
+ * (status WON): die telt al mee in cijfers/commissies onder het huidige type.
+ */
+export async function switchLeadTypeAction(
+  leadId: string
+): Promise<{ error: string } | undefined> {
+  const [user, lead] = await Promise.all([
+    requireUser(),
+    prisma.lead.findUnique({ where: { id: leadId }, include: { stage: true } }),
+  ]);
+  if (!lead || lead.deletedAt) return { error: "Lead niet gevonden" };
+  if (!(await canAccessLead(user, lead))) {
+    return { error: "Geen toegang tot deze lead" };
+  }
+  if (lead.status === LeadStatus.WON) {
+    return { error: "Een klant kan niet meer van funnel wisselen" };
+  }
+
+  const newLeadType: LeadType = lead.leadType === "FA" ? "RG" : "FA";
+  await ensureFunnelStages(newLeadType);
+  const newStage = await prisma.funnelStage.findFirst({
+    where: { leadType: newLeadType, order: lead.stage.order },
+  });
+  if (!newStage) {
+    return { error: `Kon geen overeenkomstige fase vinden in de ${newLeadType}-funnel` };
+  }
+
+  await prisma.$transaction([
+    prisma.lead.update({
+      where: { id: leadId },
+      data: { leadType: newLeadType, stageId: newStage.id },
+    }),
+    prisma.leadStageChange.create({
+      data: {
+        leadId,
+        fromStageId: lead.stageId,
+        toStageId: newStage.id,
+        changedById: user.id,
+      },
+    }),
+  ]);
+
+  await logAudit({
+    actorId: user.id,
+    action: "lead.typeChanged",
+    entityType: "Lead",
+    entityId: leadId,
+    description: `Lead "${lead.firstName} ${lead.lastName}" gewisseld van ${lead.leadType} naar ${newLeadType}`,
+  });
+
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath(`/funnel/${lead.leadType}`);
+  revalidatePath(`/funnel/${newLeadType}`);
+  revalidatePath("/pipeline/verkoop");
+  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/taken");
+  revalidatePath("/dashboard");
+}
+
 /** Wijzigt de contactgegevens van een bestaande lead (naam, e-mail, telefoon, bedrijf, beroep, statuut, bron, notities). */
 export async function updateLeadDetailsAction(leadId: string, formData: FormData) {
   const [user, lead] = await Promise.all([

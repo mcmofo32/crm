@@ -21,6 +21,7 @@ import { getSubagents } from "@/lib/actions/subagents";
 import { getLeadDocuments } from "@/lib/actions/leadDocuments";
 import { setCustomerOwnerAction } from "@/lib/actions/leadProducts";
 import { StageSelect } from "@/components/StageSelect";
+import { SwitchLeadTypeButton } from "@/components/SwitchLeadTypeButton";
 import { ActivityButtons } from "@/components/ActivityButtons";
 import { QuickCallLogButton } from "@/components/QuickCallLogButton";
 import { ReportContactForm } from "@/components/ReportContactForm";
@@ -196,6 +197,13 @@ export default async function LeadDetailPage({
             subagents={subagents}
             canCloseDeals={canManageCustomerData(user)}
           />
+          {lead.status !== "WON" && (
+            <SwitchLeadTypeButton
+              leadId={lead.id}
+              leadName={`${lead.firstName} ${lead.lastName}`}
+              leadType={lead.leadType}
+            />
+          )}
           {canDeleteLeads(user, lead) && (
             <DeleteLeadButton
               leadId={lead.id}
