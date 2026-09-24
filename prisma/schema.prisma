@@ -1129,6 +1129,8 @@ enum LeadDocumentKind {
   FA_FICHE
   BUDGETTERING
   PORTEFEUILLE
+  /// RG (recrutering) heeft geen budgettering/portefeuille — enkel dit ene vak, zelfde toegelaten bestandstypes als FA_FICHE.
+  RG_FICHE
 }
 
 /// Document in een vast vak op een leadprofiel (fiche financiële analyse,
