@@ -223,52 +223,6 @@ export async function getAnalytics(teamFilter?: string, personFilter?: string) {
   return { byType, stageDistribution, perEmployee, teams };
 }
 
-/** Compact teamoverzicht voor een Coach: enkel zichzelf + zijn teamleden. */
-export async function getTeamOverviewForCoach() {
-  const viewer = await getEffectiveViewer();
-  if (!viewer) throw new Error("Niet ingelogd");
-  if (viewer.role !== Role.COACH) {
-    throw new Error("Enkel coaches hebben een teamoverzicht");
-  }
-
-  const team = await prisma.team.findUnique({
-    where: { coachId: viewer.id },
-    select: { id: true, name: true, members: { select: { id: true } } },
-  });
-  if (!team) return null;
-
-  const userIds = [viewer.id, ...team.members.map((m) => m.id)];
-
-  const [users, leads, activityGroups] = await Promise.all([
-    prisma.user.findMany({
-      where: { id: { in: userIds } },
-      select: {
-        id: true,
-        name: true,
-        avatarUpdatedAt: true,
-        role: true,
-        team: { select: { id: true, name: true } },
-        coachedTeam: { select: { id: true, name: true } },
-      },
-      orderBy: { name: "asc" },
-    }),
-    prisma.lead.findMany({
-      where: { deletedAt: null, ownerId: { in: userIds } },
-      select: { ownerId: true, status: true },
-    }),
-    prisma.activity.groupBy({
-      by: ["assigneeId", "status"],
-      where: { assigneeId: { in: userIds } },
-      _count: { _all: true },
-    }),
-  ]);
-
-  return {
-    teamName: team.name,
-    members: buildEmployeeStats(users, leads, activityGroups),
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Uitgebreide Analyse-pagina: funnel-diepgang, trends, productie, kwaliteit,
 // klanten, incentives/KPI's/events. Alles hieronder is enkel voor de

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   AlertTriangle,
-  Users2,
   Boxes,
   UserCheck,
   Phone,
@@ -14,11 +13,6 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getVisibleUserIds, canManageUsers } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
-import { conversionBadgeVariant } from "@/lib/roleLabels";
-import {
-  getTeamOverviewForCoach,
-  type EmployeeStats,
-} from "@/lib/actions/analytics";
 import { getYearlyKpiProgress, computeMixedKpiPercent } from "@/lib/actions/goals";
 import {
   getProductionMonthGoalProgress,
@@ -32,8 +26,6 @@ import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MIXED_KPI_LABEL } from "@/lib/goalLabels";
 import { Role } from "@/generated/prisma/client";
-import { Badge } from "@/components/Badge";
-import { Avatar } from "@/components/Avatar";
 import { CompanyProductionMeter } from "@/components/CompanyProductionMeter";
 import { CompanyProductionPieChart } from "@/components/CompanyProductionPieChart";
 
@@ -93,7 +85,6 @@ export default async function DashboardPage() {
     productionGoals,
     groupProductionGoals,
     yearlyKpis,
-    teamOverview,
     unverifiedEvents,
     crossOwnerDuplicates,
     faProductionGoal,
@@ -138,7 +129,6 @@ export default async function DashboardPage() {
           )
       : Promise.resolve(null),
     getYearlyKpiProgress(user.id, currentYear),
-    user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
     getUnverifiedPastVerifiableEvents(),
     getCrossOwnerDuplicateGroups(),
     showGroupGoals
@@ -325,13 +315,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {teamOverview && (
-        <TeamOverviewTable
-          title={`Mijn team — ${teamOverview.teamName}`}
-          members={teamOverview.members}
-        />
-      )}
-
       {showGroupGoals && faProductionGoal && faProductionGoal.totalTarget > 0 && (
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
@@ -374,58 +357,6 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function TeamOverviewTable({
-  title,
-  members,
-}: {
-  title: string;
-  members: EmployeeStats[];
-}) {
-  return (
-    <div>
-      <h2 className="mb-4 flex items-center gap-1.5 text-xl font-medium text-slate-900 dark:text-slate-100">
-        <Users2 size={19} />
-        {title}
-      </h2>
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table className="w-full text-base">
-          <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
-            <tr>
-              <th className="px-6 py-3 font-medium">Naam</th>
-              <th className="px-6 py-3 font-medium">Leads</th>
-              <th className="px-6 py-3 font-medium">Gewonnen</th>
-              <th className="px-6 py-3 font-medium">Conversie</th>
-              <th className="px-6 py-3 font-medium">Afgeronde contacten</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {members.map((member) => (
-              <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={member.name} photoUrl={member.photoUrl} />
-                    {member.name}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{member.totalLeads}</td>
-                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{member.won}</td>
-                <td className="px-6 py-4">
-                  <Badge variant={conversionBadgeVariant(member.conversionRate)}>
-                    {member.conversionRate === null ? "—" : `${member.conversionRate}%`}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                  {member.activitiesCompleted}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
