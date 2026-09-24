@@ -520,11 +520,17 @@ export function ActivityButtons({
       <button
         type="button"
         disabled={pending}
-        onClick={() =>
-          startTransition(() => {
-            cancelActivityAction(activityId);
-          })
-        }
+        onClick={() => {
+          if (
+            confirm(
+              "Deze afspraak annuleren? De agenda-afspraak wordt verwijderd."
+            )
+          ) {
+            startTransition(() => {
+              cancelActivityAction(activityId);
+            });
+          }
+        }}
         className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-950"
       >
         Annuleren
