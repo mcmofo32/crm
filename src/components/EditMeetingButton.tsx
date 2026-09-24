@@ -44,6 +44,7 @@ export function EditMeetingButton({
   location,
   meetingLink,
   subagentId,
+  meetingDescription,
   subagents,
 }: {
   activityId: string;
@@ -54,6 +55,7 @@ export function EditMeetingButton({
   location: string | null;
   meetingLink: string | null;
   subagentId: string | null;
+  meetingDescription: string | null;
   subagents: SubagentOption[];
 }) {
   const router = useRouter();
@@ -70,6 +72,7 @@ export function EditMeetingButton({
       location: location ?? "",
       useGoogleMeet: meetingMode === "ONLINE" && !meetingLink,
       subagentId: subagentId ?? "",
+      meetingDescription: meetingDescription ?? "",
     };
   }
   const [open, setOpen] = useState(false);

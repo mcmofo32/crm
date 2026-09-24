@@ -124,6 +124,7 @@ type BoardLead = {
     location: string | null;
     meetingLink: string | null;
     subagentId: string | null;
+    meetingDescription: string | null;
   }[];
 };
 
@@ -185,6 +186,7 @@ function LeadCard({
             location={nextActivity.location}
             meetingLink={nextActivity.meetingLink}
             subagentId={nextActivity.subagentId}
+            meetingDescription={nextActivity.meetingDescription}
             subagents={subagents.map((s) => ({
               id: s.id,
               name: s.name,

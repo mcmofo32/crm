@@ -136,6 +136,7 @@ export default async function FunnelPage({
               location: true,
               meetingLink: true,
               subagentId: true,
+              meetingDescription: true,
             },
           },
         },

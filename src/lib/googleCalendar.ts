@@ -211,11 +211,16 @@ function buildEventBody(
         activity.meetingMode === "ONLINE" && activity.meetingLink
           ? `Online via: ${activity.meetingLink}`
           : null,
+        activity.meetingDescription,
         officeNoteLine,
       ]
         .filter(Boolean)
         .join("\n")
-    : [activity.notes ? `Notities:\n${activity.notes}` : null, officeNoteLine]
+    : [
+        activity.notes ? `Notities:\n${activity.notes}` : null,
+        activity.meetingDescription,
+        officeNoteLine,
+      ]
         .filter(Boolean)
         .join("\n");
 

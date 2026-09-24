@@ -669,6 +669,12 @@ model Activity {
   location    String?
   meetingLink String?
 
+  /// Vrije, gestructureerde tekst die mee in de omschrijving van het Google
+  /// Agenda-item komt (naast de Zoom-link) — zichtbaar voor wie mee
+  /// uitgenodigd is, dus ook de klant bij een uitnodigende afspraak. Los van
+  /// `notes` hierboven, dat net nooit mee naar de klant gaat.
+  meetingDescription String?
+
   /// Subagent die mee uitgenodigd wordt (bv. bij een Adviesgesprek, om te closen).
   subagentId String?
   subagent   Subagent? @relation("ActivitySubagent", fields: [subagentId], references: [id])
