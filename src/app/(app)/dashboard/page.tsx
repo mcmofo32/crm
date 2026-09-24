@@ -332,7 +332,12 @@ export default async function DashboardPage() {
             Bedrijfsjaarplan — Productie (FA)
           </h2>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <CompanyProductionMeter year={currentYear} progress={faProductionGoal} />
+            <CompanyProductionMeter
+              year={currentYear}
+              progress={faProductionGoal}
+              title="Bedrijfsproductie"
+              unitLabel="eenheden"
+            />
             {faProductionContributions && (
               <CompanyProductionPieChart contributions={faProductionContributions} />
             )}
@@ -346,7 +351,12 @@ export default async function DashboardPage() {
             Bedrijfsjaarplan — Recrutering (RG)
           </h2>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <CompanyProductionMeter year={currentYear} progress={rgProductionGoal} />
+            <CompanyProductionMeter
+              year={currentYear}
+              progress={rgProductionGoal}
+              title="Recrutering"
+              unitLabel="medewerkers"
+            />
             {rgProductionContributions && (
               <CompanyProductionPieChart contributions={rgProductionContributions} />
             )}

@@ -102,20 +102,48 @@ export default async function BedrijfsJaarplanPage({
           <Target size={18} />
           Doel per kwartaal
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          &quot;Doel per maand&quot; is het doel per maand binnen dat
-          kwartaal — het kwartaaltotaal wordt automatisch berekend (x3).
-          &quot;Gerealiseerd&quot; laat je leeg zolang een kwartaal nog niet
-          (volledig) afgelopen is.
-        </p>
+        {leadType === "RG" ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Recrutering is cumulatief: &quot;Groei dit kwartaal&quot; komt
+            bovenop het beginaantal (hieronder) en de vorige kwartalen —
+            &quot;Totaal&quot; is dus het streefaantal medewerkers op het
+            einde van dat kwartaal. &quot;Gerealiseerd&quot; is het
+            effectieve aantal op dat moment (geen kwartaalbedrag) en laat je
+            leeg zolang een kwartaal nog niet (volledig) afgelopen is.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            &quot;Doel per maand&quot; is het doel per maand binnen dat
+            kwartaal — het kwartaaltotaal wordt automatisch berekend (x3).
+            &quot;Gerealiseerd&quot; laat je leeg zolang een kwartaal nog niet
+            (volledig) afgelopen is.
+          </p>
+        )}
         <form key={`${year}-${leadType}`} action={boundSaveGoal} className="flex flex-col gap-3">
           <FormToast message="Jaarplan opgeslagen" />
+          {leadType === "RG" && (
+            <label className="flex max-w-xs flex-col gap-1.5">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Beginstand — aantal medewerkers bij start van {year}
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                name="startingValue"
+                defaultValue={goalProgress.startingValue ?? ""}
+                className="w-32 rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+            </label>
+          )}
           <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Periode</th>
-                  <th className="px-3 py-3 font-medium">Doel per maand</th>
+                  <th className="px-3 py-3 font-medium">
+                    {leadType === "RG" ? "Groei dit kwartaal" : "Doel per maand"}
+                  </th>
                   <th className="px-3 py-3 font-medium">Totaal</th>
                   <th className="px-3 py-3 font-medium">Gerealiseerd</th>
                 </tr>
@@ -182,9 +210,11 @@ export default async function BedrijfsJaarplanPage({
           Verdeling per medewerker
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Hoeveel eenheden elke medewerker in {year} realiseerde — bepaalt
-          ieders aandeel (%) in het taartdiagram op het dashboard. Leeg
-          laten = geen bijdrage voor die medewerker in {year}.
+          {leadType === "RG"
+            ? `Hoeveel medewerkers elke rekruteerder in ${year} aanbracht`
+            : `Hoeveel eenheden elke medewerker in ${year} realiseerde`}{" "}
+          — bepaalt ieders aandeel (%) in het taartdiagram op het dashboard.
+          Leeg laten = geen bijdrage voor die medewerker in {year}.
         </p>
         <form
           key={`contrib-${year}-${leadType}`}
@@ -197,7 +227,9 @@ export default async function BedrijfsJaarplanPage({
               <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Naam</th>
-                  <th className="px-3 py-3 font-medium">Eenheden in {year}</th>
+                  <th className="px-3 py-3 font-medium">
+                    {leadType === "RG" ? "Medewerkers" : "Eenheden"} in {year}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

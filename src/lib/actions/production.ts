@@ -1873,47 +1873,91 @@ export async function saveAllUserMonthlyGoalsAction(
 export type CompanyProductionQuarter = {
   quarter: number;
   monthlyTarget: number;
+  /** FA: kwartaaltotaal (monthlyTarget x3), kwartalen onafhankelijk. RG: cumulatief doel t.e.m. dit kwartaal (beginaantal + som van groei t.e.m. hier). */
   totalTarget: number;
-  /** null = nog niet ingevuld (bv. een kwartaal dat nog moet beginnen), niet hetzelfde als 0 behaald. */
+  /** null = nog niet ingevuld (bv. een kwartaal dat nog moet beginnen), niet hetzelfde als 0 behaald. FA: behaald tijdens dit kwartaal. RG: totaal aantal op het einde van dit kwartaal (momentopname). */
   actualUnits: number | null;
 };
 
 export type CompanyProductionGoalProgress = {
   year: number;
   leadType: LeadType;
+  /** RG only: aantal bij start van het jaar, vóór kwartaal 1. Altijd null voor FA. */
+  startingValue: number | null;
   quarters: CompanyProductionQuarter[];
   totalTarget: number;
   totalActual: number;
   percent: number | null;
 };
 
+/**
+ * FA (productie) is rate-based: elk kwartaal telt onafhankelijk mee (doel
+ * per maand x3), het jaarcijfer is de som van de 4 kwartalen. RG
+ * (recrutering) is cumulatief: elk kwartaal voegt een gewenste groei toe
+ * aan een lopend totaal dat start bij CompanyProductionBaseline, en
+ * "behaald" is een momentopname (totaal aantal op dat moment) i.p.v. een
+ * kwartaalbedrag — het jaarcijfer is dus het doel van kwartaal 4 t.o.v.
+ * het laatst ingevulde kwartaal, nooit een som (dat zou het aantal
+ * meermaals meetellen).
+ */
 export async function getCompanyProductionGoalProgress(
   year: number,
   leadType: LeadType
 ): Promise<CompanyProductionGoalProgress> {
   await requireViewer();
-  const rows = await prisma.companyProductionGoal.findMany({
-    where: { year, leadType },
-  });
+  const [rows, baseline] = await Promise.all([
+    prisma.companyProductionGoal.findMany({ where: { year, leadType } }),
+    leadType === "RG"
+      ? prisma.companyProductionBaseline.findUnique({
+          where: { year_leadType: { year, leadType } },
+        })
+      : Promise.resolve(null),
+  ]);
   const byQuarter = new Map(rows.map((r) => [r.quarter, r]));
+  const startingValue = baseline ? Number(baseline.value) : null;
 
-  const quarters: CompanyProductionQuarter[] = [1, 2, 3, 4].map((quarter) => {
-    const row = byQuarter.get(quarter);
-    const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
-    return {
-      quarter,
-      monthlyTarget,
-      totalTarget: monthlyTarget * 3,
-      actualUnits: row && row.actualUnits !== null ? Number(row.actualUnits) : null,
-    };
-  });
+  let quarters: CompanyProductionQuarter[];
+  let totalTarget: number;
+  let totalActual: number;
 
-  const totalTarget = quarters.reduce((sum, q) => sum + q.totalTarget, 0);
-  const totalActual = quarters.reduce((sum, q) => sum + (q.actualUnits ?? 0), 0);
+  if (leadType === "RG") {
+    let cumulativeTarget = startingValue ?? 0;
+    quarters = [1, 2, 3, 4].map((quarter) => {
+      const row = byQuarter.get(quarter);
+      const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
+      cumulativeTarget += monthlyTarget;
+      return {
+        quarter,
+        monthlyTarget,
+        totalTarget: cumulativeTarget,
+        actualUnits: row && row.actualUnits !== null ? Number(row.actualUnits) : null,
+      };
+    });
+    // Jaartotaal = doel op het einde van Q4 t.o.v. het laatst ingevulde
+    // kwartaal — kwartalen bouwen cumulatief op elkaar voort, dus optellen
+    // zou het aantal meermaals meetellen.
+    totalTarget = quarters[3].totalTarget;
+    const lastFilled = [...quarters].reverse().find((q) => q.actualUnits !== null);
+    totalActual = lastFilled?.actualUnits ?? 0;
+  } else {
+    quarters = [1, 2, 3, 4].map((quarter) => {
+      const row = byQuarter.get(quarter);
+      const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
+      return {
+        quarter,
+        monthlyTarget,
+        totalTarget: monthlyTarget * 3,
+        actualUnits: row && row.actualUnits !== null ? Number(row.actualUnits) : null,
+      };
+    });
+    totalTarget = quarters.reduce((sum, q) => sum + q.totalTarget, 0);
+    totalActual = quarters.reduce((sum, q) => sum + (q.actualUnits ?? 0), 0);
+  }
 
   return {
     year,
     leadType,
+    startingValue,
     quarters,
     totalTarget,
     totalActual,
@@ -1991,7 +2035,14 @@ export async function getCompanyProductionContributionsForTable(
   }));
 }
 
-/** Beheerder/Admin stelt hier het bedrijfsbrede jaarplan in: doel + gerealiseerd per kwartaal, voor het gekozen leadType. Leeg gelaten "gerealiseerd" = nog niet ingevuld (blijft null, geen 0). */
+/**
+ * Beheerder/Admin stelt hier het bedrijfsbrede jaarplan in: doel +
+ * gerealiseerd per kwartaal, voor het gekozen leadType. Leeg gelaten
+ * "gerealiseerd" = nog niet ingevuld (blijft null, geen 0). Voor RG
+ * (recrutering, cumulatief — zie getCompanyProductionGoalProgress) slaat
+ * dit ook het beginaantal op (`startingValue` in formData) als dat
+ * meegegeven is; voor FA is dat niet van toepassing en wordt het genegeerd.
+ */
 export async function saveCompanyProductionGoalAction(
   year: number,
   leadType: LeadType,
@@ -2011,7 +2062,21 @@ export async function saveCompanyProductionGoalAction(
     });
   });
 
-  await prisma.$transaction(upserts);
+  const startingValueRaw =
+    leadType === "RG" ? String(formData.get("startingValue") ?? "").trim() : "";
+
+  await prisma.$transaction([
+    ...upserts,
+    ...(startingValueRaw
+      ? [
+          prisma.companyProductionBaseline.upsert({
+            where: { year_leadType: { year, leadType } },
+            create: { year, leadType, value: Number(startingValueRaw) },
+            update: { value: Number(startingValueRaw) },
+          }),
+        ]
+      : []),
+  ]);
 
   revalidatePath("/dashboard");
   revalidatePath("/beheer/doelen/jaarplan");
