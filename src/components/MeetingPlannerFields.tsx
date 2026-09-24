@@ -26,7 +26,7 @@ export function MeetingPlannerFields({
   return (
     <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/60">
       <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-        Afspraak inplannen (optioneel)
+        Afspraak inplannen
       </p>
 
       <div className="grid grid-cols-2 gap-2">
