@@ -30,6 +30,21 @@ import {
 import { parseLocalDateTime, combineWithTimeOnSameLocalDay } from "@/lib/datetime";
 import { getOfficeSettings } from "@/lib/actions/officeSettings";
 
+/**
+ * Voor logboek-beschrijvingen: het onderwerp van een afspraak bevat enkel het
+ * uur (zie buildMeetingSubject), niet de datum — zonder dit expliciet erbij
+ * te zetten is een verwijderde/geannuleerde afspraak niet meer te herinplannen
+ * omdat de datum nergens anders bewaard blijft.
+ */
+function formatScheduledAtForLog(scheduledAt: Date | null) {
+  if (!scheduledAt) return "geen datum";
+  return scheduledAt.toLocaleString("nl-BE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Brussels",
+  });
+}
+
 /** ONSITE-locatie: getypt adres, anders het kantooradres (zie "Kantoor" in het profielmenu) als dat ingesteld is. */
 async function resolveOnsiteLocation(typedLocation: string) {
   if (typedLocation) return typedLocation;
@@ -475,7 +490,7 @@ export async function deleteActivityAction(activityId: string) {
     action: "activity.deleted",
     entityType: "Activity",
     entityId: activityId,
-    description: `Activiteit "${activity.subject}" verwijderd bij lead "${lead.firstName} ${lead.lastName}"`,
+    description: `Activiteit "${activity.subject}" verwijderd bij lead "${lead.firstName} ${lead.lastName}" (was gepland op ${formatScheduledAtForLog(activity.scheduledAt)})`,
   });
 
   revalidatePath(`/leads/${activity.leadId}`);
@@ -503,21 +518,12 @@ export async function cancelActivityAction(activityId: string) {
     data: { status: ActivityStatus.CANCELLED },
   });
 
-  // De agenda-afspraak is na annulering weg — de oorspronkelijke datum staat
-  // enkel nog hier, anders is ze nergens meer op te zoeken om te herinplannen.
-  const scheduledAtLabel = activity.scheduledAt
-    ? activity.scheduledAt.toLocaleString("nl-BE", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Europe/Brussels",
-      })
-    : "geen datum";
   await logAudit({
     actorId: user.id,
     action: "activity.cancelled",
     entityType: "Activity",
     entityId: activityId,
-    description: `Activiteit "${activity.subject}" geannuleerd bij lead "${lead.firstName} ${lead.lastName}" (was gepland op ${scheduledAtLabel})`,
+    description: `Activiteit "${activity.subject}" geannuleerd bij lead "${lead.firstName} ${lead.lastName}" (was gepland op ${formatScheduledAtForLog(activity.scheduledAt)})`,
   });
 
   revalidatePath(`/leads/${activity.leadId}`);
