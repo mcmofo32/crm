@@ -25,6 +25,8 @@ import {
   getProductionMonthGoalProgress,
   getGroupProductionMonthGoalProgress,
   getCurrentProductionMonth,
+  getCompanyProductionGoalProgress,
+  getCompanyProductionContributions,
 } from "@/lib/actions/production";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
@@ -33,6 +35,8 @@ import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MIXED_KPI_LABEL } from "@/lib/go
 import { Role } from "@/generated/prisma/client";
 import { Badge } from "@/components/Badge";
 import { Avatar } from "@/components/Avatar";
+import { CompanyProductionMeter } from "@/components/CompanyProductionMeter";
+import { CompanyProductionPieChart } from "@/components/CompanyProductionPieChart";
 
 const GOAL_ICONS: Record<string, LucideIcon> = {
   UNITS: Boxes,
@@ -93,6 +97,8 @@ export default async function DashboardPage() {
     teamOverview,
     unverifiedEvents,
     crossOwnerDuplicates,
+    companyProductionGoal,
+    companyProductionContributions,
   ] = await Promise.all([
     // Enkel de eigen verlopen taken van de ingelogde gebruiker — zelfde
     // logica als het badge-cijfer naast "Taken" in de layout.
@@ -128,6 +134,12 @@ export default async function DashboardPage() {
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
     getUnverifiedPastVerifiableEvents(),
     getCrossOwnerDuplicateGroups(),
+    showGroupGoals
+      ? getCompanyProductionGoalProgress(currentYear)
+      : Promise.resolve(null),
+    showGroupGoals
+      ? getCompanyProductionContributions(currentYear)
+      : Promise.resolve(null),
   ]);
   const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
 
@@ -304,6 +316,23 @@ export default async function DashboardPage() {
           title={`Mijn team — ${teamOverview.teamName}`}
           members={teamOverview.members}
         />
+      )}
+
+      {showGroupGoals && companyProductionGoal && companyProductionGoal.totalTarget > 0 && (
+        <div>
+          <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
+            Bedrijfsjaarplan
+            <span className="ml-1.5 text-base font-normal text-slate-400 dark:text-slate-500">
+              — in te stellen bij Beheer &gt; Doelen &gt; Jaarplan
+            </span>
+          </h2>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <CompanyProductionMeter year={currentYear} progress={companyProductionGoal} />
+            {companyProductionContributions && (
+              <CompanyProductionPieChart contributions={companyProductionContributions} />
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

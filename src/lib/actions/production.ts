@@ -1860,3 +1860,181 @@ export async function saveAllUserMonthlyGoalsAction(
   revalidatePath("/beheer/doelen");
   revalidatePath("/productie");
 }
+
+// ---------------------------------------------------------------------------
+// Bedrijfsproductie: jaarplan per kwartaal + verdeling per persoon (dashboard
+// progressiebalk + taartdiagram). Dit is één bedrijfsbreed cijfer uit het
+// management-rekenblad, los van (en niet noodzakelijk gelijk aan de som van)
+// de individuele productiedoelen hierboven.
+// ---------------------------------------------------------------------------
+
+export type CompanyProductionQuarter = {
+  quarter: number;
+  monthlyTarget: number;
+  totalTarget: number;
+  /** null = nog niet ingevuld (bv. een kwartaal dat nog moet beginnen), niet hetzelfde als 0 behaald. */
+  actualUnits: number | null;
+};
+
+export type CompanyProductionGoalProgress = {
+  year: number;
+  quarters: CompanyProductionQuarter[];
+  totalTarget: number;
+  totalActual: number;
+  percent: number | null;
+};
+
+export async function getCompanyProductionGoalProgress(
+  year: number
+): Promise<CompanyProductionGoalProgress> {
+  await requireViewer();
+  const rows = await prisma.companyProductionGoal.findMany({ where: { year } });
+  const byQuarter = new Map(rows.map((r) => [r.quarter, r]));
+
+  const quarters: CompanyProductionQuarter[] = [1, 2, 3, 4].map((quarter) => {
+    const row = byQuarter.get(quarter);
+    const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
+    return {
+      quarter,
+      monthlyTarget,
+      totalTarget: monthlyTarget * 3,
+      actualUnits: row && row.actualUnits !== null ? Number(row.actualUnits) : null,
+    };
+  });
+
+  const totalTarget = quarters.reduce((sum, q) => sum + q.totalTarget, 0);
+  const totalActual = quarters.reduce((sum, q) => sum + (q.actualUnits ?? 0), 0);
+
+  return {
+    year,
+    quarters,
+    totalTarget,
+    totalActual,
+    percent: totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : null,
+  };
+}
+
+export type CompanyProductionContributionRow = {
+  userId: string;
+  name: string;
+  photoUrl: string | null;
+  units: number;
+  percent: number;
+};
+
+export type CompanyProductionContributions = {
+  year: number;
+  total: number;
+  rows: CompanyProductionContributionRow[];
+};
+
+/** Voor het taartdiagram op het dashboard — enkel wie effectief een bijdrage (>0) heeft voor dat jaar, hoogste eerst. */
+export async function getCompanyProductionContributions(
+  year: number
+): Promise<CompanyProductionContributions> {
+  await requireViewer();
+  const rows = await prisma.companyProductionContribution.findMany({
+    where: { year, units: { gt: 0 } },
+    include: { user: { select: { id: true, name: true, avatarUpdatedAt: true } } },
+    orderBy: { units: "desc" },
+  });
+
+  const total = rows.reduce((sum, r) => sum + Number(r.units), 0);
+
+  return {
+    year,
+    total,
+    rows: rows.map((r) => ({
+      userId: r.userId,
+      name: r.user.name,
+      photoUrl: avatarUrl(r.user),
+      units: Number(r.units),
+      percent: total > 0 ? Math.round((Number(r.units) / total) * 1000) / 10 : 0,
+    })),
+  };
+}
+
+/** Voor de invoerpagina (Beheer > Doelen > Jaarplan): alle actieve gebruikers + hun huidig ingevoerde bijdrage voor dat jaar. */
+export async function getCompanyProductionContributionsForTable(year: number) {
+  await requireGoalManager();
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      name: true,
+      avatarUpdatedAt: true,
+      companyProductionContributions: { where: { year } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    photoUrl: avatarUrl(u),
+    units: u.companyProductionContributions[0]
+      ? Number(u.companyProductionContributions[0].units)
+      : null,
+  }));
+}
+
+/** Beheerder/Admin stelt hier het bedrijfsbrede jaarplan in: doel + gerealiseerd per kwartaal. Leeg gelaten "gerealiseerd" = nog niet ingevuld (blijft null, geen 0). */
+export async function saveCompanyProductionGoalAction(
+  year: number,
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const upserts = [1, 2, 3, 4].map((quarter) => {
+    const targetRaw = String(formData.get(`monthlyTarget_${quarter}`) ?? "").trim();
+    const actualRaw = String(formData.get(`actualUnits_${quarter}`) ?? "").trim();
+    const monthlyTarget = targetRaw ? Number(targetRaw) : 0;
+    const actualUnits = actualRaw ? Number(actualRaw) : null;
+    return prisma.companyProductionGoal.upsert({
+      where: { year_quarter: { year, quarter } },
+      create: { year, quarter, monthlyTarget, actualUnits },
+      update: { monthlyTarget, actualUnits },
+    });
+  });
+
+  await prisma.$transaction(upserts);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/beheer/doelen/jaarplan");
+}
+
+/** Beheerder/Admin stelt hier de verdeling per persoon in — voedt het taartdiagram op het dashboard. Leeg gelaten = geen bijdrage geregistreerd (rij verwijderd, i.p.v. 0). */
+export async function saveCompanyProductionContributionsAction(
+  year: number,
+  userIds: string[],
+  formData: FormData
+) {
+  await requireGoalManager();
+
+  const values = new Map<string, number>();
+  const toDelete: string[] = [];
+  for (const userId of userIds) {
+    const raw = String(formData.get(`units_${userId}`) ?? "").trim();
+    if (raw) {
+      values.set(userId, Number(raw));
+    } else {
+      toDelete.push(userId);
+    }
+  }
+
+  await prisma.$transaction([
+    ...Array.from(values.entries()).map(([userId, units]) =>
+      prisma.companyProductionContribution.upsert({
+        where: { year_userId: { year, userId } },
+        create: { year, userId, units },
+        update: { units },
+      })
+    ),
+    prisma.companyProductionContribution.deleteMany({
+      where: { year, userId: { in: toDelete } },
+    }),
+  ]);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/beheer/doelen/jaarplan");
+}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Target, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Target, Settings2, PieChart } from "lucide-react";
 import {
   getAllUserMonthlyGoalsForTable,
   saveAllUserMonthlyGoalsAction,
@@ -173,13 +173,22 @@ export default async function DoelenPage({
         maandelijkse stand.
       </p>
 
-      <Link
-        href="/beheer/doelen/productie"
-        className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-      >
-        <Settings2 size={16} />
-        Productiemaanden: begin-/einddatums per maand instellen
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/beheer/doelen/productie"
+          className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          <Settings2 size={16} />
+          Productiemaanden: begin-/einddatums per maand instellen
+        </Link>
+        <Link
+          href="/beheer/doelen/jaarplan"
+          className="inline-flex w-fit items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          <PieChart size={16} />
+          Bedrijfsjaarplan: doel per kwartaal + verdeling per medewerker
+        </Link>
+      </div>
     </div>
   );
 }
