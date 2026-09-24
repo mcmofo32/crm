@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
  * Klikbaar uitklapmenu (native <details>) dat zichzelf sluit zodra er ergens
- * binnenin geklikt wordt — bv. na het volgen van een link in het menu.
+ * binnenin geklikt wordt — bv. na het volgen van een link in het menu — of
+ * ergens buiten het menu, zonder dat een <details> dat uit zichzelf doet.
  */
 export function DropdownMenu({
   trigger,
@@ -14,6 +15,17 @@ export function DropdownMenu({
   children: ReactNode;
 }) {
   const detailsRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const details = detailsRef.current;
+      if (details?.open && !details.contains(e.target as Node)) {
+        details.open = false;
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <details ref={detailsRef} className="group relative">
