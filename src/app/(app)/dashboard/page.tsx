@@ -69,9 +69,11 @@ export default async function DashboardPage() {
   const ids = await getVisibleUserIds(user);
   const now = new Date();
   const currentYear = now.getFullYear();
-  // Groepsdoelen (totaal van het team/iedereen) enkel tonen aan wie ook
-  // effectief een groep heeft: Coach (zijn team), Admin/Beheerder (iedereen).
-  const showGroupGoals = canManageUsers(user) || user.role === Role.COACH;
+  // De "verlopen taken van je team"-banner is enkel zinvol voor wie ook
+  // effectief anderen onder zich heeft: Coach (zijn team), Admin/Beheerder
+  // (iedereen) — een gewone User heeft geen team. Groepsdoelen en het
+  // Bedrijfsjaarplan hieronder zijn wél voor iedereen zichtbaar.
+  const showTeamOverdueBanner = canManageUsers(user) || user.role === Role.COACH;
   // getProductionMonthGoalProgress/getGroupProductionMonthGoalProgress
   // roepen hieronder via de Promise.all allebei getCurrentProductionMonth()
   // aan; die zit achter cache() (zie production.ts), dus door 'm hier al op
@@ -105,7 +107,7 @@ export default async function DashboardPage() {
     }),
     // Verlopen taken van de rest van het team (dus niet de eigen), enkel
     // opgehaald/getoond vanaf Coach — een gewone User heeft geen team.
-    showGroupGoals
+    showTeamOverdueBanner
       ? prisma.activity.count({
           where: {
             status: "PLANNED",
@@ -118,32 +120,20 @@ export default async function DashboardPage() {
         })
       : Promise.resolve(0),
     getProductionMonthGoalProgress(user.id),
-    // Bedrijfsbreed, ongeacht de rol van de kijker — net als het
-    // Bedrijfsjaarplan hieronder is dit het doel van de hele structuur, niet
-    // enkel van het team van de kijker (dat toont "Mijn team" apart).
-    showGroupGoals
-      ? prisma.user
-          .findMany({ where: { active: true }, select: { id: true } })
-          .then((users) =>
-            getGroupProductionMonthGoalProgress(users.map((u) => u.id))
-          )
-      : Promise.resolve(null),
+    // Bedrijfsbreed, voor iedereen zichtbaar — net als het Bedrijfsjaarplan
+    // hieronder is dit het doel van de hele structuur, niet enkel van het
+    // team van de kijker (dat toont "Mijn team" apart).
+    prisma.user
+      .findMany({ where: { active: true }, select: { id: true } })
+      .then((users) => getGroupProductionMonthGoalProgress(users.map((u) => u.id))),
     getYearlyKpiProgress(user.id, currentYear),
     getUnverifiedPastVerifiableEvents(),
     getCrossOwnerDuplicateGroups(),
-    showGroupGoals
-      ? getCompanyProductionGoalProgress(currentYear, "FA")
-      : Promise.resolve(null),
-    showGroupGoals
-      ? getCompanyProductionContributions(currentYear, "FA")
-      : Promise.resolve(null),
-    showGroupGoals
-      ? getCompanyProductionGoalProgress(currentYear, "RG")
-      : Promise.resolve(null),
-    showGroupGoals
-      ? getCompanyProductionContributions(currentYear, "RG")
-      : Promise.resolve(null),
-    showGroupGoals ? getActiveEmployeeCount() : Promise.resolve(null),
+    getCompanyProductionGoalProgress(currentYear, "FA"),
+    getCompanyProductionContributions(currentYear, "FA"),
+    getCompanyProductionGoalProgress(currentYear, "RG"),
+    getCompanyProductionContributions(currentYear, "RG"),
+    getActiveEmployeeCount(),
   ]);
   const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
 
@@ -174,7 +164,7 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      {showGroupGoals && teamOverdueTasks > 0 && (
+      {showTeamOverdueBanner && teamOverdueTasks > 0 && (
         <Link
           href="/taken?ownerId=groep"
           className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900/60"
@@ -261,7 +251,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {showGroupGoals && groupProductionGoals && (
+      {groupProductionGoals && (
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Maandelijkse groepsdoelen
@@ -315,7 +305,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {showGroupGoals && faProductionGoal && faProductionGoal.totalTarget > 0 && (
+      {faProductionGoal && faProductionGoal.totalTarget > 0 && (
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Bedrijfsjaarplan — Productie (FA)
@@ -334,7 +324,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {showGroupGoals && rgProductionGoal && rgProductionGoal.totalTarget > 0 && (
+      {rgProductionGoal && rgProductionGoal.totalTarget > 0 && (
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Bedrijfsjaarplan — Recrutering (RG)
