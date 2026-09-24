@@ -322,9 +322,6 @@ export default async function DashboardPage() {
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Bedrijfsjaarplan
-            <span className="ml-1.5 text-base font-normal text-slate-400 dark:text-slate-500">
-              — in te stellen bij Beheer &gt; Doelen &gt; Jaarplan
-            </span>
           </h2>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <CompanyProductionMeter year={currentYear} progress={companyProductionGoal} />
