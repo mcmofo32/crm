@@ -204,6 +204,7 @@ model User {
   monthlyGoals      UserMonthlyGoal[]     @relation("UserMonthlyGoals")
   monthlyActuals    UserMonthlyActual[]   @relation("UserMonthlyActuals")
   kpiGoals          UserKpiGoal[]         @relation("UserKpiGoals")
+  companyProductionContributions CompanyProductionContribution[] @relation("CompanyProductionContributions")
   kpiMonthlyEntries UserKpiMonthlyEntry[] @relation("UserKpiMonthlyEntries")
 
   eventsCreated    Event[]           @relation("EventCreatedBy")
@@ -868,6 +869,37 @@ model UserKpiMonthlyEntry {
 
   @@unique([userId, metric, year, month])
   @@index([userId, metric, year])
+}
+
+/// Bedrijfsbreed productieplan per kwartaal (het jaarplan uit het
+/// management-rekenblad) — los van de individuele maanddoelen per gebruiker
+/// hierboven. `monthlyTarget` is het doel per maand binnen dat kwartaal (het
+/// kwartaaltotaal is dat x3); `actualUnits` het effectief gerealiseerde
+/// totaal voor dat kwartaal, manueel ingevoerd zolang dit niet automatisch
+/// uit CRM-data berekend wordt.
+model CompanyProductionGoal {
+  id            String   @id @default(cuid())
+  year          Int
+  quarter       Int
+  monthlyTarget Decimal  @db.Decimal(12, 2)
+  actualUnits   Decimal? @db.Decimal(12, 2)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([year, quarter])
+}
+
+/// Aandeel van elke gebruiker in de gerealiseerde bedrijfsproductie van een
+/// jaar (taartdiagram op het dashboard) — manueel ingevoerd zolang dit niet
+/// automatisch berekend wordt uit CRM-data.
+model CompanyProductionContribution {
+  id        String   @id @default(cuid())
+  year      Int
+  userId    String
+  user      User     @relation("CompanyProductionContributions", fields: [userId], references: [id], onDelete: Cascade)
+  units     Decimal  @db.Decimal(12, 2)
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, userId])
 }
 
 // ---------------------------------------------------------------------------
