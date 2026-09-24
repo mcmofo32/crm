@@ -97,8 +97,10 @@ export default async function DashboardPage() {
     teamOverview,
     unverifiedEvents,
     crossOwnerDuplicates,
-    companyProductionGoal,
-    companyProductionContributions,
+    faProductionGoal,
+    faProductionContributions,
+    rgProductionGoal,
+    rgProductionContributions,
   ] = await Promise.all([
     // Enkel de eigen verlopen taken van de ingelogde gebruiker — zelfde
     // logica als het badge-cijfer naast "Taken" in de layout.
@@ -135,10 +137,16 @@ export default async function DashboardPage() {
     getUnverifiedPastVerifiableEvents(),
     getCrossOwnerDuplicateGroups(),
     showGroupGoals
-      ? getCompanyProductionGoalProgress(currentYear)
+      ? getCompanyProductionGoalProgress(currentYear, "FA")
       : Promise.resolve(null),
     showGroupGoals
-      ? getCompanyProductionContributions(currentYear)
+      ? getCompanyProductionContributions(currentYear, "FA")
+      : Promise.resolve(null),
+    showGroupGoals
+      ? getCompanyProductionGoalProgress(currentYear, "RG")
+      : Promise.resolve(null),
+    showGroupGoals
+      ? getCompanyProductionContributions(currentYear, "RG")
       : Promise.resolve(null),
   ]);
   const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
@@ -318,15 +326,29 @@ export default async function DashboardPage() {
         />
       )}
 
-      {showGroupGoals && companyProductionGoal && companyProductionGoal.totalTarget > 0 && (
+      {showGroupGoals && faProductionGoal && faProductionGoal.totalTarget > 0 && (
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
-            Bedrijfsjaarplan
+            Bedrijfsjaarplan — Productie (FA)
           </h2>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <CompanyProductionMeter year={currentYear} progress={companyProductionGoal} />
-            {companyProductionContributions && (
-              <CompanyProductionPieChart contributions={companyProductionContributions} />
+            <CompanyProductionMeter year={currentYear} progress={faProductionGoal} />
+            {faProductionContributions && (
+              <CompanyProductionPieChart contributions={faProductionContributions} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {showGroupGoals && rgProductionGoal && rgProductionGoal.totalTarget > 0 && (
+        <div>
+          <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
+            Bedrijfsjaarplan — Recrutering (RG)
+          </h2>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <CompanyProductionMeter year={currentYear} progress={rgProductionGoal} />
+            {rgProductionContributions && (
+              <CompanyProductionPieChart contributions={rgProductionContributions} />
             )}
           </div>
         </div>

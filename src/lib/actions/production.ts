@@ -10,7 +10,7 @@ import {
   getVisibleUserIds,
   canAccessOwner,
 } from "@/lib/permissions";
-import { ActivityStatus, GoalMetric, JobFunction, Role } from "@/generated/prisma/client";
+import { ActivityStatus, GoalMetric, JobFunction, LeadType, Role } from "@/generated/prisma/client";
 import {
   GOAL_METRIC_ORDER,
   MONTHLY_GOAL_METRICS,
@@ -1863,9 +1863,11 @@ export async function saveAllUserMonthlyGoalsAction(
 
 // ---------------------------------------------------------------------------
 // Bedrijfsproductie: jaarplan per kwartaal + verdeling per persoon (dashboard
-// progressiebalk + taartdiagram). Dit is één bedrijfsbreed cijfer uit het
-// management-rekenblad, los van (en niet noodzakelijk gelijk aan de som van)
-// de individuele productiedoelen hierboven.
+// progressiebalk + taartdiagram), per leadType (FA = productie, RG =
+// recrutering) — twee volledig aparte plannen, elk met hun eigen doelen en
+// bijdrages. Dit is een bedrijfsbreed cijfer uit het management-rekenblad,
+// los van (en niet noodzakelijk gelijk aan de som van) de individuele
+// productiedoelen hierboven.
 // ---------------------------------------------------------------------------
 
 export type CompanyProductionQuarter = {
@@ -1878,6 +1880,7 @@ export type CompanyProductionQuarter = {
 
 export type CompanyProductionGoalProgress = {
   year: number;
+  leadType: LeadType;
   quarters: CompanyProductionQuarter[];
   totalTarget: number;
   totalActual: number;
@@ -1885,10 +1888,13 @@ export type CompanyProductionGoalProgress = {
 };
 
 export async function getCompanyProductionGoalProgress(
-  year: number
+  year: number,
+  leadType: LeadType
 ): Promise<CompanyProductionGoalProgress> {
   await requireViewer();
-  const rows = await prisma.companyProductionGoal.findMany({ where: { year } });
+  const rows = await prisma.companyProductionGoal.findMany({
+    where: { year, leadType },
+  });
   const byQuarter = new Map(rows.map((r) => [r.quarter, r]));
 
   const quarters: CompanyProductionQuarter[] = [1, 2, 3, 4].map((quarter) => {
@@ -1907,6 +1913,7 @@ export async function getCompanyProductionGoalProgress(
 
   return {
     year,
+    leadType,
     quarters,
     totalTarget,
     totalActual,
@@ -1924,17 +1931,19 @@ export type CompanyProductionContributionRow = {
 
 export type CompanyProductionContributions = {
   year: number;
+  leadType: LeadType;
   total: number;
   rows: CompanyProductionContributionRow[];
 };
 
-/** Voor het taartdiagram op het dashboard — enkel wie effectief een bijdrage (>0) heeft voor dat jaar, hoogste eerst. */
+/** Voor het taartdiagram op het dashboard — enkel wie effectief een bijdrage (>0) heeft voor dat jaar/leadType, hoogste eerst. */
 export async function getCompanyProductionContributions(
-  year: number
+  year: number,
+  leadType: LeadType
 ): Promise<CompanyProductionContributions> {
   await requireViewer();
   const rows = await prisma.companyProductionContribution.findMany({
-    where: { year, units: { gt: 0 } },
+    where: { year, leadType, units: { gt: 0 } },
     include: { user: { select: { id: true, name: true, avatarUpdatedAt: true } } },
     orderBy: { units: "desc" },
   });
@@ -1943,6 +1952,7 @@ export async function getCompanyProductionContributions(
 
   return {
     year,
+    leadType,
     total,
     rows: rows.map((r) => ({
       userId: r.userId,
@@ -1954,8 +1964,11 @@ export async function getCompanyProductionContributions(
   };
 }
 
-/** Voor de invoerpagina (Beheer > Doelen > Jaarplan): alle actieve gebruikers + hun huidig ingevoerde bijdrage voor dat jaar. */
-export async function getCompanyProductionContributionsForTable(year: number) {
+/** Voor de invoerpagina (Beheer > Doelen > Jaarplan): alle actieve gebruikers + hun huidig ingevoerde bijdrage voor dat jaar/leadType. */
+export async function getCompanyProductionContributionsForTable(
+  year: number,
+  leadType: LeadType
+) {
   await requireGoalManager();
   const users = await prisma.user.findMany({
     where: { active: true },
@@ -1963,7 +1976,7 @@ export async function getCompanyProductionContributionsForTable(year: number) {
       id: true,
       name: true,
       avatarUpdatedAt: true,
-      companyProductionContributions: { where: { year } },
+      companyProductionContributions: { where: { year, leadType } },
     },
     orderBy: { name: "asc" },
   });
@@ -1978,9 +1991,10 @@ export async function getCompanyProductionContributionsForTable(year: number) {
   }));
 }
 
-/** Beheerder/Admin stelt hier het bedrijfsbrede jaarplan in: doel + gerealiseerd per kwartaal. Leeg gelaten "gerealiseerd" = nog niet ingevuld (blijft null, geen 0). */
+/** Beheerder/Admin stelt hier het bedrijfsbrede jaarplan in: doel + gerealiseerd per kwartaal, voor het gekozen leadType. Leeg gelaten "gerealiseerd" = nog niet ingevuld (blijft null, geen 0). */
 export async function saveCompanyProductionGoalAction(
   year: number,
+  leadType: LeadType,
   formData: FormData
 ) {
   await requireGoalManager();
@@ -1991,8 +2005,8 @@ export async function saveCompanyProductionGoalAction(
     const monthlyTarget = targetRaw ? Number(targetRaw) : 0;
     const actualUnits = actualRaw ? Number(actualRaw) : null;
     return prisma.companyProductionGoal.upsert({
-      where: { year_quarter: { year, quarter } },
-      create: { year, quarter, monthlyTarget, actualUnits },
+      where: { year_quarter_leadType: { year, quarter, leadType } },
+      create: { year, quarter, leadType, monthlyTarget, actualUnits },
       update: { monthlyTarget, actualUnits },
     });
   });
@@ -2003,9 +2017,10 @@ export async function saveCompanyProductionGoalAction(
   revalidatePath("/beheer/doelen/jaarplan");
 }
 
-/** Beheerder/Admin stelt hier de verdeling per persoon in — voedt het taartdiagram op het dashboard. Leeg gelaten = geen bijdrage geregistreerd (rij verwijderd, i.p.v. 0). */
+/** Beheerder/Admin stelt hier de verdeling per persoon in voor het gekozen leadType — voedt het taartdiagram op het dashboard. Leeg gelaten = geen bijdrage geregistreerd (rij verwijderd, i.p.v. 0). */
 export async function saveCompanyProductionContributionsAction(
   year: number,
+  leadType: LeadType,
   userIds: string[],
   formData: FormData
 ) {
@@ -2025,13 +2040,13 @@ export async function saveCompanyProductionContributionsAction(
   await prisma.$transaction([
     ...Array.from(values.entries()).map(([userId, units]) =>
       prisma.companyProductionContribution.upsert({
-        where: { year_userId: { year, userId } },
-        create: { year, userId, units },
+        where: { year_userId_leadType: { year, userId, leadType } },
+        create: { year, userId, leadType, units },
         update: { units },
       })
     ),
     prisma.companyProductionContribution.deleteMany({
-      where: { year, userId: { in: toDelete } },
+      where: { year, leadType, userId: { in: toDelete } },
     }),
   ]);
 

@@ -877,8 +877,8 @@ model UserKpiMonthlyEntry {
   @@index([userId, metric, year])
 }
 
-/// Bedrijfsbreed productieplan per kwartaal (het jaarplan uit het
-/// management-rekenblad) — los van de individuele maanddoelen per gebruiker
+/// Bedrijfsbreed productieplan per kwartaal, per leadType (FA = productie,
+/// RG = recrutering) — los van de individuele maanddoelen per gebruiker
 /// hierboven. `monthlyTarget` is het doel per maand binnen dat kwartaal (het
 /// kwartaaltotaal is dat x3); `actualUnits` het effectief gerealiseerde
 /// totaal voor dat kwartaal, manueel ingevoerd zolang dit niet automatisch
@@ -887,25 +887,27 @@ model CompanyProductionGoal {
   id            String   @id @default(cuid())
   year          Int
   quarter       Int
+  leadType      LeadType
   monthlyTarget Decimal  @db.Decimal(12, 2)
   actualUnits   Decimal? @db.Decimal(12, 2)
   updatedAt     DateTime @updatedAt
 
-  @@unique([year, quarter])
+  @@unique([year, quarter, leadType])
 }
 
 /// Aandeel van elke gebruiker in de gerealiseerde bedrijfsproductie van een
-/// jaar (taartdiagram op het dashboard) — manueel ingevoerd zolang dit niet
-/// automatisch berekend wordt uit CRM-data.
+/// jaar, per leadType (taartdiagram op het dashboard) — manueel ingevoerd
+/// zolang dit niet automatisch berekend wordt uit CRM-data.
 model CompanyProductionContribution {
   id        String   @id @default(cuid())
   year      Int
+  leadType  LeadType
   userId    String
   user      User     @relation("CompanyProductionContributions", fields: [userId], references: [id], onDelete: Cascade)
   units     Decimal  @db.Decimal(12, 2)
   updatedAt DateTime @updatedAt
 
-  @@unique([year, userId])
+  @@unique([year, userId, leadType])
 }
 
 // ---------------------------------------------------------------------------
