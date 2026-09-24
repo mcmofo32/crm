@@ -19,7 +19,6 @@ import {
   getTeamOverviewForCoach,
   type EmployeeStats,
 } from "@/lib/actions/analytics";
-import { isBeheerder } from "@/lib/permissions";
 import { getYearlyKpiProgress, computeMixedKpiPercent } from "@/lib/actions/goals";
 import {
   getProductionMonthGoalProgress,
@@ -29,7 +28,6 @@ import {
   getCompanyProductionContributions,
   getActiveEmployeeCount,
 } from "@/lib/actions/production";
-import { getAssignableUsers } from "@/lib/actions/leads";
 import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
 import { GOAL_METRIC_LABELS, KPI_METRIC_LABELS, MIXED_KPI_LABEL } from "@/lib/goalLabels";
@@ -129,10 +127,15 @@ export default async function DashboardPage() {
         })
       : Promise.resolve(0),
     getProductionMonthGoalProgress(user.id),
+    // Bedrijfsbreed, ongeacht de rol van de kijker — net als het
+    // Bedrijfsjaarplan hieronder is dit het doel van de hele structuur, niet
+    // enkel van het team van de kijker (dat toont "Mijn team" apart).
     showGroupGoals
-      ? getAssignableUsers().then((users) =>
-          getGroupProductionMonthGoalProgress(users.map((u) => u.id))
-        )
+      ? prisma.user
+          .findMany({ where: { active: true }, select: { id: true } })
+          .then((users) =>
+            getGroupProductionMonthGoalProgress(users.map((u) => u.id))
+          )
       : Promise.resolve(null),
     getYearlyKpiProgress(user.id, currentYear),
     user.role === Role.COACH ? getTeamOverviewForCoach() : Promise.resolve(null),
@@ -273,7 +276,7 @@ export default async function DashboardPage() {
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Maandelijkse groepsdoelen
             <span className="ml-1.5 text-base font-normal text-slate-400 dark:text-slate-500">
-              — totaal van {isBeheerder(user) ? "iedereen" : "je team"}
+              — totaal van iedereen
             </span>
           </h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
