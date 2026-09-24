@@ -607,6 +607,25 @@ export async function updateLeadStageAction(
           : {}),
       },
     }),
+    // Een fase-wissel rondt impliciet elke nog openstaande, al verlopen
+    // afspraak van vóór deze fase af — anders blijft die voor altijd als
+    // "Verlopen" in Taken staan, ook al is de lead intussen verder. Dit is
+    // een gewone activity.update naar COMPLETED (zoals completeActivityAction),
+    // dus géén cancelActivityAction/deleteActivityFromGoogleCalendar: de
+    // agenda-afspraak zelf blijft gewoon bestaan, enkel de eigen taak in het
+    // CRM wordt afgerond. Nog niet-verlopen (dus nog geldige) geplande
+    // activiteiten blijven onaangeroerd.
+    prisma.activity.updateMany({
+      where: {
+        leadId,
+        status: ActivityStatus.PLANNED,
+        scheduledAt: { lt: now },
+      },
+      data: {
+        status: ActivityStatus.COMPLETED,
+        completedAt: now,
+      },
+    }),
     prisma.leadStageChange.create({
       data: {
         leadId,
