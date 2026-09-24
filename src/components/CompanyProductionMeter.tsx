@@ -13,9 +13,15 @@ function meterColor(percent: number) {
 export function CompanyProductionMeter({
   year,
   progress,
+  title,
+  unitLabel = "eenheden",
 }: {
   year: number;
   progress: CompanyProductionGoalProgress;
+  /** Bv. "Bedrijfsproductie" of "Recrutering" — bepaalt het opschrift boven het grote cijfer. */
+  title: string;
+  /** Bv. "eenheden" of "medewerkers". */
+  unitLabel?: string;
 }) {
   const percent = progress.percent ?? 0;
   const barWidth = Math.min(percent, 100);
@@ -26,13 +32,19 @@ export function CompanyProductionMeter({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-base text-slate-500 dark:text-slate-400">
-            Bedrijfsproductie {year}
+            {title} {year}
+            {progress.startingValue !== null && (
+              <span className="ml-1.5 font-normal text-slate-400 dark:text-slate-500">
+                — start van het jaar: {progress.startingValue.toLocaleString("nl-BE")}{" "}
+                {unitLabel}
+              </span>
+            )}
           </p>
           <p className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
             {progress.totalActual.toLocaleString("nl-BE")}
             <span className="text-lg font-normal text-slate-400 dark:text-slate-500">
               {" "}
-              / {progress.totalTarget.toLocaleString("nl-BE")} eenheden
+              / {progress.totalTarget.toLocaleString("nl-BE")} {unitLabel}
             </span>
           </p>
         </div>
