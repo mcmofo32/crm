@@ -26,6 +26,7 @@ const ACTION_LABELS: Record<string, string> = {
   "team.member_added": "Lid toegevoegd",
   "team.member_removed": "Lid verwijderd",
   "activity.deleted": "Activiteit verwijderd",
+  "activity.cancelled": "Activiteit geannuleerd",
 };
 
 const ENTITY_FILTERS: { value: string | undefined; label: string }[] = [

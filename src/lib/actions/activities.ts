@@ -488,7 +488,7 @@ export async function cancelActivityAction(activityId: string) {
     where: { id: activityId },
   });
   if (!activity) throw new Error("Activiteit niet gevonden");
-  await requireLeadAccess(activity.leadId);
+  const { user, lead } = await requireLeadAccess(activity.leadId);
 
   const assignee = await prisma.user.findUnique({
     where: { id: activity.assigneeId },
@@ -501,6 +501,23 @@ export async function cancelActivityAction(activityId: string) {
   await prisma.activity.update({
     where: { id: activityId },
     data: { status: ActivityStatus.CANCELLED },
+  });
+
+  // De agenda-afspraak is na annulering weg — de oorspronkelijke datum staat
+  // enkel nog hier, anders is ze nergens meer op te zoeken om te herinplannen.
+  const scheduledAtLabel = activity.scheduledAt
+    ? activity.scheduledAt.toLocaleString("nl-BE", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Europe/Brussels",
+      })
+    : "geen datum";
+  await logAudit({
+    actorId: user.id,
+    action: "activity.cancelled",
+    entityType: "Activity",
+    entityId: activityId,
+    description: `Activiteit "${activity.subject}" geannuleerd bij lead "${lead.firstName} ${lead.lastName}" (was gepland op ${scheduledAtLabel})`,
   });
 
   revalidatePath(`/leads/${activity.leadId}`);
