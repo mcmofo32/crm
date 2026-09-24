@@ -279,6 +279,7 @@ export default async function LeadDetailPage({
 
           <LeadDocumentsCard
             leadId={lead.id}
+            leadType={lead.leadType}
             documents={documents}
             canEdit
           />

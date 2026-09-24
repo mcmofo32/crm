@@ -10,7 +10,7 @@ import {
   type LeadDocumentPreview,
 } from "@/lib/actions/leadDocuments";
 import {
-  LEAD_DOCUMENT_KIND_ORDER,
+  LEAD_DOCUMENT_KINDS_BY_LEAD_TYPE,
   LEAD_DOCUMENT_KIND_LABELS,
   LEAD_DOCUMENT_KIND_HINTS,
   LEAD_DOCUMENT_KIND_ACCEPT,
@@ -18,7 +18,7 @@ import {
 } from "@/lib/leadDocuments";
 import { useToastAction } from "@/components/toast/useToastAction";
 import { useToast } from "@/components/toast/ToastProvider";
-import type { LeadDocumentKind } from "@/generated/prisma/client";
+import type { LeadDocumentKind, LeadType } from "@/generated/prisma/client";
 
 type DocumentInfo = {
   id: string;
@@ -37,18 +37,23 @@ function formatFileSize(bytes: number) {
 }
 
 /**
- * De 3 vaste documentvakken op een leadprofiel (fiche financiële analyse,
- * budgettering, portefeuille) — zowel voor leads als klanten, zelfde Vercel
- * Blob-opslag als Bibliotheek, maar hier per lead hoogstens één bestand per
- * vak, en met "Bekijken" die het document zoveel mogelijk rechtstreeks in
- * de CRM toont i.p.v. enkel downloaden (zie getLeadDocumentPreviewAction).
+ * De vaste documentvakken op een leadprofiel — voor FA: fiche financiële
+ * analyse, budgettering, portefeuille; voor RG (geen budgettering/
+ * portefeuille van toepassing): enkel de fiche RG (zie
+ * LEAD_DOCUMENT_KINDS_BY_LEAD_TYPE). Zowel voor leads als klanten, zelfde
+ * Vercel Blob-opslag als Bibliotheek, maar hier per lead hoogstens één
+ * bestand per vak, en met "Bekijken" die het document zoveel mogelijk
+ * rechtstreeks in de CRM toont i.p.v. enkel downloaden (zie
+ * getLeadDocumentPreviewAction).
  */
 export function LeadDocumentsCard({
   leadId,
+  leadType,
   documents,
   canEdit,
 }: {
   leadId: string;
+  leadType: LeadType;
   documents: DocumentInfo[];
   canEdit: boolean;
 }) {
@@ -86,7 +91,7 @@ export function LeadDocumentsCard({
     <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
       <p className="mb-3 font-medium text-slate-900 dark:text-slate-100">Documenten</p>
       <div className="flex flex-col gap-3">
-        {LEAD_DOCUMENT_KIND_ORDER.map((kind) => (
+        {LEAD_DOCUMENT_KINDS_BY_LEAD_TYPE[leadType].map((kind) => (
           <LeadDocumentSlot
             key={kind}
             leadId={leadId}
