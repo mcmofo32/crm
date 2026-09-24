@@ -5,6 +5,7 @@ import {
   getCompanyProductionContributionsForTable,
   saveCompanyProductionGoalAction,
   saveCompanyProductionContributionsAction,
+  getActiveEmployeeCount,
 } from "@/lib/actions/production";
 import type { LeadType } from "@/generated/prisma/client";
 import { Avatar } from "@/components/Avatar";
@@ -26,9 +27,10 @@ export default async function BedrijfsJaarplanPage({
   const year = yearParam ? Number(yearParam) : new Date().getFullYear();
   const leadType: LeadType = typeParam === "RG" ? "RG" : "FA";
 
-  const [goalProgress, contributionUsers] = await Promise.all([
+  const [goalProgress, contributionUsers, activeEmployeeCount] = await Promise.all([
     getCompanyProductionGoalProgress(year, leadType),
     getCompanyProductionContributionsForTable(year, leadType),
+    leadType === "RG" ? getActiveEmployeeCount() : Promise.resolve(null),
   ]);
 
   const boundSaveGoal = saveCompanyProductionGoalAction.bind(null, year, leadType);
@@ -104,12 +106,23 @@ export default async function BedrijfsJaarplanPage({
         </h2>
         {leadType === "RG" ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Recrutering is cumulatief: &quot;Groei dit kwartaal&quot; komt
-            bovenop het beginaantal (hieronder) en de vorige kwartalen —
-            &quot;Totaal&quot; is dus het streefaantal medewerkers op het
-            einde van dat kwartaal. &quot;Gerealiseerd&quot; is het
-            effectieve aantal op dat moment (geen kwartaalbedrag) en laat je
-            leeg zolang een kwartaal nog niet (volledig) afgelopen is.
+            Recrutering telt uitdrukkelijk enkel <strong>nieuwe</strong>{" "}
+            medewerkers: &quot;Groei dit kwartaal&quot; telt cumulatief op
+            bij de vorige kwartalen, los van het bestaand
+            personeelsbestand — &quot;Totaal&quot; is dus het streefaantal
+            nieuwe medewerkers sinds het begin van het jaar.
+            &quot;Gerealiseerd&quot; is het cumulatief aantal nieuwe
+            medewerkers op dat moment (geen kwartaalbedrag) en laat je leeg
+            zolang een kwartaal nog niet (volledig) afgelopen is.
+            {activeEmployeeCount !== null && (
+              <>
+                {" "}
+                Ter referentie: er zijn nu{" "}
+                <strong>{activeEmployeeCount.toLocaleString("nl-BE")}</strong>{" "}
+                actieve medewerkers — dat cijfer wordt live geteld, hier
+                niet apart in te vullen.
+              </>
+            )}
           </p>
         ) : (
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -121,21 +134,6 @@ export default async function BedrijfsJaarplanPage({
         )}
         <form key={`${year}-${leadType}`} action={boundSaveGoal} className="flex flex-col gap-3">
           <FormToast message="Jaarplan opgeslagen" />
-          {leadType === "RG" && (
-            <label className="flex max-w-xs flex-col gap-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Beginstand — aantal medewerkers bij start van {year}
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="startingValue"
-                defaultValue={goalProgress.startingValue ?? ""}
-                className="w-32 rounded-md border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              />
-            </label>
-          )}
           <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">

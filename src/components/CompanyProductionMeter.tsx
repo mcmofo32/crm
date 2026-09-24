@@ -15,6 +15,7 @@ export function CompanyProductionMeter({
   progress,
   title,
   unitLabel = "eenheden",
+  liveCountLabel,
 }: {
   year: number;
   progress: CompanyProductionGoalProgress;
@@ -22,6 +23,8 @@ export function CompanyProductionMeter({
   title: string;
   /** Bv. "eenheden" of "medewerkers". */
   unitLabel?: string;
+  /** Optionele live-referentie los van het doel, bv. "nu actief: 33 medewerkers" — geen onderdeel van de voortgangsberekening. */
+  liveCountLabel?: string;
 }) {
   const percent = progress.percent ?? 0;
   const barWidth = Math.min(percent, 100);
@@ -33,10 +36,9 @@ export function CompanyProductionMeter({
         <div>
           <p className="text-base text-slate-500 dark:text-slate-400">
             {title} {year}
-            {progress.startingValue !== null && (
+            {liveCountLabel && (
               <span className="ml-1.5 font-normal text-slate-400 dark:text-slate-500">
-                — start van het jaar: {progress.startingValue.toLocaleString("nl-BE")}{" "}
-                {unitLabel}
+                — {liveCountLabel}
               </span>
             )}
           </p>

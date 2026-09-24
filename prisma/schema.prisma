@@ -885,12 +885,15 @@ model UserKpiMonthlyEntry {
 ///   kwartaal (kwartaaltotaal = x3, kwartalen onafhankelijk van elkaar);
 ///   `actualUnits` het gerealiseerde totaal van dát kwartaal. Het jaarcijfer
 ///   is de som van de 4 kwartalen.
-/// - RG (recrutering): `monthlyTarget` is de gewenste groei tíjdens dat
-///   kwartaal (bv. "+6"), cumulatief opgeteld bovenop het beginaantal
-///   (CompanyProductionBaseline) en de vorige kwartalen; `actualUnits` is
-///   het effectief bereikte totaal aantal medewerkers op het einde van dát
-///   kwartaal (een momentopname, geen som). Het jaarcijfer is het
-///   kwartaal-4-doel t.o.v. het laatst ingevulde kwartaal, niet een som.
+/// - RG (recrutering): `monthlyTarget` is de gewenste groei aan NIEUWE
+///   medewerkers tíjdens dat kwartaal (bv. "+6"), cumulatief opgeteld bij de
+///   vorige kwartalen (dus enkel nieuwe medewerkers, geen bestaand
+///   personeelsbestand); `actualUnits` het cumulatief aantal effectief
+///   gerealiseerde nieuwe medewerkers op het einde van dát kwartaal. Het
+///   jaarcijfer is het kwartaal-4-doel t.o.v. het laatst ingevulde kwartaal,
+///   niet een som (dat zou dubbel tellen). Het huidige totale
+///   personeelsbestand (los van dit doel) wordt live geteld — zie
+///   getActiveEmployeeCount — niet hier opgeslagen.
 model CompanyProductionGoal {
   id            String   @id @default(cuid())
   year          Int
@@ -901,20 +904,6 @@ model CompanyProductionGoal {
   updatedAt     DateTime @updatedAt
 
   @@unique([year, quarter, leadType])
-}
-
-/// Beginaantal voor een cumulatief plan (RG/recrutering — zie
-/// CompanyProductionGoal) — het aantal medewerkers bij de start van het
-/// jaar, vóór de groei van kwartaal 1. Niet relevant voor FA (rate-based,
-/// kwartalen onafhankelijk).
-model CompanyProductionBaseline {
-  id        String   @id @default(cuid())
-  year      Int
-  leadType  LeadType
-  value     Decimal  @db.Decimal(12, 2)
-  updatedAt DateTime @updatedAt
-
-  @@unique([year, leadType])
 }
 
 /// Aandeel van elke gebruiker in de gerealiseerde bedrijfsproductie van een

@@ -1873,17 +1873,15 @@ export async function saveAllUserMonthlyGoalsAction(
 export type CompanyProductionQuarter = {
   quarter: number;
   monthlyTarget: number;
-  /** FA: kwartaaltotaal (monthlyTarget x3), kwartalen onafhankelijk. RG: cumulatief doel t.e.m. dit kwartaal (beginaantal + som van groei t.e.m. hier). */
+  /** FA: kwartaaltotaal (monthlyTarget x3), kwartalen onafhankelijk. RG: cumulatief doel t.e.m. dit kwartaal — enkel nieuwe medewerkers, geen bestaand personeelsbestand. */
   totalTarget: number;
-  /** null = nog niet ingevuld (bv. een kwartaal dat nog moet beginnen), niet hetzelfde als 0 behaald. FA: behaald tijdens dit kwartaal. RG: totaal aantal op het einde van dit kwartaal (momentopname). */
+  /** null = nog niet ingevuld (bv. een kwartaal dat nog moet beginnen), niet hetzelfde als 0 behaald. FA: behaald tijdens dit kwartaal. RG: cumulatief aantal nieuwe medewerkers op het einde van dit kwartaal. */
   actualUnits: number | null;
 };
 
 export type CompanyProductionGoalProgress = {
   year: number;
   leadType: LeadType;
-  /** RG only: aantal bij start van het jaar, vóór kwartaal 1. Altijd null voor FA. */
-  startingValue: number | null;
   quarters: CompanyProductionQuarter[];
   totalTarget: number;
   totalActual: number;
@@ -1893,35 +1891,30 @@ export type CompanyProductionGoalProgress = {
 /**
  * FA (productie) is rate-based: elk kwartaal telt onafhankelijk mee (doel
  * per maand x3), het jaarcijfer is de som van de 4 kwartalen. RG
- * (recrutering) is cumulatief: elk kwartaal voegt een gewenste groei toe
- * aan een lopend totaal dat start bij CompanyProductionBaseline, en
- * "behaald" is een momentopname (totaal aantal op dat moment) i.p.v. een
- * kwartaalbedrag — het jaarcijfer is dus het doel van kwartaal 4 t.o.v.
- * het laatst ingevulde kwartaal, nooit een som (dat zou het aantal
- * meermaals meetellen).
+ * (recrutering) is cumulatief maar telt uitdrukkelijk enkel NIEUWE
+ * medewerkers: elk kwartaal voegt een gewenste groei toe aan een lopend
+ * totaal (geen bestaand personeelsbestand erbij opgeteld — dat wordt apart,
+ * live, geteld via getActiveEmployeeCount), en "behaald" is het cumulatief
+ * aantal nieuwe medewerkers op dat moment i.p.v. een kwartaalbedrag — het
+ * jaarcijfer is dus het doel van kwartaal 4 t.o.v. het laatst ingevulde
+ * kwartaal, nooit een som (dat zou het aantal meermaals meetellen).
  */
 export async function getCompanyProductionGoalProgress(
   year: number,
   leadType: LeadType
 ): Promise<CompanyProductionGoalProgress> {
   await requireViewer();
-  const [rows, baseline] = await Promise.all([
-    prisma.companyProductionGoal.findMany({ where: { year, leadType } }),
-    leadType === "RG"
-      ? prisma.companyProductionBaseline.findUnique({
-          where: { year_leadType: { year, leadType } },
-        })
-      : Promise.resolve(null),
-  ]);
+  const rows = await prisma.companyProductionGoal.findMany({
+    where: { year, leadType },
+  });
   const byQuarter = new Map(rows.map((r) => [r.quarter, r]));
-  const startingValue = baseline ? Number(baseline.value) : null;
 
   let quarters: CompanyProductionQuarter[];
   let totalTarget: number;
   let totalActual: number;
 
   if (leadType === "RG") {
-    let cumulativeTarget = startingValue ?? 0;
+    let cumulativeTarget = 0;
     quarters = [1, 2, 3, 4].map((quarter) => {
       const row = byQuarter.get(quarter);
       const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
@@ -1957,12 +1950,17 @@ export async function getCompanyProductionGoalProgress(
   return {
     year,
     leadType,
-    startingValue,
     quarters,
     totalTarget,
     totalActual,
     percent: totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : null,
   };
+}
+
+/** Huidig totaal personeelsbestand (los van het recrutering-doel hierboven, dat enkel nieuwe medewerkers telt) — telt gewoon alle actieve gebruikers. */
+export async function getActiveEmployeeCount(): Promise<number> {
+  await requireViewer();
+  return prisma.user.count({ where: { active: true } });
 }
 
 export type CompanyProductionContributionRow = {
@@ -2038,10 +2036,7 @@ export async function getCompanyProductionContributionsForTable(
 /**
  * Beheerder/Admin stelt hier het bedrijfsbrede jaarplan in: doel +
  * gerealiseerd per kwartaal, voor het gekozen leadType. Leeg gelaten
- * "gerealiseerd" = nog niet ingevuld (blijft null, geen 0). Voor RG
- * (recrutering, cumulatief — zie getCompanyProductionGoalProgress) slaat
- * dit ook het beginaantal op (`startingValue` in formData) als dat
- * meegegeven is; voor FA is dat niet van toepassing en wordt het genegeerd.
+ * "gerealiseerd" = nog niet ingevuld (blijft null, geen 0).
  */
 export async function saveCompanyProductionGoalAction(
   year: number,
@@ -2062,21 +2057,7 @@ export async function saveCompanyProductionGoalAction(
     });
   });
 
-  const startingValueRaw =
-    leadType === "RG" ? String(formData.get("startingValue") ?? "").trim() : "";
-
-  await prisma.$transaction([
-    ...upserts,
-    ...(startingValueRaw
-      ? [
-          prisma.companyProductionBaseline.upsert({
-            where: { year_leadType: { year, leadType } },
-            create: { year, leadType, value: Number(startingValueRaw) },
-            update: { value: Number(startingValueRaw) },
-          }),
-        ]
-      : []),
-  ]);
+  await prisma.$transaction(upserts);
 
   revalidatePath("/dashboard");
   revalidatePath("/beheer/doelen/jaarplan");

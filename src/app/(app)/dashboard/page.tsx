@@ -27,6 +27,7 @@ import {
   getCurrentProductionMonth,
   getCompanyProductionGoalProgress,
   getCompanyProductionContributions,
+  getActiveEmployeeCount,
 } from "@/lib/actions/production";
 import { getAssignableUsers } from "@/lib/actions/leads";
 import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
@@ -101,6 +102,7 @@ export default async function DashboardPage() {
     faProductionContributions,
     rgProductionGoal,
     rgProductionContributions,
+    activeEmployeeCount,
   ] = await Promise.all([
     // Enkel de eigen verlopen taken van de ingelogde gebruiker — zelfde
     // logica als het badge-cijfer naast "Taken" in de layout.
@@ -148,6 +150,7 @@ export default async function DashboardPage() {
     showGroupGoals
       ? getCompanyProductionContributions(currentYear, "RG")
       : Promise.resolve(null),
+    showGroupGoals ? getActiveEmployeeCount() : Promise.resolve(null),
   ]);
   const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
 
@@ -356,6 +359,11 @@ export default async function DashboardPage() {
               progress={rgProductionGoal}
               title="Recrutering"
               unitLabel="medewerkers"
+              liveCountLabel={
+                activeEmployeeCount !== null
+                  ? `nu actief: ${activeEmployeeCount.toLocaleString("nl-BE")} medewerkers`
+                  : undefined
+              }
             />
             {rgProductionContributions && (
               <CompanyProductionPieChart contributions={rgProductionContributions} />
