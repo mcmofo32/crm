@@ -360,6 +360,7 @@ export default async function LeadDetailPage({
                         location={activity.location}
                         meetingLink={activity.meetingLink}
                         subagentId={activity.subagentId}
+                        meetingDescription={activity.meetingDescription}
                         subagents={subagents}
                         leadId={lead.id}
                         stages={stages}

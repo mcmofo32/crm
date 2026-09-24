@@ -111,6 +111,25 @@ export function MeetingPlannerFields({
           : "Enkel zichtbaar als locatie op het agenda-item."}
       </p>
 
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-slate-500 dark:text-slate-400">
+          Extra tekst in de omschrijving (optioneel)
+        </label>
+        <textarea
+          value={value.meetingDescription}
+          onChange={(e) =>
+            onChange({ ...value, meetingDescription: e.target.value })
+          }
+          rows={4}
+          placeholder="Bv. agenda, wat mee te brengen, praktische afspraken…"
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        />
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          Komt mee in de omschrijving van de agenda-uitnodiging — zichtbaar
+          voor iedereen die mee uitgenodigd is, dus ook de klant.
+        </p>
+      </div>
+
       {(isAdviesgesprekType(meetingType) ||
         isOpvolggesprekType(meetingType) ||
         isJaarlijkseOpvolgingType(meetingType)) && (

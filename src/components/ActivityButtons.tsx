@@ -84,6 +84,7 @@ export function ActivityButtons({
   location,
   meetingLink,
   subagentId,
+  meetingDescription,
   subagents,
   leadId,
   stages,
@@ -102,6 +103,7 @@ export function ActivityButtons({
   location: string | null;
   meetingLink: string | null;
   subagentId: string | null;
+  meetingDescription: string | null;
   subagents: SubagentRecord[];
   leadId: string;
   stages: StageRecord[];
@@ -145,6 +147,7 @@ export function ActivityButtons({
       location: location ?? "",
       useGoogleMeet: meetingMode === "ONLINE" && !meetingLink,
       subagentId: subagentId ?? "",
+      meetingDescription: meetingDescription ?? "",
     };
   }
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(buildMeetingDraft);

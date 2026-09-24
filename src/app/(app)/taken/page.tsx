@@ -297,6 +297,7 @@ export default async function TakenPage({
                           location={task.location}
                           meetingLink={task.meetingLink}
                           subagentId={task.subagentId}
+                          meetingDescription={task.meetingDescription}
                           subagents={subagents}
                           leadId={task.lead.id}
                           stages={stages.filter((s) => s.leadType === task.lead.leadType)}

@@ -156,6 +156,9 @@ export async function scheduleActivityAction(formData: FormData) {
     subject = buildMeetingSubject(scheduledAt, rawSubject, lead.firstName, lead.lastName);
   }
 
+  const meetingDescription =
+    String(formData.get("meetingDescription") ?? "").trim() || null;
+
   const activity = await prisma.activity.create({
     data: {
       leadId,
@@ -172,6 +175,7 @@ export async function scheduleActivityAction(formData: FormData) {
       location,
       meetingLink,
       subagentId,
+      meetingDescription,
     },
   });
 
@@ -410,6 +414,12 @@ export async function updateActivityAction(
     subject = String(formData.get("subject") ?? activity.subject);
   }
 
+  // In tegenstelling tot notes hieronder (aparte rapporteer-flow die nooit
+  // per ongeluk mag wissen) is dit veld gewoon een normaal formulierveld
+  // vooraf ingevuld met de huidige waarde — leeg opslaan wist het dus bewust.
+  const meetingDescription =
+    String(formData.get("meetingDescription") ?? "").trim() || null;
+
   const updated = await prisma.activity.update({
     where: { id: activityId },
     data: {
@@ -423,6 +433,7 @@ export async function updateActivityAction(
       location,
       meetingLink,
       subagentId,
+      meetingDescription,
     },
   });
 
@@ -652,6 +663,9 @@ export async function planStageMeetingAction(
     freshLead.lastName
   );
 
+  const meetingDescription =
+    String(formData.get("meetingDescription") ?? "").trim() || null;
+
   const activity = await prisma.activity.create({
     data: {
       leadId,
@@ -665,6 +679,7 @@ export async function planStageMeetingAction(
       location,
       meetingLink,
       subagentId,
+      meetingDescription,
     },
   });
 

@@ -174,6 +174,8 @@ export type MeetingPlannerValue = {
   location: string;
   useGoogleMeet: boolean;
   subagentId: string;
+  /** Vrije tekst die mee in de omschrijving van het Google Agenda-item komt — zichtbaar voor wie mee uitgenodigd is, dus ook de klant. */
+  meetingDescription: string;
 };
 
 export const EMPTY_MEETING_PLANNER_VALUE: MeetingPlannerValue = {
@@ -183,6 +185,7 @@ export const EMPTY_MEETING_PLANNER_VALUE: MeetingPlannerValue = {
   location: "",
   useGoogleMeet: false,
   subagentId: "",
+  meetingDescription: "",
 };
 
 /** Zet de widget-waarden om in FormData voor `planStageMeetingAction`/`scheduleActivityAction`, of null als er geen tijdstip gekozen is. */
@@ -197,6 +200,9 @@ export function buildMeetingFormData(value: MeetingPlannerValue): FormData | nul
     formData.set("useGoogleMeet", "on");
   }
   if (value.subagentId) formData.set("subagentId", value.subagentId);
+  if (value.meetingDescription) {
+    formData.set("meetingDescription", value.meetingDescription);
+  }
   return formData;
 }
 
