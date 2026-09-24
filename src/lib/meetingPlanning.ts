@@ -14,6 +14,8 @@ const PLANNING_MEETING_TYPES = new Set([
   "carrièregesprek",
   // Een tweede adviesgesprek in alles behalve naam — zelfde rijke widget.
   "opvolggesprek",
+  // RG-tegenhanger van Opvolggesprek (zelfde positie in de funnel).
+  "terugkoppeling",
 ]);
 
 export function isPlanningStage(stageLabel: string) {
@@ -44,6 +46,11 @@ export function isAdviesgesprekType(meetingType: string) {
 /** Opvolggesprek is in alles behalve naam een tweede Adviesgesprek (zelfde widget, zelfde Van/Tot, zelfde e-mailprompt). */
 export function isOpvolggesprekType(meetingType: string) {
   return meetingTypeFromStageLabel(meetingType).toLowerCase() === "opvolggesprek";
+}
+
+/** Terugkoppeling is de RG-tegenhanger van Opvolggesprek (zelfde widget, zelfde Van/Tot, zelfde e-mailprompt). */
+export function isTerugkoppelingType(meetingType: string) {
+  return meetingTypeFromStageLabel(meetingType).toLowerCase() === "terugkoppeling";
 }
 
 /**
@@ -82,7 +89,8 @@ export function isCarrieregesprekType(meetingType: string) {
  * e-mailadres) vragen om een e-mailadres toe te voegen als dat nog
  * ontbreekt: alle types die de lead ook effectief als deelnemer uitnodigen
  * op de afspraak (zie subjectInvitesLead) — Financiële analyse,
- * Adviesgesprek, Kennismakingsgesprek, Carrièregesprek en Opvolggesprek.
+ * Adviesgesprek, Kennismakingsgesprek, Carrièregesprek, Opvolggesprek en
+ * Terugkoppeling.
  */
 export function wantsEmailPrompt(meetingType: string) {
   return (
@@ -91,7 +99,8 @@ export function wantsEmailPrompt(meetingType: string) {
     isOpvolggesprekType(meetingType) ||
     isKennismakingsgesprekType(meetingType) ||
     isCarrieregesprekType(meetingType) ||
-    isJaarlijkseOpvolgingType(meetingType)
+    isJaarlijkseOpvolgingType(meetingType) ||
+    isTerugkoppelingType(meetingType)
   );
 }
 
@@ -101,18 +110,19 @@ export function isRichMeetingType(meetingType: string) {
     isAdviesgesprekType(meetingType) ||
     isFinancieleAnalyseType(meetingType) ||
     isOpvolggesprekType(meetingType) ||
-    isJaarlijkseOpvolgingType(meetingType)
+    isJaarlijkseOpvolgingType(meetingType) ||
+    isTerugkoppelingType(meetingType)
   );
 }
 
 /**
  * Voor welke onderwerpen wordt de lead effectief uitgenodigd (als attendee
  * met zijn e-mailadres) op het Google Agenda-item: Financiële analyse,
- * Adviesgesprek, Kennismakingsgesprek, Carrièregesprek, Belastingsaangifte
- * en Opvolggesprek — dat zijn echte afspraken mét de klant (categorie
- * "Afspraak" bij het inplannen). Een uitgaand telefoongesprek, e-mail of
- * notitie (categorie "Opvolging") is enkel een herinnering in de eigen
- * agenda van de medewerker, dus daarbij wordt de lead niet uitgenodigd.
+ * Adviesgesprek, Kennismakingsgesprek, Carrièregesprek, Belastingsaangifte,
+ * Opvolggesprek en Terugkoppeling — dat zijn echte afspraken mét de klant
+ * (categorie "Afspraak" bij het inplannen). Een uitgaand telefoongesprek,
+ * e-mail of notitie (categorie "Opvolging") is enkel een herinnering in de
+ * eigen agenda van de medewerker, dus daarbij wordt de lead niet uitgenodigd.
  * Werkt op het volledige onderwerp (bv. "18:00 - Financiële analyse Jan
  * Janssens"), niet enkel op het kale type, via `contains`.
  */
@@ -125,7 +135,8 @@ export function subjectInvitesLead(subject: string) {
     lower.includes("carrièregesprek") ||
     lower.includes("belastingsaangifte") ||
     lower.includes("opvolggesprek") ||
-    lower.includes("jaarlijkse opvolging")
+    lower.includes("jaarlijkse opvolging") ||
+    lower.includes("terugkoppeling")
   );
 }
 
@@ -153,6 +164,7 @@ export function bareMeetingType(subject: string): string {
   if (lower.includes("adviesgesprek")) return "Adviesgesprek";
   if (lower.includes("kennismakingsgesprek")) return "Kennismakingsgesprek";
   if (lower.includes("carrièregesprek")) return "Carrièregesprek";
+  if (lower.includes("terugkoppeling")) return "Terugkoppeling";
   return "";
 }
 
