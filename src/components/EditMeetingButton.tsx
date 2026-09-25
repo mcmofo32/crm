@@ -13,7 +13,7 @@ import {
 import { useToastAction } from "@/components/toast/useToastAction";
 import { useToast } from "@/components/toast/ToastProvider";
 
-type SubagentOption = { id: string; name: string; teamName: string };
+type SubagentOption = { id: string; name: string; teamName: string; isCoach?: boolean };
 
 function toDatetimeLocalValue(date: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");

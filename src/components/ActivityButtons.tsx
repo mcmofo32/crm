@@ -35,7 +35,12 @@ import {
   type FollowUpCallValue,
 } from "@/lib/meetingPlanning";
 
-type SubagentRecord = { id: string; name: string; team: { name: string } };
+type SubagentRecord = {
+  id: string;
+  name: string;
+  team: { name: string };
+  user: { role: string } | null;
+};
 type StageRecord = {
   id: string;
   key: string;
@@ -354,6 +359,7 @@ export function ActivityButtons({
             id: s.id,
             name: s.name,
             teamName: s.team.name,
+            isCoach: s.user?.role === "COACH",
           }))}
         />
         <textarea

@@ -39,6 +39,7 @@ type SubagentRecord = {
   id: string;
   name: string;
   team: { name: string };
+  user: { role: string } | null;
 };
 
 const BLUE_RAMP = ["#93c5fd", "#3b82f6", "#1d4ed8"];
@@ -191,6 +192,7 @@ function LeadCard({
               id: s.id,
               name: s.name,
               teamName: s.team.name,
+              isCoach: s.user?.role === "COACH",
             }))}
           />
         )}
@@ -852,6 +854,7 @@ export function FunnelBoard({
                     id: s.id,
                     name: s.name,
                     teamName: s.team.name,
+                    isCoach: s.user?.role === "COACH",
                   }))}
                 />
               </div>

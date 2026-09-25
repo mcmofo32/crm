@@ -30,7 +30,12 @@ import {
 import { useToastAction } from "@/components/toast/useToastAction";
 import { useToast } from "@/components/toast/ToastProvider";
 
-type SubagentRecord = { id: string; name: string; team: { name: string } };
+type SubagentRecord = {
+  id: string;
+  name: string;
+  team: { name: string };
+  user: { role: string } | null;
+};
 
 export function StageSelect({
   leadId,
@@ -123,6 +128,7 @@ export function StageSelect({
               id: s.id,
               name: s.name,
               teamName: s.team.name,
+              isCoach: s.user?.role === "COACH",
             }))}
           />
         )}

@@ -54,6 +54,20 @@ export function isTerugkoppelingType(meetingType: string) {
 }
 
 /**
+ * De 3 hoofdfases van de RG-funnel (Kennismakingsgesprek, Carrièregesprek,
+ * Terugkoppeling) — hier mag, naast een subagent, ook een coach uitgenodigd
+ * worden (zie MeetingPlannerFields), maar dat is nooit verplicht zoals bij
+ * een FA-adviesgesprek.
+ */
+export function isRecruitmentMeetingType(meetingType: string) {
+  return (
+    isKennismakingsgesprekType(meetingType) ||
+    isCarrieregesprekType(meetingType) ||
+    isTerugkoppelingType(meetingType)
+  );
+}
+
+/**
  * Jaarlijkse opvolging: het jaarlijkse check-in-gesprek met een bestaande
  * klant (geen fase in de verkoopfunnel, dus geen "...ingepland"-fase-move,
  * i.t.t. Adviesgesprek/Opvolggesprek) — maar wel dezelfde rijke
@@ -111,7 +125,9 @@ export function isRichMeetingType(meetingType: string) {
     isFinancieleAnalyseType(meetingType) ||
     isOpvolggesprekType(meetingType) ||
     isJaarlijkseOpvolgingType(meetingType) ||
-    isTerugkoppelingType(meetingType)
+    isTerugkoppelingType(meetingType) ||
+    isKennismakingsgesprekType(meetingType) ||
+    isCarrieregesprekType(meetingType)
   );
 }
 

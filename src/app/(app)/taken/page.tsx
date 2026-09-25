@@ -111,7 +111,9 @@ export default async function TakenPage({
       },
       orderBy: { scheduledAt: "asc" },
     }),
-    getSubagents(),
+    // FA- en RG-taken staan hier door elkaar, dus altijd coaches meenemen —
+    // MeetingPlannerFields filtert ze zelf weg voor een FA-afspraak.
+    getSubagents({ includeCoaches: true }),
     prisma.funnelStage.findMany({
       select: { id: true, key: true, label: true, isWon: true, isLost: true, leadType: true },
     }),

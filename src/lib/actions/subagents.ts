@@ -19,10 +19,18 @@ async function requireUserManager() {
  * Subagenten om te kiezen bij het inplannen van een adviesgesprek. Een
  * adviesgesprek moet altijd samen met een subagent kunnen, dus iedereen ziet
  * hier alle actieve subagenten — niet enkel die van het eigen team.
+ *
+ * `includeCoaches` (default false, enkel voor de RG-planning-widget) telt
+ * daar ook de auto-gesynchroniseerde coach-vermeldingen bij (zie
+ * syncSubagentForUser) — voor recruteringsgesprekken mag naast een subagent
+ * ook een coach uitgenodigd worden. Elke plek die dit niet expliciet
+ * aanvraagt (dossierbeheerder-keuze, evenement-uitnodigingen,
+ * Beheer > Teams) blijft ongewijzigd enkel "echte" subagenten tonen.
  */
-export async function getSubagents() {
+export async function getSubagents(options?: { includeCoaches?: boolean }) {
   const viewer = await getEffectiveViewer();
   if (!viewer) throw new Error("Niet ingelogd");
+  const includeCoaches = options?.includeCoaches ?? false;
 
   return prisma.subagent.findMany({
     where: {
@@ -33,20 +41,30 @@ export async function getSubagents() {
       // syncSubagentForUser dat om een of andere reden nog niet doorgevoerd
       // heeft. userId: null laat een manueel toegevoegde subagent (geen
       // inlogaccount, dus geen actief/inactief-status om op te controleren)
-      // gewoon door.
-      OR: [{ userId: null }, { user: { active: true } }],
+      // gewoon door. Type/rol wordt hier expliciet herbevestigd (i.p.v. enkel
+      // op user.active te vertrouwen) omdat sinds includeCoaches een
+      // gesynchroniseerd record ook enkel via role===COACH kan bestaan.
+      OR: [
+        { userId: null },
+        { user: { active: true, agentType: "SUBAGENT" } },
+        ...(includeCoaches
+          ? [{ user: { active: true, role: "COACH" as const } }]
+          : []),
+      ],
     },
-    include: { team: { select: { name: true } } },
+    include: { team: { select: { name: true } }, user: { select: { role: true } } },
     orderBy: { name: "asc" },
   });
 }
 
 /**
  * Houdt het Subagent-record van deze gebruiker in sync met zijn "Type"
- * (agentType): is hij Subagent, actief, heeft hij een e-mailadres en een
- * team, dan is/wordt hij automatisch kiesbaar bij het uitnodigen van een
- * subagent op een adviesgesprek — zonder dat een aparte, manuele
- * subagent-vermelding voor hem aangemaakt moet worden.
+ * (agentType) én rol: is hij Subagent óf Coach, actief, heeft hij een
+ * e-mailadres en een team, dan is/wordt hij automatisch kiesbaar bij het
+ * uitnodigen van een subagent op een adviesgesprek (Subagent) of een coach op
+ * een recruteringsgesprek (Coach, zie getSubagents' includeCoaches) — zonder
+ * dat een aparte, manuele subagent-vermelding voor hem aangemaakt moet
+ * worden.
  *
  * Voldoet hij niet (meer), dan wordt het gekoppelde record enkel op
  * inactief gezet, nooit verwijderd — zo blijft de koppeling op reeds
@@ -61,6 +79,7 @@ export async function syncSubagentForUser(userId: string) {
       email: true,
       phone: true,
       agentType: true,
+      role: true,
       active: true,
       teamId: true,
       coachedTeam: { select: { id: true } },
@@ -70,7 +89,10 @@ export async function syncSubagentForUser(userId: string) {
 
   const teamId = user.teamId ?? user.coachedTeam?.id ?? null;
   const qualifies =
-    user.agentType === "SUBAGENT" && user.active && !!user.email && !!teamId;
+    (user.agentType === "SUBAGENT" || user.role === "COACH") &&
+    user.active &&
+    !!user.email &&
+    !!teamId;
 
   if (!qualifies) {
     await prisma.subagent.updateMany({
