@@ -46,7 +46,12 @@ function typeForSubject(category: Category, subject: string) {
 }
 
 type AssignableUser = { id: string; name: string; googleCalendarConnected: boolean };
-type SubagentRecord = { id: string; name: string; team: { name: string } };
+type SubagentRecord = {
+  id: string;
+  name: string;
+  team: { name: string };
+  user: { role: string } | null;
+};
 
 /**
  * "Volgend gesprek inplannen" op de leadpagina. Voor "Financiële analyse" en
@@ -207,6 +212,7 @@ export function ScheduleActivityForm({
                 id: s.id,
                 name: s.name,
                 teamName: s.team.name,
+                isCoach: s.user?.role === "COACH",
               }))}
             />
           </div>

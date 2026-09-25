@@ -34,7 +34,7 @@ export default async function FunnelPage({
     getEffectiveViewer(),
     ensureFunnelStages(leadType as LeadType),
     getAssignableUsers(),
-    getSubagents(),
+    getSubagents({ includeCoaches: leadType === "RG" }),
   ]);
   if (!user) notFound();
   // Coach ziet de balk altijd (ook met een klein/leeg team), zodat duidelijk

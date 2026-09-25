@@ -5,11 +5,18 @@ import {
   isAdviesgesprekType,
   isOpvolggesprekType,
   isJaarlijkseOpvolgingType,
+  isRecruitmentMeetingType,
   type MeetingPlannerValue,
 } from "@/lib/meetingPlanning";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
-type SubagentOption = { id: string; name: string; teamName: string };
+type SubagentOption = {
+  id: string;
+  name: string;
+  teamName: string;
+  /** Auto-gesynchroniseerd vanuit een coach-account i.p.v. een "echte" subagent — enkel gekozen bij includeCoaches. */
+  isCoach?: boolean;
+};
 
 /** Invulvelden voor de planning-widget: datum/uur, online of fysiek, adres, Zoom/Google Meet-keuze. */
 export function MeetingPlannerFields({
@@ -130,28 +137,48 @@ export function MeetingPlannerFields({
         </p>
       </div>
 
-      {(isAdviesgesprekType(meetingType) ||
-        isOpvolggesprekType(meetingType) ||
-        isJaarlijkseOpvolgingType(meetingType)) && (
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500 dark:text-slate-400">
-            Subagent uitnodigen (verplicht)
-          </label>
-          <select
-            required
-            value={value.subagentId}
-            onChange={(e) => onChange({ ...value, subagentId: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-          >
-            <option value="">Kies subagent…</option>
-            {subagents.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.teamName})
+      {(() => {
+        const isMandatorySubagentType =
+          isAdviesgesprekType(meetingType) ||
+          isOpvolggesprekType(meetingType) ||
+          isJaarlijkseOpvolgingType(meetingType);
+        const isRecruitment = isRecruitmentMeetingType(meetingType);
+        if (!isMandatorySubagentType && !isRecruitment) return null;
+
+        // Een coach is enkel kiesbaar bij een recruteringsgesprek — bij een
+        // adviesgesprek e.d. blijft de lijst zoals voorheen enkel subagenten,
+        // ook al bevat de meegegeven `subagents`-prop (bv. op de Taken-pagina,
+        // waar FA- en RG-taken door elkaar staan) mogelijk ook coaches.
+        const options = isRecruitment
+          ? subagents
+          : subagents.filter((s) => !s.isCoach);
+
+        return (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-500 dark:text-slate-400">
+              {isRecruitment
+                ? "Subagent of coach uitnodigen (optioneel)"
+                : "Subagent uitnodigen (verplicht)"}
+            </label>
+            <select
+              required={isMandatorySubagentType}
+              value={value.subagentId}
+              onChange={(e) => onChange({ ...value, subagentId: e.target.value })}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              <option value="">
+                {isRecruitment ? "Kies subagent of coach…" : "Kies subagent…"}
               </option>
-            ))}
-          </select>
-        </div>
-      )}
+              {options.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.teamName}
+                  {s.isCoach ? " · Coach" : ""})
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      })()}
 
       <p className="text-xs text-slate-400 dark:text-slate-500">
         De lead wordt automatisch als deelnemer uitgenodigd via het

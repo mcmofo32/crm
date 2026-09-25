@@ -119,7 +119,7 @@ export default async function LeadDetailPage({
       select: { id: true, name: true, googleCalendarConnected: true },
       orderBy: { name: "asc" },
     }),
-    getSubagents(),
+    getSubagents({ includeCoaches: lead.leadType === "RG" }),
     getLeadDocuments(lead.id),
   ]);
 

@@ -211,7 +211,7 @@ export default async function PipelinePage({
     getEffectiveViewer(),
     ensureFunnelStages(leadType),
     getAssignableUsers(),
-    getSubagents(),
+    getSubagents({ includeCoaches: isRecrutering }),
   ]);
   if (!user) notFound();
   // Beheerder/Admin zien anders iedereens leads door elkaar, en een Coach
