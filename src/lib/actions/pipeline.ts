@@ -55,13 +55,20 @@ export async function getPipelineStats(
     // ongeacht hoe zijn call-geschiedenis eruitziet. Een lead die al op een
     // "ingepland"-fase staat (Financiële analyse/Adviesgesprek/
     // Opvolggesprek) evenmin — die telt al mee bij "Ingepland", en zou hier
-    // anders dubbel meetellen.
+    // anders dubbel meetellen. De label-check ernaast vangt ook een lead op
+    // een verweesde, niet meer canonieke fase (key niet meer in
+    // mainFunnelStageKeys) waarvan enkel het label nog de oudere "...
+    // ingepland"-vorm draagt — zelfde legacy-patroon als isPlanningStage in
+    // meetingPlanning.ts.
     where: {
       deletedAt: null,
       leadType,
       ...(ownerId ? { ownerId } : {}),
       status: "OPEN",
-      stage: { key: { notIn: mainFunnelStageKeys(leadType) } },
+      stage: {
+        key: { notIn: mainFunnelStageKeys(leadType) },
+        NOT: { label: { endsWith: "ingepland", mode: "insensitive" } },
+      },
     },
     select: {
       source: true,
@@ -135,17 +142,35 @@ export async function getPipelineLeads(
       // opgevolgd te worden. Een lead die al op een "ingepland"-fase staat
       // (Financiële analyse/Adviesgesprek/Opvolggesprek) hoort daar niet
       // meer bij: die heeft al een lopend/gepland consult, dus die hoort
-      // enkel nog onder "Ingepland" thuis, niet ook nog onder "Open".
+      // enkel nog onder "Ingepland" thuis, niet ook nog onder "Open". De
+      // label-check ernaast vangt een lead op een verweesde, niet meer
+      // canonieke fase waarvan enkel het label nog de oudere "...
+      // ingepland"-vorm draagt (zelfde legacy-patroon als isPlanningStage
+      // in meetingPlanning.ts) — zonder deze fallback bleef zo'n lead
+      // onterecht bij "Open" staan i.p.v. bij "Ingepland".
       ...(category === "open" ||
       category === "opvolging" ||
       category === "te_contacteren" ||
       category === "voicemail"
-        ? { status: "OPEN", stage: { key: { notIn: mainFunnelStageKeys(leadType) } } }
+        ? {
+            status: "OPEN",
+            stage: {
+              key: { notIn: mainFunnelStageKeys(leadType) },
+              NOT: { label: { endsWith: "ingepland", mode: "insensitive" } },
+            },
+          }
         : {}),
       ...(category === "geen_interesse" ? { status: "LOST" } : {}),
       ...(category === "klanten" ? { status: "WON" } : {}),
       ...(category === "ingepland"
-        ? { stage: { key: { in: mainFunnelStageKeys(leadType) } } }
+        ? {
+            stage: {
+              OR: [
+                { key: { in: mainFunnelStageKeys(leadType) } },
+                { label: { endsWith: "ingepland", mode: "insensitive" } },
+              ],
+            },
+          }
         : {}),
       ...(trimmedSearch
         ? {
@@ -184,9 +209,14 @@ export async function getPipelineLeads(
   // "Opvolging" betekent specifiek dat er een uitgaand gesprek in de
   // toekomst ingepland staat (TERUGKOPPELEN) — niet zomaar "nog niet
   // succesvol bereikt", want dat overlapt dan met "Te contacteren"/
-  // "Voicemail", die elk hun eigen, exclusieve deel al apart tonen.
+  // "Voicemail", die elk hun eigen, exclusieve deel al apart tonen. "Open"
+  // sluit datzelfde TERUGKOPPELEN net uit: wie al een terugbelmoment
+  // ingepland heeft staan, hoort niet meer bij "nog geen afspraak mee
+  // ingepland" thuis, en toont al apart onder "Opvolging".
   const filtered =
-    category === "opvolging"
+    category === "open"
+      ? leads.filter((lead) => contactState(lead.activities) !== "TERUGKOPPELEN")
+      : category === "opvolging"
       ? leads.filter((lead) => contactState(lead.activities) === "TERUGKOPPELEN")
       : category === "te_contacteren"
       ? leads.filter((lead) => contactState(lead.activities) === "TE_CONTACTEREN")
