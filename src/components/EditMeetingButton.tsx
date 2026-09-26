@@ -10,6 +10,7 @@ import {
   buildMeetingFormData,
   type MeetingPlannerValue,
 } from "@/lib/meetingPlanning";
+import { toBrusselsDatetimeLocalValue, toBrusselsTimeValue } from "@/lib/datetime";
 import { useToastAction } from "@/components/toast/useToastAction";
 import { useToast } from "@/components/toast/ToastProvider";
 
@@ -20,18 +21,6 @@ type SubagentOption = {
   isCoach?: boolean;
   qualifiesAsSubagent?: boolean;
 };
-
-function toDatetimeLocalValue(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function toTimeValue(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 /**
  * Compacte "Wijzigen"-knop voor een al ingeplande rijke afspraak (Financiële
@@ -70,8 +59,8 @@ export function EditMeetingButton({
   const { showToast } = useToast();
   function buildDraft(): MeetingPlannerValue {
     return {
-      scheduledAt: toDatetimeLocalValue(scheduledAt),
-      endTime: toTimeValue(
+      scheduledAt: toBrusselsDatetimeLocalValue(scheduledAt),
+      endTime: toBrusselsTimeValue(
         new Date(scheduledAt.getTime() + (durationMinutes ?? 30) * 60_000)
       ),
       mode: meetingMode === "ONLINE" ? "ONLINE" : "ONSITE",

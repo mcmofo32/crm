@@ -34,6 +34,7 @@ import {
   type MeetingPlannerValue,
   type FollowUpCallValue,
 } from "@/lib/meetingPlanning";
+import { toBrusselsDatetimeLocalValue, toBrusselsTimeValue } from "@/lib/datetime";
 
 type SubagentRecord = {
   id: string;
@@ -59,16 +60,7 @@ const ACTIVITY_TYPE_OPTIONS = [
 const CUSTOM_SUBJECT = "__custom__";
 
 function toDatetimeLocalValue(date: Date | null) {
-  if (!date) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function toTimeValue(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return date ? toBrusselsDatetimeLocalValue(date) : "";
 }
 
 function outcomeButtonClass(selected: boolean) {
@@ -146,7 +138,7 @@ export function ActivityButtons({
       scheduledAt: toDatetimeLocalValue(scheduledAt),
       endTime:
         scheduledAt && durationMinutes
-          ? toTimeValue(new Date(scheduledAt.getTime() + durationMinutes * 60_000))
+          ? toBrusselsTimeValue(new Date(scheduledAt.getTime() + durationMinutes * 60_000))
           : "",
       mode: meetingMode === "ONLINE" ? "ONLINE" : "ONSITE",
       location: location ?? "",
