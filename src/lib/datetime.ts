@@ -79,3 +79,24 @@ export function combineWithTimeOnSameLocalDay(reference: Date, hhmm: string): Da
 export function formatLocalTime(date: Date): string {
   return date.toLocaleTimeString("nl-BE", { timeStyle: "short", timeZone: TIMEZONE });
 }
+
+/**
+ * Formatteert een tijdstip als waarde voor een `<input type="datetime-local">`
+ * (bv. om een bestaande afspraak vooraf in te vullen bij het bewerken) — in
+ * Europe/Brussels, in tegenstelling tot `date.getHours()`/`getDate()`/... die
+ * de tijdzone van het TOESTEL van de gebruiker gebruiken. Op een toestel dat
+ * niet op Brussel-tijd staat, gaf dat een verkeerd vooraf ingevuld tijdstip
+ * (zie parseLocalDateTime hierboven voor het omgekeerde, server-side geval).
+ */
+export function toBrusselsDatetimeLocalValue(date: Date): string {
+  const p = partsOf(date);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+}
+
+/** Formatteert een tijdstip als waarde voor een `<input type="time">`, in Europe/Brussels — zie toBrusselsDatetimeLocalValue hierboven. */
+export function toBrusselsTimeValue(date: Date): string {
+  const p = partsOf(date);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(p.hour)}:${pad(p.minute)}`;
+}
