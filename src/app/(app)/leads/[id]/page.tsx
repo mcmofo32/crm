@@ -238,6 +238,7 @@ export default async function LeadDetailPage({
                 amount: Number(p.amount),
                 units: p.units,
                 lumpSumAmount: p.lumpSumAmount != null ? Number(p.lumpSumAmount) : null,
+                contractDate: p.contractDate,
                 policyId: p.policy?.id ?? null,
                 premievrij: p.policy?.status === "PREMIEVRIJ",
                 reducedAmount:

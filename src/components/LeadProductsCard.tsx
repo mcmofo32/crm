@@ -19,6 +19,8 @@ type ProductRecord = {
   units: number;
   /** Eenmalige koopsom, los van het maandelijkse `amount` — zie schema.prisma. */
   lumpSumAmount: number | null;
+  /** Bepaalt in welke productiemaand dit product telt (zie saveLeadProductsAction). */
+  contractDate: Date;
   /** Komt van de bijhorende polis-lijn (zie Policy op /subagent/polissen) — null zolang die nog niet aangemaakt is. */
   policyId: string | null;
   premievrij: boolean;
@@ -33,6 +35,10 @@ function formatAmount(amount: number) {
   });
 }
 
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 function stateFromProducts(products: ProductRecord[]): ProductsState {
   const state: ProductsState = {};
   for (const p of products) {
@@ -40,6 +46,7 @@ function stateFromProducts(products: ProductRecord[]): ProductsState {
       amount: String(p.amount),
       units: String(p.units),
       lumpSumAmount: p.lumpSumAmount !== null ? String(p.lumpSumAmount) : "",
+      contractDate: toDateInputValue(p.contractDate),
     };
   }
   return state;
