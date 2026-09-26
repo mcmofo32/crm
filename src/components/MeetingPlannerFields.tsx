@@ -14,8 +14,10 @@ type SubagentOption = {
   id: string;
   name: string;
   teamName: string;
-  /** Auto-gesynchroniseerd vanuit een coach-account i.p.v. een "echte" subagent — enkel gekozen bij includeCoaches. */
+  /** Deze gebruiker coacht (ook) een team — enkel om " · Coach" bij de naam te tonen, bepaalt niet of hij hier kiesbaar is (zie qualifiesAsSubagent). */
   isCoach?: boolean;
+  /** Type staat op Subagent (los van rol) — een Coach die dat óók is, blijft dus gewoon kiesbaar voor een adviesgesprek. */
+  qualifiesAsSubagent?: boolean;
 };
 
 /** Invulvelden voor de planning-widget: datum/uur, online of fysiek, adres, Zoom/Google Meet-keuze. */
@@ -145,13 +147,16 @@ export function MeetingPlannerFields({
         const isRecruitment = isRecruitmentMeetingType(meetingType);
         if (!isMandatorySubagentType && !isRecruitment) return null;
 
-        // Een coach is enkel kiesbaar bij een recruteringsgesprek — bij een
-        // adviesgesprek e.d. blijft de lijst zoals voorheen enkel subagenten,
-        // ook al bevat de meegegeven `subagents`-prop (bv. op de Taken-pagina,
-        // waar FA- en RG-taken door elkaar staan) mogelijk ook coaches.
+        // Een coach die geen Subagent is, is enkel kiesbaar bij een
+        // recruteringsgesprek — bij een adviesgesprek e.d. blijft de lijst
+        // zoals voorheen enkel subagenten, ook al bevat de meegegeven
+        // `subagents`-prop (bv. op de Taken-pagina, waar FA- en RG-taken door
+        // elkaar staan) mogelijk ook coaches. Een coach die zelf óók Type
+        // Subagent heeft, blijft hier wél gewoon kiesbaar: Type (niet rol)
+        // bepaalt of iemand een subagent is.
         const options = isRecruitment
           ? subagents
-          : subagents.filter((s) => !s.isCoach);
+          : subagents.filter((s) => !s.isCoach || s.qualifiesAsSubagent);
 
         return (
           <div className="flex flex-col gap-1">
