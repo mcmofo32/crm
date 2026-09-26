@@ -52,7 +52,10 @@ export async function getSubagents(options?: { includeCoaches?: boolean }) {
           : []),
       ],
     },
-    include: { team: { select: { name: true } }, user: { select: { role: true } } },
+    include: {
+      team: { select: { name: true } },
+      user: { select: { role: true, agentType: true } },
+    },
     orderBy: { name: "asc" },
   });
 }

@@ -50,7 +50,7 @@ type SubagentRecord = {
   id: string;
   name: string;
   team: { name: string };
-  user: { role: string } | null;
+  user: { role: string; agentType: string } | null;
 };
 
 /**
@@ -213,6 +213,7 @@ export function ScheduleActivityForm({
                 name: s.name,
                 teamName: s.team.name,
                 isCoach: s.user?.role === "COACH",
+                qualifiesAsSubagent: s.user?.agentType === "SUBAGENT",
               }))}
             />
           </div>

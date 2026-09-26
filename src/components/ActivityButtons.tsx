@@ -39,7 +39,7 @@ type SubagentRecord = {
   id: string;
   name: string;
   team: { name: string };
-  user: { role: string } | null;
+  user: { role: string; agentType: string } | null;
 };
 type StageRecord = {
   id: string;
@@ -360,6 +360,7 @@ export function ActivityButtons({
             name: s.name,
             teamName: s.team.name,
             isCoach: s.user?.role === "COACH",
+            qualifiesAsSubagent: s.user?.agentType === "SUBAGENT",
           }))}
         />
         <textarea
