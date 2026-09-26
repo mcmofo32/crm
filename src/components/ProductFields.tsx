@@ -4,7 +4,10 @@ import { PRODUCT_TYPE_ORDER, PRODUCT_TYPE_LABELS } from "@/lib/productTypes";
 import type { ProductType } from "@/generated/prisma/client";
 
 export type ProductsState = Partial<
-  Record<ProductType, { amount: string; units: string; lumpSumAmount: string }>
+  Record<
+    ProductType,
+    { amount: string; units: string; lumpSumAmount: string; contractDate: string }
+  >
 >;
 
 export function emptyProductsState(): ProductsState {
@@ -25,6 +28,7 @@ export function buildProductsFormData(value: ProductsState): FormData {
     formData.set(`amount-${type}`, value[type]?.amount ?? "");
     formData.set(`units-${type}`, value[type]?.units ?? "");
     formData.set(`lumpsum-${type}`, value[type]?.lumpSumAmount ?? "");
+    formData.set(`contractDate-${type}`, value[type]?.contractDate ?? "");
   }
   return formData;
 }
@@ -38,7 +42,7 @@ export function ProductFields({
 }) {
   function setField(
     type: ProductType,
-    field: "amount" | "units" | "lumpSumAmount",
+    field: "amount" | "units" | "lumpSumAmount" | "contractDate",
     raw: string
   ) {
     onChange({
@@ -47,6 +51,7 @@ export function ProductFields({
         amount: field === "amount" ? raw : value[type]?.amount ?? "",
         units: field === "units" ? raw : value[type]?.units ?? "",
         lumpSumAmount: field === "lumpSumAmount" ? raw : value[type]?.lumpSumAmount ?? "",
+        contractDate: field === "contractDate" ? raw : value[type]?.contractDate ?? "",
       },
     });
   }
@@ -54,7 +59,7 @@ export function ProductFields({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-medium text-slate-700">Producten</p>
-      <div className="grid grid-cols-[1fr_6.5rem_6.5rem_5.5rem] items-center gap-x-2 gap-y-1.5 text-sm">
+      <div className="grid grid-cols-[1fr_6.5rem_6.5rem_5.5rem_9rem] items-center gap-x-2 gap-y-1.5 text-sm">
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
           Product
         </span>
@@ -66,6 +71,9 @@ export function ProductFields({
         </span>
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
           Eenheden
+        </span>
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          Datum
         </span>
         {PRODUCT_TYPE_ORDER.map((type) => (
           <div key={type} className="contents">
@@ -96,12 +104,21 @@ export function ProductFields({
               onChange={(e) => setField(type, "units", e.target.value)}
               className="rounded-md border border-slate-300 px-2 py-1.5"
             />
+            <input
+              type="date"
+              title="Contractdatum — bepaalt in welke productiemaand dit telt. Leeg = vandaag."
+              value={value[type]?.contractDate ?? ""}
+              onChange={(e) => setField(type, "contractDate", e.target.value)}
+              className="rounded-md border border-slate-300 px-2 py-1.5"
+            />
           </div>
         ))}
       </div>
       <p className="text-xs text-slate-400">
         Koopsom = een eenmalige aankoop (bv. in één keer beleggen) i.p.v. een
-        maandelijks bedrag — telt niet mee in het maandelijkse incasso.
+        maandelijks bedrag — telt niet mee in het maandelijkse incasso. Datum
+        leeg laten = vandaag; enkel aanpassen bij het ingeven van oudere,
+        al afgesloten productie (bv. achterstallige historische cijfers).
       </p>
     </div>
   );

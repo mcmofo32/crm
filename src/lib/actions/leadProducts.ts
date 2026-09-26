@@ -75,22 +75,35 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
     amount: number;
     units: number;
     lumpSumAmount: number | null;
+    contractDate: Date;
   }[] = [];
   for (const type of PRODUCT_TYPE_ORDER) {
     const amountRaw = String(formData.get(`amount-${type}`) ?? "").trim();
     const unitsRaw = String(formData.get(`units-${type}`) ?? "").trim();
     const lumpSumRaw = String(formData.get(`lumpsum-${type}`) ?? "").trim();
+    // Leeg = vandaag (zelfde standaardgedrag als voorheen, toen dit veld nog
+    // niet bestond) — enkel relevant bij het ingeven van al afgesloten,
+    // oudere productie: anders zou elk nieuw product stilzwijgend op
+    // "vandaag" komen te staan, ongeacht de werkelijke contractdatum.
+    const contractDateRaw = String(formData.get(`contractDate-${type}`) ?? "").trim();
     const amount = amountRaw ? Number(amountRaw) : 0;
     const units = unitsRaw ? Math.round(Number(unitsRaw)) : 0;
     const lumpSumAmount =
       lumpSumRaw && Number.isFinite(Number(lumpSumRaw)) && Number(lumpSumRaw) > 0
         ? Number(lumpSumRaw)
         : null;
+    const contractDate = contractDateRaw ? new Date(`${contractDateRaw}T12:00:00`) : new Date();
     // Een product telt mee zodra er een maandelijks bedrag ÓF een koopsom
     // werd ingevuld — een klant die enkel in één keer belegt (geen
     // maandelijks bedrag) moet ook opgeslagen kunnen worden.
     if ((Number.isFinite(amount) && amount > 0) || lumpSumAmount !== null) {
-      desired.push({ type, amount, units: Number.isFinite(units) ? units : 0, lumpSumAmount });
+      desired.push({
+        type,
+        amount,
+        units: Number.isFinite(units) ? units : 0,
+        lumpSumAmount,
+        contractDate: Number.isNaN(contractDate.getTime()) ? new Date() : contractDate,
+      });
     }
   }
 
@@ -131,7 +144,12 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
       if (match) {
         return prisma.leadProduct.update({
           where: { id: match.id },
-          data: { amount: d.amount, units: d.units, lumpSumAmount: d.lumpSumAmount },
+          data: {
+            amount: d.amount,
+            units: d.units,
+            lumpSumAmount: d.lumpSumAmount,
+            contractDate: d.contractDate,
+          },
         });
       }
       return prisma.leadProduct.create({
@@ -141,6 +159,7 @@ export async function saveLeadProductsAction(leadId: string, formData: FormData)
           amount: d.amount,
           units: d.units,
           lumpSumAmount: d.lumpSumAmount,
+          contractDate: d.contractDate,
           policy: { create: { leadId, employeeId: lead.ownerId } },
         },
       });
