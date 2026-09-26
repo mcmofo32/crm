@@ -900,25 +900,30 @@ model CompanyProductionGoal {
   quarter       Int
   leadType      LeadType
   monthlyTarget Decimal  @db.Decimal(12, 2)
-  actualUnits   Decimal? @db.Decimal(12, 2)
   updatedAt     DateTime @updatedAt
 
   @@unique([year, quarter, leadType])
 }
 
-/// Aandeel van elke gebruiker in de gerealiseerde bedrijfsproductie van een
-/// jaar, per leadType (taartdiagram op het dashboard) — manueel ingevoerd
-/// zolang dit niet automatisch berekend wordt uit CRM-data.
+/// Handmatige correctie/aanvulling op het live berekende aandeel van een
+/// gebruiker in de bedrijfsproductie (taartdiagram + kwartaalcijfers op het
+/// dashboard) — het gewone geval wordt automatisch berekend uit echte
+/// CRM-data (zie getCompanyProductionContributions/getCompanyProductionGoalProgress
+/// in production.ts). Dit is enkel voor uitzonderingen, bv. een medewerker
+/// die intussen niet meer bij het bedrijf is en van wie de productie niet
+/// langer automatisch aan hem toe te schrijven is — de correctie wordt dan
+/// gewoon bovenop het (mogelijk 0) live cijfer van die maand opgeteld.
 model CompanyProductionContribution {
   id        String   @id @default(cuid())
   year      Int
+  month     Int
   leadType  LeadType
   userId    String
   user      User     @relation("CompanyProductionContributions", fields: [userId], references: [id], onDelete: Cascade)
   units     Decimal  @db.Decimal(12, 2)
   updatedAt DateTime @updatedAt
 
-  @@unique([year, userId, leadType])
+  @@unique([year, month, userId, leadType])
 }
 
 // ---------------------------------------------------------------------------

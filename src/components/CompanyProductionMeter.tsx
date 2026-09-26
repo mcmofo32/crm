@@ -65,9 +65,7 @@ export function CompanyProductionMeter({
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {progress.quarters.map((q) => {
           const qPercent =
-            q.totalTarget > 0 && q.actualUnits !== null
-              ? Math.round((q.actualUnits / q.totalTarget) * 100)
-              : null;
+            q.totalTarget > 0 ? Math.round((q.actualUnits / q.totalTarget) * 100) : null;
           return (
             <div
               key={q.quarter}
@@ -77,7 +75,7 @@ export function CompanyProductionMeter({
                 {QUARTER_LABELS[q.quarter]}
               </p>
               <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
-                {q.actualUnits !== null ? q.actualUnits.toLocaleString("nl-BE") : "—"}
+                {q.actualUnits.toLocaleString("nl-BE")}
                 <span className="text-slate-400 dark:text-slate-500">
                   {" "}
                   / {q.totalTarget.toLocaleString("nl-BE")}
@@ -85,7 +83,7 @@ export function CompanyProductionMeter({
               </p>
               {qPercent === null ? (
                 <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
-                  nog niet ingevuld
+                  geen doel ingesteld
                 </p>
               ) : (
                 <p className="text-xs font-medium" style={{ color: meterColor(qPercent) }}>
