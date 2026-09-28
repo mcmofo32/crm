@@ -93,7 +93,7 @@ export function EditMeetingButton({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-lg rounded-lg bg-white p-4 shadow-xl dark:bg-slate-900">
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-4 shadow-xl dark:bg-slate-900">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-medium text-slate-900 dark:text-slate-100">Afspraak wijzigen</h2>
           <button
@@ -134,12 +134,17 @@ export function EditMeetingButton({
                 return;
               }
               startTransition(async () => {
-                await runWithToast(async () => {
-                  const result = await updateActivityAction(activityId, meetingFormData);
-                  if (result?.error) throw new Error(result.error);
-                }, "Afspraak opgeslagen");
-                setOpen(false);
-                router.refresh();
+                try {
+                  await runWithToast(async () => {
+                    const result = await updateActivityAction(activityId, meetingFormData);
+                    if (result?.error) throw new Error(result.error);
+                  }, "Afspraak opgeslagen");
+                  setOpen(false);
+                  router.refresh();
+                } catch {
+                  // Foutmelding is al getoond door runWithToast — venster
+                  // blijft open zodat de al ingevulde velden niet verloren gaan.
+                }
               });
             }}
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"

@@ -163,45 +163,51 @@ export function StageSelect({
 
               startTransition(async () => {
                 const trimmedEmail = emailInput.trim();
-                await runWithToast(async () => {
-                  if (trimmedEmail) {
-                    await updateLeadEmailAction(leadId, trimmedEmail);
-                  }
-                  // Eerst de afspraak/het terugbelmoment plannen (en dus
-                  // valideren, bv. de verplichte subagent bij Adviesgesprek/
-                  // Opvolggesprek) vóór de lead effectief verplaatst wordt —
-                  // anders kan een lead in een "...ingepland"-fase belanden
-                  // zonder dat er ooit iets ingepland werd.
-                  if (targetStage && isPlanningStage(targetStage.label) && meetingFormData) {
-                    const result = await planStageMeetingAction(
-                      leadId,
-                      targetStageId,
-                      meetingFormData
-                    );
-                    if (result && "error" in result) throw new Error(result.error);
-                  }
-                  if (targetStage && isFollowUpStage(targetStage.label) && followUpFormData) {
-                    const result = await planFollowUpCallAction(
-                      leadId,
-                      targetStageId,
-                      followUpFormData
-                    );
-                    if (result && "error" in result) throw new Error(result.error);
-                  }
-                  const stageResult = await updateLeadStageAction(leadId, targetStageId, notes);
-                  if (stageResult?.error) throw new Error(stageResult.error);
-                  if (targetStage?.isWon && hasAnyProduct(products)) {
-                    await saveLeadProductsAction(leadId, buildProductsFormData(products));
-                  }
-                }, "Opgeslagen");
-                setOpen(false);
-                setTargetStageId("");
-                setNotes("");
-                setMeeting(EMPTY_MEETING_PLANNER_VALUE);
-                setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
-                setEmailInput("");
-                setProducts(emptyProductsState());
-                router.refresh();
+                try {
+                  await runWithToast(async () => {
+                    if (trimmedEmail) {
+                      await updateLeadEmailAction(leadId, trimmedEmail);
+                    }
+                    // Eerst de afspraak/het terugbelmoment plannen (en dus
+                    // valideren, bv. de verplichte subagent bij Adviesgesprek/
+                    // Opvolggesprek) vóór de lead effectief verplaatst wordt —
+                    // anders kan een lead in een "...ingepland"-fase belanden
+                    // zonder dat er ooit iets ingepland werd.
+                    if (targetStage && isPlanningStage(targetStage.label) && meetingFormData) {
+                      const result = await planStageMeetingAction(
+                        leadId,
+                        targetStageId,
+                        meetingFormData
+                      );
+                      if (result && "error" in result) throw new Error(result.error);
+                    }
+                    if (targetStage && isFollowUpStage(targetStage.label) && followUpFormData) {
+                      const result = await planFollowUpCallAction(
+                        leadId,
+                        targetStageId,
+                        followUpFormData
+                      );
+                      if (result && "error" in result) throw new Error(result.error);
+                    }
+                    const stageResult = await updateLeadStageAction(leadId, targetStageId, notes);
+                    if (stageResult?.error) throw new Error(stageResult.error);
+                    if (targetStage?.isWon && hasAnyProduct(products)) {
+                      await saveLeadProductsAction(leadId, buildProductsFormData(products));
+                    }
+                  }, "Opgeslagen");
+                  setOpen(false);
+                  setTargetStageId("");
+                  setNotes("");
+                  setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+                  setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
+                  setEmailInput("");
+                  setProducts(emptyProductsState());
+                  router.refresh();
+                } catch {
+                  // Foutmelding is al getoond door runWithToast (bv. "duid
+                  // een subagent aan") — venster blijft open zodat de al
+                  // ingevulde velden niet verloren gaan.
+                }
               });
             }}
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
@@ -231,7 +237,7 @@ export function StageSelect({
     if (variant === "icon") {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-3 shadow-xl dark:bg-slate-900">
+          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-3 shadow-xl dark:bg-slate-900">
             {formContent}
           </div>
         </div>

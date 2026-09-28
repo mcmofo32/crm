@@ -475,35 +475,41 @@ export function FunnelBoard({
     }
 
     startTransition(async () => {
-      await runWithToast(async () => {
-        if (trimmedEmail) {
-          await updateLeadEmailAction(leadId, trimmedEmail);
-        }
-        // Eerst de afspraak/het terugbelmoment plannen (en dus valideren,
-        // bv. de verplichte subagent bij Adviesgesprek/Opvolggesprek) vóór
-        // de lead effectief verplaatst wordt — anders kan een lead in een
-        // "...ingepland"-fase belanden zonder dat er ooit iets ingepland werd.
-        if (isPlanningStage(toStageLabel) && meetingFormData) {
-          const result = await planStageMeetingAction(leadId, toStageId, meetingFormData);
-          if (result && "error" in result) throw new Error(result.error);
-        }
-        if (isFollowUpStage(toStageLabel) && followUpFormData) {
-          const result = await planFollowUpCallAction(leadId, toStageId, followUpFormData);
-          if (result && "error" in result) throw new Error(result.error);
-        }
-        const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
-        if (stageResult?.error) throw new Error(stageResult.error);
-        if (toStageIsWon && hasAnyProduct(products)) {
-          await saveLeadProductsAction(leadId, buildProductsFormData(products));
-        }
-      }, "Opgeslagen");
-      setPendingMove(null);
-      setNotes("");
-      setMeeting(EMPTY_MEETING_PLANNER_VALUE);
-      setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
-      setEmailInput("");
-      setProducts(emptyProductsState());
-      router.refresh();
+      try {
+        await runWithToast(async () => {
+          if (trimmedEmail) {
+            await updateLeadEmailAction(leadId, trimmedEmail);
+          }
+          // Eerst de afspraak/het terugbelmoment plannen (en dus valideren,
+          // bv. de verplichte subagent bij Adviesgesprek/Opvolggesprek) vóór
+          // de lead effectief verplaatst wordt — anders kan een lead in een
+          // "...ingepland"-fase belanden zonder dat er ooit iets ingepland werd.
+          if (isPlanningStage(toStageLabel) && meetingFormData) {
+            const result = await planStageMeetingAction(leadId, toStageId, meetingFormData);
+            if (result && "error" in result) throw new Error(result.error);
+          }
+          if (isFollowUpStage(toStageLabel) && followUpFormData) {
+            const result = await planFollowUpCallAction(leadId, toStageId, followUpFormData);
+            if (result && "error" in result) throw new Error(result.error);
+          }
+          const stageResult = await updateLeadStageAction(leadId, toStageId, trimmedNotes);
+          if (stageResult?.error) throw new Error(stageResult.error);
+          if (toStageIsWon && hasAnyProduct(products)) {
+            await saveLeadProductsAction(leadId, buildProductsFormData(products));
+          }
+        }, "Opgeslagen");
+        setPendingMove(null);
+        setNotes("");
+        setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+        setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
+        setEmailInput("");
+        setProducts(emptyProductsState());
+        router.refresh();
+      } catch {
+        // Foutmelding is al getoond door runWithToast (bv. "duid een
+        // subagent aan") — venster blijft open zodat de al ingevulde
+        // velden (notities, datum/uur, ...) niet verloren gaan.
+      }
     });
   }
 
@@ -809,69 +815,71 @@ export function FunnelBoard({
 
       {pendingMove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-900">
-            <h2 className="mb-1 text-lg font-medium text-slate-900 dark:text-slate-100">
-              Lead verplaatsen
-            </h2>
-            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-              <strong>{pendingMove.leadName}</strong> van &quot;
-              {pendingMove.fromStageLabel}&quot; naar &quot;
-              {pendingMove.toStageLabel}&quot;.
-            </p>
-            <label className="mb-1 block text-sm text-slate-600 dark:text-slate-400">
-              Wat is er besproken/gebeurd?
-            </label>
-            <textarea
-              autoFocus
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Bv. financiële analyse afgerond, klant tekent volgende week"
-              className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            />
-            {wantsEmailPrompt(pendingMove.toStageLabel) &&
-              !pendingMove.leadEmail && (
-                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
-                  <label className="mb-1 block text-sm text-amber-800 dark:text-amber-400">
-                    Deze lead heeft nog geen e-mailadres. Voeg er één toe zodat
-                    we later kunnen uitnodigen voor afspraken (optioneel).
-                  </label>
-                  <input
-                    type="email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="naam@voorbeeld.be"
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          <div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-lg bg-white shadow-xl dark:bg-slate-900">
+            <div className="overflow-y-auto p-6">
+              <h2 className="mb-1 text-lg font-medium text-slate-900 dark:text-slate-100">
+                Lead verplaatsen
+              </h2>
+              <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+                <strong>{pendingMove.leadName}</strong> van &quot;
+                {pendingMove.fromStageLabel}&quot; naar &quot;
+                {pendingMove.toStageLabel}&quot;.
+              </p>
+              <label className="mb-1 block text-sm text-slate-600 dark:text-slate-400">
+                Wat is er besproken/gebeurd?
+              </label>
+              <textarea
+                autoFocus
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Bv. financiële analyse afgerond, klant tekent volgende week"
+                className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+              {wantsEmailPrompt(pendingMove.toStageLabel) &&
+                !pendingMove.leadEmail && (
+                  <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+                    <label className="mb-1 block text-sm text-amber-800 dark:text-amber-400">
+                      Deze lead heeft nog geen e-mailadres. Voeg er één toe zodat
+                      we later kunnen uitnodigen voor afspraken (optioneel).
+                    </label>
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="naam@voorbeeld.be"
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                )}
+              {isPlanningStage(pendingMove.toStageLabel) && (
+                <div className="mb-4">
+                  <MeetingPlannerFields
+                    value={meeting}
+                    onChange={setMeeting}
+                    meetingType={pendingMove.toStageLabel}
+                    subagents={subagents.map((s) => ({
+                      id: s.id,
+                      name: s.name,
+                      teamName: s.team.name,
+                      isCoach: s.user?.role === "COACH",
+                      qualifiesAsSubagent: s.user?.agentType === "SUBAGENT",
+                    }))}
                   />
                 </div>
               )}
-            {isPlanningStage(pendingMove.toStageLabel) && (
-              <div className="mb-4">
-                <MeetingPlannerFields
-                  value={meeting}
-                  onChange={setMeeting}
-                  meetingType={pendingMove.toStageLabel}
-                  subagents={subagents.map((s) => ({
-                    id: s.id,
-                    name: s.name,
-                    teamName: s.team.name,
-                    isCoach: s.user?.role === "COACH",
-                    qualifiesAsSubagent: s.user?.agentType === "SUBAGENT",
-                  }))}
-                />
-              </div>
-            )}
-            {isFollowUpStage(pendingMove.toStageLabel) && (
-              <div className="mb-4">
-                <FollowUpCallField value={followUpCall} onChange={setFollowUpCall} />
-              </div>
-            )}
-            {pendingMove.toStageIsWon && (
-              <div className="mb-4">
-                <ProductFields value={products} onChange={setProducts} />
-              </div>
-            )}
-            <div className="flex justify-end gap-2">
+              {isFollowUpStage(pendingMove.toStageLabel) && (
+                <div className="mb-4">
+                  <FollowUpCallField value={followUpCall} onChange={setFollowUpCall} />
+                </div>
+              )}
+              {pendingMove.toStageIsWon && (
+                <div className="mb-4">
+                  <ProductFields value={products} onChange={setProducts} />
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 dark:border-slate-800">
               <button
                 type="button"
                 disabled={pending}

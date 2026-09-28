@@ -306,30 +306,35 @@ export function ActivityButtons({
               return;
             }
             startTransition(async () => {
-              await runWithToast(async () => {
-                if (isFollowUpStage(outcomeStage.label) && followUpFormData) {
-                  const result = await planFollowUpCallAction(
+              try {
+                await runWithToast(async () => {
+                  if (isFollowUpStage(outcomeStage.label) && followUpFormData) {
+                    const result = await planFollowUpCallAction(
+                      leadId,
+                      outcomeStageId,
+                      followUpFormData
+                    );
+                    if (result && "error" in result) throw new Error(result.error);
+                  }
+                  const stageResult = await updateLeadStageAction(
                     leadId,
                     outcomeStageId,
-                    followUpFormData
+                    reportNotes
                   );
-                  if (result && "error" in result) throw new Error(result.error);
-                }
-                const stageResult = await updateLeadStageAction(
-                  leadId,
-                  outcomeStageId,
-                  reportNotes
-                );
-                if (stageResult?.error) throw new Error(stageResult.error);
-                if (outcomeStage.isWon && hasAnyProduct(products)) {
-                  await saveLeadProductsAction(leadId, buildProductsFormData(products));
-                }
-              }, "Opgeslagen");
-              setMode("idle");
-              setOutcomeStageId("");
-              setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
-              setProducts(emptyProductsState());
-              router.refresh();
+                  if (stageResult?.error) throw new Error(stageResult.error);
+                  if (outcomeStage.isWon && hasAnyProduct(products)) {
+                    await saveLeadProductsAction(leadId, buildProductsFormData(products));
+                  }
+                }, "Opgeslagen");
+                setMode("idle");
+                setOutcomeStageId("");
+                setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
+                setProducts(emptyProductsState());
+                router.refresh();
+              } catch {
+                // Foutmelding is al getoond door runWithToast — venster
+                // blijft open zodat de al ingevulde velden niet verloren gaan.
+              }
             });
           }}
           className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
@@ -381,12 +386,17 @@ export function ActivityButtons({
                 meetingFormData.set("notes", richEditNotes.trim());
               }
               startTransition(async () => {
-                await runWithToast(async () => {
-                  const result = await updateActivityAction(activityId, meetingFormData);
-                  if (result?.error) throw new Error(result.error);
-                }, "Afspraak opgeslagen");
-                setMode("idle");
-                router.refresh();
+                try {
+                  await runWithToast(async () => {
+                    const result = await updateActivityAction(activityId, meetingFormData);
+                    if (result?.error) throw new Error(result.error);
+                  }, "Afspraak opgeslagen");
+                  setMode("idle");
+                  router.refresh();
+                } catch {
+                  // Foutmelding is al getoond door runWithToast — venster
+                  // blijft open zodat de al ingevulde velden niet verloren gaan.
+                }
               });
             }}
             className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
