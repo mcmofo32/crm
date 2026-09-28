@@ -35,6 +35,7 @@ import { InlineTextField } from "@/components/InlineTextField";
 import { StageSelect } from "@/components/StageSelect";
 import { QuickCallLogButton } from "@/components/QuickCallLogButton";
 import { ToastOnParam } from "@/components/toast/ToastOnParam";
+import { SearchClearInput } from "@/components/SearchClearInput";
 
 // Nooit cachen/statisch renderen — een lead die elders (bv. via de
 // Excel-import, of de Funnel/Leaddetail) aangepast wordt, moet hier meteen
@@ -387,8 +388,7 @@ export default async function PipelinePage({
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             />
-            <input
-              type="search"
+            <SearchClearInput
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."

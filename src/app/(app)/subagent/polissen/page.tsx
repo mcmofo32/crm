@@ -40,6 +40,7 @@ import {
   PolicyAmountCell,
 } from "@/components/PolicyDateCell";
 import { SubagentTabs } from "@/components/SubagentTabs";
+import { SearchClearInput } from "@/components/SearchClearInput";
 
 /** Vaste volgorde waarin de polissen van eenzelfde klant hier getoond worden. */
 const POLICY_PRODUCT_ORDER: ProductType[] = [
@@ -546,8 +547,7 @@ export default async function SubagentPolissenPage({
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             />
-            <input
-              type="search"
+            <SearchClearInput
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op klantnaam..."
