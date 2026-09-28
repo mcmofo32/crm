@@ -93,7 +93,7 @@ export function EditMeetingButton({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-4 shadow-xl dark:bg-slate-900">
+      <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl dark:bg-slate-900">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-medium text-slate-900 dark:text-slate-100">Afspraak wijzigen</h2>
           <button

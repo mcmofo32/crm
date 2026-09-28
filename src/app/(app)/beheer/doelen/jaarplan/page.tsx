@@ -1,19 +1,14 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Target, PieChart, UserCog, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Target, PieChart } from "lucide-react";
 import {
   getCompanyProductionGoalProgress,
   getCompanyProductionContributions,
-  getCompanyProductionCorrections,
-  getUsersForProductionCorrection,
   saveCompanyProductionGoalAction,
-  addCompanyProductionCorrectionAction,
-  deleteCompanyProductionCorrectionAction,
   getActiveEmployeeCount,
 } from "@/lib/actions/production";
 import type { LeadType } from "@/generated/prisma/client";
 import { Avatar } from "@/components/Avatar";
 import { FormToast } from "@/components/toast/FormToast";
-import { MONTH_LABELS } from "@/lib/goalLabels";
 
 const QUARTER_LABELS: Record<number, string> = { 1: "Q1", 2: "Q2", 3: "Q3", 4: "Q4" };
 
@@ -31,17 +26,13 @@ export default async function BedrijfsJaarplanPage({
   const year = yearParam ? Number(yearParam) : new Date().getFullYear();
   const leadType: LeadType = typeParam === "RG" ? "RG" : "FA";
 
-  const [goalProgress, contributions, corrections, correctionUsers, activeEmployeeCount] =
-    await Promise.all([
-      getCompanyProductionGoalProgress(year, leadType),
-      getCompanyProductionContributions(year, leadType),
-      getCompanyProductionCorrections(year, leadType),
-      getUsersForProductionCorrection(),
-      leadType === "RG" ? getActiveEmployeeCount() : Promise.resolve(null),
-    ]);
+  const [goalProgress, contributions, activeEmployeeCount] = await Promise.all([
+    getCompanyProductionGoalProgress(year, leadType),
+    getCompanyProductionContributions(year, leadType),
+    leadType === "RG" ? getActiveEmployeeCount() : Promise.resolve(null),
+  ]);
 
   const boundSaveGoal = saveCompanyProductionGoalAction.bind(null, year, leadType);
-  const boundAddCorrection = addCompanyProductionCorrectionAction.bind(null, year, leadType);
 
   function tabHref(type: LeadType) {
     return `/beheer/doelen/jaarplan?year=${year}&type=${type}`;
@@ -57,9 +48,14 @@ export default async function BedrijfsJaarplanPage({
         <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
           Het bedrijfsbrede doel per kwartaal — voedt de progressiebalk en
           het taartdiagram onderaan het dashboard. &quot;Gerealiseerd&quot;
-          en de verdeling per medewerker worden live berekend uit de
-          productiedata in de CRM, los van de individuele maanddoelen die je
-          bij{" "}
+          en de verdeling per medewerker worden live berekend uit dezelfde
+          productiecijfers als de{" "}
+          <Link href="/productie" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+            Productie
+          </Link>
+          -pagina (inclusief eventuele correcties die je daar per
+          medewerker/maand invoert), los van de individuele maanddoelen die
+          je bij{" "}
           <Link href="/beheer/doelen" className="underline hover:text-slate-700 dark:hover:text-slate-300">
             Doelen
           </Link>{" "}
@@ -117,7 +113,7 @@ export default async function BedrijfsJaarplanPage({
             nieuwe medewerkers sinds het begin van het jaar.
             &quot;Gerealiseerd&quot; is het cumulatief aantal nieuwe
             medewerkers op dat moment (geen kwartaalbedrag) en wordt live
-            berekend uit de fases in de CRM, dus niet hier in te vullen.
+            berekend, dus niet hier in te vullen.
             {activeEmployeeCount !== null && (
               <>
                 {" "}
@@ -133,8 +129,8 @@ export default async function BedrijfsJaarplanPage({
             &quot;Doel per maand&quot; is het doel per maand binnen dat
             kwartaal — het kwartaaltotaal wordt automatisch berekend (x3).
             &quot;Gerealiseerd&quot; wordt live berekend uit de eenheden die
-            in dat kwartaal effectief afgesloten zijn (WON-leads met
-            contractdatum in dat kwartaal), dus niet hier in te vullen.
+            in dat kwartaal effectief afgesloten zijn, dus niet hier in te
+            vullen.
           </p>
         )}
         <form key={`${year}-${leadType}`} action={boundSaveGoal} className="flex flex-col gap-3">
@@ -208,11 +204,15 @@ export default async function BedrijfsJaarplanPage({
           {leadType === "RG"
             ? `Hoeveel medewerkers elke rekruteerder in ${year} aanbracht`
             : `Hoeveel eenheden elke medewerker in ${year} realiseerde`}{" "}
-          — live berekend uit de productiedata in de CRM, bepaalt ieders
-          aandeel (%) in het taartdiagram op het dashboard. Is iemand
-          intussen niet meer bij het bedrijf, gebruik dan de handmatige
-          correctie hieronder om zijn cijfer in de juiste maand toe te
-          voegen.
+          — live berekend uit dezelfde cijfers als de{" "}
+          <Link href="/productie" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+            Productie
+          </Link>
+          -pagina, bepaalt ieders aandeel (%) in het taartdiagram op het
+          dashboard. Is iemand intussen niet meer bij het bedrijf, of klopt
+          een cijfer niet, pas dat dan aan op de Productie-pagina zelf (per
+          medewerker, per productiemaand) — dat wordt hier automatisch
+          mee overgenomen.
         </p>
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full text-sm">
@@ -250,129 +250,6 @@ export default async function BedrijfsJaarplanPage({
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="flex items-center gap-1.5 text-lg font-medium text-slate-900 dark:text-slate-100">
-          <UserCog size={18} />
-          Handmatige correctie
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Voor productie die niet meer automatisch aan iemand toe te
-          schrijven is — bijvoorbeeld een medewerker die niet meer bij het
-          bedrijf is. Telt bovenop het live cijfer van die maand (zie
-          hierboven), vervangt het niet.
-        </p>
-        <form action={boundAddCorrection} className="flex flex-wrap items-end gap-3">
-          <FormToast message="Correctie toegevoegd" />
-          <div>
-            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-              Medewerker
-            </label>
-            <select
-              name="userId"
-              required
-              defaultValue=""
-              className="w-56 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            >
-              <option value="" disabled>
-                Kies een medewerker
-              </option>
-              {correctionUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                  {!u.active ? " (gestopt)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-              Maand
-            </label>
-            <select
-              name="month"
-              required
-              defaultValue=""
-              className="w-40 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            >
-              <option value="" disabled>
-                Kies een maand
-              </option>
-              {MONTH_LABELS.map((label, i) => (
-                <option key={label} value={i + 1}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-              {leadType === "RG" ? "Medewerkers" : "Eenheden"}
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              name="units"
-              required
-              className="w-28 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
-          >
-            Toevoegen
-          </button>
-        </form>
-
-        {corrections.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Naam</th>
-                  <th className="px-3 py-3 font-medium">Maand</th>
-                  <th className="px-3 py-3 font-medium">
-                    {leadType === "RG" ? "Medewerkers" : "Eenheden"}
-                  </th>
-                  <th className="px-3 py-3 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {corrections.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                    <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
-                      <div className="flex items-center gap-2">
-                        <Avatar name={row.name} photoUrl={row.photoUrl} />
-                        {row.name}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
-                      {MONTH_LABELS[row.month - 1]}
-                    </td>
-                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
-                      {row.units.toLocaleString("nl-BE")}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <form action={deleteCompanyProductionCorrectionAction.bind(null, row.id)}>
-                        <button
-                          type="submit"
-                          title="Correctie verwijderen"
-                          className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-                        >
-                          <Trash2 size={13} />
-                          Verwijderen
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </section>
     </div>
   );

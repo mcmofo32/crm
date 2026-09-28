@@ -1888,66 +1888,124 @@ export type CompanyProductionGoalProgress = {
   percent: number | null;
 };
 
-/** Combineert 3 opeenvolgende productiemaand-ranges (zie ProductionMonth) tot één kwartaal-range. */
-function quarterProductionRange(
-  quarter: number,
-  monthRanges: Map<number, { start: Date; end: Date }>
-): { start: Date; end: Date } {
-  const firstMonth = (quarter - 1) * 3 + 1;
-  return {
-    start: monthRanges.get(firstMonth)!.start,
-    end: monthRanges.get(firstMonth + 2)!.end,
-  };
-}
-
 function monthsInQuarter(quarter: number): number[] {
   const firstMonth = (quarter - 1) * 3 + 1;
   return [firstMonth, firstMonth + 1, firstMonth + 2];
 }
 
 /**
- * Live "gerealiseerd" voor één kwartaal: FA = som LeadProduct.units van
- * WON-leads met contractDate in dat kwartaal (zelfde telling als
- * getProductionLeaderboard hierboven, dus bewust zonder de
- * bulk-import-uitsluiting — die geldt enkel voor "nieuwe lead"-metrics, niet
- * voor effectief afgesloten productie). RG = aantal fase-overgangen naar een
- * isWon-fase binnen dat kwartaal (nieuwe medewerkers). Plus de som van
- * eventuele handmatige correcties (CompanyProductionContribution) waarvan de
- * maand in dat kwartaal valt.
+ * Per gebruiker, per productiemaand van `year`: het "behaald"-cijfer voor
+ * FA (Eenheden) of RG (nieuwe medewerkers) — zelfde databron en zelfde
+ * UserMonthlyActual-overschrijving als de Productie-pagina/-leaderboard
+ * hierboven (getProductionLeaderboard): staat daar voor een (gebruiker,
+ * maand) een handmatig ingevoerde waarde (bv. voor data van vóór dit CRM,
+ * of een correctie voor een ondertussen gestopte medewerker), dan telt die
+ * i.p.v. het automatisch berekende cijfer. Bewust dezelfde bron als de
+ * Productie-pagina i.p.v. een apart correctiemechanisme enkel voor het
+ * jaarplan — zo hoeft een correctie maar op één plek ingevoerd te worden.
  */
-async function getCompanyProductionQuarterActual(
+async function getMonthlyActualsByUser(
   year: number,
-  quarter: number,
   leadType: LeadType,
   monthRanges: Map<number, { start: Date; end: Date }>
-): Promise<number> {
-  const { start, end } = quarterProductionRange(quarter, monthRanges);
+): Promise<Map<string, Map<number, number>>> {
+  const metric = leadType === "RG" ? GoalMetric.CUSTOMERS : GoalMetric.UNITS;
+  const yearStart = monthRanges.get(1)!.start;
+  const yearEnd = monthRanges.get(12)!.end;
 
-  const [live, corrections] = await Promise.all([
+  function monthForDate(date: Date): number | null {
+    for (let month = 1; month <= 12; month++) {
+      const range = monthRanges.get(month)!;
+      if (date >= range.start && date < range.end) return month;
+    }
+    return null;
+  }
+
+  const computedByUser = new Map<string, Map<number, number>>();
+  function addComputed(userId: string, month: number, amount: number) {
+    const byMonth = computedByUser.get(userId) ?? new Map<number, number>();
+    byMonth.set(month, (byMonth.get(month) ?? 0) + amount);
+    computedByUser.set(userId, byMonth);
+  }
+
+  const [overrides] = await Promise.all([
+    prisma.userMonthlyActual.findMany({ where: { year, metric } }),
     leadType === "RG"
-      ? prisma.leadStageChange.count({
-          where: {
-            toStage: { isWon: true },
-            changedAt: { gte: start, lt: end },
-            lead: { deletedAt: null, leadType: "RG", status: "WON" },
-          },
-        })
-      : prisma.leadProduct
-          .aggregate({
+      ? prisma.leadStageChange
+          .findMany({
             where: {
-              contractDate: { gte: start, lt: end },
+              toStage: { isWon: true },
+              changedAt: { gte: yearStart, lt: yearEnd },
+              lead: { deletedAt: null, leadType: "RG", status: "WON" },
+            },
+            orderBy: { changedAt: "asc" },
+            select: { changedAt: true, lead: { select: { id: true, ownerId: true } } },
+          })
+          .then((changes) => {
+            // Enkel de eerste isWon-overgang per lead meetellen — dezelfde
+            // lead mag niet dubbel meetellen als hij door meer dan één
+            // isWon-fase-overgang gegaan is.
+            const seenLeadIds = new Set<string>();
+            for (const change of changes) {
+              if (seenLeadIds.has(change.lead.id)) continue;
+              seenLeadIds.add(change.lead.id);
+              const month = monthForDate(change.changedAt);
+              if (month === null) continue;
+              addComputed(change.lead.ownerId, month, 1);
+            }
+          })
+      : prisma.leadProduct
+          .findMany({
+            where: {
+              contractDate: { gte: yearStart, lt: yearEnd },
               lead: { deletedAt: null, leadType: "FA", status: "WON" },
             },
-            _sum: { units: true },
+            select: { contractDate: true, units: true, lead: { select: { ownerId: true } } },
           })
-          .then((r) => r._sum.units ?? 0),
-    prisma.companyProductionContribution.aggregate({
-      where: { year, leadType, month: { in: monthsInQuarter(quarter) } },
-      _sum: { units: true },
-    }),
+          .then((products) => {
+            for (const p of products) {
+              const month = monthForDate(p.contractDate);
+              if (month === null) continue;
+              addComputed(p.lead.ownerId, month, p.units);
+            }
+          }),
   ]);
 
-  return live + Number(corrections._sum.units ?? 0);
+  const overrideByKey = new Map<string, number>();
+  for (const o of overrides) {
+    overrideByKey.set(`${o.userId}_${o.month}`, Number(o.value));
+  }
+
+  const allUserIds = new Set([
+    ...computedByUser.keys(),
+    ...overrides.map((o) => o.userId),
+  ]);
+  const result = new Map<string, Map<number, number>>();
+  for (const userId of allUserIds) {
+    const byMonth = new Map<number, number>();
+    for (let month = 1; month <= 12; month++) {
+      const override = overrideByKey.get(`${userId}_${month}`);
+      const value = override ?? computedByUser.get(userId)?.get(month) ?? 0;
+      if (value !== 0) byMonth.set(month, value);
+    }
+    if (byMonth.size > 0) result.set(userId, byMonth);
+  }
+  return result;
+}
+
+/** Som van alle gebruikers' behaald-cijfer (zie getMonthlyActualsByUser) over de maanden van dit kwartaal. */
+function sumQuarterActual(
+  monthlyActualsByUser: Map<string, Map<number, number>>,
+  quarter: number
+): number {
+  const months = monthsInQuarter(quarter);
+  let total = 0;
+  for (const byMonth of monthlyActualsByUser.values()) {
+    for (const month of months) {
+      total += byMonth.get(month) ?? 0;
+    }
+  }
+  return total;
 }
 
 /**
@@ -1971,10 +2029,9 @@ export async function getCompanyProductionGoalProgress(
     getProductionMonthRangesForYear(year),
   ]);
   const byQuarter = new Map(rows.map((r) => [r.quarter, r]));
-  const quarterActuals = await Promise.all(
-    [1, 2, 3, 4].map((quarter) =>
-      getCompanyProductionQuarterActual(year, quarter, leadType, monthRanges)
-    )
+  const monthlyActualsByUser = await getMonthlyActualsByUser(year, leadType, monthRanges);
+  const quarterActuals = [1, 2, 3, 4].map((quarter) =>
+    sumQuarterActual(monthlyActualsByUser, quarter)
   );
 
   let quarters: CompanyProductionQuarter[];
@@ -2047,13 +2104,13 @@ export type CompanyProductionContributions = {
 };
 
 /**
- * Voor het taartdiagram op het dashboard: ieders aandeel wordt live berekend
- * uit echte CRM-productiedata (FA: som eenheden van WON-leads op naam van de
- * eigenaar; RG: aantal nieuwe medewerkers op naam van de rekruteerder) — plus
- * eventuele handmatige correcties (CompanyProductionContribution) bovenop
- * opgeteld. Toont iedereen met een aandeel > 0, ook wie intussen niet meer
- * actief is (zo behoudt een gestopte medewerker zijn eigen, al gerealiseerde
- * productie).
+ * Voor het taartdiagram op het dashboard: ieders aandeel wordt berekend uit
+ * dezelfde per-maand cijfers als het kwartaaloverzicht hierboven (zie
+ * getMonthlyActualsByUser — dus inclusief eventuele UserMonthlyActual-
+ * correcties van de Productie-pagina). Toont iedereen met een aandeel > 0,
+ * ook wie intussen niet meer actief is (zo behoudt een gestopte medewerker
+ * zijn eigen, al gerealiseerde productie, mits die als correctie op de
+ * Productie-pagina ingevoerd is).
  */
 export async function getCompanyProductionContributions(
   year: number,
@@ -2061,46 +2118,13 @@ export async function getCompanyProductionContributions(
 ): Promise<CompanyProductionContributions> {
   await requireViewer();
   const monthRanges = await getProductionMonthRangesForYear(year);
-  const yearStart = monthRanges.get(1)!.start;
-  const yearEnd = monthRanges.get(12)!.end;
+  const monthlyActualsByUser = await getMonthlyActualsByUser(year, leadType, monthRanges);
 
   const byUser = new Map<string, number>();
-
-  if (leadType === "RG") {
-    const changes = await prisma.leadStageChange.findMany({
-      where: {
-        toStage: { isWon: true },
-        changedAt: { gte: yearStart, lt: yearEnd },
-        lead: { deletedAt: null, leadType: "RG", status: "WON" },
-      },
-      select: { lead: { select: { id: true, ownerId: true } } },
-    });
-    // Enkel unieke leads meetellen — dezelfde lead mag niet dubbel meetellen
-    // als hij door meer dan één isWon-fase-overgang gegaan is.
-    const seenLeadIds = new Set<string>();
-    for (const change of changes) {
-      if (seenLeadIds.has(change.lead.id)) continue;
-      seenLeadIds.add(change.lead.id);
-      byUser.set(change.lead.ownerId, (byUser.get(change.lead.ownerId) ?? 0) + 1);
-    }
-  } else {
-    const products = await prisma.leadProduct.findMany({
-      where: {
-        contractDate: { gte: yearStart, lt: yearEnd },
-        lead: { deletedAt: null, leadType: "FA", status: "WON" },
-      },
-      select: { units: true, lead: { select: { ownerId: true } } },
-    });
-    for (const p of products) {
-      byUser.set(p.lead.ownerId, (byUser.get(p.lead.ownerId) ?? 0) + p.units);
-    }
-  }
-
-  const corrections = await prisma.companyProductionContribution.findMany({
-    where: { year, leadType },
-  });
-  for (const c of corrections) {
-    byUser.set(c.userId, (byUser.get(c.userId) ?? 0) + Number(c.units));
+  for (const [userId, byMonth] of monthlyActualsByUser) {
+    let sum = 0;
+    for (const value of byMonth.values()) sum += value;
+    if (sum !== 0) byUser.set(userId, sum);
   }
 
   const users = await prisma.user.findMany({
@@ -2127,52 +2151,14 @@ export async function getCompanyProductionContributions(
   return { year, leadType, total, rows };
 }
 
-export type CompanyProductionCorrectionRow = {
-  id: string;
-  userId: string;
-  name: string;
-  photoUrl: string | null;
-  month: number;
-  units: number;
-};
-
-/** Voor de Jaarplan-pagina: de handmatige correcties (uitzonderingen, zie CompanyProductionContribution) die bovenop het live cijfer geteld worden, nieuwste maand eerst. */
-export async function getCompanyProductionCorrections(
-  year: number,
-  leadType: LeadType
-): Promise<CompanyProductionCorrectionRow[]> {
-  await requireGoalManager();
-  const rows = await prisma.companyProductionContribution.findMany({
-    where: { year, leadType },
-    include: { user: { select: { id: true, name: true, avatarUpdatedAt: true } } },
-    orderBy: [{ month: "desc" }, { user: { name: "asc" } }],
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    userId: r.userId,
-    name: r.user.name,
-    photoUrl: avatarUrl(r.user),
-    month: r.month,
-    units: Number(r.units),
-  }));
-}
-
-/** Voor de picker bij een nieuwe correctie: alle gebruikers, óók inactieve/gestopte — net daarvoor is deze correctie bedoeld. */
-export async function getUsersForProductionCorrection() {
-  await requireGoalManager();
-  const users = await prisma.user.findMany({
-    select: { id: true, name: true, avatarUpdatedAt: true, active: true },
-    orderBy: { name: "asc" },
-  });
-  return users.map((u) => ({
-    id: u.id,
-    name: u.name,
-    photoUrl: avatarUrl(u),
-    active: u.active,
-  }));
-}
-
-/** Beheerder/Admin stelt hier het bedrijfsbrede kwartaaldoel in — "gerealiseerd" wordt niet hier ingevoerd, dat wordt live berekend (zie getCompanyProductionGoalProgress). */
+/**
+ * Beheerder/Admin stelt hier het bedrijfsbrede kwartaaldoel in —
+ * "gerealiseerd" wordt niet hier ingevoerd, dat wordt live berekend uit
+ * dezelfde bron als de Productie-pagina (zie getCompanyProductionGoalProgress/
+ * getMonthlyActualsByUser) — een correctie (bv. voor een gestopte
+ * medewerker, of historische data van vóór dit CRM) voer je dus in op de
+ * Productie-pagina zelf (per gebruiker, per productiemaand), niet hier.
+ */
 export async function saveCompanyProductionGoalAction(
   year: number,
   leadType: LeadType,
@@ -2191,45 +2177,6 @@ export async function saveCompanyProductionGoalAction(
   });
 
   await prisma.$transaction(upserts);
-
-  revalidatePath("/dashboard");
-  revalidatePath("/beheer/doelen/jaarplan");
-}
-
-/**
- * Voegt een handmatige correctie toe (of overschrijft de bestaande voor
- * dezelfde gebruiker/maand/leadType) — voor productie die niet meer
- * automatisch aan iemand toe te schrijven is, bv. een medewerker die niet
- * meer bij het bedrijf is. Telt bovenop het live berekende cijfer van die
- * maand, vervangt het niet.
- */
-export async function addCompanyProductionCorrectionAction(
-  year: number,
-  leadType: LeadType,
-  formData: FormData
-) {
-  await requireGoalManager();
-
-  const userId = String(formData.get("userId") ?? "").trim();
-  const month = Number(formData.get("month") ?? 0);
-  const unitsRaw = String(formData.get("units") ?? "").trim();
-  if (!userId || !month || month < 1 || month > 12 || !unitsRaw) return;
-  const units = Number(unitsRaw);
-
-  await prisma.companyProductionContribution.upsert({
-    where: { year_month_userId_leadType: { year, month, userId, leadType } },
-    create: { year, month, userId, leadType, units },
-    update: { units },
-  });
-
-  revalidatePath("/dashboard");
-  revalidatePath("/beheer/doelen/jaarplan");
-}
-
-/** Verwijdert een handmatige correctie (zie addCompanyProductionCorrectionAction hierboven). */
-export async function deleteCompanyProductionCorrectionAction(id: string) {
-  await requireGoalManager();
-  await prisma.companyProductionContribution.delete({ where: { id } });
 
   revalidatePath("/dashboard");
   revalidatePath("/beheer/doelen/jaarplan");

@@ -32,158 +32,166 @@ export function MeetingPlannerFields({
   meetingType: string;
   subagents: SubagentOption[];
 }) {
+  const isMandatorySubagentType =
+    isAdviesgesprekType(meetingType) ||
+    isOpvolggesprekType(meetingType) ||
+    isJaarlijkseOpvolgingType(meetingType);
+  const isRecruitment = isRecruitmentMeetingType(meetingType);
+  const showSubagentField = isMandatorySubagentType || isRecruitment;
+  // Een coach die geen Subagent is, is enkel kiesbaar bij een
+  // recruteringsgesprek — bij een adviesgesprek e.d. blijft de lijst zoals
+  // voorheen enkel subagenten, ook al bevat de meegegeven `subagents`-prop
+  // (bv. op de Taken-pagina, waar FA- en RG-taken door elkaar staan)
+  // mogelijk ook coaches. Een coach die zelf óók Type Subagent heeft, blijft
+  // hier wél gewoon kiesbaar: Type (niet rol) bepaalt of iemand een
+  // subagent is.
+  const subagentOptions = isRecruitment
+    ? subagents
+    : subagents.filter((s) => !s.isCoach || s.qualifiesAsSubagent);
+
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/60">
+    <div className="@container flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/60">
       <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
         Afspraak inplannen
       </p>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500 dark:text-slate-400">Van</label>
-          <input
-            type="datetime-local"
-            value={value.scheduledAt}
-            onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500 dark:text-slate-400">Tot</label>
-          <input
-            type="time"
-            value={value.endTime}
-            onChange={(e) => onChange({ ...value, endTime: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-          />
-        </div>
-      </div>
+      {/* @lg reageert op de breedte van de modal zelf (niet het scherm) —
+          in een brede modal komen datum/locatie en omschrijving/subagent
+          naast elkaar te staan zodat het geheel minder hoog wordt en in 1
+          oogopslag past; in een smalle context (bv. inline in een kaart)
+          blijft dit gewoon onder elkaar staan. */}
+      <div className="flex flex-col gap-3 @lg:flex-row">
+        <div className="flex flex-col gap-2 @lg:flex-1">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400">Van</label>
+              <input
+                type="datetime-local"
+                value={value.scheduledAt}
+                onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400">Tot</label>
+              <input
+                type="time"
+                value={value.endTime}
+                onChange={(e) => onChange({ ...value, endTime: e.target.value })}
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+            </div>
+          </div>
 
-      <div className="flex gap-2 text-sm">
-        <button
-          type="button"
-          onClick={() => onChange({ ...value, mode: "ONSITE" })}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 ${
-            value.mode === "ONSITE"
-              ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
-              : "border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
-          }`}
-        >
-          <MapPin size={14} />
-          Fysiek
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange({ ...value, mode: "ONLINE" })}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 ${
-            value.mode === "ONLINE"
-              ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
-              : "border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
-          }`}
-        >
-          <Video size={14} />
-          Online
-        </button>
-      </div>
+          <div className="flex gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => onChange({ ...value, mode: "ONSITE" })}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 ${
+                value.mode === "ONSITE"
+                  ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+                  : "border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+              }`}
+            >
+              <MapPin size={14} />
+              Fysiek
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange({ ...value, mode: "ONLINE" })}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 ${
+                value.mode === "ONLINE"
+                  ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+                  : "border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+              }`}
+            >
+              <Video size={14} />
+              Online
+            </button>
+          </div>
 
-      {value.mode === "ONSITE" ? (
-        <div className="flex flex-col gap-1">
-          <AddressAutocomplete
-            value={value.location}
-            onChange={(location) => onChange({ ...value, location })}
-            placeholder="Adres van de afspraak (leeg = kantooradres)"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-          />
+          {value.mode === "ONSITE" ? (
+            <div className="flex flex-col gap-1">
+              <AddressAutocomplete
+                value={value.location}
+                onChange={(location) => onChange({ ...value, location })}
+                placeholder="Adres van de afspraak (leeg = kantooradres)"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                Leeg laten gebruikt automatisch het kantooradres (zie &quot;Kantoor&quot;
+                in het profielmenu).
+              </p>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+              <input
+                type="checkbox"
+                checked={value.useGoogleMeet}
+                onChange={(e) =>
+                  onChange({ ...value, useGoogleMeet: e.target.checked })
+                }
+              />
+              Gebruik Google Meet in plaats van onze Zoom-link
+            </label>
+          )}
+
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            Leeg laten gebruikt automatisch het kantooradres (zie &quot;Kantoor&quot;
-            in het profielmenu).
+            {value.mode === "ONLINE"
+              ? value.useGoogleMeet
+                ? "Er wordt automatisch een Google Meet-link toegevoegd aan de agenda-afspraak."
+                : "Onze vaste Zoom-link (Instellingen) wordt automatisch in de omschrijving gezet."
+              : "Enkel zichtbaar als locatie op het agenda-item."}
           </p>
         </div>
-      ) : (
-        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-          <input
-            type="checkbox"
-            checked={value.useGoogleMeet}
-            onChange={(e) =>
-              onChange({ ...value, useGoogleMeet: e.target.checked })
-            }
-          />
-          Gebruik Google Meet in plaats van onze Zoom-link
-        </label>
-      )}
 
-      <p className="text-xs text-slate-400 dark:text-slate-500">
-        {value.mode === "ONLINE"
-          ? value.useGoogleMeet
-            ? "Er wordt automatisch een Google Meet-link toegevoegd aan de agenda-afspraak."
-            : "Onze vaste Zoom-link (Instellingen) wordt automatisch in de omschrijving gezet."
-          : "Enkel zichtbaar als locatie op het agenda-item."}
-      </p>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-slate-500 dark:text-slate-400">
-          Extra tekst in de omschrijving (optioneel)
-        </label>
-        <textarea
-          value={value.meetingDescription}
-          onChange={(e) =>
-            onChange({ ...value, meetingDescription: e.target.value })
-          }
-          rows={4}
-          placeholder="Bv. agenda, wat mee te brengen, praktische afspraken…"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-        />
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          Komt mee in de omschrijving van de agenda-uitnodiging — zichtbaar
-          voor iedereen die mee uitgenodigd is, dus ook de klant.
-        </p>
-      </div>
-
-      {(() => {
-        const isMandatorySubagentType =
-          isAdviesgesprekType(meetingType) ||
-          isOpvolggesprekType(meetingType) ||
-          isJaarlijkseOpvolgingType(meetingType);
-        const isRecruitment = isRecruitmentMeetingType(meetingType);
-        if (!isMandatorySubagentType && !isRecruitment) return null;
-
-        // Een coach die geen Subagent is, is enkel kiesbaar bij een
-        // recruteringsgesprek — bij een adviesgesprek e.d. blijft de lijst
-        // zoals voorheen enkel subagenten, ook al bevat de meegegeven
-        // `subagents`-prop (bv. op de Taken-pagina, waar FA- en RG-taken door
-        // elkaar staan) mogelijk ook coaches. Een coach die zelf óók Type
-        // Subagent heeft, blijft hier wél gewoon kiesbaar: Type (niet rol)
-        // bepaalt of iemand een subagent is.
-        const options = isRecruitment
-          ? subagents
-          : subagents.filter((s) => !s.isCoach || s.qualifiesAsSubagent);
-
-        return (
+        <div className="flex flex-col gap-2 @lg:flex-1">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-500 dark:text-slate-400">
-              {isRecruitment
-                ? "Subagent of coach uitnodigen (optioneel)"
-                : "Subagent uitnodigen (verplicht)"}
+              Extra tekst in de omschrijving (optioneel)
             </label>
-            <select
-              required={isMandatorySubagentType}
-              value={value.subagentId}
-              onChange={(e) => onChange({ ...value, subagentId: e.target.value })}
+            <textarea
+              value={value.meetingDescription}
+              onChange={(e) =>
+                onChange({ ...value, meetingDescription: e.target.value })
+              }
+              rows={4}
+              placeholder="Bv. agenda, wat mee te brengen, praktische afspraken…"
               className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            >
-              <option value="">
-                {isRecruitment ? "Kies subagent of coach…" : "Kies subagent…"}
-              </option>
-              {options.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.teamName}
-                  {s.isCoach ? " · Coach" : ""})
-                </option>
-              ))}
-            </select>
+            />
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Komt mee in de omschrijving van de agenda-uitnodiging — zichtbaar
+              voor iedereen die mee uitgenodigd is, dus ook de klant.
+            </p>
           </div>
-        );
-      })()}
+
+          {showSubagentField && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400">
+                {isRecruitment
+                  ? "Subagent of coach uitnodigen (optioneel)"
+                  : "Subagent uitnodigen (verplicht)"}
+              </label>
+              <select
+                required={isMandatorySubagentType}
+                value={value.subagentId}
+                onChange={(e) => onChange({ ...value, subagentId: e.target.value })}
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              >
+                <option value="">
+                  {isRecruitment ? "Kies subagent of coach…" : "Kies subagent…"}
+                </option>
+                {subagentOptions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.teamName}
+                    {s.isCoach ? " · Coach" : ""})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
 
       <p className="text-xs text-slate-400 dark:text-slate-500">
         De lead wordt automatisch als deelnemer uitgenodigd via het
