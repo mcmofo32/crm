@@ -41,6 +41,7 @@ import { ProductType, BoarStatus } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { SubagentTabs } from "@/components/SubagentTabs";
 import { BulkBoarTodoButton } from "@/components/BulkBoarTodoButton";
+import { SearchClearInput } from "@/components/SearchClearInput";
 
 /** Kleur voor de BOAR-badge zolang er nog geen status ingesteld is — zelfde grijstint als de NVT-opvolgingsstatus. */
 const BOAR_NONE_STYLE = { background: "#e2e8f0", color: "#475569" };
@@ -295,8 +296,7 @@ export default async function SubagentKlantenPage({
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             />
-            <input
-              type="search"
+            <SearchClearInput
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."

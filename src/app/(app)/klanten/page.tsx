@@ -35,6 +35,7 @@ import { PRODUCT_TYPE_LABELS, PRODUCT_TYPE_ORDER } from "@/lib/productTypes";
 import { ProductType } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { InlineTextField } from "@/components/InlineTextField";
+import { SearchClearInput } from "@/components/SearchClearInput";
 
 // Nooit cachen/statisch renderen — een lead die elders (bv. via de
 // Excel-import, of het afsluiten van een deal) klant wordt of net niet meer,
@@ -316,8 +317,7 @@ export default async function KlantenPage({
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             />
-            <input
-              type="search"
+            <SearchClearInput
               name="q"
               defaultValue={q ?? ""}
               placeholder="Zoek op naam, e-mail, telefoon of bedrijf..."
