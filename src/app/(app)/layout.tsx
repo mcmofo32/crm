@@ -90,7 +90,7 @@ export default async function AppLayout({
       label: "Pipeline",
       children: [
         { href: "/pipeline/verkoop", label: "Pipeline verkoop" },
-        { href: "/pipeline/recrutering", label: "Pipeline Rekrutering" },
+        { href: "/pipeline/rekrutering", label: "Pipeline Rekrutering" },
       ],
     },
     { href: "/taken", label: "Taken", badge: overdueTasks },

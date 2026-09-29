@@ -552,7 +552,7 @@ export async function updateLeadsFromExcelAction(
 
   revalidatePath("/klanten");
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 
   return {
     mode: "committed",

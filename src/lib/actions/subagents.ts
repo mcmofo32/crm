@@ -22,7 +22,7 @@ async function requireUserManager() {
  *
  * `includeCoaches` (default false, enkel voor de RG-planning-widget) telt
  * daar ook de auto-gesynchroniseerde coach-vermeldingen bij (zie
- * syncSubagentForUser) — voor recruteringsgesprekken mag naast een subagent
+ * syncSubagentForUser) — voor rekruteringsgesprekken mag naast een subagent
  * ook een coach uitgenodigd worden. Elke plek die dit niet expliciet
  * aanvraagt (dossierbeheerder-keuze, evenement-uitnodigingen,
  * Beheer > Teams) blijft ongewijzigd enkel "echte" subagenten tonen.
@@ -65,7 +65,7 @@ export async function getSubagents(options?: { includeCoaches?: boolean }) {
  * (agentType) én rol: is hij Subagent óf Coach, actief, heeft hij een
  * e-mailadres en een team, dan is/wordt hij automatisch kiesbaar bij het
  * uitnodigen van een subagent op een adviesgesprek (Subagent) of een coach op
- * een recruteringsgesprek (Coach, zie getSubagents' includeCoaches) — zonder
+ * een rekruteringsgesprek (Coach, zie getSubagents' includeCoaches) — zonder
  * dat een aparte, manuele subagent-vermelding voor hem aangemaakt moet
  * worden.
  *

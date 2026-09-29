@@ -289,7 +289,7 @@ export async function logCompletedActivityAction(formData: FormData) {
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 }
 
 export async function completeActivityAction(
@@ -319,7 +319,7 @@ export async function completeActivityAction(
   revalidatePath("/taken");
   revalidatePath("/dashboard");
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 }
 
 /**
@@ -790,7 +790,7 @@ export async function planFollowUpCallAction(
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath("/taken");
   revalidatePath("/dashboard");
 }

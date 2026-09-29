@@ -14,7 +14,7 @@ const QUARTER_LABELS: Record<number, string> = { 1: "Q1", 2: "Q2", 3: "Q3", 4: "
 
 const TYPE_TABS: { value: LeadType; label: string }[] = [
   { value: "FA", label: "Productie (FA)" },
-  { value: "RG", label: "Recrutering (RG)" },
+  { value: "RG", label: "Rekrutering (RG)" },
 ];
 
 export default async function BedrijfsJaarplanPage({
@@ -106,7 +106,7 @@ export default async function BedrijfsJaarplanPage({
         </h2>
         {leadType === "RG" ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Recrutering telt uitdrukkelijk enkel <strong>nieuwe</strong>{" "}
+            Rekrutering telt uitdrukkelijk enkel <strong>nieuwe</strong>{" "}
             medewerkers: &quot;Groei dit kwartaal&quot; telt cumulatief op
             bij de vorige kwartalen, los van het bestaand
             personeelsbestand — &quot;Totaal&quot; is dus het streefaantal

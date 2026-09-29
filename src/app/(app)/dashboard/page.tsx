@@ -327,13 +327,13 @@ export default async function DashboardPage() {
       {rgProductionGoal && rgProductionGoal.totalTarget > 0 && (
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
-            Bedrijfsjaarplan — Recrutering (RG)
+            Bedrijfsjaarplan — Rekrutering (RG)
           </h2>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <CompanyProductionMeter
               year={currentYear}
               progress={rgProductionGoal}
-              title="Recrutering"
+              title="Rekrutering"
               unitLabel="medewerkers"
               liveCountLabel={
                 activeEmployeeCount !== null

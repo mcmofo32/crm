@@ -293,7 +293,7 @@ export async function setLeadCreatedAtAction(leadId: string, formData: FormData)
   });
 
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 }
 
 export async function setLeadQualityScoreAction(
@@ -310,7 +310,7 @@ export async function setLeadQualityScoreAction(
   });
 
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 }
 
 export async function setLeadInformedAction(leadId: string, formData: FormData) {
@@ -323,7 +323,7 @@ export async function setLeadInformedAction(leadId: string, formData: FormData) 
   });
 
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 }
 
 export async function setLeadMessageSentAction(leadId: string, formData: FormData) {
@@ -336,7 +336,7 @@ export async function setLeadMessageSentAction(leadId: string, formData: FormDat
   });
 
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 }
 
 export async function setLeadCharacteristicsAction(
@@ -351,5 +351,5 @@ export async function setLeadCharacteristicsAction(
     data: { characteristics },
   });
 
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
 }
