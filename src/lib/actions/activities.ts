@@ -26,6 +26,7 @@ import {
   isOpvolggesprekType,
   buildMeetingSubject,
   bareMeetingType,
+  meetingTypeFromStageLabel,
 } from "@/lib/meetingPlanning";
 import { parseLocalDateTime, combineWithTimeOnSameLocalDay } from "@/lib/datetime";
 import { getOfficeSettings } from "@/lib/actions/officeSettings";
@@ -207,14 +208,19 @@ export async function scheduleActivityAction(formData: FormData) {
   }
 
   // Het inplannen van bv. een Financiële analyse/Adviesgesprek verplaatst de
-  // lead meteen naar de bijhorende "...ingepland"-fase, als die bestaat.
+  // lead meteen naar de bijhorende fase, als die bestaat — dezelfde
+  // naam-herkenning als isPlanningStage gebruikt: een fase heet tegenwoordig
+  // gewoon exact zoals het gesprektype (bv. "Financiële analyse"), niet meer
+  // de oudere "<type> ingepland"-vorm uit seed.ts. Zonder deze match bleef
+  // een lead die via het profiel (i.p.v. het funnelbord) ingepland werd op
+  // zijn oude fase staan en dook dus niet op in de funnel.
   if (richMeeting) {
-    const matchingStage = await prisma.funnelStage.findFirst({
-      where: {
-        leadType: lead.leadType,
-        label: { equals: `${rawSubject} ingepland`, mode: "insensitive" },
-      },
+    const candidateStages = await prisma.funnelStage.findMany({
+      where: { leadType: lead.leadType },
     });
+    const matchingStage = candidateStages.find(
+      (s) => meetingTypeFromStageLabel(s.label).toLowerCase() === rawSubject.toLowerCase()
+    );
     if (matchingStage && matchingStage.id !== lead.stageId) {
       await updateLeadStageAction(leadId, matchingStage.id);
     }

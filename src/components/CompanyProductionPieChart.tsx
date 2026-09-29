@@ -40,7 +40,11 @@ export function CompanyProductionPieChart({
   const rest = contributions.rows.slice(MAX_SLICES);
   const restUnits = rest.reduce((sum, r) => sum + r.units, 0);
 
-  const slices: Slice[] = [
+  // De taart zelf blijft beperkt tot MAX_SLICES + "Overige" (zie SLOT_COLORS
+  // hierboven: bewust een vaste, nooit-gecyclede kleurenset) — meer dan een
+  // stuk of 7 dunne taartpunten is toch niet meer van elkaar te
+  // onderscheiden. Het leaderboard ernaast toont wél iedereen apart.
+  const chartSlices: Slice[] = [
     ...top.map((r, i) => ({
       key: r.userId,
       name: r.name,
@@ -70,12 +74,24 @@ export function CompanyProductionPieChart({
   const strokeWidth = 34;
 
   let cumulative = 0;
-  const arcs = slices.map((slice) => {
+  const arcs = chartSlices.map((slice) => {
     const dash = Math.max(slice.percent - GAP_PCT, 0);
     const offset = -cumulative;
     cumulative += slice.percent;
     return { ...slice, dash, offset };
   });
+
+  // Leaderboard: elke medewerker met productie staat er apart op, ook wie
+  // niet meer als eigen taartpunt past — wie in de taart nog onder "Overige"
+  // valt, krijgt hier dezelfde neutrale kleur (geen eigen taartpunt, dus ook
+  // geen eigen categorische kleur), maar wel zijn eigen rang, naam en cijfer.
+  const leaderboardRows: Slice[] = contributions.rows.map((r, i) => ({
+    key: r.userId,
+    name: r.name,
+    units: r.units,
+    percent: r.percent,
+    color: i < MAX_SLICES ? SLOT_COLORS[i] : OTHER_COLOR,
+  }));
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
@@ -124,23 +140,26 @@ export function CompanyProductionPieChart({
           </text>
         </svg>
 
-        <ul className="flex w-full flex-col gap-2">
-          {arcs.map((slice) => (
+        <ul className="flex max-h-72 w-full flex-col gap-2 overflow-y-auto pr-1">
+          {leaderboardRows.map((row, i) => (
             <li
-              key={slice.key}
+              key={row.key}
               className="flex items-center justify-between gap-3 text-sm text-slate-700 dark:text-slate-300"
             >
               <span className="flex min-w-0 items-center gap-2">
+                <span className="w-5 flex-shrink-0 text-right text-xs tabular-nums text-slate-400 dark:text-slate-500">
+                  {i + 1}
+                </span>
                 <span
                   className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[var(--slice-light)] dark:bg-[var(--slice-dark)]"
-                  style={colorVars(slice.color)}
+                  style={colorVars(row.color)}
                 />
-                <span className="truncate">{slice.name}</span>
+                <span className="truncate">{row.name}</span>
               </span>
               <span className="flex-shrink-0 text-slate-500 dark:text-slate-400">
-                {slice.units.toLocaleString("nl-BE")}{" "}
+                {row.units.toLocaleString("nl-BE")}{" "}
                 <span className="font-medium text-slate-700 dark:text-slate-300">
-                  {slice.percent}%
+                  {row.percent}%
                 </span>
               </span>
             </li>
