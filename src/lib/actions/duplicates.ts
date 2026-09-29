@@ -546,7 +546,7 @@ export async function bulkDeleteExactDuplicatesAction(
   revalidatePath("/beheer/prullenbak");
   revalidatePath("/dashboard");
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath("/funnel/FA");
   revalidatePath("/funnel/RG");
   revalidatePath("/klanten");

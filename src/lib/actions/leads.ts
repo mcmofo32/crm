@@ -115,7 +115,7 @@ export async function createLeadAction(
   });
 
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath(`/funnel/${leadType}`);
 
   const duplicate = contactMatches[0];
@@ -505,14 +505,14 @@ export async function createLeadsBulkAction(formData: FormData) {
   });
 
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   for (const type of usedLeadTypes) revalidatePath(`/funnel/${type}`);
   // Bij één gebruikt type: rechtstreeks naar de bijhorende Pipeline. Bij een
   // mix van FA/RG in dezelfde import: terug naar de Pipeline van het
   // standaardtype dat bovenaan het formulier gekozen was.
   const redirectType =
     usedLeadTypes.length === 1 ? usedLeadTypes[0] : defaultLeadType;
-  redirect(`/pipeline/${redirectType === "RG" ? "recrutering" : "verkoop"}?created=1`);
+  redirect(`/pipeline/${redirectType === "RG" ? "rekrutering" : "verkoop"}?created=1`);
 }
 
 export async function updateLeadStageAction(
@@ -739,7 +739,7 @@ export async function switchLeadTypeAction(
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath(`/funnel/${newLeadType}`);
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath("/taken");
   revalidatePath("/dashboard");
 }
@@ -794,7 +794,7 @@ export async function updateLeadDetailsAction(leadId: string, formData: FormData
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
@@ -831,7 +831,7 @@ export async function updateLeadEmailAction(leadId: string, email: string) {
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath(`/funnel/${lead.leadType}`);
 }
 
@@ -860,7 +860,7 @@ export async function deleteLeadAction(leadId: string) {
 
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath("/klanten");
   revalidatePath("/taken");
   revalidatePath("/dashboard");
@@ -891,7 +891,7 @@ export async function restoreLeadAction(leadId: string) {
   });
 
   revalidatePath("/pipeline/verkoop");
-  revalidatePath("/pipeline/recrutering");
+  revalidatePath("/pipeline/rekrutering");
   revalidatePath("/klanten");
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/beheer/prullenbak");

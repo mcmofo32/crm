@@ -42,8 +42,8 @@ import { SearchClearInput } from "@/components/SearchClearInput";
 // de nieuwe gegevens tonen i.p.v. pas na een harde refresh.
 export const dynamic = "force-dynamic";
 
-const TYPE_MAP = { verkoop: "FA", recrutering: "RG" } as const;
-const TITLES = { verkoop: "Pipeline verkoop", recrutering: "Pipeline Rekrutering" } as const;
+const TYPE_MAP = { verkoop: "FA", rekrutering: "RG" } as const;
+const TITLES = { verkoop: "Pipeline verkoop", rekrutering: "Pipeline Rekrutering" } as const;
 /** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. Nodig om bv. een lead van een intussen inactieve (dus niet meer los kiesbare) medewerker toch te kunnen terugvinden. */
 const ALL_OPTION = "alles";
 
@@ -180,7 +180,7 @@ export default async function PipelinePage({
   }>;
 }) {
   const { type } = await params;
-  if (type !== "verkoop" && type !== "recrutering") notFound();
+  if (type !== "verkoop" && type !== "rekrutering") notFound();
   const { q, ownerId, view, sort, dir } = await searchParams;
   // Standaard op datum (nieuwste eerst) — bij een gelijke datum (bv. een
   // hele bulk-import op dezelfde dag) groepeert sortLeads die rijen wel
@@ -206,13 +206,13 @@ export default async function PipelinePage({
   const category = resolvedView === "alle" ? undefined : resolvedView;
 
   const leadType = TYPE_MAP[type];
-  const isRecrutering = type === "recrutering";
+  const isRekrutering = type === "rekrutering";
 
   const [user, , assignableUsers, subagents] = await Promise.all([
     getEffectiveViewer(),
     ensureFunnelStages(leadType),
     getAssignableUsers(),
-    getSubagents({ includeCoaches: isRecrutering }),
+    getSubagents({ includeCoaches: isRekrutering }),
   ]);
   if (!user) notFound();
   // Beheerder/Admin zien anders iedereens leads door elkaar, en een Coach
@@ -452,7 +452,7 @@ export default async function PipelinePage({
               Aanbevolen door: {lead.source || "—"}
             </p>
 
-            {isRecrutering ? (
+            {isRekrutering ? (
               <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
                 <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Kenmerken
@@ -548,7 +548,7 @@ export default async function PipelinePage({
                 isActive={sortKey === "aanbevolen"}
                 dir={sortDir}
               />
-              {isRecrutering ? (
+              {isRekrutering ? (
                 <SortableHeader
                   label="Kenmerken"
                   href={sortHref("kenmerken")}
@@ -620,7 +620,7 @@ export default async function PipelinePage({
                 </td>
                 <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{lead.phone || "—"}</td>
                 <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{lead.source || "—"}</td>
-                {isRecrutering ? (
+                {isRekrutering ? (
                   <td className="px-4 py-2.5">
                     <InlineTextField
                       action={setLeadCharacteristicsAction.bind(null, lead.id)}
@@ -687,7 +687,7 @@ export default async function PipelinePage({
             {sortedLeads.length === 0 && (
               <tr>
                 <td
-                  colSpan={isRecrutering ? 6 : 11}
+                  colSpan={isRekrutering ? 6 : 11}
                   className="px-4 py-8 text-center text-slate-400 dark:text-slate-500"
                 >
                   {q || category

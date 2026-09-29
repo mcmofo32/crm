@@ -444,7 +444,7 @@ model Lead {
   isInformed      Boolean @default(false)
   /// Pipeline: handmatig aan te vinken of er al een bericht (bv. sms/mail) naar de lead verstuurd is.
   messageSent     Boolean @default(false)
-  /// Pipeline recrutering: vrij in te vullen kenmerken van de kandidaat.
+  /// Pipeline rekrutering: vrij in te vullen kenmerken van de kandidaat.
   characteristics String?
 
   activities   Activity[]
@@ -884,7 +884,7 @@ model UserKpiMonthlyEntry {
 ///   kwartaal (kwartaaltotaal = x3, kwartalen onafhankelijk van elkaar);
 ///   `actualUnits` het gerealiseerde totaal van dát kwartaal. Het jaarcijfer
 ///   is de som van de 4 kwartalen.
-/// - RG (recrutering): `monthlyTarget` is de gewenste groei aan NIEUWE
+/// - RG (rekrutering): `monthlyTarget` is de gewenste groei aan NIEUWE
 ///   medewerkers tíjdens dat kwartaal (bv. "+6"), cumulatief opgeteld bij de
 ///   vorige kwartalen (dus enkel nieuwe medewerkers, geen bestaand
 ///   personeelsbestand); `actualUnits` het cumulatief aantal effectief
@@ -1112,7 +1112,7 @@ enum LeadDocumentKind {
   FA_FICHE
   BUDGETTERING
   PORTEFEUILLE
-  /// RG (recrutering) heeft geen budgettering/portefeuille — enkel dit ene vak, zelfde toegelaten bestandstypes als FA_FICHE.
+  /// RG (rekrutering) heeft geen budgettering/portefeuille — enkel dit ene vak, zelfde toegelaten bestandstypes als FA_FICHE.
   RG_FICHE
 }
 

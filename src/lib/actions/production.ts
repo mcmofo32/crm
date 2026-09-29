@@ -1864,7 +1864,7 @@ export async function saveAllUserMonthlyGoalsAction(
 // ---------------------------------------------------------------------------
 // Bedrijfsproductie: jaarplan per kwartaal + verdeling per persoon (dashboard
 // progressiebalk + taartdiagram), per leadType (FA = productie, RG =
-// recrutering) — twee volledig aparte plannen, elk met hun eigen doelen en
+// rekrutering) — twee volledig aparte plannen, elk met hun eigen doelen en
 // bijdrages. Dit is een bedrijfsbreed cijfer uit het management-rekenblad,
 // los van (en niet noodzakelijk gelijk aan de som van) de individuele
 // productiedoelen hierboven.
@@ -2011,7 +2011,7 @@ function sumQuarterActual(
 /**
  * FA (productie) is rate-based: elk kwartaal telt onafhankelijk mee (doel
  * per maand x3), het jaarcijfer is de som van de 4 kwartalen. RG
- * (recrutering) is cumulatief maar telt uitdrukkelijk enkel NIEUWE
+ * (rekrutering) is cumulatief maar telt uitdrukkelijk enkel NIEUWE
  * medewerkers: elk kwartaal voegt een gewenste groei toe aan een lopend
  * totaal (geen bestaand personeelsbestand erbij opgeteld — dat wordt apart,
  * live, geteld via getActiveEmployeeCount), en "behaald" is het cumulatief
@@ -2082,7 +2082,7 @@ export async function getCompanyProductionGoalProgress(
   };
 }
 
-/** Huidig totaal personeelsbestand (los van het recrutering-doel hierboven, dat enkel nieuwe medewerkers telt) — telt gewoon alle actieve gebruikers. */
+/** Huidig totaal personeelsbestand (los van het rekrutering-doel hierboven, dat enkel nieuwe medewerkers telt) — telt gewoon alle actieve gebruikers. */
 export async function getActiveEmployeeCount(): Promise<number> {
   await requireViewer();
   return prisma.user.count({ where: { active: true } });

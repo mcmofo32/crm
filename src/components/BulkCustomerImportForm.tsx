@@ -43,7 +43,7 @@ export function BulkCustomerImportForm({
           className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           <option value="FA">Financiële analyse (Klant)</option>
-          <option value="RG">Recrutering (Medewerker)</option>
+          <option value="RG">Rekrutering (Medewerker)</option>
         </select>
       </div>
 

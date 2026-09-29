@@ -19,7 +19,7 @@ export function CompanyProductionMeter({
 }: {
   year: number;
   progress: CompanyProductionGoalProgress;
-  /** Bv. "Bedrijfsproductie" of "Recrutering" — bepaalt het opschrift boven het grote cijfer. */
+  /** Bv. "Bedrijfsproductie" of "Rekrutering" — bepaalt het opschrift boven het grote cijfer. */
   title: string;
   /** Bv. "eenheden" of "medewerkers". */
   unitLabel?: string;

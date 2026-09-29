@@ -39,7 +39,7 @@ export function MeetingPlannerFields({
   const isRecruitment = isRecruitmentMeetingType(meetingType);
   const showSubagentField = isMandatorySubagentType || isRecruitment;
   // Een coach die geen Subagent is, is enkel kiesbaar bij een
-  // recruteringsgesprek — bij een adviesgesprek e.d. blijft de lijst zoals
+  // rekruteringsgesprek — bij een adviesgesprek e.d. blijft de lijst zoals
   // voorheen enkel subagenten, ook al bevat de meegegeven `subagents`-prop
   // (bv. op de Taken-pagina, waar FA- en RG-taken door elkaar staan)
   // mogelijk ook coaches. Een coach die zelf óók Type Subagent heeft, blijft
