@@ -1,7 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { encryptToken, decryptToken } from "@/lib/tokenCrypto";
 import type { Activity, Event, Lead, Subagent, User } from "@/generated/prisma/client";
-import { subjectInvitesLead, isFinancieleAnalyseSubject } from "@/lib/meetingPlanning";
+import {
+  subjectInvitesLead,
+  isFinancieleAnalyseSubject,
+  bareMeetingType,
+  isAdviesgesprekType,
+  isCarrieregesprekType,
+} from "@/lib/meetingPlanning";
 
 type ContactInfo = { name: string; email: string | null; phone: string | null };
 
@@ -119,7 +125,7 @@ function buildEventBody(
   scheduledBy?: { name: string; email: string | null; phone: string | null } | null,
   owner?: ContactInfo | null,
   officeNote?: string | null,
-  assigneeName?: string | null,
+  assignee?: { name: string; phone: string | null } | null,
   /** True als scheduledBy dezelfde persoon is als de toegewezen gebruiker (op wiens agenda dit event komt). */
   isSelfScheduled?: boolean
 ) {
@@ -175,7 +181,7 @@ function buildEventBody(
   // medewerker.
   const advisorName = isFinancieleAnalyseSubject(activity.subject)
     ? owner?.name ?? null
-    : subagent?.name ?? assigneeName ?? null;
+    : subagent?.name ?? assignee?.name ?? null;
   const officeNoteLine =
     activity.meetingMode === "ONSITE" && officeNote
       ? advisorName
@@ -195,17 +201,23 @@ function buildEventBody(
   const aanbrengerLine = isFinancieleAnalyseSubject(activity.subject)
     ? formatContactLine(owner)
     : null;
-  // De naamloze regel hieronder toont exact dezelfde persoon zodra die ook
-  // als subagent/aanbrenger vermeld staat (bv. een subagent die zijn eigen
-  // adviesgesprek inplant) — dan volstaat die ene, genoemde regel.
-  const namedContactLine = subagentLine ?? aanbrengerLine;
+
+  // Onderaan de omschrijving komt altijd een telefoonnummer te staan, zodat
+  // wie uitgenodigd is altijd iemand kan bereiken: bij een Adviesgesprek of
+  // Carrièregesprek is dat de subagent/coach (die voert het gesprek),
+  // anders de organisator (de toegewezen medewerker, op wiens agenda dit
+  // item komt).
+  const bareType = bareMeetingType(activity.subject);
+  const phoneFooterNumber =
+    (isAdviesgesprekType(bareType) || isCarrieregesprekType(bareType)) && subagent?.phone
+      ? subagent.phone
+      : assignee?.phone ?? null;
+  const phoneFooterLine = phoneFooterNumber
+    ? `📞 ${withPlusPrefix(phoneFooterNumber)}`
+    : null;
+
   const description = invitesLead
     ? [
-        namedContactLine
-          ? null
-          : scheduledBy?.phone
-          ? `Telefoon: ${withPlusPrefix(scheduledBy.phone)}`
-          : null,
         subagentLine,
         aanbrengerLine,
         activity.meetingMode === "ONLINE" && activity.meetingLink
@@ -213,6 +225,7 @@ function buildEventBody(
           : null,
         activity.meetingDescription,
         officeNoteLine,
+        phoneFooterLine,
       ]
         .filter(Boolean)
         .join("\n")
@@ -220,6 +233,7 @@ function buildEventBody(
         activity.notes ? `Notities:\n${activity.notes}` : null,
         activity.meetingDescription,
         officeNoteLine,
+        phoneFooterLine,
       ]
         .filter(Boolean)
         .join("\n");
@@ -295,11 +309,12 @@ export async function syncActivityToGoogleCalendar(
   }
 
   // Kantoornotitie (bv. parkeerinfo) enkel nodig bij een fysieke afspraak;
-  // aanbrenger-contactgegevens enkel bij een Financiële analyse; de naam van
-  // de toegewezen medewerker enkel als terugval voor "{naam}" in de
-  // kantoornotitie als er geen subagent/aanbrenger van toepassing is — alle
-  // drie worden hier zelf opgehaald zodat callers deze niet hoeven mee te geven.
-  const [officeSettings, owner, assigneeForNote] = await Promise.all([
+  // aanbrenger-contactgegevens enkel bij een Financiële analyse; de
+  // toegewezen medewerker (naam + telefoon) altijd nodig — als terugval
+  // voor "{naam}" in de kantoornotitie, en als organisator-telefoonnummer
+  // onderaan de omschrijving (zie buildEventBody) — alle drie worden hier
+  // zelf opgehaald zodat callers deze niet hoeven mee te geven.
+  const [officeSettings, owner, assignee] = await Promise.all([
     activity.meetingMode === "ONSITE" ? prisma.officeSettings.findFirst() : null,
     isFinancieleAnalyseSubject(activity.subject)
       ? prisma.user.findUnique({
@@ -307,12 +322,10 @@ export async function syncActivityToGoogleCalendar(
           select: { name: true, email: true, phone: true },
         })
       : null,
-    activity.meetingMode === "ONSITE"
-      ? prisma.user.findUnique({
-          where: { id: activity.assigneeId },
-          select: { name: true },
-        })
-      : null,
+    prisma.user.findUnique({
+      where: { id: activity.assigneeId },
+      select: { name: true, phone: true },
+    }),
   ]);
 
   // De kantoornotitie (parkeer-/bereikbaarheidsinfo) is enkel relevant als
@@ -333,7 +346,7 @@ export async function syncActivityToGoogleCalendar(
     scheduledBy,
     owner,
     isAtOffice ? officeSettings?.note : null,
-    assigneeForNote?.name,
+    assignee,
     isSelfScheduled
   );
   const conferenceDataVersion = eventBody.conferenceData ? 1 : undefined;
