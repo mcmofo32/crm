@@ -1826,6 +1826,38 @@ export async function setUserMonthlyActualAction(
   revalidatePath("/dashboard");
 }
 
+/**
+ * Zet in één keer alle 12 productiemaanden van dit jaar op een expliciete
+ * 0-correctie voor deze gebruiker/metric — voor wanneer iemand dit hele
+ * jaar geen echte activiteit had (bv. bestaande medewerkers die vóór dit
+ * CRM al in dienst waren, maar wiens RG-leadgeschiedenis toch als "dit
+ * jaar" meetelt), i.p.v. 12 keer apart een cel te moeten leegmaken op de
+ * correctietabel.
+ */
+export async function resetUserYearActualsAction(
+  userId: string,
+  metric: (typeof MONTHLY_ACTUAL_METRICS)[number],
+  year: number
+) {
+  await requireGoalManager();
+
+  await prisma.$transaction(
+    Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      return prisma.userMonthlyActual.upsert({
+        where: { userId_metric_year_month: { userId, metric, year, month } },
+        create: { userId, metric, year, month, value: 0 },
+        update: { value: 0 },
+      });
+    })
+  );
+
+  revalidatePath("/productie");
+  revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/beheer/doelen/jaarplan");
+  revalidatePath("/dashboard");
+}
+
 export async function saveAllUserMonthlyGoalsAction(
   userIds: string[],
   year: number,
