@@ -55,34 +55,38 @@ export function MeetingPlannerFields({
         Afspraak inplannen
       </p>
 
+      {/* Van/Tot blijven altijd op volle breedte (nooit in de @lg-kolommen
+          hieronder) — een datetime-local-invoerveld heeft genoeg ruimte
+          nodig om datum én uur tegelijk te tonen; in een smallere kolom
+          werd dat anders afgesneden. */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500 dark:text-slate-400">Van</label>
+          <input
+            type="datetime-local"
+            value={value.scheduledAt}
+            onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500 dark:text-slate-400">Tot</label>
+          <input
+            type="time"
+            value={value.endTime}
+            onChange={(e) => onChange({ ...value, endTime: e.target.value })}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+        </div>
+      </div>
+
       {/* @lg reageert op de breedte van de modal zelf (niet het scherm) —
-          in een brede modal komen datum/locatie en omschrijving/subagent
-          naast elkaar te staan zodat het geheel minder hoog wordt en in 1
+          in een brede modal komen locatie en omschrijving/subagent naast
+          elkaar te staan zodat het geheel minder hoog wordt en in 1
           oogopslag past; in een smalle context (bv. inline in een kaart)
           blijft dit gewoon onder elkaar staan. */}
       <div className="flex flex-col gap-3 @lg:flex-row">
         <div className="flex flex-col gap-2 @lg:flex-1">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-500 dark:text-slate-400">Van</label>
-              <input
-                type="datetime-local"
-                value={value.scheduledAt}
-                onChange={(e) => onChange({ ...value, scheduledAt: e.target.value })}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-500 dark:text-slate-400">Tot</label>
-              <input
-                type="time"
-                value={value.endTime}
-                onChange={(e) => onChange({ ...value, endTime: e.target.value })}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              />
-            </div>
-          </div>
-
           <div className="flex gap-2 text-sm">
             <button
               type="button"
