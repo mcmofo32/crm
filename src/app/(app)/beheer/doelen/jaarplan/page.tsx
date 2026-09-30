@@ -28,7 +28,9 @@ export default async function BedrijfsJaarplanPage({
 
   const [goalProgress, contributions, activeEmployeeCount] = await Promise.all([
     getCompanyProductionGoalProgress(year, leadType),
-    getCompanyProductionContributions(year, leadType),
+    leadType === "RG"
+      ? Promise.resolve(null)
+      : getCompanyProductionContributions(year, leadType),
     leadType === "RG" ? getActiveEmployeeCount() : Promise.resolve(null),
   ]);
 
@@ -46,20 +48,35 @@ export default async function BedrijfsJaarplanPage({
           Bedrijfsjaarplan
         </h1>
         <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
-          Het bedrijfsbrede doel per kwartaal — voedt de progressiebalk en
-          het taartdiagram onderaan het dashboard. &quot;Gerealiseerd&quot;
-          en de verdeling per medewerker worden live berekend uit dezelfde
-          productiecijfers als de{" "}
-          <Link href="/productie" className="underline hover:text-slate-700 dark:hover:text-slate-300">
-            Productie
-          </Link>
-          -pagina (inclusief eventuele correcties die je daar per
-          medewerker/maand invoert), los van de individuele maanddoelen die
-          je bij{" "}
-          <Link href="/beheer/doelen" className="underline hover:text-slate-700 dark:hover:text-slate-300">
-            Doelen
-          </Link>{" "}
-          instelt.
+          {leadType === "RG" ? (
+            <>
+              Het bedrijfsbrede doel per kwartaal — voedt de progressiebalk
+              onderaan het dashboard. &quot;Gerealiseerd&quot; is het live
+              personeelsbestand, los van de individuele maanddoelen die je
+              bij{" "}
+              <Link href="/beheer/doelen" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+                Doelen
+              </Link>{" "}
+              instelt.
+            </>
+          ) : (
+            <>
+              Het bedrijfsbrede doel per kwartaal — voedt de progressiebalk en
+              het taartdiagram onderaan het dashboard. &quot;Gerealiseerd&quot;
+              en de verdeling per medewerker worden live berekend uit dezelfde
+              productiecijfers als de{" "}
+              <Link href="/productie" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+                Productie
+              </Link>
+              -pagina (inclusief eventuele correcties die je daar per
+              medewerker/maand invoert), los van de individuele maanddoelen die
+              je bij{" "}
+              <Link href="/beheer/doelen" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+                Doelen
+              </Link>{" "}
+              instelt.
+            </>
+          )}
         </p>
       </div>
 
@@ -106,21 +123,19 @@ export default async function BedrijfsJaarplanPage({
         </h2>
         {leadType === "RG" ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Rekrutering telt uitdrukkelijk enkel <strong>nieuwe</strong>{" "}
-            medewerkers: &quot;Groei dit kwartaal&quot; telt cumulatief op
-            bij de vorige kwartalen, los van het bestaand
-            personeelsbestand — &quot;Totaal&quot; is dus het streefaantal
-            nieuwe medewerkers sinds het begin van het jaar.
-            &quot;Gerealiseerd&quot; is het cumulatief aantal nieuwe
-            medewerkers op dat moment (geen kwartaalbedrag) en wordt live
-            berekend, dus niet hier in te vullen.
+            &quot;Gerealiseerd&quot; is voortaan simpelweg het huidige, live
+            personeelsbestand — dus niet hier in te vullen (de vroegere
+            telling per nieuwe aanwerving bleek historisch onbetrouwbaar,
+            oudere medewerkers hebben geen betrouwbare aanwervingsdatum).
+            Vul per kwartaal in met hoeveel medewerkers het streefaantal
+            moet aangroeien: &quot;Totaal&quot; is het cumulatieve
+            streefaantal medewerkers tegen het einde van dat kwartaal.
             {activeEmployeeCount !== null && (
               <>
                 {" "}
                 Ter referentie: er zijn nu{" "}
                 <strong>{activeEmployeeCount.toLocaleString("nl-BE")}</strong>{" "}
-                actieve medewerkers — dat cijfer wordt live geteld, hier
-                niet apart in te vullen.
+                actieve medewerkers.
               </>
             )}
           </p>
@@ -141,7 +156,7 @@ export default async function BedrijfsJaarplanPage({
                 <tr>
                   <th className="px-4 py-3 font-medium">Periode</th>
                   <th className="px-3 py-3 font-medium">
-                    {leadType === "RG" ? "Groei dit kwartaal" : "Doel per maand"}
+                    {leadType === "RG" ? "Toename dit kwartaal" : "Doel per maand"}
                   </th>
                   <th className="px-3 py-3 font-medium">Totaal</th>
                   <th className="px-3 py-3 font-medium">Gerealiseerd</th>
@@ -195,62 +210,60 @@ export default async function BedrijfsJaarplanPage({
         </form>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="flex items-center gap-1.5 text-lg font-medium text-slate-900 dark:text-slate-100">
-          <PieChart size={18} />
-          Verdeling per medewerker
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {leadType === "RG"
-            ? `Hoeveel medewerkers elke rekruteerder in ${year} aanbracht`
-            : `Hoeveel eenheden elke medewerker in ${year} realiseerde`}{" "}
-          — live berekend uit dezelfde cijfers als de{" "}
-          <Link href="/productie" className="underline hover:text-slate-700 dark:hover:text-slate-300">
-            Productie
-          </Link>
-          -pagina, bepaalt ieders aandeel (%) in het taartdiagram op het
-          dashboard. Is iemand intussen niet meer bij het bedrijf, of klopt
-          een cijfer niet, pas dat dan aan op de Productie-pagina zelf (per
-          medewerker, per productiemaand) — dat wordt hier automatisch
-          mee overgenomen.
-        </p>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
-              <tr>
-                <th className="px-4 py-3 font-medium">Naam</th>
-                <th className="px-3 py-3 font-medium">
-                  {leadType === "RG" ? "Medewerkers" : "Eenheden"} in {year}
-                </th>
-                <th className="px-3 py-3 font-medium">Aandeel</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {contributions.rows.map((row) => (
-                <tr key={row.userId} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                  <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
-                    <div className="flex items-center gap-2">
-                      <Avatar name={row.name} photoUrl={row.photoUrl} />
-                      {row.name}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
-                    {row.units.toLocaleString("nl-BE")}
-                  </td>
-                  <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{row.percent}%</td>
-                </tr>
-              ))}
-              {contributions.rows.length === 0 && (
+      {contributions && (
+        <section className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-1.5 text-lg font-medium text-slate-900 dark:text-slate-100">
+            <PieChart size={18} />
+            Verdeling per medewerker
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {`Hoeveel eenheden elke medewerker in ${year} realiseerde`}{" "}
+            — live berekend uit dezelfde cijfers als de{" "}
+            <Link href="/productie" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+              Productie
+            </Link>
+            -pagina, bepaalt ieders aandeel (%) in het taartdiagram op het
+            dashboard. Is iemand intussen niet meer bij het bedrijf, of klopt
+            een cijfer niet, pas dat dan aan op de Productie-pagina zelf (per
+            medewerker, per productiemaand) — dat wordt hier automatisch
+            mee overgenomen.
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
-                    Nog geen productie geregistreerd in {year}.
-                  </td>
+                  <th className="px-4 py-3 font-medium">Naam</th>
+                  <th className="px-3 py-3 font-medium">Eenheden in {year}</th>
+                  <th className="px-3 py-3 font-medium">Aandeel</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {contributions.rows.map((row) => (
+                  <tr key={row.userId} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                    <td className="whitespace-nowrap px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100">
+                      <div className="flex items-center gap-2">
+                        <Avatar name={row.name} photoUrl={row.photoUrl} />
+                        {row.name}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
+                      {row.units.toLocaleString("nl-BE")}
+                    </td>
+                    <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{row.percent}%</td>
+                  </tr>
+                ))}
+                {contributions.rows.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
+                      Nog geen productie geregistreerd in {year}.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
