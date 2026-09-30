@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Eraser } from "lucide-react";
+import { Eraser, Lock } from "lucide-react";
 import { InlineTextField } from "@/components/InlineTextField";
 import { Avatar } from "@/components/Avatar";
 import type { UserMonthlyActualsMatrixRow } from "@/lib/actions/production";
@@ -49,6 +49,40 @@ function ResetYearButton({
   );
 }
 
+/** Bevestigingsknop om voor iedereen tegelijk het huidige cijfer van één productiemaand te bevriezen als correctie — zodat het later niet meer wijzigt (bv. door een medewerker die stopt). */
+function CloseMonthButton({
+  label,
+  year,
+  action,
+}: {
+  label: string;
+  year: number;
+  action: () => void | Promise<void>;
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      title={`Productiemaand ${label} van ${year} afsluiten — bevriest ieders huidige cijfer als correctie`}
+      onClick={() => {
+        if (
+          confirm(
+            `Productiemaand ${label} van ${year} afsluiten? Ieders huidige cijfer (automatisch berekend of al gecorrigeerd) wordt vastgezet als correctie voor deze maand, zodat het later niet meer wijzigt — je kan een cel daarna nog altijd individueel corrigeren.`
+          )
+        ) {
+          startTransition(() => {
+            action();
+          });
+        }
+      }}
+      className="mt-0.5 flex h-5 w-5 items-center justify-center rounded text-slate-300 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-60 dark:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+    >
+      <Lock size={11} />
+    </button>
+  );
+}
+
 /**
  * Jaaroverzicht van het "behaald"-cijfer per gebruiker per productiemaand
  * (zie setUserMonthlyActualAction) — alles op één pagina i.p.v. maand per
@@ -59,9 +93,12 @@ function ResetYearButton({
 export function UserMonthlyActualsMatrix({
   rows,
   year,
+  closeMonthActions,
 }: {
   rows: UserMonthlyActualsMatrixTableRow[];
   year: number;
+  /** Index 0 = productiemaand 1 t.e.m. index 11 = productiemaand 12, elk al gebonden aan closeMonthAction — enkel meegegeven voor FA (zie Robins keuze: maandafsluiting enkel voor Productie). */
+  closeMonthActions?: (() => void | Promise<void>)[];
 }) {
   const totalsByMonth = Array.from({ length: 12 }, (_, i) =>
     rows.reduce((sum, r) => sum + (r.valuesByMonth[i] ?? 0), 0)
@@ -76,9 +113,14 @@ export function UserMonthlyActualsMatrix({
             <th className="sticky left-0 z-10 bg-slate-50 px-3 py-3 font-medium dark:bg-slate-800/60">
               Naam
             </th>
-            {MONTH_LABELS.map((label) => (
+            {MONTH_LABELS.map((label, i) => (
               <th key={label} className="px-1.5 py-3 text-center font-medium">
-                {label}
+                <div className="flex flex-col items-center">
+                  {label}
+                  {closeMonthActions && (
+                    <CloseMonthButton label={label} year={year} action={closeMonthActions[i]} />
+                  )}
+                </div>
               </th>
             ))}
             <th className="px-3 py-3 text-center font-medium">Totaal</th>

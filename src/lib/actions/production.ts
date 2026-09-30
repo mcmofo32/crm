@@ -1858,6 +1858,44 @@ export async function resetUserYearActualsAction(
   revalidatePath("/dashboard");
 }
 
+/**
+ * "Maand afsluiten": bevriest voor élke medewerker het huidige effectieve
+ * cijfer (correctie indien aanwezig, anders automatisch berekend) van deze
+ * productiemaand als een expliciete correctie — zodat een latere wijziging
+ * elders (bv. een medewerker die stopt, waarbij zijn leads verplicht naar
+ * een andere gebruiker overgezet worden, zie deleteUserAction) de cijfers
+ * van een al afgesloten maand niet alsnog met terugwerkende kracht
+ * verandert. Enkel een bulk-gemak bovenop het bestaande correctiemechanisme
+ * (zie setUserMonthlyActualAction) — een beheerder kan een bevroren cijfer
+ * dus nog altijd per cel corrigeren, net als voorheen.
+ */
+export async function closeMonthAction(year: number, month: number, leadType: LeadType) {
+  await requireGoalManager();
+  const metric = leadType === "RG" ? GoalMetric.CUSTOMERS : GoalMetric.UNITS;
+  const rows = await getUserMonthlyActualsMatrix(year, leadType);
+
+  const upserts = rows
+    .map((row) => {
+      const value = row.valuesByMonth[month - 1];
+      if (value === null) return null;
+      return prisma.userMonthlyActual.upsert({
+        where: { userId_metric_year_month: { userId: row.userId, metric, year, month } },
+        create: { userId: row.userId, metric, year, month, value },
+        update: { value },
+      });
+    })
+    .filter((upsert): upsert is NonNullable<typeof upsert> => upsert !== null);
+
+  if (upserts.length > 0) {
+    await prisma.$transaction(upserts);
+  }
+
+  revalidatePath("/productie");
+  revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/beheer/doelen/jaarplan");
+  revalidatePath("/dashboard");
+}
+
 export async function saveAllUserMonthlyGoalsAction(
   userIds: string[],
   year: number,
