@@ -193,6 +193,7 @@ export default async function LeadDetailPage({
             leadId={lead.id}
             currentStageId={lead.stageId}
             leadEmail={lead.email}
+            leadType={lead.leadType}
             stages={stages}
             subagents={subagents}
             canCloseDeals={canManageCustomerData(user)}

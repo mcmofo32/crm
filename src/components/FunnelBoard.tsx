@@ -12,6 +12,7 @@ import { EditMeetingButton } from "@/components/EditMeetingButton";
 import { Avatar } from "@/components/Avatar";
 import { avatarUrl } from "@/lib/avatarUrl";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
+import { LinkedLeadField } from "@/components/LinkedLeadField";
 import { FollowUpCallField } from "@/components/FollowUpCallField";
 import {
   ProductFields,
@@ -142,16 +143,20 @@ type BoardStage = {
 function LeadCard({
   lead,
   stages,
+  leadType,
   subagents,
   canCloseDeals,
+  linkableLeads,
   dragged,
   onDragStart,
   onDragEnd,
 }: {
   lead: BoardLead;
   stages: BoardStage[];
+  leadType: LeadType;
   subagents: SubagentRecord[];
   canCloseDeals: boolean;
+  linkableLeads: PickerLead[];
   dragged: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -252,9 +257,11 @@ function LeadCard({
           leadId={lead.id}
           currentStageId={lead.stageId}
           leadEmail={lead.email}
+          leadType={leadType}
           stages={stages}
           subagents={subagents}
           canCloseDeals={canCloseDeals}
+          linkableLeads={leadType === "FA" ? linkableLeads : undefined}
         />
       </div>
     </div>
@@ -319,6 +326,7 @@ export function FunnelBoard({
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(
     EMPTY_MEETING_PLANNER_VALUE
   );
+  const [secondLeadId, setSecondLeadId] = useState("");
   const [followUpCall, setFollowUpCall] = useState<FollowUpCallValue>(
     EMPTY_FOLLOW_UP_CALL_VALUE
   );
@@ -395,6 +403,7 @@ export function FunnelBoard({
     const fromStage = stages.find((s) => s.id === lead.stageId);
     setNotes("");
     setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+    setSecondLeadId("");
     setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
     setEmailInput("");
     setProducts(emptyProductsState());
@@ -439,6 +448,7 @@ export function FunnelBoard({
     setPickerQuery("");
     setNotes("");
     setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+    setSecondLeadId("");
     setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
     setEmailInput("");
     setProducts(emptyProductsState());
@@ -459,6 +469,9 @@ export function FunnelBoard({
     const trimmedNotes = notes;
     const trimmedEmail = emailInput.trim();
     const meetingFormData = buildMeetingFormData(meeting);
+    if (meetingFormData && secondLeadId) {
+      meetingFormData.set("secondLeadId", secondLeadId);
+    }
     const followUpFormData = buildFollowUpCallFormData(followUpCall);
 
     // Vooraf valideren en enkel via toast melden i.p.v. binnen runWithToast
@@ -501,6 +514,7 @@ export function FunnelBoard({
         setPendingMove(null);
         setNotes("");
         setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+        setSecondLeadId("");
         setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
         setEmailInput("");
         setProducts(emptyProductsState());
@@ -647,8 +661,10 @@ export function FunnelBoard({
                       key={lead.id}
                       lead={lead}
                       stages={stages}
+                      leadType={leadType}
                       subagents={subagents}
                       canCloseDeals={canCloseDeals}
+                      linkableLeads={pickerLeads}
                       dragged={draggedLeadId === lead.id}
                       onDragStart={() => setDraggedLeadId(lead.id)}
                       onDragEnd={() => setDraggedLeadId(null)}
@@ -732,8 +748,10 @@ export function FunnelBoard({
                         key={lead.id}
                         lead={lead}
                         stages={stages}
+                        leadType={leadType}
                         subagents={subagents}
                         canCloseDeals={canCloseDeals}
+                        linkableLeads={pickerLeads}
                         dragged={draggedLeadId === lead.id}
                         onDragStart={() => setDraggedLeadId(lead.id)}
                         onDragEnd={() => setDraggedLeadId(null)}
@@ -868,6 +886,16 @@ export function FunnelBoard({
                   />
                 </div>
               )}
+              {isPlanningStage(pendingMove.toStageLabel) && leadType === "FA" && (
+                <div className="mb-4">
+                  <LinkedLeadField
+                    value={secondLeadId}
+                    onChange={setSecondLeadId}
+                    leads={pickerLeads}
+                    excludeLeadId={pendingMove.leadId}
+                  />
+                </div>
+              )}
               {isFollowUpStage(pendingMove.toStageLabel) && (
                 <div className="mb-4">
                   <FollowUpCallField value={followUpCall} onChange={setFollowUpCall} />
@@ -887,6 +915,7 @@ export function FunnelBoard({
                   setPendingMove(null);
                   setNotes("");
                   setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+                  setSecondLeadId("");
                   setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
                   setEmailInput("");
                   setProducts(emptyProductsState());

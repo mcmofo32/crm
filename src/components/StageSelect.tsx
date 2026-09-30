@@ -9,6 +9,7 @@ import { planStageMeetingAction, planFollowUpCallAction } from "@/lib/actions/ac
 import { saveLeadProductsAction } from "@/lib/actions/leadProducts";
 import { MeetingPlannerFields } from "@/components/MeetingPlannerFields";
 import { FollowUpCallField } from "@/components/FollowUpCallField";
+import { LinkedLeadField, type LinkableLead } from "@/components/LinkedLeadField";
 import {
   ProductFields,
   emptyProductsState,
@@ -29,6 +30,7 @@ import {
 } from "@/lib/meetingPlanning";
 import { useToastAction } from "@/components/toast/useToastAction";
 import { useToast } from "@/components/toast/ToastProvider";
+import type { LeadType } from "@/generated/prisma/client";
 
 type SubagentRecord = {
   id: string;
@@ -41,20 +43,25 @@ export function StageSelect({
   leadId,
   currentStageId,
   leadEmail,
+  leadType,
   stages,
   subagents,
   variant = "full",
   canCloseDeals = true,
+  linkableLeads,
 }: {
   leadId: string;
   currentStageId: string;
   leadEmail: string | null;
+  leadType: LeadType;
   stages: { id: string; label: string; isWon: boolean }[];
   subagents: SubagentRecord[];
   /** "icon" toont enkel een compacte "+"-knop (bv. in een tabelrij) i.p.v. de huidige fase + "Afgerond". */
   variant?: "full" | "icon";
   /** Enkel subagenten (of Beheerder/Admin) mogen een lead als klant afsluiten — anders valt de "Klant"-fase weg uit de keuzelijst. */
   canCloseDeals?: boolean;
+  /** Andere FA-leads om aan dezelfde afspraak te koppelen (bv. partner/koppel) — enkel meegegeven waar al geladen (zie FunnelBoard's pickerLeads); weggelaten laat het koppelveld gewoon weg. */
+  linkableLeads?: LinkableLead[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -66,6 +73,7 @@ export function StageSelect({
   const [meeting, setMeeting] = useState<MeetingPlannerValue>(
     EMPTY_MEETING_PLANNER_VALUE
   );
+  const [secondLeadId, setSecondLeadId] = useState("");
   const [followUpCall, setFollowUpCall] = useState<FollowUpCallValue>(
     EMPTY_FOLLOW_UP_CALL_VALUE
   );
@@ -133,6 +141,14 @@ export function StageSelect({
             }))}
           />
         )}
+        {targetStage && isPlanningStage(targetStage.label) && leadType === "FA" && linkableLeads && (
+          <LinkedLeadField
+            value={secondLeadId}
+            onChange={setSecondLeadId}
+            leads={linkableLeads}
+            excludeLeadId={leadId}
+          />
+        )}
         {targetStage && isFollowUpStage(targetStage.label) && (
           <FollowUpCallField value={followUpCall} onChange={setFollowUpCall} />
         )}
@@ -145,6 +161,9 @@ export function StageSelect({
             disabled={pending || !targetStageId}
             onClick={() => {
               const meetingFormData = buildMeetingFormData(meeting);
+              if (meetingFormData && secondLeadId) {
+                meetingFormData.set("secondLeadId", secondLeadId);
+              }
               const followUpFormData = buildFollowUpCallFormData(followUpCall);
 
               // Vooraf valideren en enkel via toast melden i.p.v. binnen
@@ -199,6 +218,7 @@ export function StageSelect({
                   setTargetStageId("");
                   setNotes("");
                   setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+                  setSecondLeadId("");
                   setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
                   setEmailInput("");
                   setProducts(emptyProductsState());
@@ -220,6 +240,7 @@ export function StageSelect({
             onClick={() => {
               setOpen(false);
               setMeeting(EMPTY_MEETING_PLANNER_VALUE);
+              setSecondLeadId("");
               setFollowUpCall(EMPTY_FOLLOW_UP_CALL_VALUE);
               setTargetStageId("");
               setNotes("");
