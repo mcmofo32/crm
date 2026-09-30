@@ -6,6 +6,7 @@ import {
   getUserMonthlyActualsMatrix,
   setUserMonthlyActualAction,
   resetUserYearActualsAction,
+  closeMonthAction,
 } from "@/lib/actions/production";
 import { GoalMetric, type LeadType } from "@/generated/prisma/client";
 import { FormToast } from "@/components/toast/FormToast";
@@ -38,6 +39,12 @@ export default async function ProductieDoelenPage({
     ),
     resetYear: resetUserYearActualsAction.bind(null, row.userId, metric, year),
   }));
+  // Maandafsluiting enkel voor Productie (FA) — zie Robins keuze: de
+  // RG-correctietabel voedt sinds kort sowieso geen zichtbare weergave meer.
+  const closeMonthActions =
+    leadType === "FA"
+      ? Array.from({ length: 12 }, (_, i) => closeMonthAction.bind(null, year, i + 1, leadType))
+      : undefined;
 
   function typeHref(type: LeadType) {
     return `/beheer/doelen/productie?year=${year}&type=${type}`;
@@ -149,6 +156,14 @@ export default async function ProductieDoelenPage({
           maand per maand te moeten doorbladeren — handig om in bulk te
           corrigeren. Een veld leegmaken herstelt het automatisch berekende
           cijfer.
+          {leadType === "FA" && (
+            <>
+              {" "}Via het slotje boven een maand bevries je in één keer
+              ieders cijfer voor die maand (bv. na afsluiting van de maand),
+              zodat het later niet meer wijzigt — bv. als een medewerker
+              stopt en zijn leads naar iemand anders overgezet worden.
+            </>
+          )}
         </p>
 
         <div className="flex flex-wrap gap-2 text-sm">
@@ -167,7 +182,12 @@ export default async function ProductieDoelenPage({
           ))}
         </div>
 
-        <UserMonthlyActualsMatrix key={`${year}-${leadType}`} rows={matrixTableRows} year={year} />
+        <UserMonthlyActualsMatrix
+          key={`${year}-${leadType}`}
+          rows={matrixTableRows}
+          year={year}
+          closeMonthActions={closeMonthActions}
+        />
       </section>
     </div>
   );
