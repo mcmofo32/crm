@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransition } from "react";
+import { Eraser } from "lucide-react";
 import { InlineTextField } from "@/components/InlineTextField";
 import { Avatar } from "@/components/Avatar";
 import type { UserMonthlyActualsMatrixRow } from "@/lib/actions/production";
@@ -7,9 +9,45 @@ import type { UserMonthlyActualsMatrixRow } from "@/lib/actions/production";
 export type UserMonthlyActualsMatrixTableRow = UserMonthlyActualsMatrixRow & {
   /** Index 0 = productiemaand 1 t.e.m. index 11 = productiemaand 12, elk al gebonden aan setUserMonthlyActualAction voor deze gebruiker/maand. */
   actionsByMonth: ((formData: FormData) => void | Promise<void>)[];
+  /** Gebonden aan resetUserYearActualsAction voor deze gebruiker — zet in één keer alle 12 maanden op een expliciete 0-correctie. */
+  resetYear: () => void | Promise<void>;
 };
 
 const MONTH_LABELS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+
+/** Bevestigingsknop om alle 12 maanden van één gebruiker in één keer op 0 te zetten — voor wie dit hele jaar geen echte activiteit had. */
+function ResetYearButton({
+  name,
+  year,
+  action,
+}: {
+  name: string;
+  year: number;
+  action: () => void | Promise<void>;
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      title={`Hele jaar ${year} op 0 zetten voor ${name}`}
+      onClick={() => {
+        if (
+          confirm(
+            `Alle 12 maanden van ${year} voor ${name} op 0 zetten? Dit overschrijft het automatisch berekende cijfer voor elke maand (leegmaken van een individuele cel herstelt dat later weer per maand).`
+          )
+        ) {
+          startTransition(() => {
+            action();
+          });
+        }
+      }}
+      className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-slate-300 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-60 dark:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+    >
+      <Eraser size={13} />
+    </button>
+  );
+}
 
 /**
  * Jaaroverzicht van het "behaald"-cijfer per gebruiker per productiemaand
@@ -20,8 +58,10 @@ const MONTH_LABELS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart
  */
 export function UserMonthlyActualsMatrix({
   rows,
+  year,
 }: {
   rows: UserMonthlyActualsMatrixTableRow[];
+  year: number;
 }) {
   const totalsByMonth = Array.from({ length: 12 }, (_, i) =>
     rows.reduce((sum, r) => sum + (r.valuesByMonth[i] ?? 0), 0)
@@ -56,6 +96,7 @@ export function UserMonthlyActualsMatrix({
                   <div className="flex items-center gap-2">
                     <Avatar name={row.name} photoUrl={row.photoUrl} />
                     {row.name}
+                    <ResetYearButton name={row.name} year={year} action={row.resetYear} />
                   </div>
                 </td>
                 {row.valuesByMonth.map((value, i) => (

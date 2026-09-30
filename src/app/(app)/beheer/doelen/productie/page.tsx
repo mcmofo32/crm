@@ -5,6 +5,7 @@ import {
   saveProductionMonthDatesAction,
   getUserMonthlyActualsMatrix,
   setUserMonthlyActualAction,
+  resetUserYearActualsAction,
 } from "@/lib/actions/production";
 import { GoalMetric, type LeadType } from "@/generated/prisma/client";
 import { FormToast } from "@/components/toast/FormToast";
@@ -35,6 +36,7 @@ export default async function ProductieDoelenPage({
     actionsByMonth: row.valuesByMonth.map((_, i) =>
       setUserMonthlyActualAction.bind(null, row.userId, metric, year, i + 1)
     ),
+    resetYear: resetUserYearActualsAction.bind(null, row.userId, metric, year),
   }));
 
   function typeHref(type: LeadType) {
@@ -165,7 +167,7 @@ export default async function ProductieDoelenPage({
           ))}
         </div>
 
-        <UserMonthlyActualsMatrix key={`${year}-${leadType}`} rows={matrixTableRows} />
+        <UserMonthlyActualsMatrix key={`${year}-${leadType}`} rows={matrixTableRows} year={year} />
       </section>
     </div>
   );
