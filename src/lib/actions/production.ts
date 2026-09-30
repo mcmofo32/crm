@@ -1822,6 +1822,7 @@ export async function setUserMonthlyActualAction(
 
   revalidatePath("/productie");
   revalidatePath("/beheer/doelen/productie");
+  revalidatePath("/beheer/doelen/jaarplan");
   revalidatePath("/dashboard");
 }
 
@@ -1991,6 +1992,50 @@ async function getMonthlyActualsByUser(
     if (byMonth.size > 0) result.set(userId, byMonth);
   }
   return result;
+}
+
+export type UserMonthlyActualsMatrixRow = {
+  userId: string;
+  name: string;
+  photoUrl: string | null;
+  /** Index 0 = productiemaand 1 t.e.m. index 11 = productiemaand 12 — hetzelfde effectieve cijfer (correctie indien aanwezig, anders automatisch berekend) als getMonthlyActualsByUser. */
+  valuesByMonth: (number | null)[];
+};
+
+/**
+ * Voor de correctietabel op Beheer > Doelen > Productie: elke gebruiker met
+ * minstens één maand data dit jaar (automatisch berekend of al gecorrigeerd),
+ * met per productiemaand het huidige effectieve cijfer — zodat een
+ * jaaroverzicht in één tabel te overzien is i.p.v. maand per maand op de
+ * Productie-pagina te moeten doorbladeren.
+ */
+export async function getUserMonthlyActualsMatrix(
+  year: number,
+  leadType: LeadType
+): Promise<UserMonthlyActualsMatrixRow[]> {
+  await requireGoalManager();
+  const monthRanges = await getProductionMonthRangesForYear(year);
+  const monthlyActualsByUser = await getMonthlyActualsByUser(year, leadType, monthRanges);
+
+  const userIds = Array.from(monthlyActualsByUser.keys());
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true, avatarUpdatedAt: true },
+  });
+  const userById = new Map(users.map((u) => [u.id, u]));
+
+  return userIds
+    .map((userId) => {
+      const user = userById.get(userId);
+      const byMonth = monthlyActualsByUser.get(userId)!;
+      return {
+        userId,
+        name: user?.name ?? "Onbekend",
+        photoUrl: user ? avatarUrl(user) : null,
+        valuesByMonth: Array.from({ length: 12 }, (_, i) => byMonth.get(i + 1) ?? null),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "nl-BE"));
 }
 
 /** Som van alle gebruikers' behaald-cijfer (zie getMonthlyActualsByUser) over de maanden van dit kwartaal. */
