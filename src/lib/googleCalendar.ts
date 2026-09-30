@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { encryptToken, decryptToken } from "@/lib/tokenCrypto";
-import type { Activity, Event, Lead, Subagent, User } from "@/generated/prisma/client";
+import type { Activity, Event, Lead, OfficeSettings, Subagent, User } from "@/generated/prisma/client";
 import {
   subjectInvitesLead,
   isFinancieleAnalyseSubject,
@@ -8,12 +8,33 @@ import {
   isAdviesgesprekType,
   isCarrieregesprekType,
 } from "@/lib/meetingPlanning";
+import { toBrusselsTimeValue } from "@/lib/datetime";
 
 type ContactInfo = { name: string; email: string | null; phone: string | null };
 
 /** "32 4xx xx xx xx" (het vaste opslagformaat voor herkende Belgische mobiele nummers, zie formatBelgianPhone) toon je in een omschrijving als "+32 4xx xx xx xx". Nummers in een ander formaat (al een "+", een vast lijnnummer, ...) laat dit ongemoeid. */
 function withPlusPrefix(phone: string) {
   return phone.startsWith("+") || !phone.startsWith("32") ? phone : `+${phone}`;
+}
+
+/**
+ * Kiest tussen de gewone en de buiten-kantooruren-notitie (zie "Kantoor" in
+ * het profielmenu) op basis van het lokale (Europe/Brussels) tijdstip van de
+ * afspraak — enkel als er effectief een buiten-kantooruren-notitie én beide
+ * kantooruren ingesteld zijn, anders altijd de gewone notitie.
+ */
+function resolveOfficeNote(
+  settings: Pick<OfficeSettings, "note" | "afterHoursNote" | "workHoursStart" | "workHoursEnd"> | null | undefined,
+  scheduledAt: Date | null
+): string | null {
+  if (!settings) return null;
+  if (settings.afterHoursNote && settings.workHoursStart && settings.workHoursEnd && scheduledAt) {
+    const time = toBrusselsTimeValue(scheduledAt);
+    if (time < settings.workHoursStart || time >= settings.workHoursEnd) {
+      return settings.afterHoursNote;
+    }
+  }
+  return settings.note;
 }
 
 /**
@@ -182,11 +203,14 @@ function buildEventBody(
   const advisorName = isFinancieleAnalyseSubject(activity.subject)
     ? owner?.name ?? null
     : subagent?.name ?? assignee?.name ?? null;
+  const advisorPhone = isFinancieleAnalyseSubject(activity.subject)
+    ? owner?.phone ?? null
+    : subagent?.phone ?? assignee?.phone ?? null;
   const officeNoteLine =
     activity.meetingMode === "ONSITE" && officeNote
-      ? advisorName
-        ? officeNote.replace(/\{naam\}/gi, advisorName)
-        : officeNote
+      ? officeNote
+          .replace(/\{naam\}/gi, advisorName ?? "")
+          .replace(/\{telefoon\}/gi, advisorPhone ? withPlusPrefix(advisorPhone) : "")
       : null;
 
   // Wordt de klant mee uitgenodigd, dan ziet hij deze beschrijving ook —
@@ -345,7 +369,7 @@ export async function syncActivityToGoogleCalendar(
     subagent,
     scheduledBy,
     owner,
-    isAtOffice ? officeSettings?.note : null,
+    isAtOffice ? resolveOfficeNote(officeSettings, activity.scheduledAt) : null,
     assignee,
     isSelfScheduled
   );

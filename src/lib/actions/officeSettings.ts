@@ -26,14 +26,15 @@ export async function updateOfficeSettingsAction(formData: FormData) {
 
   const address = String(formData.get("address") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
+  const afterHoursNote = String(formData.get("afterHoursNote") ?? "").trim() || null;
+  const workHoursStart = String(formData.get("workHoursStart") ?? "").trim() || null;
+  const workHoursEnd = String(formData.get("workHoursEnd") ?? "").trim() || null;
 
+  const data = { address, note, afterHoursNote, workHoursStart, workHoursEnd };
   const existing = await prisma.officeSettings.findFirst();
   const settings = existing
-    ? await prisma.officeSettings.update({
-        where: { id: existing.id },
-        data: { address, note },
-      })
-    : await prisma.officeSettings.create({ data: { address, note } });
+    ? await prisma.officeSettings.update({ where: { id: existing.id }, data })
+    : await prisma.officeSettings.create({ data });
 
   await logAudit({
     actorId: viewer.id,
