@@ -127,9 +127,10 @@ export default async function BedrijfsJaarplanPage({
             personeelsbestand — dus niet hier in te vullen (de vroegere
             telling per nieuwe aanwerving bleek historisch onbetrouwbaar,
             oudere medewerkers hebben geen betrouwbare aanwervingsdatum).
-            Vul per kwartaal in met hoeveel medewerkers het streefaantal
-            moet aangroeien: &quot;Totaal&quot; is het cumulatieve
-            streefaantal medewerkers tegen het einde van dat kwartaal.
+            Vul per kwartaal rechtstreeks het streefaantal medewerkers in
+            (het volledige personeelsbestand dat je tegen dat moment wil
+            bereiken, bv. 38 tegen eind Q4) — geen &quot;groei&quot; meer,
+            gewoon het concrete streefcijfer zelf.
             {activeEmployeeCount !== null && (
               <>
                 {" "}
@@ -156,7 +157,7 @@ export default async function BedrijfsJaarplanPage({
                 <tr>
                   <th className="px-4 py-3 font-medium">Periode</th>
                   <th className="px-3 py-3 font-medium">
-                    {leadType === "RG" ? "Toename dit kwartaal" : "Doel per maand"}
+                    {leadType === "RG" ? "Streefaantal medewerkers" : "Doel per maand"}
                   </th>
                   <th className="px-3 py-3 font-medium">Totaal</th>
                   <th className="px-3 py-3 font-medium">Gerealiseerd</th>

@@ -2101,10 +2101,10 @@ function sumQuarterActual(
  * telling meer (dat bleek historisch onbetrouwbaar — oudere, van-vóór-dit-
  * CRM medewerkers hebben geen betrouwbare aanwervingsdatum). "Behaald" is
  * simpelweg het huidige, live personeelsbestand (getActiveEmployeeCount)
- * t.o.v. een door de beheerder ingesteld streefaantal medewerkers tegen
- * het einde van het jaar — dezelfde live teller in elk kwartaal, vergeleken
- * met het cumulatieve kwartaaldoel, zodat de voortgang richting dat doel
- * zichtbaar blijft zonder afhankelijk te zijn van historische leaddata.
+ * t.o.v. een door de beheerder ingesteld streefaantal medewerkers — het
+ * kwartaalcijfer is hier, anders dan bij FA, het rechtstreekse streefaantal
+ * voor dat kwartaal (geen cumulatieve som van een "groei"-bedrag), zodat
+ * het jaartotaal simpelweg het Q4-streefaantal is.
  */
 export async function getCompanyProductionGoalProgress(
   year: number,
@@ -2123,15 +2123,13 @@ export async function getCompanyProductionGoalProgress(
 
   if (leadType === "RG") {
     const currentHeadcount = await getActiveEmployeeCount();
-    let cumulativeTarget = 0;
     quarters = [1, 2, 3, 4].map((quarter) => {
       const row = byQuarter.get(quarter);
-      const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
-      cumulativeTarget += monthlyTarget;
+      const target = row ? Number(row.monthlyTarget) : 0;
       return {
         quarter,
-        monthlyTarget,
-        totalTarget: cumulativeTarget,
+        monthlyTarget: target,
+        totalTarget: target,
         actualUnits: currentHeadcount,
       };
     });
