@@ -2017,9 +2017,16 @@ async function getMonthlyActualsByUser(
   for (const userId of allUserIds) {
     const byMonth = new Map<number, number>();
     for (let month = 1; month <= 12; month++) {
-      const override = overrideByKey.get(`${userId}_${month}`);
-      const value = override ?? computedByUser.get(userId)?.get(month) ?? 0;
-      if (value !== 0) byMonth.set(month, value);
+      const key = `${userId}_${month}`;
+      const hasOverride = overrideByKey.has(key);
+      const value = hasOverride
+        ? overrideByKey.get(key)!
+        : computedByUser.get(userId)?.get(month) ?? 0;
+      // Een expliciete 0-correctie (bv. via de "hele jaar op 0"-knop) moet
+      // zichtbaar blijven — enkel een ontbrekende, niet-gecorrigeerde 0
+      // (geen override, geen berekende activiteit) laten we weg zodat die
+      // maand leeg blijft i.p.v. een overbodige 0 te tonen.
+      if (hasOverride || value !== 0) byMonth.set(month, value);
     }
     if (byMonth.size > 0) result.set(userId, byMonth);
   }
