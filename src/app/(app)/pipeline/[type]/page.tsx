@@ -431,6 +431,7 @@ export default async function PipelinePage({
                   leadId={lead.id}
                   currentStageId={lead.stageId}
                   leadEmail={lead.email}
+                  leadType={leadType}
                   stages={stages}
                   subagents={subagents}
                   canCloseDeals={canManageCustomerData(user)}
@@ -675,6 +676,7 @@ export default async function PipelinePage({
                       leadId={lead.id}
                       currentStageId={lead.stageId}
                       leadEmail={lead.email}
+                      leadType={leadType}
                       stages={stages}
                       subagents={subagents}
                       canCloseDeals={canManageCustomerData(user)}

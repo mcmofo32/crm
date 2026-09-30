@@ -559,7 +559,10 @@ export async function cancelActivityAction(activityId: string) {
  * afspraak (met, waar verplicht, een subagent) ingepland werd. Bij online
  * zonder Google Meet wordt de eigen Zoom-link van de toegewezen gebruiker
  * (Instellingen) in de omschrijving gezet; met Google Meet genereert Google
- * zelf een meet-link op het agenda-item.
+ * zelf een meet-link op het agenda-item. Optioneel `secondLeadId` in
+ * formData (FA-only, zie LinkedLeadField) koppelt een tweede FA-lead aan
+ * exact dezelfde afspraak — die lead wordt hier zelf ook al verplaatst,
+ * want de aanroeper kent enkel de primaire lead.
  */
 /**
  * Server Actions redacten in productie de boodschap van elke fout die
@@ -672,6 +675,60 @@ export async function planStageMeetingAction(
   const meetingDescription =
     String(formData.get("meetingDescription") ?? "").trim() || null;
 
+  // Optioneel: koppel een tweede FA-lead (bv. partner/koppel) aan exact
+  // hetzelfde tijdstip/locatie/subagent (Victor's verzoek: 2 FA's samen op
+  // één Adviesgesprek kunnen zetten zonder ze twee keer apart — met risico
+  // op een verschillend tijdstip — te moeten inplannen). Beide blijven
+  // volledig aparte leads/activiteiten/agenda-items, dus ook een eigen
+  // productie-/KPI-toewijzing (via assigneeId) — dit is puur het gemak om
+  // ze in één keer samen in te plannen.
+  const secondLeadId = String(formData.get("secondLeadId") ?? "").trim() || null;
+  let secondLead: NonNullable<typeof freshLead> | null = null;
+  let secondAssignee: NonNullable<typeof assignee> | null = null;
+  let secondMeetingLink: string | null = null;
+  if (secondLeadId) {
+    if (secondLeadId === leadId) {
+      return { error: "Kan niet koppelen met dezelfde lead" };
+    }
+    if (freshLead.leadType !== "FA") {
+      return { error: "Koppelen met een tweede lead kan enkel bij FA" };
+    }
+    secondLead = await prisma.lead.findUnique({ where: { id: secondLeadId } });
+    if (!secondLead || secondLead.deletedAt) {
+      return { error: "Gekoppelde lead niet gevonden" };
+    }
+    if (secondLead.leadType !== "FA") {
+      return { error: "Gekoppelde lead moet ook een FA-lead zijn" };
+    }
+    if (!(await canAccessOwner(user, secondLead.ownerId))) {
+      return { error: "Geen toegang tot de gekoppelde lead" };
+    }
+    secondAssignee = await prisma.user.findUnique({
+      where: { id: secondLead.ownerId },
+      select: { zoomLink: true, ...GOOGLE_CALENDAR_USER_SELECT },
+    });
+    if (!secondAssignee) {
+      return { error: "Eigenaar van de gekoppelde lead niet gevonden" };
+    }
+    if (mode === MeetingMode.ONLINE && !useGoogleMeet) {
+      secondMeetingLink = subagent ? meetingLink : secondAssignee.zoomLink;
+      if (!secondMeetingLink) {
+        return {
+          error: `De eigenaar van ${secondLead.firstName} ${secondLead.lastName} heeft nog geen Zoom-link ingesteld bij Instellingen. Kies Google Meet, of vraag de eigenaar dit eerst in te stellen.`,
+        };
+      }
+    }
+  }
+
+  const primaryDescription = secondLead
+    ? [
+        meetingDescription,
+        `👥 Samen met: ${secondLead.firstName} ${secondLead.lastName} (gekoppelde afspraak, zelfde tijdstip).`,
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+    : meetingDescription;
+
   const activity = await prisma.activity.create({
     data: {
       leadId,
@@ -685,7 +742,7 @@ export async function planStageMeetingAction(
       location,
       meetingLink,
       subagentId,
-      meetingDescription,
+      meetingDescription: primaryDescription,
     },
   });
 
@@ -705,6 +762,64 @@ export async function planStageMeetingAction(
     scheduledBy,
     user.id === freshLead.ownerId
   );
+
+  if (secondLead && secondAssignee) {
+    const secondSubject = buildMeetingSubject(
+      scheduledAt,
+      toStage.label,
+      secondLead.firstName,
+      secondLead.lastName
+    );
+    const secondDescription = [
+      meetingDescription,
+      `👥 Samen met: ${freshLead.firstName} ${freshLead.lastName} (gekoppelde afspraak, zelfde tijdstip).`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const secondActivity = await prisma.activity.create({
+      data: {
+        leadId: secondLead.id,
+        assigneeId: secondLead.ownerId,
+        type: ActivityType.MEETING,
+        subject: secondSubject,
+        scheduledAt,
+        durationMinutes,
+        status: ActivityStatus.PLANNED,
+        meetingMode: mode,
+        location,
+        meetingLink: secondMeetingLink,
+        subagentId,
+        meetingDescription: secondDescription,
+      },
+    });
+
+    await prisma.lead.update({
+      where: { id: secondLead.id },
+      data: { lastContactedAt: new Date() },
+    });
+
+    await syncActivityToGoogleCalendar(
+      secondAssignee,
+      secondActivity,
+      secondLead,
+      subagent,
+      scheduledBy,
+      user.id === secondLead.ownerId
+    );
+
+    // De aanroeper (FunnelBoard/StageSelect) verplaatst enkel de primaire
+    // lead zelf naar toStageId na een geslaagd resultaat — voor de
+    // gekoppelde tweede lead (waar de aanroeper geen weet van heeft) moet
+    // dat dus hier al gebeuren, zelfde volgorde-principe als hierboven: pas
+    // verplaatsen nadat de afspraak effectief ingepland is.
+    const secondStageResult = await updateLeadStageAction(secondLead.id, toStageId);
+    if (secondStageResult && "error" in secondStageResult) {
+      return secondStageResult;
+    }
+
+    revalidatePath(`/leads/${secondLead.id}`);
+  }
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath(`/funnel/${lead.leadType}`);
