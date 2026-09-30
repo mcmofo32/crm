@@ -1034,6 +1034,20 @@ model OfficeSettings {
   address String?
   note    String?
 
+  /// Vervangt `note` bij een fysieke afspraak buiten de kantooruren
+  /// (workHoursStart/workHoursEnd) — een onthaal-notitie is 's avonds
+  /// immers niet bruikbaar, dan is bv. "bel dit nummer bij aankomst"
+  /// relevanter. "{naam}"/"{telefoon}" werken hier hetzelfde als in `note`.
+  /// Leeg, of geen kantooruren ingesteld = altijd `note` gebruiken.
+  afterHoursNote String?
+
+  /// "HH:MM"-formaat (Europe/Brussels). Buiten dit venster (vóór
+  /// workHoursStart of na workHoursEnd) wordt afterHoursNote gebruikt
+  /// i.p.v. note — zie workHoursEnd/afterHoursNote.
+  workHoursStart String?
+  /// Einduur van de kantooruren, zie workHoursStart.
+  workHoursEnd   String?
+
   updatedAt DateTime @updatedAt
 }
 

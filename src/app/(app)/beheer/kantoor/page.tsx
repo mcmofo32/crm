@@ -51,9 +51,57 @@ export default async function KantoorPage() {
           />
           <p className="text-xs text-slate-400 dark:text-slate-500">
             Gebruik <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{"{naam}"}</code>{" "}
-            ergens in de tekst om automatisch de juiste naam in te vullen: de
-            aanbrenger/eigenaar bij een Financiële analyse, de subagent bij
-            een Adviesgesprek, en anders de toegewezen medewerker.
+            en/of{" "}
+            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{"{telefoon}"}</code>{" "}
+            ergens in de tekst om automatisch de juiste naam/nummer in te
+            vullen: de aanbrenger/eigenaar bij een Financiële analyse, de
+            subagent bij een Adviesgesprek, en anders de toegewezen
+            medewerker.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-900 dark:text-slate-100">
+            Kantooruren
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="time"
+              name="workHoursStart"
+              defaultValue={settings?.workHoursStart ?? ""}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+            <span className="text-slate-400 dark:text-slate-500">tot</span>
+            <input
+              type="time"
+              name="workHoursEnd"
+              defaultValue={settings?.workHoursEnd ?? ""}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </div>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Buiten dit venster wordt hieronder de notitie voor buiten de
+            kantooruren gebruikt in plaats van de notitie hierboven. Beide
+            leeg laten = altijd de notitie hierboven gebruiken.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="font-medium text-slate-900 dark:text-slate-100">
+            Notitie bij fysieke afspraken buiten de kantooruren
+          </label>
+          <textarea
+            name="afterHoursNote"
+            defaultValue={settings?.afterHoursNote ?? ""}
+            rows={4}
+            placeholder="Bv. Bel {naam} op {telefoon} bij aankomst, het onthaal is dan niet bemand."
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Zelfde <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{"{naam}"}</code>/
+            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{"{telefoon}"}</code>
+            {" "}als hierboven. Leeg = ook buiten de kantooruren gewoon de
+            notitie hierboven gebruiken.
           </p>
         </div>
 
