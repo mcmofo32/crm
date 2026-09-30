@@ -165,7 +165,7 @@ export default async function ProductieDoelenPage({
           ))}
         </div>
 
-        <UserMonthlyActualsMatrix rows={matrixTableRows} />
+        <UserMonthlyActualsMatrix key={`${year}-${leadType}`} rows={matrixTableRows} />
       </section>
     </div>
   );
