@@ -255,7 +255,7 @@ const policiesTab: SheetsBackupTab = {
       // aangepast) is — anders zou deze kolom telkens hetzelfde herhalen.
       p.reducedAmount !== null ? fmtAmount(p.leadProduct.amount) : "",
       p.company ? INSURANCE_COMPANY_LABELS[p.company] : "",
-      POLICY_STATUS_LABELS[p.status],
+      p.status ? POLICY_STATUS_LABELS[p.status] : "",
       fmtBool(p.easy),
       fmtBool(p.tool),
       fmtBool(p.rl),

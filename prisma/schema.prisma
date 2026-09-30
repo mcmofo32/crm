@@ -562,7 +562,7 @@ model Policy {
   employee   User   @relation("PolicyEmployee", fields: [employeeId], references: [id])
 
   company InsuranceCompany?
-  status  PolicyStatus      @default(OPGELADEN_WACHT_ACTIEF)
+  status  PolicyStatus?
 
   /// Verlaagd (of nadien terug aangepast) bedrag t.o.v. het oorspronkelijke
   /// contractbedrag (LeadProduct.amount) — bv. van €500 naar €200. `null` =

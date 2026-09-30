@@ -63,11 +63,16 @@ const TEAM_PREFIX = "team:";
 /** Sentinelwaarde voor "iedereen" (heel het bedrijf) — enkel voor Beheerder/Admin. */
 const ALL_OPTION = "alles";
 
-const STATUS_OPTIONS = POLICY_STATUS_ORDER.map((status) => ({
-  value: status,
-  label: POLICY_STATUS_LABELS[status],
-  style: POLICY_STATUS_COLORS[status],
-}));
+const EMPTY_STATUS_STYLE = { background: "#e2e8f0", color: "#475569" };
+
+const STATUS_OPTIONS = [
+  { value: "", label: "—", style: EMPTY_STATUS_STYLE },
+  ...POLICY_STATUS_ORDER.map((status) => ({
+    value: status,
+    label: POLICY_STATUS_LABELS[status],
+    style: POLICY_STATUS_COLORS[status],
+  })),
+];
 
 const COMPANY_OPTIONS = [
   { value: "", label: "—" },
@@ -105,10 +110,10 @@ function PolicyCards({
               <InlineSelect
                 action={setPolicyStatusAction.bind(null, p.id)}
                 name="status"
-                value={p.status}
+                value={p.status ?? ""}
                 options={STATUS_OPTIONS}
                 className="w-40 flex-shrink-0 rounded-md border-0 px-2 py-1.5 text-right text-sm font-medium"
-                style={POLICY_STATUS_COLORS[p.status]}
+                style={p.status ? POLICY_STATUS_COLORS[p.status] : EMPTY_STATUS_STYLE}
               />
             </div>
             <div className="text-slate-600 dark:text-slate-400">
@@ -298,10 +303,10 @@ function PolicyTable({
               <InlineSelect
                 action={setPolicyStatusAction.bind(null, p.id)}
                 name="status"
-                value={p.status}
+                value={p.status ?? ""}
                 options={STATUS_OPTIONS}
                 className="w-56 rounded-md border-0 px-2 py-1.5 text-sm font-medium"
-                style={POLICY_STATUS_COLORS[p.status]}
+                style={p.status ? POLICY_STATUS_COLORS[p.status] : EMPTY_STATUS_STYLE}
               />
             </td>
             <td className="px-2 py-2 text-center">

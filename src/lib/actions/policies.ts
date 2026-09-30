@@ -96,13 +96,13 @@ export async function setPolicyCompanyAction(policyId: string, formData: FormDat
 export async function setPolicyStatusAction(policyId: string, formData: FormData) {
   const policy = await requireEditablePolicy(policyId);
   const raw = String(formData.get("status") ?? "");
-  if (!(Object.values(PolicyStatus) as string[]).includes(raw)) {
-    throw new Error("Ongeldige status");
-  }
+  const status = (Object.values(PolicyStatus) as string[]).includes(raw)
+    ? (raw as PolicyStatus)
+    : null;
 
   await prisma.policy.update({
     where: { id: policyId },
-    data: { status: raw as PolicyStatus },
+    data: { status },
   });
   revalidatePolicyPaths(policy.leadId);
 }
