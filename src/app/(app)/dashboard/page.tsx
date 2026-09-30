@@ -20,7 +20,6 @@ import {
   getCurrentProductionMonth,
   getCompanyProductionGoalProgress,
   getCompanyProductionContributions,
-  getActiveEmployeeCount,
 } from "@/lib/actions/production";
 import { getUnverifiedPastVerifiableEvents } from "@/lib/actions/events";
 import { getCrossOwnerDuplicateGroups } from "@/lib/actions/duplicates";
@@ -92,8 +91,6 @@ export default async function DashboardPage() {
     faProductionGoal,
     faProductionContributions,
     rgProductionGoal,
-    rgProductionContributions,
-    activeEmployeeCount,
   ] = await Promise.all([
     // Enkel de eigen verlopen taken van de ingelogde gebruiker — zelfde
     // logica als het badge-cijfer naast "Taken" in de layout.
@@ -132,8 +129,6 @@ export default async function DashboardPage() {
     getCompanyProductionGoalProgress(currentYear, "FA"),
     getCompanyProductionContributions(currentYear, "FA"),
     getCompanyProductionGoalProgress(currentYear, "RG"),
-    getCompanyProductionContributions(currentYear, "RG"),
-    getActiveEmployeeCount(),
   ]);
   const mixedKpiPercent = await computeMixedKpiPercent(yearlyKpis);
 
@@ -329,21 +324,13 @@ export default async function DashboardPage() {
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Bedrijfsjaarplan — Rekrutering (RG)
           </h2>
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 xl:grid-cols-2">
             <CompanyProductionMeter
               year={currentYear}
               progress={rgProductionGoal}
               title="Rekrutering"
               unitLabel="medewerkers"
-              liveCountLabel={
-                activeEmployeeCount !== null
-                  ? `nu actief: ${activeEmployeeCount.toLocaleString("nl-BE")} medewerkers`
-                  : undefined
-              }
             />
-            {rgProductionContributions && (
-              <CompanyProductionPieChart contributions={rgProductionContributions} />
-            )}
           </div>
         </div>
       )}

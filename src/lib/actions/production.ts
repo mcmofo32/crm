@@ -2094,14 +2094,17 @@ function sumQuarterActual(
 
 /**
  * FA (productie) is rate-based: elk kwartaal telt onafhankelijk mee (doel
- * per maand x3), het jaarcijfer is de som van de 4 kwartalen. RG
- * (rekrutering) is cumulatief maar telt uitdrukkelijk enkel NIEUWE
- * medewerkers: elk kwartaal voegt een gewenste groei toe aan een lopend
- * totaal (geen bestaand personeelsbestand erbij opgeteld — dat wordt apart,
- * live, geteld via getActiveEmployeeCount), en "behaald" is het cumulatief
- * aantal nieuwe medewerkers op dat moment i.p.v. een kwartaalbedrag — het
- * jaarcijfer is dus het cijfer van kwartaal 4, nooit een som (dat zou het
- * aantal meermaals meetellen).
+ * per maand x3), het jaarcijfer is de som van de 4 kwartalen — "behaald"
+ * wordt per kwartaal berekend uit de effectief afgesloten eenheden.
+ *
+ * RG (rekrutering) volgt bewust GEEN per-medewerker nieuwe-aanwervingen-
+ * telling meer (dat bleek historisch onbetrouwbaar — oudere, van-vóór-dit-
+ * CRM medewerkers hebben geen betrouwbare aanwervingsdatum). "Behaald" is
+ * simpelweg het huidige, live personeelsbestand (getActiveEmployeeCount)
+ * t.o.v. een door de beheerder ingesteld streefaantal medewerkers tegen
+ * het einde van het jaar — dezelfde live teller in elk kwartaal, vergeleken
+ * met het cumulatieve kwartaaldoel, zodat de voortgang richting dat doel
+ * zichtbaar blijft zonder afhankelijk te zijn van historische leaddata.
  */
 export async function getCompanyProductionGoalProgress(
   year: number,
@@ -2113,35 +2116,32 @@ export async function getCompanyProductionGoalProgress(
     getProductionMonthRangesForYear(year),
   ]);
   const byQuarter = new Map(rows.map((r) => [r.quarter, r]));
-  const monthlyActualsByUser = await getMonthlyActualsByUser(year, leadType, monthRanges);
-  const quarterActuals = [1, 2, 3, 4].map((quarter) =>
-    sumQuarterActual(monthlyActualsByUser, quarter)
-  );
 
   let quarters: CompanyProductionQuarter[];
   let totalTarget: number;
   let totalActual: number;
 
   if (leadType === "RG") {
+    const currentHeadcount = await getActiveEmployeeCount();
     let cumulativeTarget = 0;
-    let cumulativeActual = 0;
-    quarters = [1, 2, 3, 4].map((quarter, i) => {
+    quarters = [1, 2, 3, 4].map((quarter) => {
       const row = byQuarter.get(quarter);
       const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
       cumulativeTarget += monthlyTarget;
-      cumulativeActual += quarterActuals[i];
       return {
         quarter,
         monthlyTarget,
         totalTarget: cumulativeTarget,
-        actualUnits: cumulativeActual,
+        actualUnits: currentHeadcount,
       };
     });
-    // Jaartotaal = cijfer op het einde van Q4 — kwartalen bouwen cumulatief
-    // op elkaar voort, dus optellen zou het aantal meermaals meetellen.
     totalTarget = quarters[3].totalTarget;
-    totalActual = quarters[3].actualUnits;
+    totalActual = currentHeadcount;
   } else {
+    const monthlyActualsByUser = await getMonthlyActualsByUser(year, leadType, monthRanges);
+    const quarterActuals = [1, 2, 3, 4].map((quarter) =>
+      sumQuarterActual(monthlyActualsByUser, quarter)
+    );
     quarters = [1, 2, 3, 4].map((quarter, i) => {
       const row = byQuarter.get(quarter);
       const monthlyTarget = row ? Number(row.monthlyTarget) : 0;
