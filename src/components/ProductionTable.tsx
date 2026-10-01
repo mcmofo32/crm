@@ -10,7 +10,6 @@ import type { ProductionRow } from "@/lib/actions/production";
 export type ProductionTableRow = ProductionRow & {
   setCustomersGoal: (formData: FormData) => void | Promise<void>;
   setUnitsGoal: (formData: FormData) => void | Promise<void>;
-  setCustomersActual: (formData: FormData) => void | Promise<void>;
   setUnitsActual: (formData: FormData) => void | Promise<void>;
 };
 
@@ -95,9 +94,10 @@ export function ProductionTable({
           </button>
           {editing && (
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Behaald KL/EH aanpassen overschrijft de automatische berekening
-              — handig om data van vóór dit CRM in te voeren. Veld leegmaken
-              herstelt de automatische berekening.
+              Behaald EH aanpassen overschrijft de automatische berekening —
+              handig om data van vóór dit CRM in te voeren. Veld leegmaken
+              herstelt de automatische berekening. Behaald KL is altijd live
+              berekend en niet corrigeerbaar.
             </p>
           )}
         </div>
@@ -154,35 +154,11 @@ export function ProductionTable({
                     row.targetCustomers || "—"
                   )}
                 </td>
-                <td className="px-3 py-2.5 text-center text-slate-900 dark:text-slate-100">
-                  {showInputs ? (
-                    <InlineTextField
-                      type="number"
-                      min={0}
-                      step={1}
-                      name="actual"
-                      value={
-                        row.actualCustomersOverride !== null
-                          ? String(row.actualCustomersOverride)
-                          : ""
-                      }
-                      action={row.setCustomersActual}
-                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    />
-                  ) : (
-                    <span
-                      title={
-                        row.actualCustomersOverride !== null
-                          ? "Handmatig gecorrigeerd — wijkt mogelijk af van het automatisch berekende cijfer"
-                          : undefined
-                      }
-                    >
-                      {row.actualCustomers}
-                      {row.actualCustomersOverride !== null && (
-                        <Pencil size={10} className="ml-1 inline text-amber-500" />
-                      )}
-                    </span>
-                  )}
+                <td
+                  className="px-3 py-2.5 text-center text-slate-900 dark:text-slate-100"
+                  title="Altijd live berekend — het aantal leads dat deze productiemaand naar een klant-fase overging, niet handmatig corrigeerbaar"
+                >
+                  {row.actualCustomers}
                 </td>
                 <td className="px-3 py-2.5 text-center">
                   <PercentBadge percent={row.percentCustomers} />

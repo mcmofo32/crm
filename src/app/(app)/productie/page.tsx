@@ -264,13 +264,6 @@ export default async function ProductiePage({
                 year,
                 month
               ),
-              setCustomersActual: setUserMonthlyActualAction.bind(
-                null,
-                row.id,
-                GoalMetric.CUSTOMERS,
-                year,
-                month
-              ),
               setUnitsActual: setUserMonthlyActualAction.bind(
                 null,
                 row.id,
