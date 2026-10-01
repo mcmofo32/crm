@@ -258,7 +258,7 @@ export function StageSelect({
     if (variant === "icon") {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-3 shadow-xl dark:bg-slate-900">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-3 shadow-xl dark:bg-slate-900">
             {formContent}
           </div>
         </div>

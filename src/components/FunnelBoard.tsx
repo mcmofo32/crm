@@ -833,7 +833,7 @@ export function FunnelBoard({
 
       {pendingMove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl dark:bg-slate-900">
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl dark:bg-slate-900">
             <div className="overflow-y-auto p-6">
               <h2 className="mb-1 text-lg font-medium text-slate-900 dark:text-slate-100">
                 Lead verplaatsen
