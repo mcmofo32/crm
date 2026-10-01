@@ -159,7 +159,7 @@ export function MeetingPlannerFields({
               onChange={(e) =>
                 onChange({ ...value, meetingDescription: e.target.value })
               }
-              rows={8}
+              rows={5}
               placeholder="Bv. agenda, wat mee te brengen, praktische afspraken…"
               className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />

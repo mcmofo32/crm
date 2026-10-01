@@ -61,6 +61,7 @@ export function LinkedLeadField({
           setQuery("");
           setOpen(true);
         }}
+        title="Bv. partner/koppel — krijgt exact hetzelfde tijdstip, locatie en subagent, blijft een aparte lead met eigen productie."
         className="flex items-center justify-between gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
       >
         <span
@@ -74,10 +75,6 @@ export function LinkedLeadField({
         </span>
         <Search size={14} className="shrink-0 text-slate-400 dark:text-slate-500" />
       </button>
-      <p className="text-xs text-slate-400 dark:text-slate-500">
-        Bv. partner/koppel — krijgt exact hetzelfde tijdstip, locatie en
-        subagent, blijft een aparte lead met eigen productie.
-      </p>
 
       {open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
