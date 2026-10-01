@@ -117,6 +117,8 @@ export async function createLeadAction(
   revalidatePath("/pipeline/verkoop");
   revalidatePath("/pipeline/rekrutering");
   revalidatePath(`/funnel/${leadType}`);
+  // Telt mee voor Cijfers > Aanbevelingen (aantal nieuwe leads deze maand).
+  revalidatePath("/productie");
 
   const duplicate = contactMatches[0];
   const redirectParams = new URLSearchParams({ created: "1" });
@@ -384,6 +386,8 @@ export async function createCustomerAction(
   revalidatePath("/subagent");
   revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${leadType}`);
+  // Telt meteen mee voor Cijfers > Productie (Behaald KL) én Aanbevelingen.
+  revalidatePath("/productie");
 
   redirect(`/leads/${lead.id}?created=1`);
 }
@@ -507,6 +511,8 @@ export async function createLeadsBulkAction(formData: FormData) {
   revalidatePath("/pipeline/verkoop");
   revalidatePath("/pipeline/rekrutering");
   for (const type of usedLeadTypes) revalidatePath(`/funnel/${type}`);
+  // Telt mee voor Cijfers > Aanbevelingen (aantal nieuwe leads deze maand).
+  revalidatePath("/productie");
   // Bij één gebruikt type: rechtstreeks naar de bijhorende Pipeline. Bij een
   // mix van FA/RG in dezelfde import: terug naar de Pipeline van het
   // standaardtype dat bovenaan het formulier gekozen was.
@@ -676,6 +682,10 @@ export async function updateLeadStageAction(
   revalidatePath(`/funnel/${lead.leadType}`);
   revalidatePath("/taken");
   revalidatePath("/dashboard");
+  // Een fase-wissel naar "Klant" telt meteen mee voor Cijfers > Productie
+  // (Behaald KL) — zonder dit bleef die ranglijst na een gewonnen deal
+  // staan op het cijfer van vóór de laatste fase-wissel.
+  revalidatePath("/productie");
 }
 
 /**

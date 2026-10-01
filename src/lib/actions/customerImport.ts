@@ -425,6 +425,11 @@ export async function importCustomersBulkAction(
   revalidatePath("/subagent");
   revalidatePath("/subagent/polissen");
   revalidatePath(`/funnel/${leadType}`);
+  // Telt meteen mee voor Cijfers > Productie (Behaald KL) én Aanbevelingen,
+  // ook al zijn bulk-geïmporteerde klanten zelf uitgesloten van Aanbevelingen
+  // (excludingBulkImportedLeads) — ze tellen wél mee voor Behaald KL als de
+  // historische datum toevallig in de huidige productiemaand valt.
+  revalidatePath("/productie");
 
   return { createdCount, skipped, skippedSheets };
 }
