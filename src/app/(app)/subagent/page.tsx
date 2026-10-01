@@ -14,7 +14,6 @@ import { getSubagents } from "@/lib/actions/subagents";
 import {
   setCaseManagerAction,
   setFollowUpStatusAction,
-  bulkSetBoarStatusTodoAction,
 } from "@/lib/actions/leadProducts";
 import {
   getManagedCustomers,
@@ -40,7 +39,6 @@ import {
 import { ProductType, BoarStatus } from "@/generated/prisma/client";
 import { InlineSelect } from "@/components/InlineSelect";
 import { SubagentTabs } from "@/components/SubagentTabs";
-import { BulkBoarTodoButton } from "@/components/BulkBoarTodoButton";
 import { SearchClearInput } from "@/components/SearchClearInput";
 
 /** Kleur voor de BOAR-badge zolang er nog geen status ingesteld is — zelfde grijstint als de NVT-opvolgingsstatus. */
@@ -252,7 +250,6 @@ export default async function SubagentKlantenPage({
             Klanten waar jij (of de gekozen structuur/persoon) dossierbeheerder van bent.
           </p>
         </div>
-        {canPickScope && <BulkBoarTodoButton action={bulkSetBoarStatusTodoAction} />}
       </div>
 
       <SubagentTabs active="klanten" />

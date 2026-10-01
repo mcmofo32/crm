@@ -38,14 +38,14 @@ function resolveOfficeNote(
 }
 
 /**
- * Formatteert één contactregel voor de omschrijving (bv. "Jan Peeters —
- * Telefoon: ..."), zonder rol-label — enkel naam en telefoonnummer. Geen
+ * Formatteert één contactregel voor de omschrijving (bv. "Jan Peeters — 📞
+ * +32 ..."), zonder rol-label — enkel naam en telefoonnummer. Geen
  * e-mailadres: wie uitgenodigd is, ziet dat al bij de deelnemers van het
  * agenda-item zelf, dus dat zou hier dubbel op staan.
  */
 function formatContactLine(person?: ContactInfo | null) {
   if (!person || !person.phone) return null;
-  return `${person.name} — Telefoon: ${withPlusPrefix(person.phone)}`;
+  return `${person.name} — 📞 ${withPlusPrefix(person.phone)}`;
 }
 
 const SCOPES = [
@@ -236,9 +236,15 @@ function buildEventBody(
     (isAdviesgesprekType(bareType) || isCarrieregesprekType(bareType)) && subagent?.phone
       ? subagent.phone
       : assignee?.phone ?? null;
-  const phoneFooterLine = phoneFooterNumber
-    ? `📞 ${withPlusPrefix(phoneFooterNumber)}`
-    : null;
+  // Bij een Adviesgesprek/Carrièregesprek is phoneFooterNumber hetzelfde
+  // nummer als subagentLine hierboven al toont — dan zou de footer dat
+  // gewoon herhalen, dus die blijft dan weg.
+  const phoneFooterDuplicatesSubagentLine =
+    invitesLead && subagentLine !== null && phoneFooterNumber === (subagent?.phone ?? null);
+  const phoneFooterLine =
+    phoneFooterNumber && !phoneFooterDuplicatesSubagentLine
+      ? `📞 ${withPlusPrefix(phoneFooterNumber)}`
+      : null;
 
   const description = invitesLead
     ? [
