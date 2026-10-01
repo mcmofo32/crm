@@ -161,12 +161,27 @@ export function ProductionTable({
                       min={0}
                       step={1}
                       name="actual"
-                      value={row.actualCustomers ? String(row.actualCustomers) : ""}
+                      value={
+                        row.actualCustomersOverride !== null
+                          ? String(row.actualCustomersOverride)
+                          : ""
+                      }
                       action={row.setCustomersActual}
                       className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                     />
                   ) : (
-                    row.actualCustomers
+                    <span
+                      title={
+                        row.actualCustomersOverride !== null
+                          ? "Handmatig gecorrigeerd — wijkt mogelijk af van het automatisch berekende cijfer"
+                          : undefined
+                      }
+                    >
+                      {row.actualCustomers}
+                      {row.actualCustomersOverride !== null && (
+                        <Pencil size={10} className="ml-1 inline text-amber-500" />
+                      )}
+                    </span>
                   )}
                 </td>
                 <td className="px-3 py-2.5 text-center">
@@ -194,12 +209,27 @@ export function ProductionTable({
                       min={0}
                       step={1}
                       name="actual"
-                      value={row.actualUnits ? String(row.actualUnits) : ""}
+                      value={
+                        row.actualUnitsOverride !== null
+                          ? String(row.actualUnitsOverride)
+                          : ""
+                      }
                       action={row.setUnitsActual}
                       className="w-20 rounded-md border border-slate-300 px-2 py-1 text-center text-sm disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                     />
                   ) : (
-                    row.actualUnits
+                    <span
+                      title={
+                        row.actualUnitsOverride !== null
+                          ? "Handmatig gecorrigeerd — wijkt mogelijk af van het automatisch berekende cijfer"
+                          : undefined
+                      }
+                    >
+                      {row.actualUnits}
+                      {row.actualUnitsOverride !== null && (
+                        <Pencil size={10} className="ml-1 inline text-amber-500" />
+                      )}
+                    </span>
                   )}
                 </td>
                 <td className="px-3 py-2.5 text-center">

@@ -288,9 +288,13 @@ export type ProductionRow = {
   coachName: string | null;
   targetCustomers: number;
   actualCustomers: number;
+  /** Expliciete correctie voor Behaald KL deze maand, los van actualCustomers (dat override ?? automatisch berekend is) — null = geen correctie actief. */
+  actualCustomersOverride: number | null;
   percentCustomers: number | null;
   targetUnits: number;
   actualUnits: number;
+  /** Expliciete correctie voor Behaald EH deze maand, los van actualUnits — null = geen correctie actief. */
+  actualUnitsOverride: number | null;
   percentUnits: number | null;
   conversationsPerWeek: number;
 };
@@ -391,12 +395,17 @@ export async function getProductionLeaderboard(
     const actualOverrideByMetric = new Map(
       u.monthlyActuals.map((a) => [a.metric, Number(a.value)])
     );
+    // Apart gehouden van het effectieve cijfer hieronder — anders is een
+    // expliciete 0-correctie (bv. per ongeluk ooit ingevuld bij "Doelen/
+    // behaald wijzigen") niet meer te onderscheiden van "geen correctie,
+    // gewoon 0 automatisch berekend", en blijft zo onzichtbaar/onmogelijk
+    // om nog leeg te maken (zie ProductionTable's invoervelden).
+    const actualCustomersOverride =
+      actualOverrideByMetric.get(GoalMetric.CUSTOMERS) ?? null;
+    const actualUnitsOverride = actualOverrideByMetric.get(GoalMetric.UNITS) ?? null;
     const actualCustomers =
-      actualOverrideByMetric.get(GoalMetric.CUSTOMERS) ??
-      customersByUser.get(u.id)?.size ??
-      0;
-    const actualUnits =
-      actualOverrideByMetric.get(GoalMetric.UNITS) ?? unitsByUser.get(u.id) ?? 0;
+      actualCustomersOverride ?? customersByUser.get(u.id)?.size ?? 0;
+    const actualUnits = actualUnitsOverride ?? unitsByUser.get(u.id) ?? 0;
     const targetCustomers = goalByMetric.get(GoalMetric.CUSTOMERS) ?? 0;
     const targetUnits = goalByMetric.get(GoalMetric.UNITS) ?? 0;
 
@@ -407,12 +416,14 @@ export async function getProductionLeaderboard(
       coachName: u.team?.coach.name ?? null,
       targetCustomers,
       actualCustomers,
+      actualCustomersOverride,
       percentCustomers:
         targetCustomers > 0
           ? Math.round((actualCustomers / targetCustomers) * 100)
           : null,
       targetUnits,
       actualUnits,
+      actualUnitsOverride,
       percentUnits:
         targetUnits > 0 ? Math.round((actualUnits / targetUnits) * 100) : null,
       conversationsPerWeek: conversationsByUser.get(u.id) ?? 0,
