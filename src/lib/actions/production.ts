@@ -287,9 +287,8 @@ export type ProductionRow = {
   jobFunction: JobFunction | null;
   coachName: string | null;
   targetCustomers: number;
+  /** Altijd live herberekend (zie wonThisMonth hieronder) — Behaald KL is bewust NIET handmatig corrigeerbaar, in tegenstelling tot Behaald EH, omdat een stille 0-correctie dit cijfer eerder voor iedereen onopgemerkt vastzette. */
   actualCustomers: number;
-  /** Expliciete correctie voor Behaald KL deze maand, los van actualCustomers (dat override ?? automatisch berekend is) — null = geen correctie actief. */
-  actualCustomersOverride: number | null;
   percentCustomers: number | null;
   targetUnits: number;
   actualUnits: number;
@@ -395,16 +394,14 @@ export async function getProductionLeaderboard(
     const actualOverrideByMetric = new Map(
       u.monthlyActuals.map((a) => [a.metric, Number(a.value)])
     );
-    // Apart gehouden van het effectieve cijfer hieronder — anders is een
-    // expliciete 0-correctie (bv. per ongeluk ooit ingevuld bij "Doelen/
-    // behaald wijzigen") niet meer te onderscheiden van "geen correctie,
-    // gewoon 0 automatisch berekend", en blijft zo onzichtbaar/onmogelijk
-    // om nog leeg te maken (zie ProductionTable's invoervelden).
-    const actualCustomersOverride =
-      actualOverrideByMetric.get(GoalMetric.CUSTOMERS) ?? null;
     const actualUnitsOverride = actualOverrideByMetric.get(GoalMetric.UNITS) ?? null;
-    const actualCustomers =
-      actualCustomersOverride ?? customersByUser.get(u.id)?.size ?? 0;
+    // Behaald KL is bewust altijd het live aantal leads dat deze maand naar
+    // een "Klant"-fase overging (zie wonThisMonth) — geen UserMonthlyActual-
+    // correctie meer, want een stille 0-correctie maakte dit cijfer eerder
+    // onopgemerkt onbruikbaar voor zowat iedereen (zie Robins melding) en
+    // was via de UI niet meer te onderscheiden van "geen correctie". Behaald
+    // EH blijft wél corrigeerbaar, voor historische data van vóór dit CRM.
+    const actualCustomers = customersByUser.get(u.id)?.size ?? 0;
     const actualUnits = actualUnitsOverride ?? unitsByUser.get(u.id) ?? 0;
     const targetCustomers = goalByMetric.get(GoalMetric.CUSTOMERS) ?? 0;
     const targetUnits = goalByMetric.get(GoalMetric.UNITS) ?? 0;
@@ -416,7 +413,6 @@ export async function getProductionLeaderboard(
       coachName: u.team?.coach.name ?? null,
       targetCustomers,
       actualCustomers,
-      actualCustomersOverride,
       percentCustomers:
         targetCustomers > 0
           ? Math.round((actualCustomers / targetCustomers) * 100)
