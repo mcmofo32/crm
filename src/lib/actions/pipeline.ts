@@ -7,6 +7,7 @@ import { canAccessOwner, canManageUsers } from "@/lib/permissions";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { mainFunnelStageKeys, NEW_LEAD_STAGE_KEY } from "@/lib/funnelStages";
 import { contactState } from "@/lib/contactState";
+import { isFollowUpStage } from "@/lib/meetingPlanning";
 import type { LeadCategoryFilter } from "@/lib/actions/leads";
 
 /**
@@ -206,18 +207,29 @@ export async function getPipelineLeads(
     orderBy: { createdAt: "desc" },
   });
 
-  // "Opvolging" betekent specifiek dat er een uitgaand gesprek in de
-  // toekomst ingepland staat (TERUGKOPPELEN) — niet zomaar "nog niet
-  // succesvol bereikt", want dat overlapt dan met "Te contacteren"/
-  // "Voicemail", die elk hun eigen, exclusieve deel al apart tonen. "Open"
-  // sluit datzelfde TERUGKOPPELEN net uit: wie al een terugbelmoment
-  // ingepland heeft staan, hoort niet meer bij "nog geen afspraak mee
-  // ingepland" thuis, en toont al apart onder "Opvolging".
+  // "Opvolging" betekent een geplande terugbelmoment (TERUGKOPPELEN) ÓF een
+  // lead wiens fase zelf al "Opvolging" is — dat laatste kan sinds het
+  // terugbelmoment bij een contactmoment-rapport optioneel werd (zie
+  // ActivityButtons): een lead kan dan op de "Opvolging"-fase belanden
+  // zonder dat er een nieuw gesprek ingepland werd. Zonder deze
+  // stage-check viel zo'n lead buiten beide filters en bleef hij onterecht
+  // bij "Open" staan i.p.v. apart onder "Opvolging". "Open" sluit beide
+  // gevallen net uit: wie al een terugbelmoment ingepland heeft of al op de
+  // Opvolging-fase staat, hoort niet meer bij "nog geen afspraak mee
+  // ingepland" thuis.
   const filtered =
     category === "open"
-      ? leads.filter((lead) => contactState(lead.activities) !== "TERUGKOPPELEN")
+      ? leads.filter(
+          (lead) =>
+            contactState(lead.activities) !== "TERUGKOPPELEN" &&
+            !isFollowUpStage(lead.stage.label)
+        )
       : category === "opvolging"
-      ? leads.filter((lead) => contactState(lead.activities) === "TERUGKOPPELEN")
+      ? leads.filter(
+          (lead) =>
+            contactState(lead.activities) === "TERUGKOPPELEN" ||
+            isFollowUpStage(lead.stage.label)
+        )
       : category === "te_contacteren"
       ? leads.filter((lead) => contactState(lead.activities) === "TE_CONTACTEREN")
       : category === "voicemail"
