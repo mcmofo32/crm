@@ -236,13 +236,17 @@ function buildEventBody(
     (isAdviesgesprekType(bareType) || isCarrieregesprekType(bareType)) && subagent?.phone
       ? subagent.phone
       : assignee?.phone ?? null;
-  // Bij een Adviesgesprek/Carrièregesprek is phoneFooterNumber hetzelfde
-  // nummer als subagentLine hierboven al toont — dan zou de footer dat
-  // gewoon herhalen, dus die blijft dan weg.
-  const phoneFooterDuplicatesSubagentLine =
-    invitesLead && subagentLine !== null && phoneFooterNumber === (subagent?.phone ?? null);
+  // phoneFooterNumber is soms hetzelfde nummer dat subagentLine of
+  // aanbrengerLine hierboven al toont — bv. bij een Adviesgesprek (subagent)
+  // of bij een Financiële analyse die de aanbrenger zelf voor eigen lead
+  // inplant (dan is de organisator/assignee dezelfde persoon als de
+  // aanbrenger). De footer zou dat dan gewoon herhalen, dus die blijft weg.
+  const phoneFooterDuplicatesLineAbove =
+    invitesLead &&
+    ((subagentLine !== null && phoneFooterNumber === subagent?.phone) ||
+      (aanbrengerLine !== null && phoneFooterNumber === owner?.phone));
   const phoneFooterLine =
-    phoneFooterNumber && !phoneFooterDuplicatesSubagentLine
+    phoneFooterNumber && !phoneFooterDuplicatesLineAbove
       ? `📞 ${withPlusPrefix(phoneFooterNumber)}`
       : null;
 
