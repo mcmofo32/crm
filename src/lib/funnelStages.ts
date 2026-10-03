@@ -31,7 +31,8 @@ const FA_SPEC: FunnelSpec = {
   secondary: [
     { key: "gewonnen", label: "Klant", order: 3, isWon: true },
     { key: "verloren", label: "Geen klant", order: 4, isLost: true },
-    { key: "voorstel", label: "Opvolging", order: 5 },
+    { key: "geen_interesse", label: "Geen interesse", order: 5, isLost: true },
+    { key: "voorstel", label: "Opvolging", order: 6 },
   ],
   legacyKeys: ["contact", "niet_bereikbaar"],
 };
@@ -46,7 +47,8 @@ const RG_SPEC: FunnelSpec = {
   secondary: [
     { key: "gewonnen", label: "Medewerker", order: 3, isWon: true },
     { key: "verloren", label: "Geen medewerker", order: 4, isLost: true },
-    { key: "opvolging", label: "Opvolging", order: 5 },
+    { key: "geen_interesse", label: "Geen interesse", order: 5, isLost: true },
+    { key: "opvolging", label: "Opvolging", order: 6 },
   ],
   legacyKeys: ["contact", "niet_bereikbaar"],
 };
