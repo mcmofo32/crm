@@ -295,16 +295,12 @@ export function ActivityButtons({
           disabled={pending || !outcomeStageId}
           onClick={() => {
             if (!outcomeStage) return;
+            // Het terugbelmoment hieronder is, in tegenstelling tot bij een
+            // kaart naar een plan-fase slepen op het Funnel-bord, écht
+            // optioneel (zie het label op FollowUpCallField) — iemand kan
+            // een contactmoment als "Opvolging" afronden zonder meteen al
+            // een exacte datum/uur te kiezen.
             const followUpFormData = buildFollowUpCallFormData(followUpCall);
-            // Vooraf valideren en enkel via toast melden i.p.v. binnen
-            // runWithToast te gooien — dat gooit door naar de
-            // dichtstbijzijnde error-boundary (error.tsx), wat het hele
-            // venster zou wegvegen voor iets dat gewoon "vul dit ene veld
-            // nog in" betekent.
-            if (isFollowUpStage(outcomeStage.label) && !followUpFormData) {
-              showToast("Kies een datum en uur voor het terugbelmoment", "error");
-              return;
-            }
             startTransition(async () => {
               try {
                 await runWithToast(async () => {
