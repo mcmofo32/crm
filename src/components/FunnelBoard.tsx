@@ -482,10 +482,9 @@ export function FunnelBoard({
       showToast("Kies een datum en uur voor de afspraak", "error");
       return;
     }
-    if (isFollowUpStage(toStageLabel) && !followUpFormData) {
-      showToast("Kies een datum en uur voor het terugbelmoment", "error");
-      return;
-    }
+    // Het terugbelmoment hieronder is écht optioneel (zie het label op
+    // FollowUpCallField) — een kaart naar "Opvolging" slepen mag ook zonder
+    // meteen al een exacte datum/uur te kiezen.
 
     startTransition(async () => {
       try {

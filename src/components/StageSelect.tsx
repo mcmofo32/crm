@@ -175,10 +175,10 @@ export function StageSelect({
                 showToast("Kies een datum en uur voor de afspraak", "error");
                 return;
               }
-              if (targetStage && isFollowUpStage(targetStage.label) && !followUpFormData) {
-                showToast("Kies een datum en uur voor het terugbelmoment", "error");
-                return;
-              }
+              // Het terugbelmoment hieronder is écht optioneel (zie het
+              // label op FollowUpCallField) — een lead naar "Opvolging"
+              // verplaatsen mag ook zonder meteen al een exacte datum/uur te
+              // kiezen.
 
               startTransition(async () => {
                 const trimmedEmail = emailInput.trim();
