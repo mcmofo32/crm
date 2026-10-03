@@ -243,7 +243,13 @@ export function ActivityButtons({
   // verplaatsen van een kaart op het funnelbord (zie StageSelect).
   if (mode === "outcome") {
     const wonStage = stages.find((s) => s.isWon);
-    const lostStage = stages.find((s) => s.isLost);
+    // Specifiek de primaire "verloren"-fase (Geen klant/Geen medewerker) —
+    // sinds "Geen interesse" óók isLost is, zou stages.find(s => s.isLost)
+    // afhankelijk van de volgorde in `stages` de verkeerde kunnen pakken.
+    // "Geen interesse" past hier sowieso niet: dit is de uitkomst van een
+    // afgeronde afspraak (er was dus al contact), niet van een eerste
+    // belletje — die kies je via de volledige fase-lijst (StageSelect).
+    const lostStage = stages.find((s) => s.key === "verloren");
     const followUpStage = stages.find((s) => isFollowUpStage(s.label));
     const outcomeStage = stages.find((s) => s.id === outcomeStageId);
 
