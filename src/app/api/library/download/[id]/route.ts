@@ -3,6 +3,7 @@ import { get } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import { getAllowedLibrarySections } from "@/lib/permissions";
+import { isViewOnlyLibraryMimeType } from "@/lib/libraryMedia";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,14 @@ export async function GET(
   // Management/Subagent-document niet lekken naar wie dat tabblad niet ziet.
   if (!getAllowedLibrarySections(viewer).includes(doc.category.tab.section)) {
     return NextResponse.json({ error: "Geen toegang tot dit document" }, { status: 403 });
+  }
+
+  // Video's mogen enkel in de CRM bekeken worden (zie /api/library/stream/[id]).
+  if (isViewOnlyLibraryMimeType(doc.mimeType)) {
+    return NextResponse.json(
+      { error: "Video's kunnen enkel in de CRM bekeken worden, niet gedownload" },
+      { status: 403 }
+    );
   }
 
   const result = await get(doc.blobPathname, { access: "private" });

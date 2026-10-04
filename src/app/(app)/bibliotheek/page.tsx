@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BookOpen, Download, FileText, Folder } from "lucide-react";
+import { BookOpen, Download, FileText, FileVideo, Folder } from "lucide-react";
 import { getEffectiveViewer } from "@/lib/impersonation";
 import {
   canViewBeheerderTools,
@@ -20,6 +20,8 @@ import { UploadLibraryDocumentForm } from "@/components/UploadLibraryDocumentFor
 import { DeleteLibraryDocumentButton } from "@/components/DeleteLibraryDocumentButton";
 import { DeleteLibraryEntryButton } from "@/components/DeleteLibraryEntryButton";
 import { AddLibraryEntryForm } from "@/components/AddLibraryEntryForm";
+import { LibraryVideoButton } from "@/components/LibraryVideoButton";
+import { isViewOnlyLibraryMimeType } from "@/lib/libraryMedia";
 
 // Nooit cachen/statisch renderen — net toegevoegde of verwijderde documenten
 // moeten meteen zichtbaar zijn.
@@ -97,8 +99,8 @@ export default async function BibliotheekPage({
           Bibliotheek
         </h1>
         <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
-          Documenten, presentaties en cursusmateriaal om te raadplegen of te
-          downloaden.
+          Documenten, presentaties, cursusmateriaal en video&apos;s om te
+          raadplegen of te downloaden.
         </p>
       </div>
 
@@ -229,43 +231,50 @@ export default async function BibliotheekPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {documents.map((doc) => (
-                    <tr key={doc.id}>
-                      <td className="px-4 py-3">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                            <FileText size={15} />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-slate-900 dark:text-slate-100">{doc.title}</p>
-                            <p className="truncate text-xs text-slate-400 dark:text-slate-500">
-                              {doc.uploadedBy.name}
-                            </p>
+                  {documents.map((doc) => {
+                    const isVideo = isViewOnlyLibraryMimeType(doc.mimeType);
+                    return (
+                      <tr key={doc.id}>
+                        <td className="px-4 py-3">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                              {isVideo ? <FileVideo size={15} /> : <FileText size={15} />}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-slate-900 dark:text-slate-100">{doc.title}</p>
+                              <p className="truncate text-xs text-slate-400 dark:text-slate-500">
+                                {doc.uploadedBy.name}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
-                        {formatFileSize(doc.fileSize)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
-                        {formatDate(doc.createdAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          <a
-                            href={`/api/library/download/${doc.id}`}
-                            className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                          >
-                            <Download size={14} />
-                            Downloaden
-                          </a>
-                          {canManage && (
-                            <DeleteLibraryDocumentButton documentId={doc.id} title={doc.title} />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
+                          {formatFileSize(doc.fileSize)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
+                          {formatDate(doc.createdAt)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {isVideo ? (
+                              <LibraryVideoButton documentId={doc.id} title={doc.title} />
+                            ) : (
+                              <a
+                                href={`/api/library/download/${doc.id}`}
+                                className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                              >
+                                <Download size={14} />
+                                Downloaden
+                              </a>
+                            )}
+                            {canManage && (
+                              <DeleteLibraryDocumentButton documentId={doc.id} title={doc.title} />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      );
+                  })}
                 </tbody>
               </table>
             </div>
