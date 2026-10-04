@@ -25,10 +25,18 @@ export function UploadLibraryDocumentForm({
   tabs: LibraryTabOption[];
   defaultCategoryId?: string;
 }) {
-  const firstCategoryId = tabs.flatMap((t) => t.categories)[0]?.id ?? "";
+  const allCategoryIds = tabs.flatMap((t) => t.categories.map((c) => c.id));
+  const fallbackCategoryId = defaultCategoryId ?? allCategoryIds[0] ?? "";
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [categoryId, setCategoryId] = useState(defaultCategoryId ?? firstCategoryId);
+  const [selectedCategoryId, setCategoryId] = useState(fallbackCategoryId);
+  // De gekozen categorie moet altijd tot de getoonde opties behoren: anders
+  // toont de <select> visueel de eerste optie terwijl er stilletjes een
+  // categorie uit een andere sectie (bv. Bestanden i.p.v. Subagent) in de
+  // state blijft hangen — en het document dáár terechtkomt.
+  const categoryId = allCategoryIds.includes(selectedCategoryId)
+    ? selectedCategoryId
+    : fallbackCategoryId;
   const [inputKey, setInputKey] = useState(0);
   const [pending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);

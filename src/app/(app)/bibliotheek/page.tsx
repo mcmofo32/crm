@@ -202,7 +202,13 @@ export default async function BibliotheekPage({
         <div className="flex flex-col gap-4">
           {canManage &&
             (activeTab ? (
-              <UploadLibraryDocumentForm tabs={tabs} defaultCategoryId={activeCategory?.id} />
+              <UploadLibraryDocumentForm
+                // Nieuwe sectie/map/categorie = nieuw formulier, zodat geen
+                // categorie uit een vorige sectie in de state blijft hangen.
+                key={`${section}-${activeTab.id}-${activeCategory?.id ?? ""}`}
+                tabs={tabs}
+                defaultCategoryId={activeCategory?.id ?? activeTab.categories[0]?.id}
+              />
             ) : (
               <p className="rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 Maak eerst een map aan om documenten te kunnen uploaden.
