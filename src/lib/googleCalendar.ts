@@ -8,7 +8,7 @@ import {
   isAdviesgesprekType,
   isCarrieregesprekType,
 } from "@/lib/meetingPlanning";
-import { toBrusselsTimeValue } from "@/lib/datetime";
+import { toBrusselsTimeValue, isBrusselsWeekend } from "@/lib/datetime";
 
 type ContactInfo = { name: string; email: string | null; phone: string | null };
 
@@ -20,18 +20,24 @@ function withPlusPrefix(phone: string) {
 /**
  * Kiest tussen de gewone en de buiten-kantooruren-notitie (zie "Kantoor" in
  * het profielmenu) op basis van het lokale (Europe/Brussels) tijdstip van de
- * afspraak — enkel als er effectief een buiten-kantooruren-notitie én beide
- * kantooruren ingesteld zijn, anders altijd de gewone notitie.
+ * afspraak — enkel als er effectief een buiten-kantooruren-notitie ingesteld
+ * is, anders altijd de gewone notitie. Een zaterdag/zondag telt altijd als
+ * buiten kantooruren (het kantoor is dan sowieso nooit open), ongeacht het
+ * uur of of workHoursStart/workHoursEnd al ingesteld zijn; op een weekdag
+ * geldt de buiten-kantooruren-notitie enkel buiten workHoursStart/workHoursEnd.
  */
 function resolveOfficeNote(
   settings: Pick<OfficeSettings, "note" | "afterHoursNote" | "workHoursStart" | "workHoursEnd"> | null | undefined,
   scheduledAt: Date | null
 ): string | null {
   if (!settings) return null;
-  if (settings.afterHoursNote && settings.workHoursStart && settings.workHoursEnd && scheduledAt) {
-    const time = toBrusselsTimeValue(scheduledAt);
-    if (time < settings.workHoursStart || time >= settings.workHoursEnd) {
-      return settings.afterHoursNote;
+  if (settings.afterHoursNote && scheduledAt) {
+    if (isBrusselsWeekend(scheduledAt)) return settings.afterHoursNote;
+    if (settings.workHoursStart && settings.workHoursEnd) {
+      const time = toBrusselsTimeValue(scheduledAt);
+      if (time < settings.workHoursStart || time >= settings.workHoursEnd) {
+        return settings.afterHoursNote;
+      }
     }
   }
   return settings.note;

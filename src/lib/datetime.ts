@@ -100,3 +100,12 @@ export function toBrusselsTimeValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(p.hour)}:${pad(p.minute)}`;
 }
+
+/** True als dit tijdstip, in Europe/Brussels, op een zaterdag of zondag valt — dan is het altijd buiten kantooruren, ongeacht het uur (het kantoor is in het weekend sowieso nooit open). */
+export function isBrusselsWeekend(instant: Date): boolean {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIMEZONE,
+    weekday: "short",
+  }).format(instant);
+  return weekday === "Sat" || weekday === "Sun";
+}
