@@ -1013,6 +1013,13 @@ model GoogleSheetsBackup {
   /// (aangemaakt bij de eerste synchronisatie). `null` tot de eerste sync.
   spreadsheetId String?
 
+  /// Tijdstip van de laatste keer dat de nachtelijke cron effectief met de
+  /// juiste CRON_SECRET binnenkwam (los van of de sync daarna slaagde) —
+  /// enkel gezet door de cron-route zelf, nooit door de handmatige
+  /// "Nu synchroniseren"-knop. Laat zo toe om "de cron triggert nooit" te
+  /// onderscheiden van "de cron triggert, maar de sync faalt of hangt".
+  lastCronPingAt DateTime?
+
   lastSyncedAt  DateTime?
   lastSyncError String?
 

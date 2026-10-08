@@ -114,7 +114,16 @@ export default async function BackupPage({
             )}
 
             <div className="flex flex-col gap-1 text-slate-500 dark:text-slate-400">
+              <span>Laatste cron-aanroep: {formatDateTime(status.lastCronPingAt)}</span>
               <span>Laatst gesynchroniseerd: {formatDateTime(status.lastSyncedAt)}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-600">
+                De cron-aanroep gebeurt elke nacht om 2u, vóór de sync zelf start.
+                Staat die nooit op een recent tijdstip, dan komt de nachtelijke
+                cron niet aan (controleer dan de cron-instellingen van de
+                hosting-omgeving); staat die wel recent maar &quot;laatst
+                gesynchroniseerd&quot; niet, dan start de sync wel maar lukt of
+                voltooit die niet.
+              </span>
               {status.lastSyncError && (
                 <span className="text-red-600 dark:text-red-400">
                   Laatste sync-fout: {status.lastSyncError}

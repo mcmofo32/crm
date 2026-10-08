@@ -67,7 +67,24 @@ export async function getGoogleSheetsBackupStatus() {
       : null,
     lastSyncedAt: connection.lastSyncedAt,
     lastSyncError: connection.lastSyncError,
+    lastCronPingAt: connection.lastCronPingAt,
   };
+}
+
+/**
+ * Gezet door de cron-route zelf zodra de CRON_SECRET-check slaagt, vóór de
+ * eigenlijke sync start — bewust niet in `syncGoogleSheetsBackupNow` zelf,
+ * want die wordt ook door de handmatige "Nu synchroniseren"-knop aangeroepen
+ * en zou dit tijdstip dan vervalsen. Zo kan de back-up-pagina laten zien of
+ * de nachtelijke cron effectief binnenkomt, los van of de sync daarna slaagt.
+ */
+export async function recordCronPing() {
+  const connection = await getActiveConnection();
+  if (!connection) return;
+  await prisma.googleSheetsBackup.update({
+    where: { id: connection.id },
+    data: { lastCronPingAt: new Date() },
+  });
 }
 
 /** Ruilt de OAuth-code na consent in voor tokens en activeert de back-up-koppeling. */
