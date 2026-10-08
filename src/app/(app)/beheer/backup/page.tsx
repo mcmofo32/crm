@@ -169,8 +169,7 @@ export default async function BackupPage({
       <p className="text-sm text-slate-400 dark:text-slate-500">
         Elke sync herschrijft elk tabblad volledig (headerrij, opmaak en
         databereik) — pas dus niets manueel aan in het sheet, want dat gaat
-        bij de volgende sync verloren. Het Auditlog-tabblad beperkt zich tot
-        de 5000 meest recente regels.
+        bij de volgende sync verloren.
       </p>
     </div>
   );

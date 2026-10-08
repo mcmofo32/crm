@@ -636,7 +636,6 @@ const auditLogTab: SheetsBackupTab = {
     const entries = await prisma.auditLog.findMany({
       include: { actor: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
-      take: 5000,
     });
     return entries.map((e) => [
       e.action,
