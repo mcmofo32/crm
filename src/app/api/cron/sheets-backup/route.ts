@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncGoogleSheetsBackupNow } from "@/lib/googleSheetsBackup";
+import { syncGoogleSheetsBackupNow, recordCronPing } from "@/lib/googleSheetsBackup";
 
 export const maxDuration = 300;
 
@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
+  await recordCronPing();
   const result = await syncGoogleSheetsBackupNow();
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
