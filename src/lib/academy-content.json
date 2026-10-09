@@ -80,7 +80,7 @@
             ],
             [
               "**Funnel**",
-              "FA Funnel en RG Funnel — het bord waarop je leads van fase naar fase verplaatst."
+              "Verkoop Funnel en Rekrutering Funnel — het bord waarop je leads van fase naar fase verplaatst."
             ],
             [
               "**Klanten**",
@@ -253,13 +253,13 @@
         [
           "list",
           [
-            "**FA** (Financiële Analyse) — een potentiële klant voor een financieel product.",
-            "**RG** (Rekrutering) — een kandidaat-medewerker."
+            "**Verkoop** — een potentiële klant voor een financieel product.",
+            "**Rekrutering** — een kandidaat-medewerker."
           ]
         ],
         [
           "p",
-          "Dat type bepaalt in welke Funnel (FA Funnel of RG Funnel, zie hoofdstuk 6) de lead verschijnt, en welke gesprekstypes voor hem/haar van toepassing zijn."
+          "Dat type bepaalt in welke Funnel (Verkoop Funnel of Rekrutering Funnel, zie hoofdstuk 6) de lead verschijnt, en welke gesprekstypes voor hem/haar van toepassing zijn."
         ],
         [
           "h3",
@@ -274,7 +274,7 @@
           [
             "Klik op **Nieuwe lead**.",
             "Vul de gegevens in die je al kent — niets hoeft in één keer volledig.",
-            "Kies het type: **FA** of **RG**.",
+            "Kies het type: **Verkoop** of **Rekrutering**.",
             "Bevestig — de lead verschijnt meteen in de bijhorende Pipeline en Funnel, in de eerste fase."
           ]
         ],
@@ -290,7 +290,7 @@
         ],
         [
           "p",
-          "Heb je een lijst van meerdere leads tegelijk (bv. oude leads die je wil importeren)? Via **Leads in bulk toevoegen** vul je een Excel-achtige tabel in — elke rij is één lead — en kies je bovenaan in welke Funnel (bv. \"Leads FA\") ze moeten terechtkomen."
+          "Heb je een lijst van meerdere leads tegelijk (bv. oude leads die je wil importeren)? Via **Leads in bulk toevoegen** vul je een Excel-achtige tabel in — elke rij is één lead — en kies je bovenaan in welke Funnel (bv. \"Verkoop\") ze moeten terechtkomen."
         ],
         [
           "steps",
@@ -324,7 +324,7 @@
             ],
             [
               "**Klant** (Won)",
-              "Traject succesvol afgesloten — de lead is klant (FA) of nieuwe medewerker (RG) geworden."
+              "Traject succesvol afgesloten — de lead is klant (Verkoop) of nieuwe medewerker (Rekrutering) geworden."
             ],
             [
               "**Verloren** (Lost)",
@@ -346,7 +346,7 @@
       "blocks": [
         [
           "p",
-          "De **Pipeline** (Pipeline verkoop voor FA-leads, Pipeline Rekrutering voor RG-leads) is waar al je nieuwe leads terechtkomen — ze vervangt de Excel die vroeger gebruikt werd. Het is een gewone lijstweergave (in plaats van het kaartenbord van de Funnel), bedoeld voor de eerste contactopvolging vóór er een afspraak wordt ingepland."
+          "De **Pipeline** (Pipeline verkoop en Pipeline Rekrutering) is waar al je nieuwe leads terechtkomen — ze vervangt de Excel die vroeger gebruikt werd. Het is een gewone lijstweergave (in plaats van het kaartenbord van de Funnel), bedoeld voor de eerste contactopvolging vóór er een afspraak wordt ingepland."
         ],
         [
           "h3",
@@ -398,11 +398,11 @@
       "blocks": [
         [
           "p",
-          "De **Funnel** is het bord waarop je dagelijks werkt: elke kolom is een fase, elke kaart een lead. Een lead verschuift van kolom naar kolom naarmate het traject vordert. Er is een **FA Funnel** en een **RG Funnel** — kies bovenaan welke je bekijkt."
+          "De **Funnel** is het bord waarop je dagelijks werkt: elke kolom is een fase, elke kaart een lead. Een lead verschuift van kolom naar kolom naarmate het traject vordert. Er is een **Verkoop Funnel** en een **Rekrutering Funnel** — kies bovenaan welke je bekijkt."
         ],
         [
           "p",
-          "De fases zelf (hun naam, volgorde en kleur) zijn per kantoor instelbaar, maar de FA Funnel ziet er bij ons zo uit: bovenaan de actieve fases, en daaronder — apart gegroepeerd onder **\"Afgerond & geparkeerd\"** — de fases waar een traject eindigt of tijdelijk pauzeert:"
+          "De fases zelf (hun naam, volgorde en kleur) zijn per kantoor instelbaar, maar de Verkoop Funnel ziet er bij ons zo uit: bovenaan de actieve fases, en daaronder — apart gegroepeerd onder **\"Afgerond & geparkeerd\"** — de fases waar een traject eindigt of tijdelijk pauzeert:"
         ],
         [
           "table",
@@ -427,13 +427,13 @@
         ],
         [
           "p",
-          "De RG Funnel volgt dezelfde logica, maar dan met Kennismakingsgesprek en Carrièregesprek in plaats van Financiële analyse/Adviesgesprek/Opvolggesprek."
+          "De Rekrutering Funnel volgt dezelfde logica, maar dan met Kennismakingsgesprek en Carrièregesprek in plaats van Financiële analyse/Adviesgesprek/Opvolggesprek."
         ],
         [
           "photo",
           "funnel-bord.png",
-          "FA Funnel-bord",
-          "Het FA-funnelbord: bovenaan de actieve fases (Financiële analyse, Adviesgesprek, Opvolggesprek), daaronder — onder \"Afgerond & geparkeerd\" — Klant, Geen klant en Opvolging."
+          "Verkoop Funnel-bord",
+          "Het Verkoop-funnelbord: bovenaan de actieve fases (Financiële analyse, Adviesgesprek, Opvolggesprek), daaronder — onder \"Afgerond & geparkeerd\" — Klant, Geen klant en Opvolging."
         ],
         [
           "h3",
@@ -656,7 +656,7 @@
       "blocks": [
         [
           "p",
-          "Zodra een FA-lead de fase **Klant** bereikt, vul je op zijn/haar profiel de **Producten**-kaart in: welk(e) product(en) nam de klant, voor welk bedrag en hoeveel eenheden."
+          "Zodra een Verkoop-lead de fase **Klant** bereikt, vul je op zijn/haar profiel de **Producten**-kaart in: welk(e) product(en) nam de klant, voor welk bedrag en hoeveel eenheden."
         ],
         [
           "h3",
@@ -817,13 +817,13 @@
         ],
         [
           "p",
-          "Het rode bolletje naast **Taken** in de navigatiebalk toont het aantal van je eigen taken dat **verlopen** is (gepland in het verleden, nog niet afgerond) — dit cijfer gaat altijd over je eigen taken, ook als je coach of beheerder bent. Bovenaan filter je met de tabs **Alle**/**Leads FA**/**Leads RG**, en elke taak heeft drie knoppen: **Wijzigen**, **Afgerond** en **Annuleren**."
+          "Het rode bolletje naast **Taken** in de navigatiebalk toont het aantal van je eigen taken dat **verlopen** is (gepland in het verleden, nog niet afgerond) — dit cijfer gaat altijd over je eigen taken, ook als je coach of beheerder bent. Bovenaan filter je met de tabs **Alle**/**Verkoop**/**Rekrutering**, en elke taak heeft drie knoppen: **Wijzigen**, **Afgerond** en **Annuleren**."
         ],
         [
           "photo",
           "takenlijst.jpg",
           "Takenlijst",
-          "De takenpagina met de tabs Alle/Leads FA/Leads RG, een verlopen taak bovenaan, en de knoppen Wijzigen/Afgerond/Annuleren per rij."
+          "De takenpagina met de tabs Alle/Verkoop/Rekrutering, een verlopen taak bovenaan, en de knoppen Wijzigen/Afgerond/Annuleren per rij."
         ],
         [
           "h3",
@@ -977,7 +977,7 @@
         ],
         [
           "p",
-          "Mogelijke meetwaarden: aantal gewonnen klanten, aantal eenheden, aantal RG-gesprekken, of aantal voltooide activiteiten. Bij het aanmaken kan er ook een poster (afbeelding of pdf) bijgevoegd worden."
+          "Mogelijke meetwaarden: aantal gewonnen klanten, aantal eenheden, aantal Rekrutering-gesprekken, of aantal voltooide activiteiten. Bij het aanmaken kan er ook een poster (afbeelding of pdf) bijgevoegd worden."
         ],
         [
           "photo",
@@ -1043,7 +1043,7 @@
         ],
         [
           "p",
-          "De **Klanten**-pagina toont alle gewonnen FA-leads op één plek. Bovenaan staan vier kaartjes (Totaal klanten, Nieuwe klanten deze maand, Nieuwe klanten dit jaar, Totaal maandelijks incasso), rechtsboven zit de knop **+ Klant toevoegen**. In de tabel kan je zoeken en filteren (bijvoorbeeld op team), de **dossierbeheerder** wijzigen, en de status van de jaarlijkse **belastingsaangifte** bijhouden: Nog te doen, Ingepland, Gedaan, Boekhouder of NVT. Ook de datum waarop de lead klant werd, staat hier."
+          "De **Klanten**-pagina toont alle gewonnen Verkoop-leads op één plek. Bovenaan staan vier kaartjes (Totaal klanten, Nieuwe klanten deze maand, Nieuwe klanten dit jaar, Totaal maandelijks incasso), rechtsboven zit de knop **+ Klant toevoegen**. In de tabel kan je zoeken en filteren (bijvoorbeeld op team), de **dossierbeheerder** wijzigen, en de status van de jaarlijkse **belastingsaangifte** bijhouden: Nog te doen, Ingepland, Gedaan, Boekhouder of NVT. Ook de datum waarop de lead klant werd, staat hier."
         ],
         [
           "note",

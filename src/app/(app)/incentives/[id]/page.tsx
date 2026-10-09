@@ -26,8 +26,8 @@ const STATUS_BADGE_VARIANT: Record<ReturnType<typeof getIncentiveStatus>, BadgeV
 };
 
 const LEAD_TYPE_FILTER_LABELS: Record<string, string> = {
-  FA: "Enkel Leads FA",
-  RG: "Enkel Leads RG",
+  FA: "Enkel Verkoop",
+  RG: "Enkel Rekrutering",
 };
 
 export default async function IncentiveDetailPage({

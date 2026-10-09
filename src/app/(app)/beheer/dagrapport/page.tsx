@@ -9,6 +9,7 @@ import {
   type DailyNewLeadsReport,
 } from "@/lib/actions/dailyReport";
 import { BarList, type BarListItem } from "@/components/analytics/BarList";
+import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 
 // Zelfde categorische kleuren als STAGE_COLORS op Analyse (al gevalideerd
 // met de dataviz-skill) — hier lokaal herhaald i.p.v. geïmporteerd, zelfde
@@ -269,10 +270,10 @@ export default async function DagrapportPage({
         </div>
       )}
 
-      <NewLeadsSection title="FA" report={report.newLeadsFa} />
-      <StageFlowSection title="FA" flow={report.fa} />
-      <NewLeadsSection title="RG" report={report.newLeadsRg} />
-      <StageFlowSection title="RG" flow={report.rg} />
+      <NewLeadsSection title={LEAD_TYPE_LABELS.FA} report={report.newLeadsFa} />
+      <StageFlowSection title={LEAD_TYPE_LABELS.FA} flow={report.fa} />
+      <NewLeadsSection title={LEAD_TYPE_LABELS.RG} report={report.newLeadsRg} />
+      <StageFlowSection title={LEAD_TYPE_LABELS.RG} flow={report.rg} />
     </div>
   );
 }

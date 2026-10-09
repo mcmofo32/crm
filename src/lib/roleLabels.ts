@@ -16,8 +16,8 @@ export const ROLE_BADGE_VARIANT: Record<Role, BadgeVariant> = {
 };
 
 export const LEAD_TYPE_LABELS = {
-  FA: "Leads FA",
-  RG: "Leads RG",
+  FA: "Verkoop",
+  RG: "Rekrutering",
 } as const;
 
 export const LEAD_TYPE_BADGE_VARIANT = {

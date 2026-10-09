@@ -152,7 +152,7 @@ export default async function TakenPage({
       <div>
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Taken</h1>
         <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
-          Alle geplande opvolging over Leads FA en Leads RG, op één plek.
+          Alle geplande opvolging over Verkoop en Rekrutering, op één plek.
         </p>
       </div>
 

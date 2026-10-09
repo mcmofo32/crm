@@ -30,6 +30,7 @@ import {
 } from "@/lib/meetingPlanning";
 import { parseLocalDateTime, combineWithTimeOnSameLocalDay } from "@/lib/datetime";
 import { getOfficeSettings } from "@/lib/actions/officeSettings";
+import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 
 /**
  * Voor logboek-beschrijvingen: het onderwerp van een afspraak bevat enkel het
@@ -691,14 +692,14 @@ export async function planStageMeetingAction(
       return { error: "Kan niet koppelen met dezelfde lead" };
     }
     if (freshLead.leadType !== "FA") {
-      return { error: "Koppelen met een tweede lead kan enkel bij FA" };
+      return { error: `Koppelen met een tweede lead kan enkel bij ${LEAD_TYPE_LABELS.FA}` };
     }
     secondLead = await prisma.lead.findUnique({ where: { id: secondLeadId } });
     if (!secondLead || secondLead.deletedAt) {
       return { error: "Gekoppelde lead niet gevonden" };
     }
     if (secondLead.leadType !== "FA") {
-      return { error: "Gekoppelde lead moet ook een FA-lead zijn" };
+      return { error: `Gekoppelde lead moet ook een ${LEAD_TYPE_LABELS.FA}-lead zijn` };
     }
     if (!(await canAccessOwner(user, secondLead.ownerId))) {
       return { error: "Geen toegang tot de gekoppelde lead" };

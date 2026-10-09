@@ -9,12 +9,13 @@ import {
 import type { LeadType } from "@/generated/prisma/client";
 import { Avatar } from "@/components/Avatar";
 import { FormToast } from "@/components/toast/FormToast";
+import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 
 const QUARTER_LABELS: Record<number, string> = { 1: "Q1", 2: "Q2", 3: "Q3", 4: "Q4" };
 
 const TYPE_TABS: { value: LeadType; label: string }[] = [
-  { value: "FA", label: "Productie (FA)" },
-  { value: "RG", label: "Rekrutering (RG)" },
+  { value: "FA", label: `Productie (${LEAD_TYPE_LABELS.FA})` },
+  { value: "RG", label: LEAD_TYPE_LABELS.RG },
 ];
 
 export default async function BedrijfsJaarplanPage({
