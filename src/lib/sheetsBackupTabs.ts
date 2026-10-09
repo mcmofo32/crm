@@ -569,7 +569,7 @@ const incentiveCategoriesTab: SheetsBackupTab = {
     return categories.map((c) => [
       c.incentive.title,
       c.metric,
-      c.leadType ? LEAD_TYPE_LABELS[c.leadType] : "FA + RG",
+      c.leadType ? LEAD_TYPE_LABELS[c.leadType] : `${LEAD_TYPE_LABELS.FA} + ${LEAD_TYPE_LABELS.RG}`,
       c.targetValue,
       c.order,
     ]);

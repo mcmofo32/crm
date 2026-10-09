@@ -250,9 +250,6 @@ export default async function DashboardPage() {
         <div>
           <h2 className="mb-4 text-xl font-medium text-slate-900 dark:text-slate-100">
             Maandelijkse groepsdoelen
-            <span className="ml-1.5 text-base font-normal text-slate-400 dark:text-slate-500">
-              — totaal van iedereen
-            </span>
           </h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
             {groupProductionGoals.rows.map((goal) => (

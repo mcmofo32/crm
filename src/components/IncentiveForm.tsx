@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { createIncentiveAction } from "@/lib/actions/incentives";
+import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 
 const METRIC_OPTIONS = [
   { value: "CLIENTS_WON", label: "Aantal klanten" },
   { value: "UNITS", label: "Aantal eenheden" },
-  { value: "RG_MEETINGS", label: "Aantal RG-gesprekken" },
+  { value: "RG_MEETINGS", label: "Aantal Rekrutering-gesprekken" },
   { value: "ACTIVITIES_COMPLETED", label: "Afgeronde contactmomenten" },
 ];
 
@@ -109,9 +110,11 @@ export function IncentiveForm() {
                 defaultValue=""
                 className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
-                <option value="">FA + RG</option>
-                <option value="FA">Enkel FA</option>
-                <option value="RG">Enkel RG</option>
+                <option value="">
+                  {LEAD_TYPE_LABELS.FA} + {LEAD_TYPE_LABELS.RG}
+                </option>
+                <option value="FA">Enkel {LEAD_TYPE_LABELS.FA}</option>
+                <option value="RG">Enkel {LEAD_TYPE_LABELS.RG}</option>
               </select>
               <input
                 name="categoryTarget"
@@ -166,9 +169,11 @@ export function IncentiveForm() {
               defaultValue=""
               className="rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
-              <option value="">FA + RG</option>
-              <option value="FA">Enkel FA</option>
-              <option value="RG">Enkel RG</option>
+              <option value="">
+                {LEAD_TYPE_LABELS.FA} + {LEAD_TYPE_LABELS.RG}
+              </option>
+              <option value="FA">Enkel {LEAD_TYPE_LABELS.FA}</option>
+              <option value="RG">Enkel {LEAD_TYPE_LABELS.RG}</option>
             </select>
           </div>
           <div className="flex flex-col gap-1">

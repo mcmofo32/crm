@@ -11,10 +11,11 @@ import {
 import { GoalMetric, type LeadType } from "@/generated/prisma/client";
 import { FormToast } from "@/components/toast/FormToast";
 import { UserMonthlyActualsMatrix } from "@/components/UserMonthlyActualsMatrix";
+import { LEAD_TYPE_LABELS } from "@/lib/roleLabels";
 
 const TYPE_TABS: { value: LeadType; label: string }[] = [
-  { value: "FA", label: "Productie (FA)" },
-  { value: "RG", label: "Rekrutering (RG)" },
+  { value: "FA", label: `Productie (${LEAD_TYPE_LABELS.FA})` },
+  { value: "RG", label: LEAD_TYPE_LABELS.RG },
 ];
 
 export default async function ProductieDoelenPage({
